@@ -54,6 +54,8 @@ python3 skills/agent-roster/scripts/probe_endpoints.py --render    # 输出可�
 默认用 [acpx](https://acpx.sh)——ACP 的无头命令行客户端，会话管理、权限策略、结构化事件流都是现成的。但 skill 只依赖一层适配契约（Endpoint + prompt + 工作目录 + 权限 → 结构化结果），换执行器只改
 [delegation-contract.md](./skills/agent-roster/references/delegation-contract.md)。
 
+「换执行器」说的是换成另一个同等实现，而仓库里目前只有一个：`acpx` 缺失时的直连 ACP 只覆盖一次性往返，会话、超时、权限档位都得现场拼，不是对等路径。所以 `acpx` 不在 PATH 时委派先停住、默认提议安装，只有使用者明确拒绝才走降级。
+
 ## 相关文档
 
 - [CONTEXT.md](./CONTEXT.md)：术语表。读代码或文档遇到 Endpoint、Delegation、Trace 这些词先看这里。

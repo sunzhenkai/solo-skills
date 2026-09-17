@@ -28,7 +28,7 @@
 
 `acpx` 是 ACP（Agent Client Protocol）的无头命令行客户端，一条命令打通各家 coding agent，自带会话管理、权限策略与结构化事件流。
 
-准备委派时若 `acpx` 不在 PATH：默认选项是安装（以 https://acpx.sh 的当前方式为准，常见为 `npm i -g acpx`）。必须先向使用者确认；拒绝则先提示「功能受限」，再走降级。不要静默安装，也不要把降级说成完整替代。
+准备委派时若 `acpx` 不在 PATH：停下委派，默认提议安装（以 https://acpx.sh 的当前方式为准，常见为 `npm i -g acpx`），并等使用者回答。未获确认不得安装；未获**明确拒绝**不得降级——沉默、追问、话题转移都不算拒绝。拒绝后先提示「功能受限」再走降级，不要把降级说成完整替代。
 
 ```bash
 run_dir=~/.cache/agent-roster/runs/$(date +%Y%m%d-%H%M%S)-<slug>
@@ -61,6 +61,8 @@ acpx 仍处于 alpha，命令表面会变。执行前若不确定，以 `acpx --
 | `pi` | `npx pi-acp` |
 
 ## 不用 acpx 时的降级
+
+**进入条件**：本次委派的使用者已**明确拒绝**安装 `acpx`，且下面的受限清单已经说清。两条缺一就不要往下照抄命令——回到 `SKILL.md` 的门禁，先把委派停住。上一次委派走过降级，不是本次的进入条件。
 
 降级不是对等路径。编排者直接对适配器命令说 ACP（stdio 上的 JSON-RPC 2.0）：`initialize` → `session/new` → `session/prompt`，自行处理权限请求与取消。`scripts/probe_endpoints.py` 的 L2 探测只做到 `initialize` 就断开，不是完整委派客户端。
 
