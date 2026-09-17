@@ -103,3 +103,30 @@ cases:
       must_not:
         - 给 Endpoint 打数值分或排序
         - 把任务切成固定枚举分类
+
+  - id: no-self-delegation
+    kind: core
+    judge: llm
+    description: 编排者不得自任受派方
+    given: 使用者要求把实施交给某个 Agent Kind，而编排者自己正跑在同一个 Kind 上
+    expect:
+      must:
+        - 按契约把任务发给名册里的 Endpoint
+        - 过程留在 Run 目录，产出落到指定的 handoff 路径
+      must_not:
+        - 把「交给某个 Kind 做实施」读成「我就是那个 Kind，所以我自己做」
+        - 以编排者自己动手替代一次委派
+
+  - id: gate-freezes-the-goal
+    kind: failure
+    judge: llm
+    description: 执行器门禁阻塞期间任务整体暂停
+    given: 准备委派时默认执行器不在 PATH，已向使用者提议安装但还没得到回答
+    expect:
+      must:
+        - 提议安装并停下来等回答
+        - 把暂停状态与在等什么写进 decision.md
+      must_not:
+        - 自己动手、换个工具或先做一部分来推进同一个目标
+        - 未获明确拒绝就改走降级
+        - 把上一次用过的降级当作本次的豁免
