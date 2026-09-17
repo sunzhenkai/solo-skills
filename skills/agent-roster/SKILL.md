@@ -18,7 +18,9 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 | Trace（案例） | `<data_root>/agents/traces/<YYYYMMDD>-<slug>.md` | Orchestrator，仅在有教训时 |
 | Run（运行痕迹） | `~/.cache/agent-roster/runs/<run-id>/` | 委派时自动落盘，可随时删 |
 | Handoff（交接物） | 调用方在发起委派时指定的项目内路径 | 见「回收」 |
-| Pattern（通用规律） | 本仓库 `experience/patterns/` | 只能在源仓库改，运行时只读 |
+| Pattern（通用规律） | 本仓库 `experience/patterns/`，**不随安装分发** | 只在源仓库维护 |
+
+`experience/`、`evals/` 这类创作目录不会被复制到 skill 的运行位置，运行时读不到。一条规律要真正生效，必须被固化进本文件正文或 `routing.md`——`patterns/` 只是固化过程的素材库。
 
 格式见 [references/endpoint-schema.md](./references/endpoint-schema.md) 与 [references/trace-format.md](./references/trace-format.md)。
 
@@ -87,7 +89,7 @@ python3 <skill-dir>/scripts/probe_endpoints.py --render   # 输出可粘贴的 M
 - 名册、案例、路由规则、运行痕迹一律不进本仓库。
 - 选择理由先写后执行，顺序不可颠倒。
 - `routing.md` 不许凭想象写满，规则只能从累积案例中固化；否则它就退化成硬编码分支。
-- 本仓库的目录在运行时只读。安装是字节复制，写进去的东西会在下次同步时消失。
+- 本仓库在运行时只读：安装是字节复制，写进去的东西会在下次同步时消失；创作目录甚至不会被复制过去。
 - 名册里没有的 Endpoint 就是不存在，不要因为某个 CLI 出名就假设它可用。
 
 ## 相关

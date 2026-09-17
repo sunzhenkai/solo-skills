@@ -12,9 +12,13 @@
 
 达不到的，留在私有数据目录的 Trace 里。这条边界的理由见 [ADR 0001](../../../../docs/adr/0001-ledger-lives-outside-this-repo.md)。
 
-## 写入方式
+## 这个目录不会被分发
 
-这个目录**运行时只读**。安装到各 agent 目录是字节复制，运行时写进去的内容会在下次同步时消失。新增或修改必须回到源仓库，走 `$skill-upgrader` 的 `patches/` 审计。
+同步机制把 `experience/`、`evals/`、`patches/` 这类创作目录整个排除在安装之外，**运行中的 skill 读不到这里的任何内容**。
+
+所以 Pattern 不是运行时知识，而是素材：一条规律要真正影响选人，必须被固化进 `SKILL.md` 正文或使用者的 `routing.md`。写在这里只是把它记下来、等它攒够分量。
+
+新增或修改必须在源仓库进行，走 `$skill-upgrader` 的 `patches/` 审计。
 
 ## 格式
 
