@@ -31,8 +31,7 @@
 准备委派时若 `acpx` 不在 PATH：停下委派，默认提议安装（以 https://acpx.sh 的当前方式为准，常见为 `npm i -g acpx`），并等使用者回答。未获确认不得安装；未获**明确拒绝**不得降级——沉默、追问、话题转移都不算拒绝。拒绝后先提示「功能受限」再走降级，不要把降级说成完整替代。
 
 ```bash
-run_dir=~/.cache/agent-roster/runs/$(date +%Y%m%d-%H%M%S)-<slug>
-mkdir -p "$run_dir"
+run_dir=~/.cache/agent-roster/runs/"$run_id"   # 路由阶段已建好，decision.md 就在里面
 
 acpx --format json <kind> exec "<prompt>" \
   --cwd "<工作目录>" \
