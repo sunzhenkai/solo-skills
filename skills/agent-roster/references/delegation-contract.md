@@ -28,6 +28,8 @@
 
 `acpx` 是 ACP（Agent Client Protocol）的无头命令行客户端，一条命令打通各家 coding agent，自带会话管理、权限策略与结构化事件流。
 
+准备委派时若 `acpx` 不在 PATH：默认选项是安装（以 https://acpx.sh 的当前方式为准，常见为 `npm i -g acpx`）。必须先向使用者确认；拒绝则先提示「功能受限」，再走降级。不要静默安装，也不要把降级说成完整替代。
+
 ```bash
 run_dir=~/.cache/agent-roster/runs/$(date +%Y%m%d-%H%M%S)-<slug>
 mkdir -p "$run_dir"
@@ -60,6 +62,15 @@ acpx 仍处于 alpha，命令表面会变。执行前若不确定，以 `acpx --
 
 ## 不用 acpx 时的降级
 
-直接对适配器命令说 ACP（stdio 上的 JSON-RPC 2.0）：`initialize` → `session/new` → `session/prompt`，自行处理权限请求与取消。`scripts/probe_endpoints.py` 的 L2 探测就是这么做的，可以作为最小参考。
+降级不是对等路径。编排者直接对适配器命令说 ACP（stdio 上的 JSON-RPC 2.0）：`initialize` → `session/new` → `session/prompt`，自行处理权限请求与取消。`scripts/probe_endpoints.py` 的 L2 探测只做到 `initialize` 就断开，不是完整委派客户端。
 
-代价是会话持久化、队列、崩溃重连都要自己实现——这正是第一版选择站在 acpx 之上的原因。
+**仍可走通**：一次性发出 prompt、取回文本、写成 Handoff。
+
+**功能受限**（拒绝安装后必须向使用者说清这些再继续）：
+
+- 会话持久化、排队、崩溃重连没有实现
+- 只读 / 可写两档权限没有现成旗标，要自己接 `session/request_permission`
+- 结构化事件流、超时终止要自己落到 Run 目录
+- 失败时难以区分是受派方问题还是编排者没把协议走完
+
+这正是第一版把 `acpx` 安装作为默认选项的原因。

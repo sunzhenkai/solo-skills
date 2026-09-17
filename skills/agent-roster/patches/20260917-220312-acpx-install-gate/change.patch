@@ -1,0 +1,56 @@
+diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -39,7 +39,13 @@
+ **输入** — Endpoint、prompt、工作目录、权限档位、期望交接物路径、超时上限
+ **输出** — 状态（completed / failed / timeout）、结果摘要、交接物路径、Run 目录
+ 
+-默认实现是 `acpx`，命令形态与降级方式见 [references/delegation-contract.md](./references/delegation-contract.md)。换掉执行器不应改动本文件。
++默认执行器是 `acpx`。准备委派时先看它是否在 PATH：
++
++1. 已安装：按契约发出。
++2. 未安装：默认选项是安装。向使用者确认后再装，不要静默安装。安装方式以 https://acpx.sh 为准。
++3. 使用者拒绝安装：先明确提示委派功能受限，再允许走降级。不要把降级说成与默认执行器对等。
++
++命令形态、受限清单与降级步骤见 [references/delegation-contract.md](./references/delegation-contract.md)。换掉执行器不应改动本文件。
+ 
+ 权限只有两档，按委派性质定，不要逐次商量：
+ 
+@@ -107,6 +113,7 @@
+ - 固化条件攒够时必须提案，不许继续沉默；提案与写入之间必须有使用者确认。
+ - 本仓库在运行时只读：安装是字节复制，写进去的东西会在下次同步时消失；创作目录甚至不会被复制过去。
+ - 名册里没有的 Endpoint 就是不存在，不要因为某个 CLI 出名就假设它可用。
++- 未安装 `acpx` 时默认提议安装；未获确认不得安装，拒绝后必须先提示委派受限才允许降级。
+ 
+ ## 相关
+ 
+diff --git a/skills/agent-roster/references/delegation-contract.md b/skills/agent-roster/references/delegation-contract.md
+--- a/skills/agent-roster/references/delegation-contract.md
++++ b/skills/agent-roster/references/delegation-contract.md
+@@ -28,6 +28,8 @@
+ 
+ `acpx` 是 ACP（Agent Client Protocol）的无头命令行客户端，一条命令打通各家 coding agent，自带会话管理、权限策略与结构化事件流。
+ 
++准备委派时若 `acpx` 不在 PATH：默认选项是安装（以 https://acpx.sh 的当前方式为准，常见为 `npm i -g acpx`）。必须先向使用者确认；拒绝则先提示「功能受限」，再走降级。不要静默安装，也不要把降级说成完整替代。
++
+ ```bash
+ run_dir=~/.cache/agent-roster/runs/$(date +%Y%m%d-%H%M%S)-<slug>
+ mkdir -p "$run_dir"
+@@ -60,6 +62,15 @@
+ 
+ ## 不用 acpx 时的降级
+ 
+-直接对适配器命令说 ACP（stdio 上的 JSON-RPC 2.0）：`initialize` → `session/new` → `session/prompt`，自行处理权限请求与取消。`scripts/probe_endpoints.py` 的 L2 探测就是这么做的，可以作为最小参考。
++降级不是对等路径。编排者直接对适配器命令说 ACP（stdio 上的 JSON-RPC 2.0）：`initialize` → `session/new` → `session/prompt`，自行处理权限请求与取消。`scripts/probe_endpoints.py` 的 L2 探测只做到 `initialize` 就断开，不是完整委派客户端。
++
++**仍可走通**：一次性发出 prompt、取回文本、写成 Handoff。
++
++**功能受限**（拒绝安装后必须向使用者说清这些再继续）：
++
++- 会话持久化、排队、崩溃重连没有实现
++- 只读 / 可写两档权限没有现成旗标，要自己接 `session/request_permission`
++- 结构化事件流、超时终止要自己落到 Run 目录
++- 失败时难以区分是受派方问题还是编排者没把协议走完
+ 
+-代价是会话持久化、队列、崩溃重连都要自己实现——这正是第一版选择站在 acpx 之上的原因。
++这正是第一版把 `acpx` 安装作为默认选项的原因。

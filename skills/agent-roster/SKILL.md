@@ -39,7 +39,13 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 **输入** — Endpoint、prompt、工作目录、权限档位、期望交接物路径、超时上限
 **输出** — 状态（completed / failed / timeout）、结果摘要、交接物路径、Run 目录
 
-默认实现是 `acpx`，命令形态与降级方式见 [references/delegation-contract.md](./references/delegation-contract.md)。换掉执行器不应改动本文件。
+默认执行器是 `acpx`。准备委派时先看它是否在 PATH：
+
+1. 已安装：按契约发出。
+2. 未安装：默认选项是安装。向使用者确认后再装，不要静默安装。安装方式以 https://acpx.sh 为准。
+3. 使用者拒绝安装：先明确提示委派功能受限，再允许走降级。不要把降级说成与默认执行器对等。
+
+命令形态、受限清单与降级步骤见 [references/delegation-contract.md](./references/delegation-contract.md)。换掉执行器不应改动本文件。
 
 权限只有两档，按委派性质定，不要逐次商量：
 
@@ -107,6 +113,7 @@ python3 <skill-dir>/scripts/probe_endpoints.py --render   # 输出可粘贴的 M
 - 固化条件攒够时必须提案，不许继续沉默；提案与写入之间必须有使用者确认。
 - 本仓库在运行时只读：安装是字节复制，写进去的东西会在下次同步时消失；创作目录甚至不会被复制过去。
 - 名册里没有的 Endpoint 就是不存在，不要因为某个 CLI 出名就假设它可用。
+- 未安装 `acpx` 时默认提议安装；未获确认不得安装，拒绝后必须先提示委派受限才允许降级。
 
 ## 相关
 
