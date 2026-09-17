@@ -14,7 +14,7 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 | 内容 | 位置 | 谁写 |
 | --- | --- | --- |
 | Roster（Endpoint 画像） | `<data_root>/agents/<host>/<kind>.md` | 客观段由 Probe 回填，Disposition 由人或 agent 维护 |
-| Routing Rule | `<data_root>/agents/routing.md` | 只由 `$skill-upgrader` 从案例固化，初始为空 |
+| Routing Rule | `<data_root>/agents/routing.md` | Orchestrator 提案、使用者确认后写入，初始为空 |
 | Trace（案例） | `<data_root>/agents/traces/<YYYYMMDD>-<slug>.md` | Orchestrator，仅在有教训时 |
 | Run（运行痕迹） | `~/.cache/agent-roster/runs/<run-id>/` | 委派时自动落盘，可随时删 |
 | Handoff（交接物） | 调用方在发起委派时指定的项目内路径 | 见「回收」 |
@@ -66,6 +66,21 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 字段见 [references/trace-format.md](./references/trace-format.md)。其中「为什么选它」是唯一能在将来固化成 Routing Rule 的东西，必须从 `decision.md` 原样搬过来，不要重写。
 
+## 固化：什么时候把案例变成规则
+
+攒着不用的 Trace 只是历史。固化（Promotion）是唯一能让选人变准的动作，而它不会自动发生——必须有人在固定时刻检查。
+
+**时机**：写完一条 Trace 之后立即检查，其他时候不查。尤其不要在路由途中插入这个判断，那时候使用者在等结果。
+
+**门槛**：同一个「为什么选它」的理由，在**不同任务**的 Trace 里复现两次以上。不是「同类任务攒够几条」——Trace 只在有教训时才写，按任务分类计数永远凑不齐。这个 2 和 `experience/patterns/` 的准入门槛是同一个数，不用记两套。
+
+**动作**：攒够了就停下来向使用者提案，说清是哪几条 Trace、复现的是哪句理由、建议写成什么规则。使用者确认后按去向分两条路：
+
+- 规则带 Host 名、只对当前使用者成立 → 直接写进 `routing.md`。
+- 结论已脱敏、换台机器换个项目仍然成立 → 走 `$skill-upgrader` 的 `patches/` 审计，进本文件正文或 `patterns/`。
+
+分野的理由见 [ADR 0003](../../docs/adr/0003-promotion-splits-by-destination.md)。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
+
 ## 名册维护
 
 ```bash
@@ -89,10 +104,11 @@ python3 <skill-dir>/scripts/probe_endpoints.py --render   # 输出可粘贴的 M
 - 名册、案例、路由规则、运行痕迹一律不进本仓库。
 - 选择理由先写后执行，顺序不可颠倒。
 - `routing.md` 不许凭想象写满，规则只能从累积案例中固化；否则它就退化成硬编码分支。
+- 固化条件攒够时必须提案，不许继续沉默；提案与写入之间必须有使用者确认。
 - 本仓库在运行时只读：安装是字节复制，写进去的东西会在下次同步时消失；创作目录甚至不会被复制过去。
 - 名册里没有的 Endpoint 就是不存在，不要因为某个 CLI 出名就假设它可用。
 
 ## 相关
 
-- `$skill-upgrader`：把攒够证据的规律固化进 `routing.md` 或本文件，走 `patches/` 审计。
+- `$skill-upgrader`：把已脱敏、对任何人都成立的规律固化进本文件或 `patterns/`，走 `patches/` 审计。带 Host 名的规则不经它，使用者确认后直接进 `routing.md`。
 - 术语见仓库根 [CONTEXT.md](../../CONTEXT.md)，关键决策见 [docs/adr/](../../docs/adr/)。

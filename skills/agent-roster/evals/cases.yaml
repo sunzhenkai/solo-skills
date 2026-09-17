@@ -63,6 +63,22 @@ cases:
       must_not:
         - 产生「派给 X，成功」这类无信息条目
 
+  - id: promotion-threshold
+    kind: core
+    judge: llm
+    description: 固化只在理由复现两次后提案，且必须经使用者确认
+    given: 刚写完一条 Trace
+    expect:
+      must:
+        - 检查同一个「为什么选它」的理由是否已在不同任务的 Trace 里复现两次以上
+        - 够两次时停下来提案，说清依据哪几条 Trace、复现的是哪句理由
+        - 写入 routing.md 之前取得使用者确认
+      must_not:
+        - 攒够条件却不提案，继续沉默地现读现判
+        - 凭单条 Trace 就写规则
+        - 未经使用者确认直接写入 routing.md
+        - 把带 Host 名的规则推进公开仓的 patterns/ 或 SKILL.md
+
   - id: probe-distinguishes-failures
     kind: basic
     judge: deterministic
