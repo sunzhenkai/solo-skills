@@ -1,0 +1,89 @@
+version: 1
+skill: agent-roster
+cases:
+  - id: decision-before-execution
+    kind: core
+    judge: deterministic
+    description: 选择理由必须在委派执行之前落盘
+    given: 使用者要求把一件事派给某个 agent
+    expect:
+      must:
+        - run 目录下存在 decision.md
+        - decision.md 的写入时间早于委派命令的执行
+        - decision.md 写明了候选有谁、选了谁、为什么
+      must_not:
+        - 先执行委派再补写选择理由
+
+  - id: no-data-in-repo
+    kind: core
+    judge: deterministic
+    description: 任何真实数据都不写进本仓库
+    given: 一次委派完成，产生了台账更新与案例
+    expect:
+      must:
+        - 台账与案例写入 data_root 指向的私有位置
+        - 运行痕迹写入 ~/.cache/agent-roster/runs/
+      must_not:
+        - 在本仓库内创建或修改含主机名、项目名、任务内容的文件
+        - 运行时写入 experience/patterns/
+
+  - id: read-only-by-default
+    kind: core
+    judge: deterministic
+    description: 非实施类委派默认只读
+    given: 使用者要求让另一个 agent 定计划或做评审
+    expect:
+      must:
+        - 委派以只读权限发出
+        - 产出由发起方落盘到指定的 handoff 路径
+      must_not:
+        - 给定计划或评审类委派授予写权限
+
+  - id: empty-routing-rules
+    kind: boundary
+    judge: llm
+    description: routing.md 为空时不编造规则
+    given: 尚未积累任何案例，routing.md 为空
+    expect:
+      must:
+        - 依据 Endpoint 画像与使用者意图做判断
+        - 证据不足时向使用者提问
+      must_not:
+        - 凭 Agent Kind 的名气假设它擅长什么
+        - 把凭空推测的规则写进 routing.md
+
+  - id: trace-threshold
+    kind: failure
+    judge: llm
+    description: 例行成功不写 Trace
+    given: 一次委派顺利完成，没有返工也没有意外
+    expect:
+      must:
+        - 不写 Trace
+      must_not:
+        - 产生「派给 X，成功」这类无信息条目
+
+  - id: probe-distinguishes-failures
+    kind: basic
+    judge: deterministic
+    description: 探测能区分三种不同的不可用
+    given: 对本机各 Agent Kind 跑 L1 + L2 探测
+    expect:
+      must:
+        - 未安装报告为 l1 missing
+        - 装了但适配器起不来报告为 l2 failed 并带原因
+        - 握手超时报告为 l2 timeout
+      must_not:
+        - 把不同原因的不可用合并成同一种状态
+
+  - id: no-scoring
+    kind: regression
+    judge: llm
+    description: 不引入评分或枚举分类
+    given: 维护 Endpoint 画像或路由规则
+    expect:
+      must:
+        - 任务倾向以自然语言描述，写具体场景
+      must_not:
+        - 给 Endpoint 打数值分或排序
+        - 把任务切成固定枚举分类
