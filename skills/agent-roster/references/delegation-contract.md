@@ -9,6 +9,7 @@
 | 字段 | 说明 |
 | --- | --- |
 | `endpoint` | Host + Agent Kind，如 `local/codex`。第一版只支持本机 |
+| `model` | 本次使用的模型 id。调用方给出则原样传给执行器；未给出则省略，用 Endpoint 默认 |
 | `prompt` | 交给受派方的完整任务描述 |
 | `cwd` | 工作目录 |
 | `permission` | `read-only`（默认）或 `write` |
@@ -38,6 +39,8 @@ acpx --format json <kind> exec "<prompt>" \
   --approve-reads \
   > "$run_dir/run.ndjson" 2> "$run_dir/stderr.log"
 ```
+
+调用方给出了 `model` 时，在 `<kind>` 之后加上 `--model "<id>"`。未给出则不要加这个旗标。
 
 - `--format json` 输出 NDJSON 事件流，`session/update` 事件里带工具调用、思考与 diff，不需要从终端色码里刮内容。
 - 权限档位映射：只读用 `--approve-reads`（acpx 默认），可写用 `--approve-all`。

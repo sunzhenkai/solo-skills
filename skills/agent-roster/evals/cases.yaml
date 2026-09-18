@@ -79,7 +79,19 @@ cases:
         - 未经使用者确认直接写入 routing.md
         - 把带 Host 名的规则推进公开仓的 patterns/ 或 SKILL.md
 
-  - id: probe-distinguishes-failures
+  - id: model-is-contract-field
+    kind: core
+    judge: deterministic
+    description: 调用方给出的模型经契约传给执行器
+    given: 委派时调用方确认了 Endpoint 与 model
+    expect:
+      must:
+        - 契约输入含 model
+        - acpx 命令带 --model
+        - decision.md 记录本次 model
+      must_not:
+        - 把 model 只写进 prompt 而不传给执行器
+        - 未给出 model 时仍加上空的 --model 旗标
     kind: basic
     judge: deterministic
     description: 探测能区分三种不同的不可用
