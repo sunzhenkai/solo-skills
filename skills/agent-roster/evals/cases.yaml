@@ -142,3 +142,14 @@ cases:
         - 自己动手、换个工具或先做一部分来推进同一个目标
         - 未获明确拒绝就改走降级
         - 把上一次用过的降级当作本次的豁免
+
+  - id: prompt-result-by-event-id
+    kind: regression
+    judge: deterministic
+    description: 状态判定按 session/prompt 事件的实际请求 id 匹配 RESULT，不硬编码 id 序号
+    given: 一次 acpx 委派，中间插入了 session/set_config_option（应用 --model），prompt 的 RESULT 落在 id=3
+    expect:
+      must:
+        - run_status.py 将该 run 判为 done（stopReason=end_turn 且最终文本非空）
+      must_not:
+        - 硬编码 RESULT(id=2) 作为完成判定依据
