@@ -141,29 +141,6 @@ def acpx_kind_argv(kind: str) -> list[str] | None:
     return None
 
 
-_ACPX_CONFIG_CACHE: dict | None = None
-
-
-def acpx_effective_argv(kind: str) -> list[str] | None:
-    """acpx 真正会 spawn 的 argv：使用 config 里的覆盖，其次才是内置 registry。
-
-    只看 dist 里那份会对「已经按建议覆盖过 argv」的 kind 持续误报——config 覆盖才是生效值。
-    """
-    global _ACPX_CONFIG_CACHE
-    if _ACPX_CONFIG_CACHE is None:
-        try:
-            done = subprocess.run(
-                ["acpx", "config", "show"], capture_output=True, text=True, timeout=20
-            )
-            _ACPX_CONFIG_CACHE = json.loads(done.stdout) if done.returncode == 0 else {}
-        except (subprocess.SubprocessError, OSError, json.JSONDecodeError):
-            _ACPX_CONFIG_CACHE = {}
-    override = (_ACPX_CONFIG_CACHE.get("agents") or {}).get(kind)
-    if isinstance(override, dict) and override.get("argv"):
-        return [str(t) for t in override["argv"]]
-    return acpx_kind_argv(kind)
-
-
 def _resolve_cli(cli: object) -> tuple[str | None, str | None]:
     """cli 允许是候选名列表：有改名史的 CLI 新旧名可能并存，取第一个在 PATH 里的。"""
     for name in ([cli] if isinstance(cli, str) else list(cli)):
@@ -183,14 +160,14 @@ def probe_l1(kind: str, spec: dict) -> dict:
     adapter_bin = str(list(spec["acp"])[0])
     result: dict = {"cli_name": name, "adapter_bin": adapter_bin}
 
-    acpx_argv = acpx_effective_argv(kind)
+    acpx_argv = acpx_kind_argv(kind)
     result["acpx_argv"] = acpx_argv
     if acpx_argv and name:
         # CLI 装了才谈漂移；CLI 本来就没装（argv[0] 与 CLI 名同样缺失）不是 gap，别误报成可覆盖
         spawn_bin = acpx_argv[0]
         if spawn_bin not in RUNNER_BINS and shutil.which(spawn_bin) is None:
             result["argv_gap"] = (
-                f"acpx 生效 argv 指向 {spawn_bin}，本机不在 PATH；CLI 实际是 {name}"
+                f"acpx 内置 argv 指向 {spawn_bin}，本机不在 PATH；CLI 实际是 {name}"
                 f" → 走 acpx config agents.{kind}.argv 覆盖，或 delegate.py --agent"
             )
         elif spawn_bin not in RUNNER_BINS and spawn_bin != adapter_bin:
