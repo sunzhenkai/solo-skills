@@ -63,3 +63,29 @@ _Avoid_: 最佳实践, 经验, 教训（后者指单条 Trace 里的结论）
 **Promotion**（固化）:
 把在多条 Trace 中复现的选人理由，提升为成文规则的动作。带 Host 名的去向是 Routing Rule，脱敏后的通用结论去向是 Pattern。
 _Avoid_: 进化, 学习, 优化, 调优（这些词都指向 ADR 0002 否掉的自动打分）
+
+## 角色
+
+**Role**（角色）:
+使用者命名的一类活，并为其指定一个默认 Endpoint。名字可以另加。
+_Avoid_: uid, 岗位, 视角, Disposition
+
+**Developer**:
+负责完成已经确定的任务的 Role。
+_Avoid_: planner
+
+**Planner**:
+负责把已经说清的需求写成方案的 Role。
+_Avoid_: developer
+
+**Reviewer**:
+负责审方案的 Role。
+_Avoid_: code-reviewer
+
+**Code Reviewer**:
+负责审代码的 Role。
+_Avoid_: reviewer
+
+**Designer**:
+负责出界面方案并审界面的 Role。
+_Avoid_: uid, design

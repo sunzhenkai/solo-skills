@@ -1,6 +1,6 @@
 ---
 name: agent-roster
-description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；不实现被委派 agent 自身的能力。
+description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。不实现被委派 agent 自身的能力。
 ---
 
 # Agent Roster
@@ -8,7 +8,7 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 ## 一次委派的完整顺序
 
 ```text
-- [ ] 1 路由：读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace
+- [ ] 1 选人：没点 Role 时读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace。点了 Role 且没写 Endpoint 时跑 resolve_role.py：use 走快速路径，ask 停下来问这次用谁
 - [ ] 2 建 Run 目录，写 decision.md（必须早于第 3 步）
 - [ ] 3 委派：检查执行器在不在 → 按契约发出，权限按委派性质定
 - [ ] 4 回收：Handoff 落到项目里，Run 痕迹留在缓存
@@ -22,6 +22,31 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 使用者明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace，不枚举其他候选；画像缺失或不可用时回到完整路由。`decision.md` 可压缩为指定来源、可用性证据、权限、Handoff，但「为什么选它」仍须可复用；acpx、权限、回收与留痕门禁不变。
 
+## 角色：点了名就用默认 Endpoint
+
+调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
+
+约定名字是 developer、planner、reviewer、code-reviewer、designer，含义见仓库根 [CONTEXT.md](../../CONTEXT.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。决策见 [ADR 0004](../../docs/adr/0004-named-role-pins-endpoint.md)。文件格式与判定见 [references/roles.md](./references/roles.md)。
+
+```bash
+python3 <skill-dir>/scripts/resolve_role.py <role-id>
+```
+
+exit 1 是 `verdict: ask`，要问人，不是脚本故障。exit 2 才是对照表或参数坏了，先停下说明，不要当成 ask。
+
+- `verdict: use`：这个 Endpoint 就是使用者已经指定的唯一 Endpoint，走快速路径。解析时已经确认画像在、且最近一条探测状态可用，不要再因「画像不可用就回到完整路由」去枚举候选。`decision.md` 的指定来源写这个 Role，「为什么选它」写成「使用者把这个 Role 的默认 Endpoint 设成了它」。
+- `verdict: ask`：问这次用哪个 Endpoint，同一句里问要不要记成这个 Role 的默认。回答里的 Endpoint 用于这次，并走快速路径。回答明确同意记成默认时才 `--write`。只给出 Endpoint、沉默、追问或换话题，对照表保持原样，委派照样继续。
+- 调用方同时写了 Role 和 Endpoint：用写明的 Endpoint，不跑上面的脚本。
+
+模型不在对照表里。调用方没给 model 就省略，用该 Endpoint 自己的默认。
+
+```bash
+python3 <skill-dir>/scripts/resolve_role.py --write <role-id> <host>/<kind>
+```
+
+`--write` 只在明确同意之后执行，并且只接受名册里已有的 Endpoint。这次 Endpoint 来自 Role、委派发出后受派方没起来：问这次换谁，同一句问要不要改默认，不回到完整路由另选。
+
+
 ## 数据在哪
 
 本仓库只有机制，一条真实记录都没有：名册、案例、路由规则、运行痕迹一律不进本仓库。数据位置由 `~/.config/agent-roster/config.yaml` 的 `data_root` 指出（缺省时先问使用者，不要猜）。
@@ -30,6 +55,7 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 | --- | --- | --- |
 | Roster（Endpoint 画像） | `<data_root>/agents/<host>/<kind>.md` | 客观段由 Probe 回填，Disposition 由人或 agent 维护 |
 | Routing Rule | `<data_root>/agents/routing.md` | Orchestrator 提案、使用者确认后写入，初始为空 |
+| Role 默认 Endpoint | `<data_root>/agents/roles.yaml` | 使用者明确同意后由 Orchestrator 写入 |
 | Trace（案例） | `<data_root>/agents/traces/<YYYYMMDD>-<slug>.md` | Orchestrator，仅在有教训时 |
 | Run（运行痕迹） | `~/.cache/agent-roster/runs/<run-id>/` | 委派时自动落盘，可随时删 |
 | Handoff（交接物） | 调用方在发起委派时指定的项目内路径 | 见「回收」 |
@@ -40,11 +66,11 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 格式见 [references/endpoint-schema.md](./references/endpoint-schema.md) 与 [references/trace-format.md](./references/trace-format.md)。
 
-references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`。
+references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`，解析 Role 时读 `roles.md`。
 
 ## 路由：选谁
 
-只有需要自行选人时才执行以下完整路由。
+只有需要自行选人时才执行以下完整路由。点了 Role 时不是自行选人：`verdict: use` 走快速路径，`verdict: ask` 停下来问这次用谁。
 
 1. 读 `routing.md`。为空就跳过——规则只能从累积案例中固化，凭想象写满会让它退化成硬编码分支。
 2. 读候选 Endpoint 的画像，只读与当前任务相关的那几个。
@@ -92,7 +118,7 @@ references 按当前步骤按需加载，不要预先全读：委派前读 `dele
 
 `failed` 和 `timeout` 不是再跑一次就能消化的事。先分清是哪一类，再决定动作：
 
-- **受派方没起来**（适配器报错、登录态失效、额度耗尽）→ 不要重试同一个 Endpoint。先跑 L1/L2 探测确认它是不是真的不可用，再回到路由换候选或问使用者。
+- **受派方没起来**（适配器报错、登录态失效、额度耗尽）→ 不要重试同一个 Endpoint。先跑 L1/L2 探测确认它是不是真的不可用。这次 Endpoint 来自 Role 时，按「角色」一节问这次换谁；否则回到路由换候选或问使用者。
 - **起来了但没跑完**（timeout）→ 可以缩小范围重发一次，把已有的部分产出当输入。同一个 Endpoint 只重发一次，还不行就换人。
 - **跑完了但产出不对** → 不要重发。先判断是 prompt 没说清还是人选错了：前者改 prompt 重来，后者回到路由重选，并在 `decision.md` 末尾追加一句改判说明——不要改写原来那段理由。
 
@@ -148,12 +174,13 @@ python3 <skill-dir>/scripts/probe_endpoints.py --write    # 直接回填画像�
 
 ## 不变量
 
-正文里最容易被绕过的四条，执行途中逐条自查：
+正文里最容易被绕过的五条，执行途中逐条自查：
 
 - 选择理由先写后执行，顺序不可颠倒。
 - 受派方只能是名册里的 Endpoint，编排者不得自任——正跑在同名 Agent Kind 上也不例外。
 - 未安装 `acpx` 时先停下并提议安装：未获确认不得安装，未获**明确拒绝**不得降级；阻塞期间冻结的是任务目标，不是某一个动作。
 - 固化条件攒够时必须提案，不许继续沉默；提案与写入之间必须有使用者确认。
+- 点了 Role 就用它的默认 Endpoint；没有能用的默认就问这次用谁，不改走路由；没得到明确同意不改对照表。
 
 ## 相关
 

@@ -217,3 +217,20 @@ cases:
         - acpx registry 读不到时不报错、不猜（argv_gap 缺省）
       must_not:
         - 只探 CLI 常见名就报 L1 ✅ 而不看适配器真正 spawn 的名字
+
+  - id: role-names-default-endpoint
+    kind: core
+    judge: deterministic
+    description: 点名 Role 且未写 Endpoint 时用该 Role 的默认 Endpoint
+    given: 调用方点名了 Role，没有写 Endpoint
+    expect:
+      must:
+        - resolve_role.py 给出 verdict
+        - verdict 为 use 时把该 Endpoint 当作已指定的唯一 Endpoint，走快速路径
+        - verdict 为 ask 时问这次用哪个 Endpoint，并在同一问里问要不要记成默认
+        - 只有回答明确同意写入时才执行 --write
+      must_not:
+        - 从任务正文推断 Role
+        - verdict 为 ask 时改走 routing.md 或 Trace 另选
+        - 只指定了这次的 Endpoint 就把对照表改掉
+        - 没点 Role 时用某个默认 Role 代替自行选人
