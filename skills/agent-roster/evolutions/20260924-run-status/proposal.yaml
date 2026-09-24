@@ -1,0 +1,33 @@
+# 状态：草稿（2026-09-24 预置，尚未执行——skill-evolver 一次会话一轮进化，
+# controlled-delegation 已占本轮。用户已选 A：下个会话执行本提案）。
+# 证据见 agent-data trace 20260924（状态指纹表 + 重试检查单两节）。
+
+skill: agent-roster
+
+problem:
+  acpx 委派的运行状态只能靠人肉读 NDJSON 事件流判断：
+  1) 无确定性的状态判定——「卡死/进行中/完成/半成品/被截断」依赖编排者临场推理，
+     本次出现把 326 事件半成品误判为成功、把 3 事件冻结误判为仍在运行的实例
+  2) 受控执行（controlled-delegation 轮）给了规则（timeout + PID），但没有工具落地：
+     pid 文件、状态判定、超时核对全靠手敲命令
+
+evidence:
+  - 2026-09-24 一次委派会话：3 事件冻结被轮询误判为运行中约 5 小时；326 事件半成品被误判为成功
+  - 同会话归纳出 6 态指纹表与 4 步重试检查单，全部可脚本化（见 trace 20260924 两节）
+  - controlled-delegation 轮已在契约写入「完成判定看产物」等规则，但无脚本支撑
+
+pattern:
+  确定性判定必须进脚本：NDJSON 指纹、pid 存活、ndjson 增长、timeout 到期都是机械可判的
+
+proposed_change:
+  1) 新增 scripts/run_status.py <run-id>：读 run 目录的 status.json/pid/ndjson，
+     按指纹表输出状态（running / stuck / done / truncated / timed-out）+ 建议动作；
+     只做确定性判定，不解析自然语言
+  2) 委派流程在启动时写 run-dir/status.json（phase/pid/timeout-at/endpoint/model）——
+     写入点写进 references/delegation-contract.md「受控执行」节（改为指向脚本）
+  3) SKILL.md「受控执行」指针句补一句：状态判定用 run_status.py，不靠 pgrep/肉眼看
+
+expected_improvement:
+  状态误判（半成品当成功、假等待）从流程依赖变为工具保证；重试前检查单 4 步收敛为一条命令
+
+risk: low
