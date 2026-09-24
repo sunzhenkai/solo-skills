@@ -1,5 +1,4 @@
-# 状态：草稿（2026-09-24 预置，尚未执行——skill-evolver 一次会话一轮进化，
-# controlled-delegation 已占本轮。用户已选 A：下个会话执行本提案）。
+# 状态：已执行并 promote（2026-09-24，见 decision.md；原为预置草稿，用户选 A 后本轮执行）。
 # 证据见 agent-data trace 20260924（状态指纹表 + 重试检查单两节）。
 
 skill: agent-roster
