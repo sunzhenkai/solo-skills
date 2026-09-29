@@ -41,10 +41,12 @@ class TestGates(unittest.TestCase):
 
 
 class TestRoleFilesStructure(unittest.TestCase):
-    """第一批加厚角色（engineer/qa/product）：判据 + 不算问题 + redirect。"""
+    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design）。"""
+
+    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz")
 
     def test_thickened_roles_have_criteria(self) -> None:
-        for role in ("engineer", "qa", "product"):
+        for role in self.THICKENED_FULL:
             text = read(f"references/roles/{role}.md")
             self.assertIn("命中判据", text, role)
             self.assertIn("## 不算问题", text, role)
@@ -52,14 +54,16 @@ class TestRoleFilesStructure(unittest.TestCase):
             self.assertIn("## 优先锚点", text, role)
 
     def test_thickened_roles_keep_level_marks(self) -> None:
-        for role in ("engineer", "qa", "product"):
+        for role in self.THICKENED_FULL:
             text = read(f"references/roles/{role}.md")
             self.assertIn("🔴", text, role)
             self.assertIn("🟡", text, role)
 
-    def test_untouched_roles_still_exist(self) -> None:
-        for role in ("algo", "biz", "data", "design", "ops", "sre"):
-            self.assertTrue((ROOT / f"references/roles/{role}.md").is_file(), role)
+    def test_design_has_not_a_problem_section(self) -> None:
+        # design 已有完整判据清单，第二批只补「不算问题」小节。
+        text = read("references/roles/design.md")
+        self.assertIn("## 不算问题", text)
+        self.assertIn("## 跨角色 redirect", text)
 
 
 if __name__ == "__main__":

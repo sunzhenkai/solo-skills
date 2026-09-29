@@ -1,0 +1,45 @@
+skill: role-based-reviewer
+
+problem: |
+  第一批（engineer/qa/product）已加厚并晋升；第二批 6 个角色仍为简单初始化：
+  algo/data/sre/ops/biz 各 26-29 行短语清单无判据，design 有 62 条清单但缺
+  「不算问题」反例小节，与第一批建立的模板不齐平。
+
+evidence:
+  - 2026-09-29 第一批晋升记录：evolutions/20260929-role-thicken-batch1/decision.md
+    明确「第二批 6 个角色留后续轮次」
+  - 2026-09-29 行数复核：algo 29 / biz 26 / data 29 / ops 27 / sre 29 行，均无判据；
+    design 113 行有判据雏形（Blocker 门槛段）但无「不算问题」小节
+
+pattern: |
+  同第一批：判据 + 反例稳定评审口径。沿用第一批模板，逐角色补命中判据与
+  「不算问题」小节；design 只补反例小节不改清单。
+
+proposed_change: |
+  1) algo / data / sre / ops / biz：沿用第一批骨架，每条清单补命中判据，
+     新增「不算问题」小节；保留既有条目与 redirect。
+  2) design：只新增「不算问题」小节（像素口味、趋势追逐、非 WCAG 强制的个人偏好等），
+     62 条清单与 Blocker 门槛不动。
+  3) 编排层（SKILL.md / protocols / vocabulary）零改动。
+  4) 契约测试：test_thickened_roles_have_criteria 等断言扩展到第二批角色。
+
+external_references: |
+  参照轮（2026-09-29，按 task-wizard 外部参照细则：先搜后读、原文限两处/角色、来源分级）：
+  - algo：对上原文 Google Rules of ML（developers.google.com/machine-learning/guides/rules-of-ml）。
+    对上事实：train/serve skew 用「serving 时刻特征落盘回放训练」对齐（Rule #29）；
+    训练与 serving 复用代码（Rule #32）；按时间切分评估集（Rule #33）；
+    特征列要有 owner 与文档（Rule #11）；警惕静默失败（Rule #10）。
+  - data：公开命中均为二手工程博客（ml4devs / databricks / prefect），无权威原文；
+    幂等/水位/schema 契约判据按公开共识写，记为假设。
+  - sre：SRE workbook 未读到原文（搜索未命中可读本）；回滚/密钥/告警可行动性
+    判据按公开共识写，记为假设。
+  - ops / biz：无命中可读权威原文；条目按公开共识（runbook 可执行性、
+    对外协议兼容与版本共存惯例）写，记为假设。
+  - design：文件内已声明来源（web-interface-guidelines / frontend-design / Nielsen/WCAG），
+    本轮不新增参照。
+
+expected_improvement: |
+  9 个角色全部达到「判据 + 反例」模板；第二批角色误报收敛；
+  design 的 62 条清单有门 3 的角色级出口，防吹毛求疵。
+
+risk: low
