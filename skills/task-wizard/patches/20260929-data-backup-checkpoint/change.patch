@@ -1,0 +1,55 @@
+diff --git a/skills/task-wizard/SKILL.md b/skills/task-wizard/SKILL.md
+index 9a34b47..419f1cf 100644
+--- a/skills/task-wizard/SKILL.md
++++ b/skills/task-wizard/SKILL.md
+@@ -24,9 +24,10 @@ description: "理解用户意图并生成步骤级任务方案：每步动作、
+ 
+ 1. **澄清意图**：一句话复述目标与完成标准。歧义会影响方案走向时才提问（带推荐答案）；否则按最合理解释推进，并在「假设」中声明。
+ 2. **摸底现状**：只读探查相关代码 / 文档 / 环境，把「已确认事实」与「假设」分开。
+-3. **外部参照**：摸底后的档位是复杂，或写到定稿前升到复杂时，读并做完 [references/external-precedent.md](references/external-precedent.md)。简单和中等跳过。做完再写建议路由。
+-4. **产出方案**：按下方模板输出，并给出「复杂度路由」建议。
+-5. **对齐**：末尾问用户「按此执行 / 调整哪步 / 改路由」，不要默认直接开干。
++3. **数据备份检查点**：任务涉及数据写、删、迁移、改库表结构时，先判断备份方式与回滚路径，写进方案的「前提」或「步骤」。这里的回滚只针对**当前任务改动**——出问题时能快速回到本次改动前的状态，不要求全量历史回溯。大 size 数据难以备份、或本次改动不可回滚的，必须总结进「风险点」小节，不可省略。
++4. **外部参照**：摸底后的档位是复杂，或写到定稿前升到复杂时，读并做完 [references/external-precedent.md](references/external-precedent.md)。简单和中等跳过。做完再写建议路由。
++5. **产出方案**：按下方模板输出，并给出「复杂度路由」建议。
++6. **对齐**：末尾问用户「按此执行 / 调整哪步 / 改路由」，不要默认直接开干。
+ 
+ ## 输出模板
+ 
+@@ -53,6 +54,9 @@ description: "理解用户意图并生成步骤级任务方案：每步动作、
+ ## 坑 / 注意事项
+ - <易踩的坑、隐性依赖、顺序敏感点；执行中须停下来要授权的动作也写在这里；无则写「无」>
+ 
++## 风险点
++- <大 size 数据难以备份、本次改动不可回滚（无法快速回到改动前状态）等高风险项；任务涉及数据写删改时必须先评估备份与回滚路径，评估不通过或代价过高的在此显式列出；无则写「无」>
++
+ ## 不做的事
+ - <明确排除项，防止范围蔓延>
+ 
+diff --git a/skills/task-wizard/tests/test_task_wizard_contract.py b/skills/task-wizard/tests/test_task_wizard_contract.py
+index a887656..794df0e 100644
+--- a/skills/task-wizard/tests/test_task_wizard_contract.py
++++ b/skills/task-wizard/tests/test_task_wizard_contract.py
+@@ -107,5 +107,22 @@ class TestComplexityRouting(unittest.TestCase):
+         self.assertNotIn("Goal 方案进入「写完之后」时用同一套", self.text)
+ 
+ 
++class TestDataBackupCheckpoint(unittest.TestCase):
++    """数据备份检查点：涉及数据写删改时必须评估备份与回滚路径，高风险项进「风险点」。"""
++
++    def setUp(self) -> None:
++        self.text = read("SKILL.md")
++
++    def test_backup_checkpoint_step(self) -> None:
++        self.assertIn("数据备份检查点", self.text)
++        self.assertIn("备份方式与回滚路径", self.text)
++
++    def test_risk_section_in_template(self) -> None:
++        self.assertIn("## 风险点", self.text)
++        self.assertIn("大 size 数据难以备份", self.text)
++        self.assertIn("本次改动不可回滚", self.text)
++        self.assertIn("回到改动前状态", self.text)
++
++
+ if __name__ == "__main__":
+     unittest.main()

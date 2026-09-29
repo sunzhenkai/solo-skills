@@ -107,5 +107,22 @@ class TestComplexityRouting(unittest.TestCase):
         self.assertNotIn("Goal 方案进入「写完之后」时用同一套", self.text)
 
 
+class TestDataBackupCheckpoint(unittest.TestCase):
+    """数据备份检查点：涉及数据写删改时必须评估备份与回滚路径，高风险项进「风险点」。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_backup_checkpoint_step(self) -> None:
+        self.assertIn("数据备份检查点", self.text)
+        self.assertIn("备份方式与回滚路径", self.text)
+
+    def test_risk_section_in_template(self) -> None:
+        self.assertIn("## 风险点", self.text)
+        self.assertIn("大 size 数据难以备份", self.text)
+        self.assertIn("本次改动不可回滚", self.text)
+        self.assertIn("回到改动前状态", self.text)
+
+
 if __name__ == "__main__":
     unittest.main()
