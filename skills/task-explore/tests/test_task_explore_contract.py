@@ -342,5 +342,28 @@ class ContractTest(unittest.TestCase):
         self.assertIn("输入里没有画像时不编造一份", self.decide)
 
 
+class TestExternalPrecedentThinReference(unittest.TestCase):
+    """external-precedent.md 改为薄引用：细则唯一真源在 task-wizard，本文件只留阶段钩子。"""
+
+    def setUp(self) -> None:
+        self.precedent = (ROOT / "references" / "external-precedent.md").read_text(
+            encoding="utf-8"
+        )
+
+    def test_points_to_task_wizard(self) -> None:
+        self.assertIn("task-wizard/references/external-precedent.md", self.precedent)
+        self.assertIn("唯一真源", self.precedent)
+
+    def test_no_duplicated_rules(self) -> None:
+        # 尝试/写入细则已搬走，不得在本文件复制第二份细则条文。
+        self.assertNotIn("只追最会影响", self.precedent)
+        self.assertNotIn("阅读最多两处原文", self.precedent)
+        self.assertNotIn("对上原文", self.precedent)
+
+    def test_phase_hooks_kept(self) -> None:
+        self.assertIn("写对比表之前做一次", self.precedent)
+        self.assertIn("会改方案走向", self.precedent)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,49 @@
+skill: task-wizard
+# 连带对齐：task-explore 的 references/external-precedent.md 改为薄引用；
+# task-goal / task-delivery 已有对 task-wizard 版的引用，不动。
+
+problem: |
+  外部参照机制存在但过窄过弱，方案阶段容易闭门造车：
+  1) 只在复杂档触发一次，简单/中等档（多数任务）完全没有参照环节；
+  2) 「只追一个做法、最多读两处原文」限制了汇聚，执行时容易含糊带过；
+  3) 未指明检索方式与来源优先级（官方文档 > 上游 Issue/PR > 成熟开源 > 权威社区），
+     与使用者全局约定「他山之石」优先级未对齐；
+  4) task-wizard 与 task-explore 各持一份近重复的 external-precedent.md，存在漂移风险。
+
+evidence:
+  - 2026-09-29 静态比对：task-wizard/references/external-precedent.md 与
+    task-explore/references/external-precedent.md 为两份独立维护的近重复文本
+  - 2026-09-29 正文核查：四份 task 系 skill 的外部参照均绑定「复杂档」，
+    中等档选型/集成类任务无参照门禁
+  - 2026-09-29 文本核查：external-precedent.md 仅写「宿主已有的能力检索公开资料」，
+    无来源分级、无搜索先行要求
+
+pattern: |
+  方案/设计类 skill 在定稿前缺一个强制、低成本的公开参照步骤时，
+  会默认用模型记忆作答；记忆过期或领域偏门时产出过时或臆造方案。
+  稳定模式 = 定稿前一次「先搜后读、来源分级、结论二分（事实/假设）」。
+
+proposed_change: |
+  1) 扩触发：复杂档必做；中等档涉及选型 / 外部集成 / 协议对接时必做；
+     简单档维持跳过。task-wizard SKILL.md 工作流第 4 步相应改写。
+  2) 统一真源：task-wizard/references/external-precedent.md 为唯一细则；
+     task-explore/references/external-precedent.md 改为指向它的薄引用
+     （保留路径与「何时做」的阶段钩子，删掉重复的尝试/写入细则）。
+  3) 参照纪律增强（写入 task-wizard 版细则）：
+     - 先搜后读：先检索（宿主已有的搜索能力），再读最多两处原文；搜索不限次、读原文限两处；
+     - 来源分级：官方文档/标准 > 上游 Issue/PR > 成熟开源实现 > 权威社区，冲突时写明依据；
+     - 保留「对上→事实、对不上→假设、两处相反→两条事实+决策点」的写入规则不变。
+  4) 落点不变：仍写入前提 / 设计稿「外部参照」节，不新增文件类型。
+
+expected_improvement: |
+  中等档选型/集成类方案定稿前有据可查；两份细则漂移消除；
+  执行期冒出方案未列缺口的概率下降。
+
+risk: medium
+# 扩大了中等档的参照触发范围（耗时增加）；不动门禁、不删既有规则。
+# 用户已于 2026-09-29 明确认可本 proposal。
+
+tests: |
+  task-wizard / task-explore / task-goal 的 pytest 契约测试需随正文同步：
+  - external-precedent.md 路径仍存在（两 skill 均保留文件，task-explore 版为薄引用）
+  - 新增断言方向：中等档触发条件文本、来源分级文本、先搜后读文本

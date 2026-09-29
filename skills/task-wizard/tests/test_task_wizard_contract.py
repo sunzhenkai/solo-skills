@@ -124,5 +124,32 @@ class TestDataBackupCheckpoint(unittest.TestCase):
         self.assertIn("回到改动前状态", self.text)
 
 
+class TestExternalPrecedent(unittest.TestCase):
+    """外部参照：复杂档必做，中等档涉及选型/集成/协议必做；先搜后读、来源分级。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+        self.precedent = read("references/external-precedent.md")
+
+    def test_trigger_scope_in_workflow(self) -> None:
+        self.assertIn("复杂档", self.text)
+        self.assertIn("中等档涉及选型 / 外部集成 / 协议对接", self.text)
+
+    def test_search_before_read(self) -> None:
+        self.assertIn("先搜后读", self.precedent)
+        self.assertIn("阅读最多两处原文", self.precedent)
+
+    def test_source_priority(self) -> None:
+        self.assertIn("官方文档", self.precedent)
+        self.assertIn("Issue / PR", self.precedent)
+        self.assertIn("成熟开源实现", self.precedent)
+        self.assertIn("权威社区", self.precedent)
+
+    def test_fact_hypothesis_split_kept(self) -> None:
+        self.assertIn("对上原文：写入事实", self.precedent)
+        self.assertIn("写入假设，写明缺的是什么", self.precedent)
+        self.assertIn("两条都写入事实", self.precedent)
+
+
 if __name__ == "__main__":
     unittest.main()
