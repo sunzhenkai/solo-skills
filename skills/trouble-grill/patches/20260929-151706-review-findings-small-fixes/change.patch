@@ -1,0 +1,548 @@
+diff --git a/skills/agent-roster-flow/references/stages.md b/skills/agent-roster-flow/references/stages.md
+index d4ddb8e..355b73f 100644
+--- a/skills/agent-roster-flow/references/stages.md
++++ b/skills/agent-roster-flow/references/stages.md
+@@ -40,7 +40,7 @@ Optional Stage。实现结束后在本会话问做不做。Simple 默认跳过
+ 
+ 选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
+ 
+-`ocr` 的 LLM 用本机已有配置，不是本 Stage 的 Model。Model 是跑该 skill 的 Endpoint。
++`ocr`（`$solo-code-review` 依赖的 OCR CLI）的 LLM 用本机已有配置，不是本 Stage 的 Model。Model 是跑该 skill 的 Endpoint。
+ 
+ 可写且允许脏工作树。`decision.md` 写明例外。
+ 
+diff --git a/skills/agent-roster-flow/references/tracks.md b/skills/agent-roster-flow/references/tracks.md
+index 938dfaa..81b7970 100644
+--- a/skills/agent-roster-flow/references/tracks.md
++++ b/skills/agent-roster-flow/references/tracks.md
+@@ -37,4 +37,4 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ | 方案评审 | 确认 Assignment | 只读 | 审 design + driver / 子 change 产物 |
+ | 实现 | 确认 Assignment | 必须 | `$taskflow` 实施子 change |
+ | 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
+-| 收尾 | 确认 Assignment | 需要时 | 归档 driver；探索任务已在 handoff 归档；可选 `$commit-push` |
++| 收尾 | 确认 Assignment | 需要时 | 归档 driver；探索任务保持 handed-off，如需关闭另走 `$task-explore` 的 `archive`；可选 `$commit-push` |
+diff --git a/skills/commit-push/SKILL.md b/skills/commit-push/SKILL.md
+index 4601085..5462b26 100644
+--- a/skills/commit-push/SKILL.md
++++ b/skills/commit-push/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: commit-push
+ name: commit-push
+-description: "分析当前 git 变更、起草提交说明、创建 commit 并 push 到远程。在用户要求提交、commit、push、提交并推送时使用。针对大改动做耗时优化，避免通读巨型 diff。"
++description: "分析当前 git 变更、起草提交说明、创建 commit 并 push 到远程。在用户要求提交、commit、push、提交并推送时使用；仅查看变更/diff 或需要逐文件评审时不用本 skill（那是 review 的活）。针对大改动做耗时优化，避免通读巨型 diff。"
+ ---
+ 
+ # 提交并推送
+@@ -93,3 +93,4 @@ git push -u origin HEAD
+ - 变更意图不清（多件事混在一起是否拆分）
+ - 包含可能不该提交的文件
+ - push 需要选择 remote/分支且无法从 tracking 判断
++- 目标是共享远程（生产、预发、共享分支）或默认分支：推送前单独向用户确认，「提交并推送」的授权只覆盖当次点名的目标
+diff --git a/skills/lark-cli/SKILL.md b/skills/lark-cli/SKILL.md
+index 8c8afd9..195f834 100644
+--- a/skills/lark-cli/SKILL.md
++++ b/skills/lark-cli/SKILL.md
+@@ -40,7 +40,7 @@ lark-cli skills list lark-im/references
+ lark-cli skills read lark-im/references/<file>
+ ```
+ 
+-CLI 不存在 → `dotf lark-cli -i`（或 `npm install -g @larksuite/cli`）。**禁止**再跑：
++CLI 不存在 → `npm install -g @larksuite/cli`（dotf 环境可用 `dotf lark-cli -i`，等效）。**禁止**再跑：
+ 
+ - `npx @larksuite/cli@latest install`（会把 20+ 个 skill 写入 `~/.agents/skills`，所有 agent 都会扫到）
+ - `npx skills add larksuite/cli -g`（同上）
+diff --git a/skills/pretty-view-html/SKILL.md b/skills/pretty-view-html/SKILL.md
+index c726892..e298d60 100644
+--- a/skills/pretty-view-html/SKILL.md
++++ b/skills/pretty-view-html/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: pretty-view-html
+ name: pretty-view-html
+-description: 将已有上下文、文件、文档、报告、方案或评审内容整理为适合浏览器阅读的 HTML 文档。用于用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档，或把现有内容做成单页或多页 HTML 时。
++description: 将已有上下文、文件、文档、报告、方案或评审内容整理为适合浏览器阅读的 HTML 文档。用于用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档，或把现有内容做成单页或多页 HTML 时。不做真实网站或组件开发、不做需部署上线的页面，图表类产物见各图表 skill 的边界。
+ ---
+ 
+ # Pretty View HTML
+diff --git a/skills/pretty-view-html/references/frontend-design/LICENSE.txt b/skills/pretty-view-html/references/frontend-design/LICENSE.txt
+new file mode 100644
+index 0000000..f433b1a
+--- /dev/null
++++ b/skills/pretty-view-html/references/frontend-design/LICENSE.txt
+@@ -0,0 +1,177 @@
++
++                                 Apache License
++                           Version 2.0, January 2004
++                        http://www.apache.org/licenses/
++
++   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
++
++   1. Definitions.
++
++      "License" shall mean the terms and conditions for use, reproduction,
++      and distribution as defined by Sections 1 through 9 of this document.
++
++      "Licensor" shall mean the copyright owner or entity authorized by
++      the copyright owner that is granting the License.
++
++      "Legal Entity" shall mean the union of the acting entity and all
++      other entities that control, are controlled by, or are under common
++      control with that entity. For the purposes of this definition,
++      "control" means (i) the power, direct or indirect, to cause the
++      direction or management of such entity, whether by contract or
++      otherwise, or (ii) ownership of fifty percent (50%) or more of the
++      outstanding shares, or (iii) beneficial ownership of such entity.
++
++      "You" (or "Your") shall mean an individual or Legal Entity
++      exercising permissions granted by this License.
++
++      "Source" form shall mean the preferred form for making modifications,
++      including but not limited to software source code, documentation
++      source, and configuration files.
++
++      "Object" form shall mean any form resulting from mechanical
++      transformation or translation of a Source form, including but
++      not limited to compiled object code, generated documentation,
++      and conversions to other media types.
++
++      "Work" shall mean the work of authorship, whether in Source or
++      Object form, made available under the License, as indicated by a
++      copyright notice that is included in or attached to the work
++      (an example is provided in the Appendix below).
++
++      "Derivative Works" shall mean any work, whether in Source or Object
++      form, that is based on (or derived from) the Work and for which the
++      editorial revisions, annotations, elaborations, or other modifications
++      represent, as a whole, an original work of authorship. For the purposes
++      of this License, Derivative Works shall not include works that remain
++      separable from, or merely link (or bind by name) to the interfaces of,
++      the Work and Derivative Works thereof.
++
++      "Contribution" shall mean any work of authorship, including
++      the original version of the Work and any modifications or additions
++      to that Work or Derivative Works thereof, that is intentionally
++      submitted to Licensor for inclusion in the Work by the copyright owner
++      or by an individual or Legal Entity authorized to submit on behalf of
++      the copyright owner. For the purposes of this definition, "submitted"
++      means any form of electronic, verbal, or written communication sent
++      to the Licensor or its representatives, including but not limited to
++      communication on electronic mailing lists, source code control systems,
++      and issue tracking systems that are managed by, or on behalf of, the
++      Licensor for the purpose of discussing and improving the Work, but
++      excluding communication that is conspicuously marked or otherwise
++      designated in writing by the copyright owner as "Not a Contribution."
++
++      "Contributor" shall mean Licensor and any individual or Legal Entity
++      on behalf of whom a Contribution has been received by Licensor and
++      subsequently incorporated within the Work.
++
++   2. Grant of Copyright License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      copyright license to reproduce, prepare Derivative Works of,
++      publicly display, publicly perform, sublicense, and distribute the
++      Work and such Derivative Works in Source or Object form.
++
++   3. Grant of Patent License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      (except as stated in this section) patent license to make, have made,
++      use, offer to sell, sell, import, and otherwise transfer the Work,
++      where such license applies only to those patent claims licensable
++      by such Contributor that are necessarily infringed by their
++      Contribution(s) alone or by combination of their Contribution(s)
++      with the Work to which such Contribution(s) was submitted. If You
++      institute patent litigation against any entity (including a
++      cross-claim or counterclaim in a lawsuit) alleging that the Work
++      or a Contribution incorporated within the Work constitutes direct
++      or contributory patent infringement, then any patent licenses
++      granted to You under this License for that Work shall terminate
++      as of the date such litigation is filed.
++
++   4. Redistribution. You may reproduce and distribute copies of the
++      Work or Derivative Works thereof in any medium, with or without
++      modifications, and in Source or Object form, provided that You
++      meet the following conditions:
++
++      (a) You must give any other recipients of the Work or
++          Derivative Works a copy of this License; and
++
++      (b) You must cause any modified files to carry prominent notices
++          stating that You changed the files; and
++
++      (c) You must retain, in the Source form of any Derivative Works
++          that You distribute, all copyright, patent, trademark, and
++          attribution notices from the Source form of the Work,
++          excluding those notices that do not pertain to any part of
++          the Derivative Works; and
++
++      (d) If the Work includes a "NOTICE" text file as part of its
++          distribution, then any Derivative Works that You distribute must
++          include a readable copy of the attribution notices contained
++          within such NOTICE file, excluding those notices that do not
++          pertain to any part of the Derivative Works, in at least one
++          of the following places: within a NOTICE text file distributed
++          as part of the Derivative Works; within the Source form or
++          documentation, if provided along with the Derivative Works; or,
++          within a display generated by the Derivative Works, if and
++          wherever such third-party notices normally appear. The contents
++          of the NOTICE file are for informational purposes only and
++          do not modify the License. You may add Your own attribution
++          notices within Derivative Works that You distribute, alongside
++          or as an addendum to the NOTICE text from the Work, provided
++          that such additional attribution notices cannot be construed
++          as modifying the License.
++
++      You may add Your own copyright statement to Your modifications and
++      may provide additional or different license terms and conditions
++      for use, reproduction, or distribution of Your modifications, or
++      for any such Derivative Works as a whole, provided Your use,
++      reproduction, and distribution of the Work otherwise complies with
++      the conditions stated in this License.
++
++   5. Submission of Contributions. Unless You explicitly state otherwise,
++      any Contribution intentionally submitted for inclusion in the Work
++      by You to the Licensor shall be under the terms and conditions of
++      this License, without any additional terms or conditions.
++      Notwithstanding the above, nothing herein shall supersede or modify
++      the terms of any separate license agreement you may have executed
++      with Licensor regarding such Contributions.
++
++   6. Trademarks. This License does not grant permission to use the trade
++      names, trademarks, service marks, or product names of the Licensor,
++      except as required for reasonable and customary use in describing the
++      origin of the Work and reproducing the content of the NOTICE file.
++
++   7. Disclaimer of Warranty. Unless required by applicable law or
++      agreed to in writing, Licensor provides the Work (and each
++      Contributor provides its Contributions) on an "AS IS" BASIS,
++      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++      implied, including, without limitation, any warranties or conditions
++      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
++      PARTICULAR PURPOSE. You are solely responsible for determining the
++      appropriateness of using or redistributing the Work and assume any
++      risks associated with Your exercise of permissions under this License.
++
++   8. Limitation of Liability. In no event and under no legal theory,
++      whether in tort (including negligence), contract, or otherwise,
++      unless required by applicable law (such as deliberate and grossly
++      negligent acts) or agreed to in writing, shall any Contributor be
++      liable to You for damages, including any direct, indirect, special,
++      incidental, or consequential damages of any character arising as a
++      result of this License or out of the use or inability to use the
++      Work (including but not limited to damages for loss of goodwill,
++      work stoppage, computer failure or malfunction, or any and all
++      other commercial damages or losses), even if such Contributor
++      has been advised of the possibility of such damages.
++
++   9. Accepting Warranty or Additional Liability. While redistributing
++      the Work or Derivative Works thereof, You may choose to offer,
++      and charge a fee for, acceptance of support, warranty, indemnity,
++      or other liability obligations and/or rights consistent with this
++      License. However, in accepting such obligations, You may act only
++      on Your own behalf and on Your sole responsibility, not on behalf
++      of any other Contributor, and only if You agree to indemnify,
++      defend, and hold each Contributor harmless for any liability
++      incurred by, or claims asserted against, such Contributor by reason
++      of your accepting any such warranty or additional liability.
++
++   END OF TERMS AND CONDITIONS
+diff --git a/skills/pretty-view-html/references/frontend-design/SKILL.md b/skills/pretty-view-html/references/frontend-design/SKILL.md
+index decdff4..c45fcd7 100644
+--- a/skills/pretty-view-html/references/frontend-design/SKILL.md
++++ b/skills/pretty-view-html/references/frontend-design/SKILL.md
+@@ -6,6 +6,8 @@ license: Complete terms in LICENSE.txt
+ 
+ # Frontend Design
+ 
++> Vendored reference from [anthropics/skills `skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design)（Apache-2.0，LICENSE.txt 随目录附带）。When invoked via `pretty-view-html`, follow the parent Skill for page visual language and layout; this file supplies aesthetic-direction guidance.
++
+ Approach this as the design lead at a small studio known for giving every client a visual identity that could not be mistaken for anyone else's. This client has already rejected proposals that felt templated, and is paying for a distinctive point of view: make deliberate, opinionated choices about palette, typography, and layout that are specific to this brief, and take one real aesthetic risk you can justify.
+ 
+ ## Ground it in the subject
+diff --git a/skills/project-init/SKILL.md b/skills/project-init/SKILL.md
+index c576e88..df0f408 100644
+--- a/skills/project-init/SKILL.md
++++ b/skills/project-init/SKILL.md
+@@ -97,7 +97,7 @@ description: >-
+ | Language | TypeScript | ⭐⭐⭐⭐⭐ | 必选 |
+ | UI Framework | React | ⭐⭐⭐⭐⭐ | 必选 |
+ | Build | Vite | ⭐⭐⭐⭐⭐ | 默认（Vite 路径） |
+-| Build | Next.js | ⭐⭐⭐⭐ | 特定场景再用（Next 路径；承担构建与服务端） |
++| Build / Framework | Next.js | ⭐⭐⭐⭐ | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由；承担构建与服务端） |
+ | CSS | Tailwind CSS | ⭐⭐⭐⭐⭐ | 默认 |
+ | UI | shadcn/ui | ⭐⭐⭐⭐⭐ | 强烈推荐 |
+ | Server State | TanStack Query | ⭐⭐⭐⭐⭐ | 推荐 |
+@@ -107,7 +107,6 @@ description: >-
+ | API Contract | OpenAPI / Zod | ⭐⭐⭐⭐⭐ | 强烈推荐 |
+ | E2E | Playwright | ⭐⭐⭐⭐⭐ | 必选 |
+ | Unit | Vitest | ⭐⭐⭐⭐⭐ | 推荐 |
+-| Framework | Next.js | ⭐⭐⭐⭐ | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由） |
+ 
+ 包管理器：用户指定优先；否则 Python 默认 `uv`，前端默认 `pnpm`。工具或包管理器缺失时列入依赖缺口，**询问是否补齐**（安装该工具，或改用已说明的回退：Python 为 venv + pip，前端为 npm）。未确认不得自行切换，也不得为脚手架擅自全局安装。
+ 
+diff --git a/skills/repo-manager/SKILL.md b/skills/repo-manager/SKILL.md
+index 0b35547..243a321 100644
+--- a/skills/repo-manager/SKILL.md
++++ b/skills/repo-manager/SKILL.md
+@@ -8,7 +8,7 @@ description: 通过 `grepom`（首选，跨平台批量操作工作区多仓）
+ 
+ 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
+ 
+-两层 CLI：跨仓批量优先用 `grepom`；`grepom` 覆盖不到时再用 `glab`。
++两层 CLI：跨仓批量优先用 `grepom`（源码与安装：github.com/sunzhenkai/grepom）；`grepom` 覆盖不到时再用 `glab`。
+ 
+ 配置查找：`grepom` 从当前目录或任意父目录读取 `.grepom.yml`。用 `-c <path>` 覆盖。
+ 
+@@ -294,64 +294,7 @@ glab --help
+ 
+ ## 踩坑（可复用经验）
+ 
+-可复用的踩坑经验。**只记跨实例通用的规律**，具体 host / IP / token / 路径等特例不放这里。
+-
+-### glab CLI
+-
+-- **HTTP-only 实例必须显式 `--api-protocol http`**：默认走 https，遇到 TLS 错误优先怀疑这个 flag 没带。
+-  ```bash
+-  glab auth login --hostname <host> --api-protocol http --git-protocol ssh --stdin
+-  ```
+-- **glab 全局默认 host 是 `gitlab.com`**：所有 `glab api /xxx`、`glab mr list` 等命令不显式 `--hostname` 都会用到默认值。多实例环境永远带 `--hostname <host>` 或 `GITLAB_HOST=<host>`。
+-- **keyring 不可用时 fallback 到 plaintext**（常见于 Linux server / 无 desktop env）：token 落到 `~/.config/glab-cli/config.yml`（权限 0600）。可手动 `chmod 600` 加固；启用 desktop 后再 `glab auth login` 一次会搬回 keyring。
+-- **`glab mr list` 在 cwd repo 没匹配 host 时报 "remote not known"**：用 `--hostname <host> -R <group>/<repo>` 解决，或 `cd` 到目标 repo。
+-
+-### GitLab REST API
+-
+-- **GitLab 17.9+ transfer API 用 `PUT /projects/:id/transfer`**（不是 `POST`）。参数是 `namespace=<group_path>`，不是 `namespace_id=<id>`。
+-  ```bash
+-  glab api --hostname <host> -X PUT projects/<id>/transfer -f namespace=<group_path>
+-  ```
+-- **`DELETE /projects/:id` 默认是软删除**：标 `marked_for_deletion_at` + 30 天后悔期。path 自动加 `-deletion_scheduled-<id>` 后缀防冲突。
+-- **恢复软删除**：`POST /projects/:id/restore`，path 自动回到原值。
+-- **物理硬删要走 admin 内部接口**：`glab` 不暴露；要在 GitLab 主机上 `gitlab-rails console` 跑 `Project.unscoped.find(<id>).really_destroy!`。
+-- **搜 namespace 不要只查一处**：自托管 group/user 命名易混，三个 API 并行查：
+-  ```bash
+-  glab api --hostname <host> 'groups?search=<kw>'
+-  glab api --hostname <host> 'users?username=<kw>'
+-  glab api --hostname <host> 'namespaces?search=<kw>'   # 同时含 group + user
+-  ```
+-- **`/api/v4/version` 401 不一定是 TLS 错**：很多自托管实例把 version 也要求认证，反而说明 HTTP/API 路径对，继续带 token 测 `/user` 即可。
+-
+-### grepom 配置与 GitLab 分组
+-
+-- **配置作用域要先确认**：grepom 会从当前目录向上查找 `.grepom.yml`。在项目内新增本地配置后，它会遮蔽父目录配置；需要操作另一份配置时显式使用 `grepom -c /path/to/.grepom.yml ...`，避免把仓库克隆到错误的 workspace。
+-- **最小 GitLab 配置**：`base` 是相对于配置文件目录的克隆根目录；分组的 `local_path` 再相对于该 `base` 计算。例如 `base: ./repos`、`local_path: ./team`、远程路径 `team/service` 最终落在 `repos/team/service`。
+-  ```yaml
+-  base: ./repos
+-  resources:
+-    gitlab-primary:
+-      provider: gitlab
+-      url: https://gitlab.example.com
+-      token: ${GITLAB_TOKEN}
+-  groups:
+-    - name: team
+-      resource: gitlab-primary
+-      path: team
+-      local_path: ./team
+-      recursive: true
+-  repos: []
+-  ```
+-- **推荐初始化顺序**：先用 `grepom init --base ./repos --provider gitlab --url <host> --token '${TOKEN_ENV}'` 生成配置，再把 resource 名称调整为有意义的实例名（例如 `gh`），最后用 `grepom add group --name <name> --resource <resource> --path <group-path> --local-path ./<local-dir> --recursive` 登记分组。不要把 token 明文写入 YAML。
+-- **追踪与克隆分两步**：`grepom sync --group <group>` 只向配置追加远程发现的新仓库，不会自动克隆；确认发现结果后运行 `grepom clone --group <group>`。全量场景可使用 `grepom clone --resource <resource>`，单仓库使用 `grepom clone <repo-name>`。
+-- **同步结果要核对**：sync 后用 `grepom list groups` 检查 group/resource/path/repo 数量，再用 `grepom list --all` 确认仓库状态；clone 后进入目标仓库执行 `git status --short --branch`，或运行 `grepom status`。
+-- **HTTP-only 或 TLS 异常的自托管 GitLab**：资源 URL 显式写 `http://<host>`，避免 grepom 先尝试 HTTPS 再回退并产生额外延迟。若 `grepom add group` 将 URL 规范化为无 scheme 的 host，可手动恢复 `http://` 后再次用 `grepom list` 校验配置仍可解析。API 查询和 glab 操作同时显式带 `--hostname <host>`。
+-- **SSH URL 形态要注意**：对带 GitLab resource 的 standalone repo，优先把 `url` 写成远程相对路径（如 `group/repo.git`），让 grepom 组合成 `git@<host>:group/repo.git`；直接填 `ssh://git@<host>/group/repo.git` 可能被重复拼接成错误地址。分组 sync 通常会自动写入可用的 HTTP clone URL，SSH clone 仍会优先尝试本机密钥。
+-- **新建远程项目后的登记方式**：远程项目已存在于已追踪的 GitLab group 时，重新执行 `grepom sync --group <group>` 即可发现；不在已追踪 group 中时使用 `grepom add repo --name ... --resource ... --url ...`。创建远程项目属于 GitLab API 能力，grepom 未覆盖时用 `glab repo create <host>/<group>/<repo> --skipGitInit`，创建后再回到 sync/clone 流程。
+-- **克隆基目录应纳入忽略**：如果 `base` 指向项目内的 `repos/`，将 `repos/` 加入项目 `.gitignore`，避免把被管理仓库的工作树误提交到当前配置仓库；配置文件 `.grepom.yml` 是否提交则按项目约定处理。
+-- **安全推送**：完成仓库内提交后优先用 `grepom push -- origin <branch>`，它会先执行 secret scan；扫描包含大二进制文件时可能较安静且耗时，等待命令返回，不要在未确认结果前重复 push。发现命中时先清理或配置 allowlist，不要默认使用 `-f`。
+-
+----
++可复用的踩坑经验（glab CLI、GitLab REST API、grepom 配置与 GitLab 分组）下沉在 [references/pitfalls.md](references/pitfalls.md)，排查时按需加载。**只记跨实例通用的规律**，具体 host / IP / token / 路径等特例不放。参数不确定先跑真实 `--help`（见上「不确定时」），再对照 pitfalls。
+ 
+ ## Self-evolution
+ 
+diff --git a/skills/repo-manager/references/pitfalls.md b/skills/repo-manager/references/pitfalls.md
+new file mode 100644
+index 0000000..28c38d6
+--- /dev/null
++++ b/skills/repo-manager/references/pitfalls.md
+@@ -0,0 +1,61 @@
++## 踩坑（可复用经验）
++
++可复用的踩坑经验。**只记跨实例通用的规律**，具体 host / IP / token / 路径等特例不放这里。
++
++### glab CLI
++
++- **HTTP-only 实例必须显式 `--api-protocol http`**：默认走 https，遇到 TLS 错误优先怀疑这个 flag 没带。
++  ```bash
++  glab auth login --hostname <host> --api-protocol http --git-protocol ssh --stdin
++  ```
++- **glab 全局默认 host 是 `gitlab.com`**：所有 `glab api /xxx`、`glab mr list` 等命令不显式 `--hostname` 都会用到默认值。多实例环境永远带 `--hostname <host>` 或 `GITLAB_HOST=<host>`。
++- **keyring 不可用时 fallback 到 plaintext**（常见于 Linux server / 无 desktop env）：token 落到 `~/.config/glab-cli/config.yml`（权限 0600）。可手动 `chmod 600` 加固；启用 desktop 后再 `glab auth login` 一次会搬回 keyring。
++- **`glab mr list` 在 cwd repo 没匹配 host 时报 "remote not known"**：用 `--hostname <host> -R <group>/<repo>` 解决，或 `cd` 到目标 repo。
++
++### GitLab REST API
++
++- **GitLab 17.9+ transfer API 用 `PUT /projects/:id/transfer`**（不是 `POST`）。参数是 `namespace=<group_path>`，不是 `namespace_id=<id>`。
++  ```bash
++  glab api --hostname <host> -X PUT projects/<id>/transfer -f namespace=<group_path>
++  ```
++- **`DELETE /projects/:id` 默认是软删除**：标 `marked_for_deletion_at` + 30 天后悔期。path 自动加 `-deletion_scheduled-<id>` 后缀防冲突。
++- **恢复软删除**：`POST /projects/:id/restore`，path 自动回到原值。
++- **物理硬删要走 admin 内部接口**：`glab` 不暴露；要在 GitLab 主机上 `gitlab-rails console` 跑 `Project.unscoped.find(<id>).really_destroy!`。
++- **搜 namespace 不要只查一处**：自托管 group/user 命名易混，三个 API 并行查：
++  ```bash
++  glab api --hostname <host> 'groups?search=<kw>'
++  glab api --hostname <host> 'users?username=<kw>'
++  glab api --hostname <host> 'namespaces?search=<kw>'   # 同时含 group + user
++  ```
++- **`/api/v4/version` 401 不一定是 TLS 错**：很多自托管实例把 version 也要求认证，反而说明 HTTP/API 路径对，继续带 token 测 `/user` 即可。
++
++### grepom 配置与 GitLab 分组
++
++- **配置作用域要先确认**：grepom 会从当前目录向上查找 `.grepom.yml`。在项目内新增本地配置后，它会遮蔽父目录配置；需要操作另一份配置时显式使用 `grepom -c /path/to/.grepom.yml ...`，避免把仓库克隆到错误的 workspace。
++- **最小 GitLab 配置**：`base` 是相对于配置文件目录的克隆根目录；分组的 `local_path` 再相对于该 `base` 计算。例如 `base: ./repos`、`local_path: ./team`、远程路径 `team/service` 最终落在 `repos/team/service`。
++  ```yaml
++  base: ./repos
++  resources:
++    gitlab-primary:
++      provider: gitlab
++      url: https://gitlab.example.com
++      token: ${GITLAB_TOKEN}
++  groups:
++    - name: team
++      resource: gitlab-primary
++      path: team
++      local_path: ./team
++      recursive: true
++  repos: []
++  ```
++- **推荐初始化顺序**：先用 `grepom init --base ./repos --provider gitlab --url <host> --token '${TOKEN_ENV}'` 生成配置，再把 resource 名称调整为有意义的实例名（例如 `gh`），最后用 `grepom add group --name <name> --resource <resource> --path <group-path> --local-path ./<local-dir> --recursive` 登记分组。不要把 token 明文写入 YAML。
++- **追踪与克隆分两步**：`grepom sync --group <group>` 只向配置追加远程发现的新仓库，不会自动克隆；确认发现结果后运行 `grepom clone --group <group>`。全量场景可使用 `grepom clone --resource <resource>`，单仓库使用 `grepom clone <repo-name>`。
++- **同步结果要核对**：sync 后用 `grepom list groups` 检查 group/resource/path/repo 数量，再用 `grepom list --all` 确认仓库状态；clone 后进入目标仓库执行 `git status --short --branch`，或运行 `grepom status`。
++- **HTTP-only 或 TLS 异常的自托管 GitLab**：资源 URL 显式写 `http://<host>`，避免 grepom 先尝试 HTTPS 再回退并产生额外延迟。若 `grepom add group` 将 URL 规范化为无 scheme 的 host，可手动恢复 `http://` 后再次用 `grepom list` 校验配置仍可解析。API 查询和 glab 操作同时显式带 `--hostname <host>`。
++- **SSH URL 形态要注意**：对带 GitLab resource 的 standalone repo，优先把 `url` 写成远程相对路径（如 `group/repo.git`），让 grepom 组合成 `git@<host>:group/repo.git`；直接填 `ssh://git@<host>/group/repo.git` 可能被重复拼接成错误地址。分组 sync 通常会自动写入可用的 HTTP clone URL，SSH clone 仍会优先尝试本机密钥。
++- **新建远程项目后的登记方式**：远程项目已存在于已追踪的 GitLab group 时，重新执行 `grepom sync --group <group>` 即可发现；不在已追踪 group 中时使用 `grepom add repo --name ... --resource ... --url ...`。创建远程项目属于 GitLab API 能力，grepom 未覆盖时用 `glab repo create <host>/<group>/<repo> --skipGitInit`，创建后再回到 sync/clone 流程。
++- **克隆基目录应纳入忽略**：如果 `base` 指向项目内的 `repos/`，将 `repos/` 加入项目 `.gitignore`，避免把被管理仓库的工作树误提交到当前配置仓库；配置文件 `.grepom.yml` 是否提交则按项目约定处理。
++- **安全推送**：完成仓库内提交后优先用 `grepom push -- origin <branch>`，它会先执行 secret scan；扫描包含大二进制文件时可能较安静且耗时，等待命令返回，不要在未确认结果前重复 push。发现命中时先清理或配置 allowlist，不要默认使用 `-f`。
++
++---
++
+diff --git a/skills/service-manager/SKILL.md b/skills/service-manager/SKILL.md
+index 2f6d511..218e89f 100644
+--- a/skills/service-manager/SKILL.md
++++ b/skills/service-manager/SKILL.md
+@@ -70,7 +70,7 @@ description: 项目服务管理：从 Makefile、package.json、docker-compose 
+ ### 何时读写
+ 
+ 1. **任何 phase 开始时**：若文件存在则先读；冲突处理见上。
+-2. **discover 完成后**：不存在则创建；已存在则补全缺失项。
++2. **discover 完成后**：不存在则先询问是否创建（含是否随项目入库），同意后才建；已存在则补全缺失项。
+ 3. **start / restart 成功后**：按「冲突与覆盖」写回生效信息。
+ 4. **遇到坑时立刻写入**踩坑节；同一问题更新已有条目，不重复堆砌。
+ 
+@@ -159,12 +159,12 @@ discover 与选定 `command` 时，同一服务有多候选则按优先级：
+ 
+ 不要把「先 `build` 再静态 `preview`」当作首选开发启动，除非用户指定或仅此可起。
+ 
+-### 绑定 0.0.0.0
++### 监听地址
+ 
+-start / restart 开发/测试原生服务时，监听地址应为 **`0.0.0.0`**（全网卡），不要默认只绑 `127.0.0.1`。
++start / restart 开发/测试原生服务时，**默认不改监听配置**（工具自身默认多为 `127.0.0.1`，仅本机可达）。宽绑定 `0.0.0.0` 仅用于局域网/真机联调需求，且绑定前 MUST 确认当前网络可信——公共 Wi-Fi 等不可信网络会向同网段暴露本机服务：
+ 
+ 1. 先看 command / notes / 环境是否已宽绑定（已含 `0.0.0.0`、`--host 0.0.0.0`、`HOST=0.0.0.0` 等）→ 不再追加。
+-2. 若仍只绑本机或未指定 host，按栈用**可逆、常见**方式补绑定（优先环境变量，其次该工具官方 host 参数），且不得关掉热更新：
++2. 仅当用户明确需要局域网/真机访问、或台账 notes 已声明宽绑定，且网络可信时，按栈用**可逆、常见**方式补绑定（优先环境变量，其次该工具官方 host 参数），且不得关掉热更新：
+ 
+ | 栈 / 线索 | 优先补法（示例） |
+ |-----------|------------------|
+diff --git a/skills/service-manager/evals/cases.yaml b/skills/service-manager/evals/cases.yaml
+index 11dc242..78d1116 100644
+--- a/skills/service-manager/evals/cases.yaml
++++ b/skills/service-manager/evals/cases.yaml
+@@ -135,14 +135,14 @@ cases:
+   - id: start-dev-bind-all-interfaces
+     kind: core
+     judge: deterministic
+-    description: 开发/测试原生服务绑定 0.0.0.0
++    description: 宽绑定 0.0.0.0 仅在明确需求且网络可信时
+     given: start/restart 开发或测试原生服务，command 未宽绑定且可按常见栈补 host
+     expect:
+       must:
+-        - 以 0.0.0.0 监听（环境变量或官方 host 参数），且保持热更新
++        - 默认不改监听配置；仅当用户明确要局域网/真机访问（或 notes 已声明）且确认网络可信后才以 0.0.0.0 监听（环境变量或官方 host 参数），并保持热更新
+         - 成功后可按冲突规则写回 bind / 热更新信息
+       must_not:
+-        - 在可安全补绑时仍默认只绑 127.0.0.1
++        - 未经需求确认或网络可信确认就宽绑定 0.0.0.0
+         - 覆盖人工标注或用户本会话指定的 command
+         - 臆造少见 flag；无法推断时应原样启动并询问
+ 
+diff --git a/skills/task-wizard/SKILL.md b/skills/task-wizard/SKILL.md
+index 31fcf9b..c390b0d 100644
+--- a/skills/task-wizard/SKILL.md
++++ b/skills/task-wizard/SKILL.md
+@@ -193,7 +193,10 @@ description: "理解用户意图并生成步骤级任务方案：每步动作、
+ - **P1**：验证对不住判据，或漏了任务应有的交付标准。
+ - **P2**：不改道的写法、顺序、两行限制或省略。P2 不参与完成程度，只写入坑，不改步骤正文。
+ 
+-本轮有 P0 或 P1 时，完成程度取中或低。审阅者给了高时，执行者按中写入。本轮没有 P0 与 P1 时，完成程度为高。审阅者给了中或低时，执行者按高写入。
++完成程度的写入按显式条件判定，P0/P1 的有无优先于审阅者定级：
++
++- 本轮发现含 P0 或 P1：完成程度取「中或低」。审阅者定级为高 → 写「中」；定级为中或低 → 从其值。
++- 本轮无 P0 也无 P1：完成程度写「高」，审阅者定级不参与。
+ 
+ 人选：
+ 
+diff --git a/skills/task-wizard/references/quality-profile.md b/skills/task-wizard/references/quality-profile.md
+index b7da338..3bf1946 100644
+--- a/skills/task-wizard/references/quality-profile.md
++++ b/skills/task-wizard/references/quality-profile.md
+@@ -31,7 +31,7 @@
+ 
+ ```text
+ 控件密度: <哪些 surface 用常规档、哪些用密集档；同一上下文内是否要求同高>
+-icon 形态: <是否单一 icon primitive（固定方盒 + SVG + 尺寸 token）；是否禁止裸字符/emoji 充当 icon>
++icon 形态: <是否收敛到单一 icon primitive 及其来源；是否禁止裸字符/emoji 充当 icon>
+ 表单间距: <字段间距与表单收尾间距是否来自 token，而非手写数值>
+ 证据分工: <哪些一致性要求用 DOM/静态断言钉住，哪些必须截图确认>
+ ```
+diff --git a/skills/taskflow/references/acceptance-rubric.md b/skills/taskflow/references/acceptance-rubric.md
+index 7f87b80..5bfec74 100644
+--- a/skills/taskflow/references/acceptance-rubric.md
++++ b/skills/taskflow/references/acceptance-rubric.md
+@@ -18,7 +18,7 @@
+ | 画像一致性 | 实现逐条对得上质量画像 | 只有已确认且记录的降级 | 无未确认偏差 |
+ | 证据 | 截图或导出日志 + 可复现命令 | 证据部分缺失 | 全部齐 |
+ 
+-全量通过线：五维均 ≥2，且 UI/UX 均值 ≥2.5。
++全量通过线：五维均 ≥2，UI/UX 六子项均值 ≥2.5，任一子项为 0 不通过。
+ 
+ ## UI/UX 六子项
+ 
+diff --git a/skills/taskflow/references/delivery-quality-loop.md b/skills/taskflow/references/delivery-quality-loop.md
+index 38ca05b..e5550b5 100644
+--- a/skills/taskflow/references/delivery-quality-loop.md
++++ b/skills/taskflow/references/delivery-quality-loop.md
+@@ -1,6 +1,6 @@
+ # 交付质量闭环
+ 
+-术语见 [../SKILL.md](../SKILL.md)。本文件规定复杂交付怎么验证，不规定做什么功能；进度仍只认 checkbox，本文件不建第二份账本。
++本文件规定复杂交付怎么验证，不规定做什么功能；进度仍只认 checkbox，本文件不建第二份账本。
+ 
+ ## 什么时候用
+ 
+diff --git a/skills/trouble-grill/SKILL.md b/skills/trouble-grill/SKILL.md
+index 9bb7ce1..0eea523 100644
+--- a/skills/trouble-grill/SKILL.md
++++ b/skills/trouble-grill/SKILL.md
+@@ -114,7 +114,7 @@ description: 根因排查时持续拷问 agent 自己，防止失焦、把假设
+ 推荐保存位置（按优先级）：
+ 
+ - 在 task-explore 任务里 → `tasks/ongoing/{task-name}/TASK.md` 的「进展」段；
+-- 无任务台账 → `archives/sessions/{date}/{slug}.md`；
++- 无任务台账 → 工作区已有存档约定（如 `archives/sessions/{date}/{slug}.md`）则循之；没有该约定时，落盘前先问用户放哪，不要在任意 cwd 造目录；
+ - 跨会话的偏好 / 已坐实结论 → 有持久记忆工具（如 MCP 记忆服务）则同步，没有则写回台账文件。
+ 
+ **铁律**：被证伪或用户纠正的瞬间就落盘，不要攒到收尾。落盘时只记「证据 + 输入 + 路径」，不抄聊天记录。
