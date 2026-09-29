@@ -2,7 +2,7 @@
 
 镜像根由 `detect` / `status` 给出。人读 `briefing/`，复现读 `agent/`，`evidence/` 只给路由。
 
-默认 **briefing**。用户要可换栈复现时用 **reconstructable**。切换模式按新门禁重写内容，不是只改标题。
+默认 **briefing**。用户要可换栈复现时用 **reconstructable**。切换模式按新门禁重写内容，不是只改标题。合法值只有 `briefing` | `reconstructable`；briefing 禁写密钥原文，密钥写 `<REDACTED>`。
 
 ## 目录
 

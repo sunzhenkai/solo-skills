@@ -158,29 +158,6 @@ CODE_EXTS = frozenset(
 MIRROR_VERSION = 1
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
-GO_FUNC = re.compile(r"^func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(", re.M)
-GO_TYPE = re.compile(r"^type\s+(\w+)\s+", re.M)
-GO_VAR = re.compile(r"^(?:var|const)\s+(\w+)\b", re.M)
-JS_FN = re.compile(
-    r"^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(", re.M
-)
-JS_CLASS = re.compile(r"^(?:export\s+)?class\s+(\w+)\b", re.M)
-JS_CONST = re.compile(
-    r"^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=", re.M
-)
-RUST_FN = re.compile(r"^(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+(\w+)\s*[<(]", re.M)
-RUST_TYPE = re.compile(
-    r"^(?:pub(?:\([^)]+\))?\s+)?(?:struct|enum|type|trait)\s+(\w+)\b", re.M
-)
-JAVA_TYPE = re.compile(
-    r"^(?:public|protected|private|static|final|\s)+class\s+(\w+)\b", re.M
-)
-JAVA_FN = re.compile(
-    r"^(?:public|protected|private|static|final|synchronized|\s)+"
-    r"[\w.<>,\[\]]+\s+(\w+)\s*\(",
-    re.M,
-)
-
 
 class SpecError(Exception):
     def __init__(self, message: str, *, reason: str = "error", **details: Any) -> None:
@@ -745,108 +722,6 @@ def inventory_files(source: Path, path_prefix: str | None = None) -> list[str]:
         prefix = path_prefix.strip().lstrip("./")
         files = [item for item in files if item == prefix or item.startswith(prefix.rstrip("/") + "/")]
     return files
-
-
-def is_public_name(name: str) -> bool:
-    return not name.startswith("_")
-
-
-def extract_python(source: str, *, include_private: bool) -> list[dict[str, str]]:
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    found: list[dict[str, str]] = []
-
-    def keep(name: str) -> bool:
-        return include_private or is_public_name(name)
-
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and keep(node.name):
-            found.append(
-                {"kind": "function", "name": node.name, "line": str(node.lineno)}
-            )
-        elif isinstance(node, ast.ClassDef) and keep(node.name):
-            found.append({"kind": "class", "name": node.name, "line": str(node.lineno)})
-            for child in node.body:
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and keep(
-                    child.name
-                ):
-                    found.append(
-                        {
-                            "kind": "method",
-                            "name": f"{node.name}.{child.name}",
-                            "line": str(child.lineno),
-                        }
-                    )
-        elif isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and keep(target.id):
-                    found.append(
-                        {
-                            "kind": "variable",
-                            "name": target.id,
-                            "line": str(node.lineno),
-                        }
-                    )
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            if keep(node.target.id):
-                found.append(
-                    {
-                        "kind": "variable",
-                        "name": node.target.id,
-                        "line": str(node.lineno),
-                    }
-                )
-    return found
-
-
-def extract_regex(source: str, ext: str, *, include_private: bool) -> list[dict[str, str]]:
-    rules: list[tuple[str, re.Pattern[str]]] = []
-    if ext == ".go":
-        rules = [("function", GO_FUNC), ("type", GO_TYPE), ("variable", GO_VAR)]
-    elif ext in {".js", ".ts", ".tsx", ".jsx"}:
-        rules = [("function", JS_FN), ("class", JS_CLASS), ("variable", JS_CONST)]
-    elif ext == ".rs":
-        rules = [("function", RUST_FN), ("type", RUST_TYPE)]
-    elif ext in {".java", ".kt"}:
-        rules = [("class", JAVA_TYPE), ("function", JAVA_FN)]
-    found: list[dict[str, str]] = []
-    seen: set[tuple[str, str]] = set()
-    for kind, pattern in rules:
-        for match in pattern.finditer(source):
-            name = match.group(1)
-            if not include_private and not is_public_name(name):
-                continue
-            if kind == "function" and name in {
-                "if",
-                "for",
-                "while",
-                "switch",
-                "catch",
-                "return",
-            }:
-                continue
-            key = (kind, name)
-            if key in seen:
-                continue
-            seen.add(key)
-            line = source.count("\n", 0, match.start()) + 1
-            found.append({"kind": kind, "name": name, "line": str(line)})
-    return found
-
-
-def extract_symbols(path: Path, *, include_private: bool) -> list[dict[str, str]]:
-    ext = path.suffix.lower()
-    if ext not in CODE_EXTS:
-        return []
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return []
-    if ext == ".py":
-        return extract_python(text, include_private=include_private)
-    return extract_regex(text, ext, include_private=include_private)
 
 
 def skeleton_readme(project: str, mode: str, branch: str | None) -> str:
@@ -1576,28 +1451,6 @@ def infer_phase(spec_root: Path, state: dict[str, Any]) -> str:
     return "build"
 
 
-def inspect_symbols(
-    source: Path, rel: str, *, include_private: bool = False
-) -> dict[str, Any]:
-    path = (source / rel).resolve()
-    try:
-        path.relative_to(source.resolve())
-    except ValueError as exc:
-        raise SpecError(f"file outside source: {rel}", reason="path_escape") from exc
-    gitlinks = list_gitlinks(source)
-    ignored = ignored_paths(source, [rel])
-    if rel in ignored:
-        return {"path": rel, "skipped": True, "reason": "ignored", "symbols": []}
-    if skip_inventory_path(source, rel, gitlinks=gitlinks):
-        return {"path": rel, "skipped": True, "reason": "third_party", "symbols": []}
-    if not text_path(source, rel):
-        return {"path": rel, "skipped": True, "reason": "non_text", "symbols": []}
-    if not path.is_file():
-        return {"path": rel, "missing": True, "symbols": []}
-    return {
-        "path": rel,
-        "symbols": extract_symbols(path, include_private=include_private),
-    }
 
 
 def cmd_status(args: argparse.Namespace) -> int:

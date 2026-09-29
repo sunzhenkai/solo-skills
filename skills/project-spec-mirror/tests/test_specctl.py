@@ -440,43 +440,9 @@ class GitAndSyncTest(unittest.TestCase):
             self.assertNotIn("ignored.log", names)
             self.assertNotIn("opaque.data", names)
             self.assertIn(".gitignore", names)
-            ignored = specctl.inspect_symbols(root, "ignored.log")
-            self.assertEqual(ignored["reason"], "ignored")
-            opaque = specctl.inspect_symbols(root, "opaque.data")
-            self.assertEqual(opaque["reason"], "non_text")
-
-
-class SymbolsTest(unittest.TestCase):
-    def test_python_ast_and_go_regex(self) -> None:
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw) / "demo"
-            root.mkdir()
-            (root / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
-            (root / "app.py").write_text(
-                "VALUE = 1\n_hidden = 2\n\nclass Order:\n    def place(self):\n        return 1\n\ndef cancel():\n    return 0\n",
-                encoding="utf-8",
-            )
-            (root / "order.go").write_text(
-                "package order\n\nfunc Place() {}\n",
-                encoding="utf-8",
-            )
-            code, payload = run("init", "--cwd", str(root), "--confirm")
-            self.assertEqual(code, 0, payload)
-            files = [
-                specctl.inspect_symbols(root, "app.py"),
-                specctl.inspect_symbols(root, "order.go"),
-            ]
-            by_path = {item["path"]: item["symbols"] for item in files}
-            py_names = {item["name"] for item in by_path["app.py"]}
-            self.assertIn("VALUE", py_names)
-            self.assertIn("Order", py_names)
-            self.assertIn("Order.place", py_names)
-            self.assertIn("cancel", py_names)
-            self.assertNotIn("_hidden", py_names)
-            go_names = {item["name"] for item in by_path["order.go"]}
-            self.assertIn("Place", go_names)
+            ignored = specctl.ignored_paths(root, ["ignored.log"])
+            self.assertIn("ignored.log", ignored)
+            self.assertFalse(specctl.text_path(root, "opaque.data"))
 
 
 class ValidateTest(unittest.TestCase):
@@ -611,23 +577,6 @@ class ValidateTest(unittest.TestCase):
             self.assertIn("internal/order.go", names)
             self.assertNotIn("libs/other-lib", names)
             self.assertTrue(all(not item.startswith("libs/other-lib") for item in names))
-
-    def test_symbols_skips_vendor(self) -> None:
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as raw:
-            root = make_repo(Path(raw) / "example-api")
-            (root / "vendor" / "lib.go").parent.mkdir()
-            (root / "vendor" / "lib.go").write_text(
-                "package vendor\n\nfunc Ignore() {}\n", encoding="utf-8"
-            )
-            git(root, "add", "-f", "vendor/lib.go")
-            git(root, "commit", "-q", "-m", "vendor")
-            item = specctl.inspect_symbols(root, "vendor/lib.go")
-            self.assertTrue(item.get("skipped"))
-            self.assertEqual(item.get("reason"), "third_party")
-            self.assertEqual(item["symbols"], [])
-
 
 CHECKOUT_SPEC = """# checkout
 

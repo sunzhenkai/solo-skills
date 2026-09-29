@@ -271,7 +271,7 @@ cases:
     expect:
       must:
         - inventory / diff / route 忽略三方安装树与嵌套 git / submodule
-        - inventory / diff / route / symbols 忽略 .gitignore 命中的路径与非文本文件
+        - inventory / diff / route 忽略 .gitignore 命中的路径与非文本文件
         - source-map 与能力 spec 只覆盖当前 --source 工程自己的代码
         - 邻接系统只在 briefing/architecture.md 记边界
       must_not:
@@ -348,6 +348,6 @@ cases:
     given: 改动了 specctl、放置规则或 SKILL 命令表
     expect:
       must:
-        - python3 -m unittest discover -s agents/skills/project-spec-mirror/tests 通过
+        - python3 -m unittest discover -s skills/project-spec-mirror/tests 通过
       must_not:
         - 在 yaml 中复制整份测试

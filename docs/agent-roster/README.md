@@ -14,14 +14,14 @@
 ## 它不做什么
 
 - 不实现被委派 agent 自身的能力。
-- 不给 agent 打分排序，理由见 [ADR 0002](./docs/adr/0002-no-scoring-only-cases.md)。
+- 不给 agent 打分排序，理由见 [ADR 0002](./adr/0002-no-scoring-only-cases.md)。
 - 第一版**不跨机执行**：远端 Endpoint 可以登记，但派活只在本机。数据模型按跨机设计，留待后续。
-- 不在本仓库存放任何真实数据，理由见 [ADR 0001](./docs/adr/0001-ledger-lives-outside-this-repo.md)。
+- 不在本仓库存放任何真实数据，理由见 [ADR 0001](./adr/0001-ledger-lives-outside-this-repo.md)。
 
 ## 安装
 
 ```bash
-npx skills add sunzhenkai/agent-roster -s agent-roster -g -y
+npx skills add sunzhenkai/solo-skills -s agent-roster -g -y
 ```
 
 外部 skill 装之前先做安全审计。
@@ -36,8 +36,8 @@ data_root: ~/path/to/your/private/data-repo
 ```
 
 名册与案例会落在 `<data_root>/agents/` 下，格式见
-[endpoint-schema.md](./skills/agent-roster/references/endpoint-schema.md) 与
-[trace-format.md](./skills/agent-roster/references/trace-format.md)。
+[endpoint-schema.md](../../skills/agent-roster/references/endpoint-schema.md) 与
+[trace-format.md](../../skills/agent-roster/references/trace-format.md)。
 
 ## 探测本机有哪些 agent
 
@@ -52,15 +52,15 @@ python3 skills/agent-roster/scripts/probe_endpoints.py --render    # 输出可�
 ## 执行层
 
 默认用 [acpx](https://acpx.sh)——ACP 的无头命令行客户端，会话管理、权限策略、结构化事件流都是现成的。但 skill 只依赖一层适配契约（Endpoint + prompt + 工作目录 + 权限 → 结构化结果），换执行器只改
-[delegation-contract.md](./skills/agent-roster/references/delegation-contract.md)。
+[delegation-contract.md](../../skills/agent-roster/references/delegation-contract.md)。
 
 「换执行器」说的是换成另一个同等实现，而仓库里目前只有一个：`acpx` 缺失时的直连 ACP 只覆盖一次性往返，会话、超时、权限档位都得现场拼，不是对等路径。所以 `acpx` 不在 PATH 时委派先停住、默认提议安装，只有使用者明确拒绝才走降级。
 
 ## 相关文档
 
 - [CONTEXT.md](./CONTEXT.md)：术语表。读代码或文档遇到 Endpoint、Delegation、Trace 这些词先看这里。
-- [docs/adr/](./docs/adr/)：关键决策与被否决的方案。
-- [SKILL.md](./skills/agent-roster/SKILL.md)：能力正文。
+- [docs/adr/](./adr/)：关键决策与被否决的方案。
+- [SKILL.md](../../skills/agent-roster/SKILL.md)：能力正文。
 
 ## License
 

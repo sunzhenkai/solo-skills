@@ -14,14 +14,14 @@ Use it to ask Claude to plan, Codex to review, Kiro to implement — anything li
 ## What it does not do
 
 - It does not implement the capabilities of the delegated agents themselves.
-- It does not score or rank agents. See [ADR 0002](./docs/adr/0002-no-scoring-only-cases.md).
+- It does not score or rank agents. See [ADR 0002](./adr/0002-no-scoring-only-cases.md).
 - v1 does **not** execute across machines. Remote endpoints can be registered, but dispatch only happens on the local machine. The data model is designed to support cross-machine dispatch later.
-- It does not store any real data in this repository. See [ADR 0001](./docs/adr/0001-ledger-lives-outside-this-repo.md).
+- It does not store any real data in this repository. See [ADR 0001](./adr/0001-ledger-lives-outside-this-repo.md).
 
 ## Installation
 
 ```bash
-npx skills add sunzhenkai/agent-roster -s agent-roster -g -y
+npx skills add sunzhenkai/solo-skills -s agent-roster -g -y
 ```
 
 Audit any externally sourced skill before installing it.
@@ -36,8 +36,8 @@ data_root: ~/path/to/your/private/data-repo
 ```
 
 The roster and traces land under `<data_root>/agents/`. Format is described in
-[endpoint-schema.md](./skills/agent-roster/references/endpoint-schema.md) and
-[trace-format.md](./skills/agent-roster/references/trace-format.md).
+[endpoint-schema.md](../../skills/agent-roster/references/endpoint-schema.md) and
+[trace-format.md](../../skills/agent-roster/references/trace-format.md).
 
 ## Probing what is on the local machine
 
@@ -51,15 +51,15 @@ Standard Python 3 library only. Level 2 talks ACP directly to the adapter (JSON-
 
 ## Execution layer
 
-The default executor is [acpx](https://acpx.sh) — a headless command-line client for ACP with built-in session management, permission policies, and structured event streams. The skill itself only depends on a thin adapter contract (endpoint + prompt + working directory + permission → structured result), so swapping executors is a matter of changing [delegation-contract.md](./skills/agent-roster/references/delegation-contract.md).
+The default executor is [acpx](https://acpx.sh) — a headless command-line client for ACP with built-in session management, permission policies, and structured event streams. The skill itself only depends on a thin adapter contract (endpoint + prompt + working directory + permission → structured result), so swapping executors is a matter of changing [delegation-contract.md](../../skills/agent-roster/references/delegation-contract.md).
 
 "Swapping executors" means switching to another equivalent implementation, and there is currently only one in this repo: a direct ACP fallback used when `acpx` is missing. The fallback only covers one-shot round-trips; sessions, timeouts, and permission tiers must be assembled ad hoc, so it is not a peer path. When `acpx` is not on `PATH`, delegation stops and the skill proposes installing it. Only an explicit user rejection can take the fallback path.
 
 ## Related documentation
 
 - [CONTEXT.md](./CONTEXT.md): glossary. Read it first when you see Endpoint, Delegation, Trace, etc.
-- [docs/adr/](./docs/adr/): key decisions and rejected alternatives.
-- [SKILL.md](./skills/agent-roster/SKILL.md): the skill body.
+- [docs/adr/](./adr/): key decisions and rejected alternatives.
+- [SKILL.md](../../skills/agent-roster/SKILL.md): the skill body.
 - [README.md (中文)](./README.md): Simplified Chinese version.
 
 ## License

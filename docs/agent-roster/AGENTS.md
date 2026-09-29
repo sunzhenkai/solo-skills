@@ -14,7 +14,7 @@
 - `skills/agent-roster/references/`：格式与契约文档，被 `SKILL.md` 按需引用。
 - `skills/agent-roster/scripts/`：只依赖 Python 3 标准库，不引入第三方依赖。
 - `skills/agent-roster/experience/patterns/`：脱敏后的通用规律。具体案例不进这里。
-- `docs/adr/`：关键决策。`CONTEXT.md`：术语表，只放术语，不放实现细节。
+- `docs/agent-roster/adr/`：关键决策。`CONTEXT.md`：术语表，只放术语，不放实现细节。
 
 ## 运行时只读
 

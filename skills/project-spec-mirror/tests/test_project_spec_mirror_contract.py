@@ -64,10 +64,6 @@ class ContractTest(unittest.TestCase):
             "references/routing.md",
             "references/diagrams.md",
             "references/appendix.md",
-            "references/modes.md",
-            "references/knowledge.md",
-            "references/facets.md",
-            "references/projections.md",
             "examples/minimal-checkout.md",
         ):
             self.assertTrue((SKILL_ROOT / rel).is_file(), rel)
@@ -75,37 +71,35 @@ class ContractTest(unittest.TestCase):
     def test_dual_audience_contract(self) -> None:
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
-        modes = (SKILL_ROOT / "references" / "modes.md").read_text(encoding="utf-8")
         self.assertIn("briefing/", skill)
         self.assertIn("agent/specs/", skill)
         self.assertIn("evidence/", skill)
         self.assertIn("reconstructable", skill)
-        self.assertIn("briefing", modes)
-        self.assertIn("reconstructable", modes)
+        self.assertIn("briefing", layout)
+        self.assertIn("reconstructable", layout)
         self.assertIn("briefing/", layout)
         self.assertIn("agent/specs/", layout)
-        self.assertIn("合法值只有 `briefing` | `reconstructable`", modes)
+        self.assertIn("合法值只有 `briefing` | `reconstructable`", layout)
         self.assertNotIn("detail_level", skill)
         self.assertNotIn("`scope`", skill)
 
     def test_briefing_forbids_implementation_leak(self) -> None:
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
-        modes = (SKILL_ROOT / "references" / "modes.md").read_text(encoding="utf-8")
         self.assertIn("禁写", skill)
         self.assertIn("禁止源文件表", skill)
         self.assertIn("方法逐步走读", skill)
         self.assertIn("完整逻辑", skill)
         self.assertIn("待 build", layout)
-        self.assertIn("禁写", modes)
+        self.assertIn("禁写", layout)
 
     def test_secret_literals_must_redact(self) -> None:
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-        modes = (SKILL_ROOT / "references" / "modes.md").read_text(encoding="utf-8")
+        layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
         self.assertIn("<REDACTED>", skill)
         self.assertIn("AppKey", skill)
         self.assertIn("SecretKey", skill)
-        self.assertIn("<REDACTED>", modes)
+        self.assertIn("<REDACTED>", layout)
 
     def test_reader_pages_use_project_voice(self) -> None:
         layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
@@ -122,7 +116,6 @@ class ContractTest(unittest.TestCase):
     def test_diagrams_cover_complex_logic_without_fake_delivery(self) -> None:
         diagrams = (SKILL_ROOT / "references" / "diagrams.md").read_text(encoding="utf-8")
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-        knowledge = (SKILL_ROOT / "references" / "knowledge.md").read_text(encoding="utf-8")
         evals = (SKILL_ROOT / "evals" / "cases.yaml").read_text(encoding="utf-8")
         self.assertIn("复杂业务逻辑", diagrams)
         self.assertIn("本轮必须交付", diagrams)
@@ -130,7 +123,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("没有图不算失败", diagrams)
         self.assertIn("复杂业务逻辑", skill)
         self.assertIn("线性三步", skill)
-        self.assertIn("复杂业务逻辑", knowledge)
         self.assertIn("复杂业务逻辑", evals)
         self.assertNotIn("不把“没有图”当作 build 失败", diagrams)
         self.assertNotIn("不因候选未画自动阻塞 build", skill)
@@ -144,10 +136,8 @@ class ContractTest(unittest.TestCase):
 
     def test_facets_are_opt_in(self) -> None:
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-        facets = (SKILL_ROOT / "references" / "facets.md").read_text(encoding="utf-8")
         appendix = (SKILL_ROOT / "references" / "appendix.md").read_text(encoding="utf-8")
         self.assertIn("默认不生成", skill)
-        self.assertIn("默认不生成", facets)
         self.assertIn("evidence/realization", skill)
         self.assertIn("facets", appendix)
 
