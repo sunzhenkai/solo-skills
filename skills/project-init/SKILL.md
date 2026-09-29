@@ -97,7 +97,7 @@ description: >-
 | Language | TypeScript | ⭐⭐⭐⭐⭐ | 必选 |
 | UI Framework | React | ⭐⭐⭐⭐⭐ | 必选 |
 | Build | Vite | ⭐⭐⭐⭐⭐ | 默认（Vite 路径） |
-| Build | Next.js | ⭐⭐⭐⭐ | 特定场景再用（Next 路径；承担构建与服务端） |
+| Build / Framework | Next.js | ⭐⭐⭐⭐ | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由；承担构建与服务端） |
 | CSS | Tailwind CSS | ⭐⭐⭐⭐⭐ | 默认 |
 | UI | shadcn/ui | ⭐⭐⭐⭐⭐ | 强烈推荐 |
 | Server State | TanStack Query | ⭐⭐⭐⭐⭐ | 推荐 |
@@ -107,7 +107,6 @@ description: >-
 | API Contract | OpenAPI / Zod | ⭐⭐⭐⭐⭐ | 强烈推荐 |
 | E2E | Playwright | ⭐⭐⭐⭐⭐ | 必选 |
 | Unit | Vitest | ⭐⭐⭐⭐⭐ | 推荐 |
-| Framework | Next.js | ⭐⭐⭐⭐ | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由） |
 
 包管理器：用户指定优先；否则 Python 默认 `uv`，前端默认 `pnpm`。工具或包管理器缺失时列入依赖缺口，**询问是否补齐**（安装该工具，或改用已说明的回退：Python 为 venv + pip，前端为 npm）。未确认不得自行切换，也不得为脚手架擅自全局安装。
 

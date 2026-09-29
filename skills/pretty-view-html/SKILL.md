@@ -1,7 +1,7 @@
 ---
 id: pretty-view-html
 name: pretty-view-html
-description: 将已有上下文、文件、文档、报告、方案或评审内容整理为适合浏览器阅读的 HTML 文档。用于用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档，或把现有内容做成单页或多页 HTML 时。
+description: 将已有上下文、文件、文档、报告、方案或评审内容整理为适合浏览器阅读的 HTML 文档。用于用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档，或把现有内容做成单页或多页 HTML 时。不做真实网站或组件开发、不做需部署上线的页面，图表类产物见各图表 skill 的边界。
 ---
 
 # Pretty View HTML

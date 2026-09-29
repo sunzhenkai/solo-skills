@@ -31,7 +31,7 @@
 
 ```text
 控件密度: <哪些 surface 用常规档、哪些用密集档；同一上下文内是否要求同高>
-icon 形态: <是否单一 icon primitive（固定方盒 + SVG + 尺寸 token）；是否禁止裸字符/emoji 充当 icon>
+icon 形态: <是否收敛到单一 icon primitive 及其来源；是否禁止裸字符/emoji 充当 icon>
 表单间距: <字段间距与表单收尾间距是否来自 token，而非手写数值>
 证据分工: <哪些一致性要求用 DOM/静态断言钉住，哪些必须截图确认>
 ```

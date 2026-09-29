@@ -37,4 +37,4 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 | 方案评审 | 确认 Assignment | 只读 | 审 design + driver / 子 change 产物 |
 | 实现 | 确认 Assignment | 必须 | `$taskflow` 实施子 change |
 | 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
-| 收尾 | 确认 Assignment | 需要时 | 归档 driver；探索任务已在 handoff 归档；可选 `$commit-push` |
+| 收尾 | 确认 Assignment | 需要时 | 归档 driver；探索任务保持 handed-off，如需关闭另走 `$task-explore` 的 `archive`；可选 `$commit-push` |

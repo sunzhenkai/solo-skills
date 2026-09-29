@@ -6,6 +6,8 @@ license: Complete terms in LICENSE.txt
 
 # Frontend Design
 
+> Vendored reference from [anthropics/skills `skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design)（Apache-2.0，LICENSE.txt 随目录附带）。When invoked via `pretty-view-html`, follow the parent Skill for page visual language and layout; this file supplies aesthetic-direction guidance.
+
 Approach this as the design lead at a small studio known for giving every client a visual identity that could not be mistaken for anyone else's. This client has already rejected proposals that felt templated, and is paying for a distinctive point of view: make deliberate, opinionated choices about palette, typography, and layout that are specific to this brief, and take one real aesthetic risk you can justify.
 
 ## Ground it in the subject

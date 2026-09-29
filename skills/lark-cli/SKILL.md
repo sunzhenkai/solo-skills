@@ -40,7 +40,7 @@ lark-cli skills list lark-im/references
 lark-cli skills read lark-im/references/<file>
 ```
 
-CLI 不存在 → `dotf lark-cli -i`（或 `npm install -g @larksuite/cli`）。**禁止**再跑：
+CLI 不存在 → `npm install -g @larksuite/cli`（dotf 环境可用 `dotf lark-cli -i`，等效）。**禁止**再跑：
 
 - `npx @larksuite/cli@latest install`（会把 20+ 个 skill 写入 `~/.agents/skills`，所有 agent 都会扫到）
 - `npx skills add larksuite/cli -g`（同上）

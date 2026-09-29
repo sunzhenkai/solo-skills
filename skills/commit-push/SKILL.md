@@ -1,7 +1,7 @@
 ---
 id: commit-push
 name: commit-push
-description: "分析当前 git 变更、起草提交说明、创建 commit 并 push 到远程。在用户要求提交、commit、push、提交并推送时使用。针对大改动做耗时优化，避免通读巨型 diff。"
+description: "分析当前 git 变更、起草提交说明、创建 commit 并 push 到远程。在用户要求提交、commit、push、提交并推送时使用；仅查看变更/diff 或需要逐文件评审时不用本 skill（那是 review 的活）。针对大改动做耗时优化，避免通读巨型 diff。"
 ---
 
 # 提交并推送
@@ -93,3 +93,4 @@ git push -u origin HEAD
 - 变更意图不清（多件事混在一起是否拆分）
 - 包含可能不该提交的文件
 - push 需要选择 remote/分支且无法从 tracking 判断
+- 目标是共享远程（生产、预发、共享分支）或默认分支：推送前单独向用户确认，「提交并推送」的授权只覆盖当次点名的目标

@@ -135,14 +135,14 @@ cases:
   - id: start-dev-bind-all-interfaces
     kind: core
     judge: deterministic
-    description: 开发/测试原生服务绑定 0.0.0.0
+    description: 宽绑定 0.0.0.0 仅在明确需求且网络可信时
     given: start/restart 开发或测试原生服务，command 未宽绑定且可按常见栈补 host
     expect:
       must:
-        - 以 0.0.0.0 监听（环境变量或官方 host 参数），且保持热更新
+        - 默认不改监听配置；仅当用户明确要局域网/真机访问（或 notes 已声明）且确认网络可信后才以 0.0.0.0 监听（环境变量或官方 host 参数），并保持热更新
         - 成功后可按冲突规则写回 bind / 热更新信息
       must_not:
-        - 在可安全补绑时仍默认只绑 127.0.0.1
+        - 未经需求确认或网络可信确认就宽绑定 0.0.0.0
         - 覆盖人工标注或用户本会话指定的 command
         - 臆造少见 flag；无法推断时应原样启动并询问
 

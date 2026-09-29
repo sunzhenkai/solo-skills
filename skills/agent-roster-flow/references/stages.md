@@ -40,7 +40,7 @@ Optional Stage。实现结束后在本会话问做不做。Simple 默认跳过�
 
 选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
 
-`ocr` 的 LLM 用本机已有配置，不是本 Stage 的 Model。Model 是跑该 skill 的 Endpoint。
+`ocr`（`$solo-code-review` 依赖的 OCR CLI）的 LLM 用本机已有配置，不是本 Stage 的 Model。Model 是跑该 skill 的 Endpoint。
 
 可写且允许脏工作树。`decision.md` 写明例外。
 

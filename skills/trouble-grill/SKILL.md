@@ -114,7 +114,7 @@ description: 根因排查时持续拷问 agent 自己，防止失焦、把假设
 推荐保存位置（按优先级）：
 
 - 在 task-explore 任务里 → `tasks/ongoing/{task-name}/TASK.md` 的「进展」段；
-- 无任务台账 → `archives/sessions/{date}/{slug}.md`；
+- 无任务台账 → 工作区已有存档约定（如 `archives/sessions/{date}/{slug}.md`）则循之；没有该约定时，落盘前先问用户放哪，不要在任意 cwd 造目录；
 - 跨会话的偏好 / 已坐实结论 → 有持久记忆工具（如 MCP 记忆服务）则同步，没有则写回台账文件。
 
 **铁律**：被证伪或用户纠正的瞬间就落盘，不要攒到收尾。落盘时只记「证据 + 输入 + 路径」，不抄聊天记录。
