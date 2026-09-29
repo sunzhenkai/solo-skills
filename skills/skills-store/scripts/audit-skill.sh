@@ -15,6 +15,13 @@ fi
 
 SKILL_DIR="$(cd "$SKILL_DIR" && pwd)"
 
+# 规则全部依赖 PCRE（lookahead 等）：grep 不支持 -P 时每条规则都会静默
+# 零命中、以「通过」收场——fail-open 方向是放行，必须显式失败。
+if ! printf 'ab' | grep -qP 'a(?=b)' 2>/dev/null; then
+  echo "error: 当前 grep 不支持 -P（PCRE），安全审计无法执行，拒绝给出结论。" >&2
+  exit 2
+fi
+
 # name|severity(critical|warn)|regex
 PATTERNS=(
   # --- critical: 阻断安装 ---
@@ -27,9 +34,10 @@ PATTERNS=(
   "pipe_to_shell|critical|(?i)(curl|wget).{0,120}\|\s*(ba)?sh"
   "destructive_rm_root|critical|rm\s+-rf\s+(/|\~|\*|\$HOME\b|\$\{HOME\})"
   "destructive_mkfs|critical|(?i)\bmkfs\.|\bdd\s+if=.*of=/dev/"
-  # credential_paths 的 ~/.ssh 分支排除 ~/.ssh/config（非密钥配置）与 ~/.ssh/senv/
-  # （senv 自管理 SSH 片段树，其 skill 文档必然提及）；私钥路径仍由 /\.ssh/id_ 兜底。
-  "credential_paths|critical|(?i)(~/?\.ssh(?!/(?:senv\b|config\b))|/\.ssh/id_|~/?\.aws/credentials|~/?\.gnupg|~/?\.config/gcloud|\.netrc\b|\.env\b.*\b(read|cat|source|export)\b|\b(cat|source)\b.{0,80}\.env\b)"
+  # credential_paths 的 ~/.ssh 分支排除 ~/.ssh/config（非密钥配置，通用惯例）；
+  # 私钥路径仍由 /\.ssh/id_ 兜底。个人环境的路径特例不进共享规则集，
+  # 由被审 skill 根下的 .audit-allow 承接。
+  "credential_paths|critical|(?i)(~/?\.ssh(?!/config\b)|/\.ssh/id_|~/?\.aws/credentials|~/?\.gnupg|~/?\.config/gcloud|\.netrc\b|\.env\b.*\b(read|cat|source|export)\b|\b(cat|source)\b.{0,80}\.env\b)"
   "exfil_env_secret|critical|(?i)(curl|wget|fetch|post|upload|send).{0,80}(\$(API|TOKEN|KEY|SECRET|PASSWORD|ENV|HOME)|process\.env|getenv|os\.environ)"
   "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}"
   "bearer_literal|critical|(?i)Bearer\s+[A-Za-z0-9\-._~+/]{20,}=*"
@@ -154,6 +162,19 @@ scan_tree() {
     base="$(basename "$file")"
     if [[ "$file" =~ $TEXT_EXTS || "$base" =~ $TEXT_NAMES ]]; then
       scan_text_file "$file"
+    else
+      # 无扩展名文本（如 scripts/setup）不能逃逸审计面：非二进制一律按文本扫，
+      # 二进制留给 scan_binaries 判定。.audit-allow 是豁免配置（随内容 hash 入锁），
+      # 不是 skill 内容，扫描它只会自指命中。
+      if [[ "$base" == ".audit-allow" ]]; then
+        continue
+      fi
+      local mime
+      mime="$(file -b "$file" 2>/dev/null || true)"
+      if echo "$mime" | grep -qiE 'ELF|Mach-O|PE32|shared object'; then
+        continue
+      fi
+      scan_text_file "$file"
     fi
   done < <(
     find "$SKILL_DIR" -type f \
@@ -173,16 +194,28 @@ fi
 scan_tree
 
 if [[ "$JSON" -eq 1 ]]; then
-  printf '{"skill_dir":%q,"critical":%d,"warn":%d,"findings":[' "$SKILL_DIR" "$CRITICAL" "$WARN"
-  first=1
-  for f in "${FINDINGS[@]}"; do
-    IFS='|' read -r sev name file line snippet <<< "$f"
-    [[ $first -eq 0 ]] && printf ','
-    first=0
-    printf '{"severity":%q,"rule":%q,"file":%q,"line":%s,"snippet":%q}' \
-      "$sev" "$name" "$file" "$line" "$snippet"
-  done
-  printf ']}\n'
+  # printf %q 是 shell 引用不是 JSON 转义，snippet 含空格/中文时输出非法 JSON；
+  # 改走 python3（标准库）序列化。FINDINGS 段内用 | 分隔，snippet 取余下全部。
+  {
+    printf 'META\t%s\t%s\t%s\n' "$SKILL_DIR" "$CRITICAL" "$WARN"
+    for f in "${FINDINGS[@]:-}"; do
+      [[ -n "$f" ]] && printf 'F\t%s\n' "$f"
+    done
+  } | python3 -c '
+import json, sys
+meta = {"skill_dir": "", "critical": 0, "warn": 0, "findings": []}
+for raw in sys.stdin.read().splitlines():
+    tag, _, rest = raw.partition("\t")
+    if tag == "META":
+        d = rest.split("\t")
+        meta = {"skill_dir": d[0], "critical": int(d[1]), "warn": int(d[2]), "findings": []}
+    elif tag == "F":
+        sev, name, file, line, snippet = rest.split("|", 4)
+        meta["findings"].append(
+            {"severity": sev, "rule": name, "file": file, "line": int(line), "snippet": snippet}
+        )
+print(json.dumps(meta, ensure_ascii=False))
+'
 else
   echo "=== Skill 安全审计: $SKILL_DIR ==="
   if [[ ${#FINDINGS[@]} -eq 0 ]]; then

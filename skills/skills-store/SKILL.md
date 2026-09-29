@@ -97,13 +97,13 @@ bash "$AUDIT" "$AUDIT_DIR/src/<skill-path>"
 
 **复核通道（阻断项）**：脚本靠关键词正则命中，判不出上下文，误报是常态。`exit 2` 时 **MUST** 打开每处命中读原文，逐条给出「真风险 / 误报」的判断与依据，再交用户决定。判为误报也 **不得**自行安装：必须由用户明确豁免该条后才继续。**禁止**为了给某个 skill 放行而删规则或放宽关键词——那只会让下一个 skill 漏检。安装当场不得改脚本。过宽 token、误把纯文本当二进制这类精度修复，走本 Skill 的更新流程。
 
-已知误报（复核时优先对照，见 dotfiles 仓 `agents/skills-archive/pretty-view-ppt/references/UPSTREAM.md` 实例）：
+已知误报（复核时优先对照）：
 
 | 命中规则 | 典型误报来源 |
 |----------|--------------|
 | `jailbreak_role` | MIT LICENSE 正文的 `without limitation`。该分支现只放过 `limitation` 后缀，其余 `without … limit` 与 `no restrictions` 仍阻断 |
 | `browser_session` | 前端代码里的 `localStorage`、`document.cookie`。文档写「不记录 cookie」应跳过 |
-| `credential_paths` | 清单里的 `.env` + `README` 曾因 `README` 命中 `read`；现要求独立单词 `read`/`cat`/`source`。`~/.ssh` 分支现排除 `~/.ssh/config`（非密钥配置）与 `~/.ssh/senv/`（senv 自管理 SSH 片段树）；私钥路径仍由 `/\.ssh/id_` 兜底 |
+| `credential_paths` | 清单里的 `.env` + `README` 曾因 `README` 命中 `read`；现要求独立单词 `read`/`cat`/`source`。`~/.ssh` 分支现排除 `~/.ssh/config`（非密钥配置）；私钥路径仍由 `/\.ssh/id_` 兜底。个人环境的路径特例不进共享规则集，走被审 skill 的 `.audit-allow` |
 | `eval_external` | Markdown 反引号 + 单词 Eval 不是 `eval $(curl …)` |
 | `internal_url` | JSON Schema `$id` 的 `https://*.local/schemas/…`、文档里的 `localhost` 开发地址不是内网主机 |
 | `binary_in_skill` | 真正的 ELF / Mach-O / PE32 / shared object。带 shebang 的纯文本脚本不再报 |
@@ -243,7 +243,7 @@ npx skills use <owner/repo> --skill <skill-name>
 
 ## 与本仓库 agents 同步的关系
 
-本仓库共享 skills 真相源在 `skills/`，由 `scripts/agents/sync.sh` / `dotf agents -c` 同步到共享的 `~/.agents/skills/`。
+本仓库共享 skills 真相源在 `skills/`，由 dotfiles 编目（`dotf agents -c`）同步到共享的 `~/.agents/skills/`。
 
 - **skills-store 安装的第三方 skill**：落在各 agent 的 project/global skills 目录，**不**自动进入 `skills/`。
 - 若要把技能纳入本仓库统一真相源：先审计通过，再按需拷贝或改写到 `skills/<id>/`，然后 sync。
