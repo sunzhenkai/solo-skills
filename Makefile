@@ -1,11 +1,10 @@
-# 外部 skill 依赖一键安装。
+# 外部依赖一键安装。
 #
-# 本仓六个 skill 依赖的仓外 skill（梳理见 README「外部依赖」）：
+# 本仓 skill 已全部第一方化；仍依赖的仓外 skill（梳理见 README「外部依赖」）：
 #   - openspec-explore / openspec-propose / openspec-apply-change / openspec-archive-change
 #       由 @fission-ai/openspec CLI 生成，不发布为独立 skill 包
 #   - grilling / grill-with-docs / domain-modeling   来自 mattpocock/skills
-#   - agent-roster                                    来自 sunzhenkai/agent-roster（执行依赖 acpx 二进制）
-#   - skill-upgrader / commit-push                    来自 sunzhenkai/dotfiles
+#   - acpx（二进制，非 skill）                        agent-roster 的委派执行，https://acpx.sh
 #
 # 若你已用 dotfiles 编目（`dotf agents -c`），无需本 Makefile——它已覆盖上述全部来源。
 # 本 Makefile 是给不在 dotf 环境里的用户的独立安装路径，目标目录同为 ~/.agents/skills。
@@ -13,24 +12,20 @@
 SKILLS_DIR ?= $(HOME)/.agents/skills
 
 MATT_SKILLS   := grilling grill-with-docs domain-modeling
-DOTFILES_SKILLS := skill-upgrader commit-push
 OPENSPEC_SKILLS := openspec-explore openspec-propose openspec-apply-change openspec-archive-change
 
-# taskflow / task-wizard / delivery-loop / task-explore / agent-roster-flow 依赖的全部外部 skill
-EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS) agent-roster $(DOTFILES_SKILLS)
+EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS)
 
-.PHONY: help install-deps install-matt install-openspec install-agent-roster install-dotfiles install-acpx check-deps
+.PHONY: help install-deps install-matt install-openspec install-acpx check-deps
 
 help:
-	@echo "make install-deps      安装全部外部 skill 依赖（openspec-* + grilling 系列 + agent-roster + skill-upgrader/commit-push）"
+	@echo "make install-deps      安装全部外部依赖（openspec-* + grilling 系列）并跑 check"
 	@echo "make install-matt      只装 grilling / grill-with-docs / domain-modeling"
 	@echo "make install-openspec  只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
-	@echo "make install-agent-roster  只装 agent-roster"
-	@echo "make install-dotfiles  只装 skill-upgrader / commit-push"
 	@echo "make install-acpx      agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
 	@echo "make check-deps        检查外部依赖是否就绪（缺项非零退出）"
 
-install-deps: install-matt install-openspec install-agent-roster install-dotfiles
+install-deps: install-matt install-openspec
 	@$(MAKE) --no-print-directory check-deps
 
 install-matt:
@@ -51,15 +46,6 @@ install-openspec:
 	rm -rf "$$tmp"; \
 	if [ $$found -eq 0 ]; then echo "openspec init 未生成 openspec-* skill，检查 npx/网络" >&2; exit 1; fi; \
 	echo "openspec-*（$$found 个）→ $(SKILLS_DIR)"
-
-install-agent-roster:
-	@mkdir -p $(SKILLS_DIR)
-	npx -y skills add sunzhenkai/agent-roster -g -y -s agent-roster
-	@command -v acpx >/dev/null || echo "提示：agent-roster 的委派执行依赖 acpx（https://acpx.sh），缺失时委派会停住；可跑 make install-acpx"
-
-install-dotfiles:
-	@mkdir -p $(SKILLS_DIR)
-	npx -y skills add sunzhenkai/dotfiles -g -y $(addprefix -s ,$(DOTFILES_SKILLS))
 
 install-acpx:
 	@command -v acpx >/dev/null && echo "acpx 已安装：$$(command -v acpx)" || \
