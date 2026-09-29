@@ -17,7 +17,7 @@
 
 ## Pattern
 
-- 原问题场景：使用者明确指定唯一 Endpoint，但在本次 llmwiki 任务的前 5 次委派中，执行方仍可能读取 7 份 Endpoint 画像、3 份 references 和相关 Trace，合计约 2.5 万字符的结构化文档，再写 7 千余字节 decision.md。
+- 原问题场景：使用者明确指定唯一 Endpoint，但在本次任务的前 5 次委派中，执行方仍可能读取 7 份 Endpoint 画像、3 份 references 和相关 Trace，合计约 2.5 万字符的结构化文档，再写 7 千余字节 decision.md。
 - 候选指令：明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace；references 按步骤加载，不预读全部。
 - 对原问题的覆盖检查：该场景下不会再枚举无关 Endpoint；`endpoint-schema.md` 只有写画像时读取，`trace-format.md` 只有写 Trace 时读取，`delegation-contract.md` 只在执行委派前读取。
 - 保留检查：该路径仍要求委派前写 `decision.md`、仍保留 acpx/权限/回收/留痕门禁；缺失或不可用时回到完整路由。

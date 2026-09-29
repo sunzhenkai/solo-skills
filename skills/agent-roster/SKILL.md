@@ -27,7 +27,7 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
 
-约定名字是 developer、planner、reviewer、code-reviewer、designer，含义见 [CONTEXT.md](../../docs/agent-roster/CONTEXT.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。决策见 [ADR 0004](../../docs/agent-roster/adr/0004-named-role-pins-endpoint.md)。文件格式与判定见 [references/roles.md](./references/roles.md)。
+约定名字是 developer、planner、reviewer、code-reviewer、designer，一句话语义见 [references/roles.md](./references/roles.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。本 skill 引用的仓级文档（CONTEXT.md、docs/adr/）只在源仓存在，安装副本不随分发。
 
 ```bash
 python3 <skill-dir>/scripts/resolve_role.py <role-id>
@@ -152,7 +152,7 @@ references 按当前步骤按需加载，不要预先全读：委派前读 `dele
 - 规则带 Host 名、只对当前使用者成立 → 直接写进 `routing.md`。
 - 结论已脱敏、换台机器换个项目仍然成立 → 走 `$skill-upgrader` 的 `patches/` 审计，进本文件正文或 `patterns/`。
 
-分野的理由见 [ADR 0003](../../docs/agent-roster/adr/0003-promotion-splits-by-destination.md)。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
+分野的理由（源仓 ADR 0003）：带 Host 名的规则随名册走私有数据，脱敏结论才进公开仓。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
 
 ## 名册维护
 
@@ -186,4 +186,4 @@ python3 <skill-dir>/scripts/probe_endpoints.py --write    # 直接回填画像�
 ## 相关
 
 - `$skill-upgrader`：把脱敏规律写进本文件或 `patterns/` 时的 `patches/` 审计入口。
-- 术语见 [CONTEXT.md](../../docs/agent-roster/CONTEXT.md)，关键决策见 [docs/agent-roster/adr/](../../docs/agent-roster/adr/)。
+- 术语与关键决策的原文（CONTEXT.md、docs/adr/）在源仓 `docs/agent-roster/`，安装副本不随分发。

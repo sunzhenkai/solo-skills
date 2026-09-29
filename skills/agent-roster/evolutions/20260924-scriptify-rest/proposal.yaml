@@ -4,7 +4,7 @@ problem: |
   delegate.py/run_status.py 落地后，委派链路仍有六处确定性操作靠手做，每处都有实测出处：
   1) 冒烟门禁「该组合有无 L3 记录」靠翻画像与 trace 的记忆裁决
   2) 探测 --render 的 Markdown 块靠复制粘贴回填画像
-  3) 重试前 4 步检查单（trace 20260924-agentweb 教训）靠自觉执行
+  3) 重试前 4 步检查单（既往超时 trace 的教训）靠自觉执行
   4) 契约输出表的 handoff_paths 字段无人实现——回收靠 cat NDJSON 人肉验收
   5) 后台 run 超时后进程无人收尸（--wait 才杀，后台模式不杀）
   6) 固化门槛「同一句理由 >=2 条 trace 复现」没人去数，攒够也不提案

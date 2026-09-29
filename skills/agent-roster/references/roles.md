@@ -10,13 +10,13 @@
 
 `<role-id>` 小写字母开头，其余为小写字母、数字或连字符。一行一个，行尾不写注释。
 
-约定 id 的含义见仓库根 `CONTEXT.md`。名字可以另加。调用方不点名，这些 id 就不参与这次选人：
+约定 id（名字可以另加）。调用方不点名，这些 id 就不参与这次选人：
 
-- `developer`
-- `planner`
-- `reviewer`
-- `code-reviewer`
-- `designer`
+- `developer`：完成已经确定的任务
+- `planner`：把已经说清的需求写成方案
+- `reviewer`：审方案
+- `code-reviewer`：审代码
+- `designer`：出界面方案并审界面
 
 `scripts/resolve_role.py <role-id>` 的判定：
 
