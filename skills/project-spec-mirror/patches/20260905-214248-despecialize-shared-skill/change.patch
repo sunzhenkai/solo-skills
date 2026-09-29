@@ -102,11 +102,11 @@ diff -ruN a/agents/skills/project-spec-mirror/evolutions/20260829-complete-mode-
 -| **覆盖类数** | 5/5 | ✓ |
 -| **总篇数** | 6 篇（≥5） | ✓ |
 -| **topic 命名** | 6/6 全是 topic（如 `options-builder-sequencing.md`） | ✓ |
--| **grep 同 group 已镜像 notes/** | task 1.10（external）6 个 notes/ 在 build 期间未主动 grep | ✗ 但候选稿要求"build 前先 grep"——本案例作为反例驱动规则 |
+-| **grep 同 group 已镜像 notes/** | external task（编号略）6 个 notes/ 在 build 期间未主动 grep | ✗ 但候选稿要求"build 前先 grep"——本案例作为反例驱动规则 |
 -
 -正向校验通过（5 类覆盖 / 6 篇 / topic 命名），但暴露了"build 前先 grep"这条新规则在生产实操中曾被忽略——这也是为什么补丁里加了这条。
 -
--**另一正向对照**：`<project>/external`（task 1.10，detail=complete，已有 6 个 notes/）：
+-**另一正向对照**：`<project>/external`（task 编号略，detail=complete，已有 6 个 notes/）：
 -
 -| 触发条件类 | 已建 notes/（推断） |
 -|-----------|------------|
@@ -179,8 +179,8 @@ diff -ruN a/agents/skills/project-spec-mirror/evolutions/20260829-complete-mode-
  
  evidence:
    - experience/failures/20260829-notes-missed-in-complete-mode.md
--  - 同一 OpenSpec change 的 task 1.10（external）已完成 6 个 notes/：
--    平台 A DPA URL 清洗、平台 B 接口偏离根因、平台 C ID 大写、平台 D 双层
+-  - 同一 OpenSpec change 的 external task（编号略）已完成 6 个 notes/：
+-    平台 A 的 DPA URL 清洗、平台 B 接口偏离根因、平台 C ID 大写、平台 D 双层
 -    HMAC、rta 框架宏例、config 注入矩阵
 -  - 6 个应该建但未建的 notes（已补）：options-builder-sequencing /
 -    l1-throws-vs-l0l2-no-throw / demand-cache-double-check /
@@ -230,7 +230,7 @@ diff -ruN a/agents/skills/project-spec-mirror/evolutions/20260829-complete-mode-
 -     参考（不要复制内容，仅对齐主题维度）"
 -
 -expected_improvement: |
--  - detail=complete 的 mirror 不再漏 notes/，与已有 task 1.10（external）
+-  - detail=complete 的 mirror 不再漏 notes/，与已有 external task（编号略）
 -    行为一致
 -  - 245 个 mirror task 中后续 detail=complete 的不必每次都靠用户 review 发现
 -  - 触发条件可执行（5 类清单），Agent 不需要主观判断"算不算热点"
@@ -388,8 +388,8 @@ diff -ruN a/agents/skills/project-spec-mirror/experience/patterns/20260829-notes
  
  ## Evidence
  
--- `experience/failures/20260829-notes-missed-in-complete-mode.md`（task 1.11 feature-lib 漏 6 个 notes/）
--- task 1.10（<project>/external，detail=complete）已建 6 个 notes/ 主题：平台 A DPA URL 清洗 / 平台 B 接口偏离根因 / 平台 C ID 大写 / 平台 D 双层 HMAC / rta 框架宏例 / config 注入矩阵
+-- `experience/failures/20260829-notes-missed-in-complete-mode.md`（task 编号略，<project>/feature-lib 漏 6 个 notes/）
+-- external task（编号略）（<project>/external，detail=complete）已建 6 个 notes/ 主题：平台 A 的 DPA URL 清洗 / 平台 B 接口偏离根因 / 平台 C ID 大写 / 平台 D 双层 HMAC / rta 框架宏例 / config 注入矩阵
 +- `experience/failures/20260829-notes-missed-in-complete-mode.md`
  
  ## Pattern
@@ -638,9 +638,9 @@ diff -ruN a/agents/skills/project-spec-mirror/tests/test_project_spec_mirror_con
 +
 +    def test_shared_skill_has_no_private_project_names(self) -> None:
 +        forbidden = (
-+            "<project>",
-+            "平台 A",
-+            "feature-lib",
++            r"al\w{2}gear",
++            r"ali[_-]exp\w+",
++            r"feature-ext\w+-lib",
 +            "dotf agents",
 +            "dotfiles 仓",
 +        )

@@ -12,7 +12,7 @@
 - `git apply --check --recount`: pass
 - `git apply --recount` + `git diff --check`: pass
 - target tests: not-available（目标 skill 无自带测试）
-- privacy check: pass（广告网络 A / 广告网络 B / campaign_id / 深链 / 目标包 / 记忆工具 等业务与机器特例词在成品中 grep 无命中）
+- privacy check: pass（广告网络对比类业务词与机器特例词在成品中 grep 无命中）
 - mode check: pass（仅 `update`，未加自进化目录；仅触及 `agents/skills/trouble-grill/SKILL.md`）
 - frontmatter：合法，`name: trouble-grill` 与目录名一致
 

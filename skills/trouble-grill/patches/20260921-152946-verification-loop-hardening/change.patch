@@ -19,8 +19,8 @@ diff --git a/agents/skills/trouble-grill/SKILL.md b/agents/skills/trouble-grill/
 -排查开始，把要回答的问题钉成一句话、**可证伪**的锚点，之后所有动作只服务于回答它。
 +排查开始，把要回答的问题钉成一句话、**可证伪**的锚点：量化差异、带比较基线，写得出「观察到什么，锚点就错」。之后所有动作只服务于回答它。
  
--- 对：锚点 =「目标包上 广告网络 A click 为什么比 广告网络 B 少 5.8 倍」
--- 错：锚点 =「广告网络 A CTR 为什么低」（太泛，必然失焦）
+-- 对：锚点 =「平台 A 上广告位 X 的 click 为什么比平台 B 少数倍」
+-- 错：锚点 =「广告位 X 的 CTR 为什么低」（太泛，必然失焦）
 +- 对：锚点 =「环境 A 上接口 X 的 P99 为什么比环境 B 高 5.8 倍」
 +- 错：锚点 =「接口 X 为什么慢」（太泛，必然失焦）
  
@@ -107,7 +107,7 @@ diff --git a/agents/skills/trouble-grill/SKILL.md b/agents/skills/trouble-grill/
 +
  - 在 task-explore 任务里 → `tasks/ongoing/{task-name}/TASK.md` 的「进展」段；
  - 无任务台账 → `archives/sessions/{date}/{slug}.md`；
--- 跨会话的偏好 / 已坐实结论 → 同步 记忆工具（`memory-tool-sync`）。
+-- 跨会话的偏好 / 已坐实结论 → 同步到持久记忆工具。
 +- 跨会话的偏好 / 已坐实结论 → 有持久记忆工具（如 MCP 记忆服务）则同步，没有则写回台账文件。
  
  **铁律**：被证伪或用户纠正的瞬间就落盘，不要攒到收尾。落盘时只记「证据 + 输入 + 路径」，不抄聊天记录。

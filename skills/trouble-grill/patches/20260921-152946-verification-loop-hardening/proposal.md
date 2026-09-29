@@ -15,7 +15,7 @@
 3. 新增措辞规范：未坐实的假设全程带等级标签（如「[weak] 缓存穿透」），只有 confirmed 才允许写「根因是 X」。
 4. 新增证据等级升级路径（guess→weak→strong→fact 各级的典型升级动作）。
 5. Gate 3 补反事实判据（固定其他变量、只改疑似原因）。
-6. 公开性：业务例子（广告网络 A/广告网络 B/campaign_id 等）替换为虚构通用场景；落盘位置中的 记忆工具 机器特例软化为「有持久记忆工具则同步」。
+6. 公开性：业务例子（广告网络对比、业务字段名等）替换为虚构通用场景；落盘位置中的机器特例软化为「有持久记忆工具则同步」。
 7. 去重：根因门槛单点定义（并入 confirmed 状态转换条件），收口规则引用而不复述；「可证伪」在锚点定义，Gate 4 引用。
 8. 正文新增不适用场景：单步可复现、报错直接指向原因的问题直接修，不上板；frontmatter description 同步补触发边界。
 
@@ -38,4 +38,4 @@
 ## Validation
 
 - 应用前：`git apply --check --recount`。
-- 应用后：`git diff --check -- agents/skills/trouble-grill`；核对 frontmatter 合法、`name` 与目录名一致；通读成品确认无隐私/业务信息（广告网络 A、广告网络 B、campaign_id 等已清除）、无重复定义；目标 skill 无自带测试（not-available）。
+- 应用后：`git diff --check -- agents/skills/trouble-grill`；核对 frontmatter 合法、`name` 与目录名一致；通读成品确认无隐私/业务信息（广告网络对比类业务词已清除）、无重复定义；目标 skill 无自带测试（not-available）。

@@ -164,35 +164,50 @@ class ContractTest(unittest.TestCase):
         self.assertIn("旧金字塔", appendix)
 
     def test_shared_skill_has_no_private_project_names(self) -> None:
-        forbidden = (
-            "<project>",
-            "平台 A",
-            "feature-lib",
+        # 私有专名只给可匹配的碎片正则，不在本仓拼写全文；具体业务名由 push 门
+        # （grepom scan --history）兜底。审计链（patches/、evolutions/）与正文同扫：
+        # despecialize 补丁曾以 diff 上下文带回私有细节。
+        private_patterns = (
+            r"al\w{2}gear",
+            r"ali[_-]exp\w+",
+            r"feature-ext\w+-lib",
+        )
+        # 旧布局标记词只约束正文与现行内容；patches/ 历史记录保留原引用。
+        legacy_markers = (
             "dotf agents",
             "dotfiles 仓",
         )
         roots = [
             SKILL_ROOT / "SKILL.md",
+            SKILL_ROOT / "references",
             SKILL_ROOT / "experience",
             SKILL_ROOT / "evals",
-            SKILL_ROOT / "references",
             SKILL_ROOT / "examples",
-            SKILL_ROOT / "evolutions" / "README.md",
-            SKILL_ROOT / "evolutions" / "20260829-complete-mode-notes-mandatory" / "proposal.yaml",
-            SKILL_ROOT / "evolutions" / "20260829-complete-mode-notes-mandatory" / "decision.md",
-            SKILL_ROOT / "evolutions" / "20260829-complete-mode-notes-mandatory" / "eval.md",
+            SKILL_ROOT / "patches",
+            SKILL_ROOT / "evolutions",
         ]
-        blob = []
-        for path in roots:
-            if path.is_file():
-                blob.append(path.read_text(encoding="utf-8"))
-            else:
-                for child in path.rglob("*"):
-                    if child.is_file() and child.suffix in {".md", ".yaml", ".yml"}:
-                        blob.append(child.read_text(encoding="utf-8"))
-        text = "\n".join(blob).lower()
-        for needle in forbidden:
-            self.assertNotIn(needle.lower(), text, needle)
+        current_roots = roots[:5]
+
+        def read_blob(paths: list) -> str:
+            blob = []
+            for path in paths:
+                if path.is_file():
+                    blob.append(path.read_text(encoding="utf-8"))
+                elif path.is_dir():
+                    for child in sorted(path.rglob("*")):
+                        if child.is_file() and child.suffix in {".md", ".yaml", ".yml"}:
+                            blob.append(child.read_text(encoding="utf-8"))
+            return "\n".join(blob)
+
+        history = read_blob(roots)
+        current = read_blob(current_roots)
+        for pat in private_patterns:
+            self.assertIsNone(
+                re.search(pat, history, re.IGNORECASE),
+                f"private token pattern matched: {pat}",
+            )
+        for needle in legacy_markers:
+            self.assertNotIn(needle.lower(), current.lower(), needle)
 
     def test_checklist_is_the_installable_selfcheck(self) -> None:
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
