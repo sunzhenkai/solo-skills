@@ -1,0 +1,38 @@
+skill: role-based-reviewer
+date: 2026-09-30
+slug: heterogeneous-review
+
+problem:
+  评审的异构性（换模型 / 换端点）在本 skill 内无法表达：无 model/endpoint 参数，
+  派发只被当作耗时优化手段且模型继承调用方。上游编排层（delivery-loop 异源门）
+  因此只能绕过本 skill 裸调 subagent，角色预加载、brief 骨架、三道门禁全部丢失；
+  或异源约束停在编排层文本、执行层落不了地。
+
+evidence:
+  - 2026-09-29 delivery-loop 进化 review-integrity 落地后复盘：异源门写入编排层，
+    但执行路径不存在——本 skill 无参数可接「换模型/换端点」，要么绕道裸派发
+    （丢门禁与协议），要么约束空转。同模式换任何上游工作流仍会错。
+  - 2026-09 一次完整 UI 交付败局的根因之一即「同模型评审回声」
+    （见 delivery-loop evolutions/20260929-review-integrity），异源能力是它的必要下游。
+
+pattern:
+  编排层定规则、执行层无参数承接时，规则必然空转或被绕过；异构评审参数
+  属于评审协议的组成部分，应内聚在评审 skill 内，而非散落在调用方的派发细节里。
+
+proposed_change:
+  SKILL.md 三处最小 patch：
+  1. 输入节新增两个可选参数：
+     - model=<模型名>：subagent 派发时显式指定评审所用模型（异源评审用）；
+     - endpoint=<agent-roster 端点>：经 agent-roster 委派该端点的 agent 执行评审，
+       Handoff / 回收按 agent-roster 契约；与 model 同给时 model 作建议、端点自行解析时以其为准。
+  2. 流程节第 4 步改派发策略：默认（两参数都不给）行为不变，本 skill 自己完成审查；
+     给了任一参数则按参数派发（endpoint 走 agent-roster；仅 model 走本机 subagent 换模型）；
+     两者皆不可用（无 subagent 能力 / 名册无端点）MUST 停下报告调用方，禁止静默降级同源自审。
+  3. 耗时优化节：并行派发一行改为引用上述派发策略，模型继承注明「除非显式指定 model」。
+
+expected_improvement:
+  delivery-loop 异源门 (a)/(b) 两条路径获得原生承接点：评审协议（门禁 / 预加载 / brief）
+  与异构参数在同一份 skill 内闭合；上游不再在编排文本与裸派发之间二选一。
+
+risk: low
+  （纯增量参数，默认行为不变；三道门禁与只读边界不动；不可用即停下，无静默放宽。）
