@@ -1,0 +1,55 @@
+skill: task-goal
+
+problem:
+  迁移规则（网格）与查表器（脚本）已落地，但「当前状态、连续第几次自动续跑、
+  上次输入事件」仍靠模型每轮从对话历史重建——本次失败「重申没有上限」
+  正是这个推理点的直接后果。脚本刚落地，是把它改扩建为「读/写状态文件」
+  的最自然时机；「事件分类靠读语义猜」是剩下唯一的非机械步骤。
+
+evidence:
+  - 2026-09-30 失败原话：「重申没有上限」「只能自行推导」。
+  - 2026-09-29 同族失败：等待被登记成任务，根因同为「状态没有外部载体」。
+  - 当前脚本 goal_transition.py 需要 --state / --autocontinue-count 入参，
+    这些参数本身就是「该从文件读」的明证。
+
+pattern:
+  状态机三层：规则（网格）+ 查表（脚本）+ 计数器（状态文件）。
+  事件分类：生产者能打标就打标，不能打标就按约定顺序机械推断。
+
+proposed_change:
+  1) 改扩建 scripts/goal_transition.py：
+     - 新增 --state-file <path>：从 YAML 读 {state, exit_point,
+       autocontinue_count, last_input_event}，与 --state 互斥、优先生效。
+     - 新增 --write：迁移判定后把 {next_state, count+1, last_input_event}
+       回写 state-file；blocked 时写 blocked: true 与 handoff_summary 占位。
+     - 新增 --event-tag <tag>：直接吃生产者戳（goal-event: auto-continue），
+       与 --event 互斥、优先；tag → event 映射表内置。
+     - state-file 不存在时按 --state 回退并首轮创建。
+     - YAML 解析只用标准库（手写最简 parser，字段是封闭集合）。
+  2) 新增 references/state-file.md：state.yaml schema 约定
+     （字段、类型、落点：沿用 task-delivery evidence_root 风格，
+     运行产物落仓库外），含空文件/首轮模板。
+  3) SKILL.md「触发」节那句再改为：
+     每轮开头先读 state-file（不存在则按当前状态新建），
+     再看本轮 prompt 是否带 goal-event 戳——
+     带戳用 --event-tag 调脚本；不带戳按 references/state-file.md
+     的「事件推断顺序」逐条比对得到事件名，再用 --event 调脚本；
+     脚本输出驱动本轮回复与状态回写。
+  4) references/state-file.md 附「事件推断顺序」（降级④，无需 goal 系统配合）：
+     本轮 prompt 与上轮逐字相同 → goal 自动续跑；
+     消息含授权点名 → 用户授权；
+     消息为「继续」类短句 → 用户继续；
+     消息含改向词（改/换成/不要/升档/重新）→ 用户改向；
+     消息是新事实陈述 → 用户补充信息；
+     以上都不命中 → 按上次未完结环节推断
+     （完善中 → 审阅未收敛；写完之后 → 步骤推进；其余 → 走无进展轮）。
+  5) tests/goal_transition.py 用例扩展：state-file 读写、tag 映射、
+     推断顺序表的存在性、空文件首轮创建；TestGoalTransitionScript 补
+     --state-file/--event-tag 冒烟断言。
+
+expected_improvement:
+  「第几次重申」「当前状态」从推理变机械读写；事件分类在 goal 系统
+  可打标时变读戳，不可打标时变按表比对——两类路径都不靠语义猜测。
+  网格仍是唯一真源；state-file 只存计数器不存规则，不引入平行状态机。
+
+risk: medium

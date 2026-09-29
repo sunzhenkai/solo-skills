@@ -16,7 +16,7 @@ description: "goal 模式下唯一的确认与审阅协议：接一份带完成�
 - 当前有进行中的 goal 且本条消息挂了本 skill。
 - 被上游 skill（如 task-delivery、task-explore）以 goal 模式委派。
 
-每轮开头先读 state-file（落点见 [references/state-file.md](references/state-file.md)，不存在则按当前状态新建）；再看本轮 prompt 是否带 `goal-event:` 戳——带戳调 `scripts/goal_transition.py --state-file <path> --event-tag <tag> --write`；不带戳按 [references/state-file.md](references/state-file.md) 的「事件推断顺序」逐条比对得到事件名，再用 `--event` 调脚本。脚本输出驱动本轮回复与状态回写；脚本返回 `defined: false` 时按「无进展轮」处理。网格与本文件正文或「无进展轮」有出入时，以正文与无进展轮为准；脚本只是查表器 + 状态文件读写器，不替代正文。
+每轮开头把本条输入对照 [references/state-machine.md](references/state-machine.md) 的「事件」节归到一类，再查网格；无格按「无进展轮」处理。网格与本文件正文或「无进展轮」有出入时，以正文与无进展轮为准。
 
 ## 起手：接方案或产方案
 

@@ -1,0 +1,141 @@
+"""goal_transition.py 的单元测试：覆盖每个非空格、未定义组合、计数边界、事件前缀匹配。"""
+
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+import sys
+
+SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts"
+sys.path.insert(0, str(SCRIPT_DIR))
+
+import goal_transition as gt  # noqa: E402
+
+
+class TestGridParsing(unittest.TestCase):
+    def setUp(self) -> None:
+        text = (gt.SKILL_ROOT / "references" / "state-machine.md").read_text(encoding="utf-8")
+        self.grid = gt._parse_grid(text)
+
+    def test_four_states_present(self) -> None:
+        for st in gt.STATES:
+            self.assertIn(st, self.grid)
+
+    def test_stopped_row_has_11_events(self) -> None:
+        self.assertEqual(len(self.grid["已停"]), 11)
+
+    def test_event_names_match_enum(self) -> None:
+        for ev in gt.EVENTS:
+            self.assertIn(ev, self.grid["已停"])
+
+
+class TestDecide(unittest.TestCase):
+    def test_stopped_user_auth(self) -> None:
+        out = gt.decide("已停", "用户授权", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "执行中")
+        self.assertIn("授权", out["action"])
+
+    def test_stopped_user_continue(self) -> None:
+        out = gt.decide("已停", "用户继续", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已停")
+        self.assertIn("重申", out["action"])
+
+    def test_stopped_autocontinue_first(self) -> None:
+        out = gt.decide("已停", "goal 自动续跑", 1)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已停")
+        self.assertIn("只读", out["action"])
+        self.assertNotIn("blocked", out["action"])
+
+    def test_stopped_autocontinue_second(self) -> None:
+        out = gt.decide("已停", "goal 自动续跑", 2)
+        self.assertTrue(out["defined"])
+        self.assertNotIn("blocked", out["action"])
+
+    def test_stopped_autocontinue_third_blocks(self) -> None:
+        out = gt.decide("已停", "goal 自动续跑", 3)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已停")
+        self.assertIn("blocked", out["action"])
+        self.assertIn("交接", out["reply_shape"])
+
+    def test_stopped_autocontinue_beyond_third_still_blocked(self) -> None:
+        out = gt.decide("已停", "goal 自动续跑", 5)
+        self.assertTrue(out["defined"])
+        self.assertIn("blocked", out["action"])
+
+    def test_stopped_autocontinue_requires_count(self) -> None:
+        out = gt.decide("已停", "goal 自动续跑", None)
+        self.assertFalse(out["defined"])
+        self.assertIn("autocontinue-count", out["note"])
+
+    def test_running_review_converged(self) -> None:
+        out = gt.decide("执行中", "审阅收敛", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已交接")
+
+    def test_running_review_not_converged(self) -> None:
+        out = gt.decide("执行中", "审阅未收敛", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "执行中")
+        self.assertIn("完善", out["action"])
+
+    def test_running_criterion_met(self) -> None:
+        out = gt.decide("执行中", "判据成立", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已完成")
+
+    def test_handsoff_step_progress(self) -> None:
+        out = gt.decide("已交接", "步骤推进", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已交接")
+
+    def test_handsoff_criterion_met(self) -> None:
+        out = gt.decide("已交接", "判据成立", None)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "已完成")
+
+    def test_undefined_combo_returns_none(self) -> None:
+        # 已停 × 判据成立 是「—」
+        out = gt.decide("已停", "判据成立", None)
+        self.assertFalse(out["defined"])
+        self.assertIsNone(out["next_state"])
+        self.assertIn("未定义组合", out["note"])
+
+    def test_undefined_combo_completed_state(self) -> None:
+        out = gt.decide("已完成", "用户授权", None)
+        self.assertFalse(out["defined"])
+
+    def test_unknown_event_rejected(self) -> None:
+        out = gt.decide("已停", "天气不错", None)
+        self.assertFalse(out["defined"])
+        self.assertIn("封闭枚举", out["note"])
+
+    def test_unknown_state_rejected(self) -> None:
+        out = gt.decide("摸鱼中", "用户授权", None)
+        self.assertFalse(out["defined"])
+        self.assertIn("未知状态", out["note"])
+
+    def test_event_prefix_match(self) -> None:
+        # 简称「自动续跑」应能匹配到「goal 自动续跑」
+        out = gt.decide("已停", "自动续跑", 1)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["event"], "goal 自动续跑")
+
+
+class TestReplyShapeExtraction(unittest.TestCase):
+    def test_blocked_shape(self) -> None:
+        self.assertIn("交接", gt._extract_reply_shape("已停（blocked 交接：…）"))
+
+    def test_reaffirm_shape(self) -> None:
+        self.assertIn("重申", gt._extract_reply_shape("已停（重申仍停）"))
+
+    def test_readonly_shape(self) -> None:
+        self.assertIn("只读", gt._extract_reply_shape("已停（只读查证）"))
+
+
+if __name__ == "__main__":
+    unittest.main()

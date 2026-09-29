@@ -28,6 +28,8 @@ class TestFrontmatter(unittest.TestCase):
         for rel in (
             "references/quality-profile.md",
             "references/legacy-plans.md",
+            "references/state-machine.md",
+            "references/state-file.md",
             "CONTEXT.md",
         ):
             self.assertTrue((SKILL_ROOT / rel).is_file(), rel)
@@ -148,6 +150,159 @@ class TestExitPoints(unittest.TestCase):
 
     def test_exit_list_present_in_template(self) -> None:
         self.assertIn("审阅不通过；审阅派不出；审阅没有结论；评审者未定；降级未确认", self.text)
+
+
+class TestStateMachine(unittest.TestCase):
+    """状态机：事件封闭枚举、四状态各成一行、已停行穷举全部事件、无进展轮兜底。"""
+
+    EVENTS = (
+        "用户授权",
+        "用户继续",
+        "用户改向",
+        "goal 自动续跑",
+        "审阅收敛",
+        "审阅未收敛",
+        "退出点命中",
+        "判据成立",
+        "步骤推进",
+        "外部新事实到达",
+        "用户补充信息",
+    )
+
+    STATES = ("执行中", "已停", "已交接", "已完成")
+
+    def setUp(self) -> None:
+        self.text = read("references/state-machine.md")
+        self.skill = read("SKILL.md")
+
+    def _row(self, state: str) -> str:
+        for line in self.text.splitlines():
+            if line.startswith(f"| **{state}**"):
+                return line
+        self.fail(f"missing row for state {state}")
+
+    def _cells(self, row: str) -> list:
+        return [c.strip() for c in row.split("|")[1:-1]]
+
+    def test_reference_file_exists(self) -> None:
+        self.assertTrue((SKILL_ROOT / "references/state-machine.md").is_file())
+
+    def test_all_events_named(self) -> None:
+        for ev in self.EVENTS:
+            self.assertIn(f"**{ev}**", self.text)
+
+    def test_event_enum_is_closed(self) -> None:
+        self.assertIn("封闭枚举", self.text)
+
+    def test_each_state_has_a_row(self) -> None:
+        for st in self.STATES:
+            row = self._row(st)
+            cells = self._cells(row)
+            # 状态列 + 11 个事件列
+            self.assertEqual(len(cells), 1 + len(self.EVENTS), f"row {st} cell count")
+
+    def test_stopped_row_covers_all_events(self) -> None:
+        row = self._row("已停")
+        cells = self._cells(row)[1:]
+        non_empty = [c for c in cells if c and c != "—"]
+        # 已停行穷举全部事件；允许「判据成立」「步骤推进」两格为「—」（已停只等授权，不验证步骤）
+        self.assertGreaterEqual(len(non_empty), len(self.EVENTS) - 2)
+
+    def test_blocked_defined_as_stopped_form(self) -> None:
+        self.assertIn("「已停」的交接形态，不是第五状态", self.text)
+
+    def test_no_progress_round_fallback_present(self) -> None:
+        self.assertIn("## 无进展轮", self.text)
+        self.assertIn("禁止原样重复", self.text)
+
+    def test_skill_references_state_machine(self) -> None:
+        self.assertIn("references/state-machine.md", self.skill)
+        self.assertIn("**无进展轮（兜底）**", self.skill)
+
+    def test_skill_no_progress_round_content(self) -> None:
+        self.assertIn("状态与退出点与上一轮完全相同", self.skill)
+        self.assertIn("禁止原样重复上一轮回复", self.skill)
+
+
+class TestGoalTransitionScript(unittest.TestCase):
+    """迁移判定脚本：存在、可运行、对每个非空格给出已定义迁移。"""
+
+    def setUp(self) -> None:
+        self.script = SKILL_ROOT / "scripts" / "goal_transition.py"
+
+    def _run(self, *args: str) -> tuple[int, dict]:
+        import json
+        import subprocess
+
+        proc = subprocess.run(
+            ["python3", str(self.script), *args],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        try:
+            out = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            self.fail(f"script did not emit JSON: stdout={proc.stdout!r} stderr={proc.stderr!r}")
+        return proc.returncode, out
+
+    def test_script_exists(self) -> None:
+        self.assertTrue(self.script.is_file())
+
+    def test_script_stdlib_only(self) -> None:
+        src = self.script.read_text(encoding="utf-8")
+        # 不允许第三方依赖；顶层 import 只能是 argparse/json/re/sys/pathlib
+        import re
+
+        imports = re.findall(r"^(?:import|from)\s+([\w\.]+)", src, flags=re.M)
+        allowed = {"argparse", "json", "re", "sys", "pathlib", "__future__"}
+        for mod in imports:
+            self.assertIn(mod.split(".")[0], allowed, f"unexpected import {mod}")
+
+    def test_defined_combo_returns_next_state(self) -> None:
+        code, out = self._run("--state", "已停", "--event", "用户授权")
+        self.assertEqual(code, 0)
+        self.assertTrue(out["defined"])
+        self.assertEqual(out["next_state"], "执行中")
+
+    def test_autocontinue_third_blocks(self) -> None:
+        code, out = self._run(
+            "--state", "已停", "--event", "goal 自动续跑", "--autocontinue-count", "3"
+        )
+        self.assertEqual(code, 0)
+        self.assertIn("blocked", out["action"])
+
+    def test_undefined_combo_nonzero_with_note(self) -> None:
+        code, out = self._run("--state", "已停", "--event", "判据成立")
+        self.assertEqual(code, 1)
+        self.assertFalse(out["defined"])
+        self.assertIsNone(out["next_state"])
+        self.assertIn("无进展轮", out["note"])
+
+    def test_unknown_event_nonzero(self) -> None:
+        code, out = self._run("--state", "已停", "--event", "未定义事件")
+        self.assertEqual(code, 1)
+        self.assertIn("封闭枚举", out["note"])
+
+    def test_state_file_smoke(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            from pathlib import Path as P
+            p = P(tmp) / "goal-state.yaml"
+            p.write_text(
+                "state: 已停\nexit_point: x\nautocontinue_count: 0\nblocked: false\n",
+                encoding="utf-8",
+            )
+            code, out = self._run("--state-file", str(p), "--event", "goal 自动续跑", "--write")
+            self.assertEqual(code, 0)
+            self.assertTrue(out["wrote_back"])
+            text = p.read_text(encoding="utf-8")
+            self.assertIn("autocontinue_count: 1", text)
+
+    def test_event_tag_smoke(self) -> None:
+        code, out = self._run("--state", "已停", "--event-tag", "auto-continue", "--autocontinue-count", "1")
+        self.assertEqual(code, 0)
+        self.assertEqual(out["event"], "goal 自动续跑")
 
 
 class TestQualityProfileContract(unittest.TestCase):
