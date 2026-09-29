@@ -1,0 +1,69 @@
+skill: agent-roster
+
+problem: |
+  契约表「已知的 Agent Kind 与适配器」把 kind→命令当权威信息，但 kind 名、CLI 二进制名、
+  执行器内置 argv 是三份各自漂移的东西，上游改名时旧名仍留在执行器 registry 里。三处实测出处：
+  1) 2026-09-24 一次委派：执行器内置该 kind 的 argv 硬编码为旧二进制名（该产品先后叫
+     qodercli / qoderclicn，现名 qodercn），本机无旧名 → 照抄 `acpx <kind> exec` 失败，
+     而按现名做的 L1/L2 探测都是绿的（探的文件与执行器要跑的不是同一个）
+  2) 同日同一次：`--agent "<cmd>"` 形态下裸 prompt 落到 session 路径报 NO_SESSION，
+     必须显式带 `exec`——这条约束不在契约里
+  3) 探测脚本的 kind 表不含该 kind → L1/L2 覆盖不到；且 L1 只探「常见 CLI 名」，
+     与适配器 argv[0] 可能不是一个文件，于是出现「L1 ✅ + L2 ✅ 仍无法委派」
+
+evidence:
+  - 2026-09-24 首次委派一个名册外 Endpoint：command-not-found 类失败 + 读 registry 才看出
+    内置 argv 指向本机不存在的二进制名
+  - 同日 `--agent` 形态两次试错（NO_SESSION → 补 exec 即通）
+  - 同日实测：在执行器 config 里为该 kind 登记 argv 覆盖内置 registry 后，`acpx <kind> exec`
+    直接跑通（临时 HOME 下适配器被拉起、initialize 正常返回，仅因 HOME 变化丢登录态而停在
+    session/new——反向证明覆盖生效）
+  - 同会话历史两次同型失败：`--model` id 形态因适配器而异、适配器只认某个认证环境变量名
+    而不读 CLI 配置的等价变量（L2 过仍连败）
+  - 契约文档为此已被单独修补过两次（全局旗标位置与 model id 口径、受控执行与适配器口径）
+
+pattern: |
+  「kind 在执行器里存在」不蕴含「kind 在本机跑得通」：kind 名 / CLI 二进制名 / 执行器内置 argv
+  三份命名各自漂移，上游改名是常态而非异常。要核对的是 argv[0] 那个文件在本机 PATH 里存不存在，
+  而不是照抄任何一张表。文档表的正确用法是「候选清单」，不是「事实」。
+  修这种漂移有两级：执行器 config 里登记该 kind 的实际 argv（持久、单入口照常可用）优先于
+  每次传 `--agent`（一次性、且必须显式 `exec`）。
+
+proposed_change: |
+  1) references/delegation-contract.md「已知的 Agent Kind 与适配器」节首加硬规则：
+     kind 是执行器子命令名、不是可执行文件名；委派前核对 argv[0] 是否在 PATH，不符或表里没有
+     该 kind → 按两级修法处置，不得照抄表里的命令，也不得因 command-not-found 就判该 Endpoint 不可用。
+     表补 `qoder` 一行并标注 registry 内 argv 可能仍是旧名
+  2) 同文件「默认实现：acpx」节新增 argv 漂移小节：
+     - 主路径：在 `~/.acpx/config.json` 的 `agents.<kind>.argv`（或项目 `.acpxrc.json`）登记实际 argv
+     - 次路径：`acpx --agent "<bin> <args>" <全局旗标> exec "<prompt>"`，显式写明**必须带 `exec`**
+     - 判别指纹 `detailCode: AGENT_SPAWN_ENOENT`（message 会印出它想跑的 argv）
+     - 改过 argv 后旧 session 仍带旧 argv，须 close/recreate；一次性 `exec` 不受影响
+     - 委派不得改 HOME（登录态跟着 HOME 走，改了会在 session/new 报 Authentication required，
+       看起来像「没登录」实为环境错位）
+  3) scripts/probe_endpoints.py：AGENT_KINDS 补 `qoder`（cli 给候选名列表，取第一个在 PATH 里的）；
+     L1 新增 acpx_kind_argv()——用 `npm root -g` 定位 acpx 的 dist 并解析出该 kind 真正要 spawn 的
+     argv，与本机 PATH 比对，不符时输出 `argv_gap`。只在「CLI 确实装了」时报警（真没装的 gemini/copilot
+     不是漂移），npx 等包运行器不参与比对，registry 读不到时不猜、不报
+  4) scripts/delegate.py 加 `--agent "<command>"`（替换 kind 子命令段，exec 与
+     timeout/status.json/PID/decision.md 全套控制不变），使次路径也走单入口。两处配套：
+     `--agent` 时 `kind` 不再是必填，且 status.json 的 kind 记适配器二进制名
+     （retry_check 拿它当残留进程 marker，记整串旗标会永远匹配不上＝假干净）；
+     cmd.sh 改用 shlex.join 落盘（裸 " ".join 写出的 `--agent qodercn --acp` 复制回去会被重切）
+  5) evals/cases.yaml 补 2 条 regression：① kind 存在但执行器 argv[0] 缺失 → 走两级修法而非判不可用；
+     ② 探测 L1 必须暴露 argv_gap，且不误报真没装的 CLI
+
+expected_improvement: |
+  「装了但委派跑不了」从需要读 registry 才发现，变成委派前一条核对必然暴露；两级修法与
+  `exec` 约束从试错两次得到变成照抄即对；此类 Endpoint 收回 delegate.py 单入口，不再手工拼接受控执行
+
+risk: medium
+risk_note: |
+  第 3 条改变 probe L1 的语义（从「CLI 在不在」变成「CLI 与适配器二进制都在不在」），
+  历史画像里「L1 ✅」的可比性受影响；第 4 条动 delegate.py。使用者已确认「3+4 一起改」。
+
+scope_note: |
+  不改动 SKILL.md 正文：委派节已把「契约字段、命令形态」整体指向 references/delegation-contract.md，
+  本模式的落点就是那里。
+  今天顺带查出的 run_status.py docstring 与实现不一致（硬编码 id 残留、truncated 条件与文档不符、
+  缺 unknown 态）不并入本轮——那是脚本自身缺陷，不是从经验提炼的稳定模式，另走一次普通小修。

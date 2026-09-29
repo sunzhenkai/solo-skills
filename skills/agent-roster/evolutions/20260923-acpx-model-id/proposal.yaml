@@ -1,0 +1,28 @@
+skill: agent-roster
+
+problem:
+  delegation-contract.md 的 acpx 命令形态与 --model 指引有两处会直接导致委派失败：
+  1) 示例把 --cwd 放在 <kind> exec 之后，acpx 0.17 实测 unknown option（全局旗标必须在子命令前）；
+  2) 「--model 以 ACP 广告 id 为准」不完整：cursor-agent acp 需参数化完整 id，
+     codex-acp 只接受裸模型名，传参数化形态反报 did not advertise。照契约字面执行仍会失败。
+
+evidence:
+  - 2026-09-23 cursor 侧真实评审委派：CLI 模型 id 被拒，须用参数化完整 id；--cwd 后置被拒
+  - 2026-09-23 codex 侧真实实施委派：参数化 id 被拒（广告列表里明明有），裸名成功
+  - 本会话实测：cursor 侧 --model 写在 <kind> 之后打印帮助退出，写在 acpx 与 <kind> 之间生效
+
+pattern:
+  acpx 的调用形态（全局旗标位置、--model id 口径）无法从广告列表或 --help 可靠推断，
+  已在两个 Agent Kind 复现；一句 smoke prompt 可零成本验证模型生效，把失败前移
+
+proposed_change:
+  仅改 references/delegation-contract.md「默认实现：acpx」一节：
+  1. 示例命令把 --cwd/--format/--approve-reads 等全局旗标统一放在 <kind> 之前
+  2. model 字段落法改为：--model 是根级全局旗标（acpx 与 <kind> 之间）；
+     已知口径 cursor-agent acp 用参数化完整 id、codex-acp 用裸模型名；
+     不确定形态时先发一句 smoke prompt，从 initialize 响应 models.currentModelId 确认生效再发正式任务
+
+expected_improvement:
+  消除换 Endpoint 时反复出现的 --model 被拒与全局旗标后置失败；验证成本一句 smoke prompt
+
+risk: low

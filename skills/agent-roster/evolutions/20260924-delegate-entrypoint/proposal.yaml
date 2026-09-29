@@ -1,0 +1,39 @@
+skill: agent-roster
+
+problem: |
+  委派执行仍靠手动拼接 acpx 命令 + 手工建 run 目录 + 手敲 status.json：
+  1) 全局旗标位置、权限档位、--model 落法每次重新决定，拼错即失败（历史上 --cwd 后置、
+     --model 形态错两类失败各出现多次）
+  2) timeout 必填靠自律，漏设后失败只能人肉发现（有 5 小时假等待前科）
+  3) 认证环境变量（如适配器只认特定变量名）靠临场记忆注入
+  4) run_status.py 硬编码 RESULT(id=2) 判完成——acpx 应用 --model 走 set_config_option
+     会占用请求 id，prompt RESULT 实测落在 id=3，成功的委派被误判 truncated
+
+evidence:
+  - 2026-09-24 MiniMax-M3 五适配器实测（agent-data trace 20260924-minimax-m3-five-agent-delegation-test）：
+    codex/claude 两个成功 run 被 run_status.py 误判 truncated，根因是请求 id 硬编码
+  - 同轮 20 次 acpx run 全靠新写的 delegate.py 单入口执行，零手动拼接、零死等
+  - pi 裸模型名被拒、qwen 三重认证关、opencode limit.output 被重写丢失——三类失败
+    的报错都只在真实启动后可见，与「入口收敛 + 冒烟门禁」方向一致
+
+pattern: |
+  手工拼接命令的每一步都是独立出错面；把 run 目录、decision.md、status.json、timeout、
+  acpx 命令形态收敛进一个入口脚本后，出错面从「每次委派的每一步」收缩到「脚本一处」。
+  协议判定（请求 id）不能假设序号，必须按事件 method 匹配。
+
+proposed_change: |
+  1) 新增 scripts/delegate.py：单入口完成 run 目录 + decision.md + status.json + timeout
+     进程组兜底 + acpx 启动；--env 注入认证环境变量；--smoke 标准冒烟；--wait 前台等待
+  2) run_status.py 修复：prompt RESULT 按 session/prompt 事件的实际 id 匹配，
+     兜底取任何带 stopReason 的 RESULT，删除 id=2 硬编码
+  3) delegation-contract.md：「受控执行」新增第 0 条（入口脚本，不手动拼命令）；
+     「已知口径」按 2026-09-24 五适配器实测重写，明确形态各异、以各 Endpoint 自己的
+     ACP 广告列表为唯一可靠来源
+  4) SKILL.md 委派节指针句补入口脚本与状态判定脚本
+  5) evals/cases.yaml 新增回归 case prompt-result-by-event-id
+
+expected_improvement: |
+  手动拼接命令这一类出错面消除；timeout 必填由脚本强制；done 误判（id 硬编码）修复；
+  --model 口径按适配器分化的事实写进契约，照抄广告列表即可
+
+risk: low

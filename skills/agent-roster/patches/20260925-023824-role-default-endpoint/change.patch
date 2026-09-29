@@ -1,0 +1,383 @@
+diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: agent-roster
+-description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；不实现被委派 agent 自身的能力。
++description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。不实现被委派 agent 自身的能力。
+ ---
+ 
+ # Agent Roster
+@@ -8,7 +8,7 @@
+ ## 一次委派的完整顺序
+ 
+ ```text
+-- [ ] 1 路由：读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace
++- [ ] 1 选人：没点 Role 时读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace。点了 Role 且没写 Endpoint 时跑 resolve_role.py：use 走快速路径，ask 停下来问这次用谁
+ - [ ] 2 建 Run 目录，写 decision.md（必须早于第 3 步）
+ - [ ] 3 委派：检查执行器在不在 → 按契约发出，权限按委派性质定
+ - [ ] 4 回收：Handoff 落到项目里，Run 痕迹留在缓存
+@@ -22,6 +22,31 @@
+ 
+ 使用者明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace，不枚举其他候选；画像缺失或不可用时回到完整路由。`decision.md` 可压缩为指定来源、可用性证据、权限、Handoff，但「为什么选它」仍须可复用；acpx、权限、回收与留痕门禁不变。
+ 
++## 角色：点了名就用默认 Endpoint
++
++调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
++
++约定名字是 developer、planner、reviewer、code-reviewer、designer，含义见仓库根 [CONTEXT.md](../../CONTEXT.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。决策见 [ADR 0004](../../docs/adr/0004-named-role-pins-endpoint.md)。文件格式与判定见 [references/roles.md](./references/roles.md)。
++
++```bash
++python3 <skill-dir>/scripts/resolve_role.py <role-id>
++```
++
++exit 1 是 `verdict: ask`，要问人，不是脚本故障。exit 2 才是对照表或参数坏了，先停下说明，不要当成 ask。
++
++- `verdict: use`：这个 Endpoint 就是使用者已经指定的唯一 Endpoint，走快速路径。解析时已经确认画像在、且最近一条探测状态可用，不要再因「画像不可用就回到完整路由」去枚举候选。`decision.md` 的指定来源写这个 Role，「为什么选它」写成「使用者把这个 Role 的默认 Endpoint 设成了它」。
++- `verdict: ask`：问这次用哪个 Endpoint，同一句里问要不要记成这个 Role 的默认。回答里的 Endpoint 用于这次，并走快速路径。回答明确同意记成默认时才 `--write`。只给出 Endpoint、沉默、追问或换话题，对照表保持原样，委派照样继续。
++- 调用方同时写了 Role 和 Endpoint：用写明的 Endpoint，不跑上面的脚本。
++
++模型不在对照表里。调用方没给 model 就省略，用该 Endpoint 自己的默认。
++
++```bash
++python3 <skill-dir>/scripts/resolve_role.py --write <role-id> <host>/<kind>
++```
++
++`--write` 只在明确同意之后执行，并且只接受名册里已有的 Endpoint。这次 Endpoint 来自 Role、委派发出后受派方没起来：问这次换谁，同一句问要不要改默认，不回到完整路由另选。
++
++
+ ## 数据在哪
+ 
+ 本仓库只有机制，一条真实记录都没有：名册、案例、路由规则、运行痕迹一律不进本仓库。数据位置由 `~/.config/agent-roster/config.yaml` 的 `data_root` 指出（缺省时先问使用者，不要猜）。
+@@ -30,6 +55,7 @@
+ | --- | --- | --- |
+ | Roster（Endpoint 画像） | `<data_root>/agents/<host>/<kind>.md` | 客观段由 Probe 回填，Disposition 由人或 agent 维护 |
+ | Routing Rule | `<data_root>/agents/routing.md` | Orchestrator 提案、使用者确认后写入，初始为空 |
++| Role 默认 Endpoint | `<data_root>/agents/roles.yaml` | 使用者明确同意后由 Orchestrator 写入 |
+ | Trace（案例） | `<data_root>/agents/traces/<YYYYMMDD>-<slug>.md` | Orchestrator，仅在有教训时 |
+ | Run（运行痕迹） | `~/.cache/agent-roster/runs/<run-id>/` | 委派时自动落盘，可随时删 |
+ | Handoff（交接物） | 调用方在发起委派时指定的项目内路径 | 见「回收」 |
+@@ -40,11 +66,11 @@
+ 
+ 格式见 [references/endpoint-schema.md](./references/endpoint-schema.md) 与 [references/trace-format.md](./references/trace-format.md)。
+ 
+-references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`。
++references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`，解析 Role 时读 `roles.md`。
+ 
+ ## 路由：选谁
+ 
+-只有需要自行选人时才执行以下完整路由。
++只有需要自行选人时才执行以下完整路由。点了 Role 时不是自行选人：`verdict: use` 走快速路径，`verdict: ask` 停下来问这次用谁。
+ 
+ 1. 读 `routing.md`。为空就跳过——规则只能从累积案例中固化，凭想象写满会让它退化成硬编码分支。
+ 2. 读候选 Endpoint 的画像，只读与当前任务相关的那几个。
+@@ -92,7 +118,7 @@
+ 
+ `failed` 和 `timeout` 不是再跑一次就能消化的事。先分清是哪一类，再决定动作：
+ 
+-- **受派方没起来**（适配器报错、登录态失效、额度耗尽）→ 不要重试同一个 Endpoint。先跑 L1/L2 探测确认它是不是真的不可用，再回到路由换候选或问使用者。
++- **受派方没起来**（适配器报错、登录态失效、额度耗尽）→ 不要重试同一个 Endpoint。先跑 L1/L2 探测确认它是不是真的不可用。这次 Endpoint 来自 Role 时，按「角色」一节问这次换谁；否则回到路由换候选或问使用者。
+ - **起来了但没跑完**（timeout）→ 可以缩小范围重发一次，把已有的部分产出当输入。同一个 Endpoint 只重发一次，还不行就换人。
+ - **跑完了但产出不对** → 不要重发。先判断是 prompt 没说清还是人选错了：前者改 prompt 重来，后者回到路由重选，并在 `decision.md` 末尾追加一句改判说明——不要改写原来那段理由。
+ 
+@@ -148,12 +174,13 @@
+ 
+ ## 不变量
+ 
+-正文里最容易被绕过的四条，执行途中逐条自查：
++正文里最容易被绕过的五条，执行途中逐条自查：
+ 
+ - 选择理由先写后执行，顺序不可颠倒。
+ - 受派方只能是名册里的 Endpoint，编排者不得自任——正跑在同名 Agent Kind 上也不例外。
+ - 未安装 `acpx` 时先停下并提议安装：未获确认不得安装，未获**明确拒绝**不得降级；阻塞期间冻结的是任务目标，不是某一个动作。
+ - 固化条件攒够时必须提案，不许继续沉默；提案与写入之间必须有使用者确认。
++- 点了 Role 就用它的默认 Endpoint；没有能用的默认就问这次用谁，不改走路由；没得到明确同意不改对照表。
+ 
+ ## 相关
+ 
+diff --git a/skills/agent-roster/evals/cases.yaml b/skills/agent-roster/evals/cases.yaml
+--- a/skills/agent-roster/evals/cases.yaml
++++ b/skills/agent-roster/evals/cases.yaml
+@@ -217,3 +217,20 @@
+         - acpx registry 读不到时不报错、不猜（argv_gap 缺省）
+       must_not:
+         - 只探 CLI 常见名就报 L1 ✅ 而不看适配器真正 spawn 的名字
++
++  - id: role-names-default-endpoint
++    kind: core
++    judge: deterministic
++    description: 点名 Role 且未写 Endpoint 时用该 Role 的默认 Endpoint
++    given: 调用方点名了 Role，没有写 Endpoint
++    expect:
++      must:
++        - resolve_role.py 给出 verdict
++        - verdict 为 use 时把该 Endpoint 当作已指定的唯一 Endpoint，走快速路径
++        - verdict 为 ask 时问这次用哪个 Endpoint，并在同一问里问要不要记成默认
++        - 只有回答明确同意写入时才执行 --write
++      must_not:
++        - 从任务正文推断 Role
++        - verdict 为 ask 时改走 routing.md 或 Trace 另选
++        - 只指定了这次的 Endpoint 就把对照表改掉
++        - 没点 Role 时用某个默认 Role 代替自行选人
+diff --git a/skills/agent-roster/references/roles.md b/skills/agent-roster/references/roles.md
+new file mode 100644
+--- /dev/null
++++ b/skills/agent-roster/references/roles.md
+@@ -0,0 +1,30 @@
++# Role 默认 Endpoint
++
++一个文件：`<data_root>/agents/roles.yaml`。对照表里是具体 Endpoint，和名册一样放在私有数据里，不进本仓库。
++
++只认下面这种行，不认任意 YAML。`#` 开头是注释。右侧空着表示这个 Role 还没配。
++
++```text
++<role-id>: <host>/<kind>
++```
++
++`<role-id>` 小写字母开头，其余为小写字母、数字或连字符。一行一个，行尾不写注释。
++
++约定 id 的含义见仓库根 `CONTEXT.md`。名字可以另加。调用方不点名，这些 id 就不参与这次选人：
++
++- `developer`
++- `planner`
++- `reviewer`
++- `code-reviewer`
++- `designer`
++
++`scripts/resolve_role.py <role-id>` 的判定：
++
++- 右侧有 Endpoint，`<data_root>/agents/<host>/<kind>.md` 存在，且该画像「探测状态」最后一条不含 `❌` 或 `⚠` → `verdict: use`（exit 0）
++- 没配、没有这个 id、或文件不存在 → `verdict: ask`，`reason: unbound`（exit 1）
++- Endpoint 写了，但名册里没有这份画像 → `verdict: ask`，`reason: missing`（exit 1）
++- 画像在，但探测状态最后一条含 `❌` 或 `⚠` → `verdict: ask`，`reason: down`（exit 1）
++
++exit 1 是「要问人」，不是脚本故障。exit 2 才是对照表或参数坏了。
++
++`--write <role-id> <host>/<kind>` 改这个文件里的一行。只接受名册里已有画像的 Endpoint。何时允许调用，见 `SKILL.md` 的「角色」一节。
+diff --git a/skills/agent-roster/scripts/resolve_role.py b/skills/agent-roster/scripts/resolve_role.py
+new file mode 100644
+--- /dev/null
++++ b/skills/agent-roster/scripts/resolve_role.py
+@@ -0,0 +1,221 @@
++#!/usr/bin/env python3
++"""resolve_role.py <role-id> —— 把点名的 Role 解成默认 Endpoint。
++
++对照表 <data_root>/agents/roles.yaml，一行 `<role-id>: <host>/<kind>`。
++右侧空、没有这个 id、或文件不存在，都是 unbound。
++
++verdict use（exit 0）：有 Endpoint，画像文件在，最近一条探测状态不含 ❌ 或 ⚠。
++verdict ask（exit 1）：reason=unbound|missing|down。这是正常结果，不是故障。
++exit 2：参数、对照表或名册目录本身坏了。
++
++--write <role-id> <host>/<kind>：写入对照表。画像文件必须已在名册。
++"""
++from __future__ import annotations
++
++import argparse
++import re
++import sys
++import tempfile
++from pathlib import Path
++
++ROLE_RE = re.compile(r"^[a-z][a-z0-9-]*$")
++ENDPOINT_RE = re.compile(r"^[^/\s]+/[^/\s]+$")
++ROLE_LINE_RE = re.compile(r"^([a-z][a-z0-9-]*)\s*:\s*(\S*)\s*$")
++
++
++def section(text: str, header_prefix: str) -> str:
++    m = re.search(rf"^##\s+{re.escape(header_prefix)}.*?$", text, re.M)
++    if not m:
++        return ""
++    rest = text[m.end() :]
++    nxt = re.search(r"^##\s+", rest, re.M)
++    return rest[: nxt.start()] if nxt else rest
++
++
++def load_roles(text: str) -> dict[str, str]:
++    roles: dict[str, str] = {}
++    for i, raw in enumerate(text.splitlines(), 1):
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        m = ROLE_LINE_RE.match(line)
++        if not m:
++            raise ValueError(f"roles.yaml:{i} 无法识别: {raw}")
++        endpoint = m.group(2)
++        if endpoint and not ENDPOINT_RE.match(endpoint):
++            raise ValueError(f"roles.yaml:{i} Endpoint 须为 host/kind")
++        roles[m.group(1)] = endpoint
++    return roles
++
++
++def upsert(text: str, role: str, endpoint: str) -> str:
++    out: list[str] = []
++    found = False
++    pat = re.compile(rf"^{re.escape(role)}\s*:")
++    for raw in text.splitlines():
++        if pat.match(raw.strip()):
++            out.append(f"{role}: {endpoint}")
++            found = True
++        else:
++            out.append(raw)
++    if not found:
++        out.append(f"{role}: {endpoint}")
++    body = "\n".join(out)
++    if not body.endswith("\n"):
++        body += "\n"
++    return body
++
++
++def probe_failed(text: str) -> bool:
++    bullets = [ln.strip() for ln in section(text, "探测状态").splitlines() if ln.strip().startswith("-")]
++    if not bullets:
++        return False
++    last = bullets[-1]
++    return "❌" in last or "⚠" in last
++
++
++def decide(binding: str | None, profile_exists: bool, profile_text: str) -> tuple[str, str | None]:
++    """返回 (verdict, reason)。use 时 reason 为 None。"""
++    if not binding:
++        return "ask", "unbound"
++    if not profile_exists:
++        return "ask", "missing"
++    if probe_failed(profile_text):
++        return "ask", "down"
++    return "use", None
++
++
++def emit(verdict: str, role: str, reason: str | None, endpoint: str | None) -> None:
++    print(f"verdict: {verdict}")
++    if reason:
++        print(f"reason: {reason}")
++    print(f"role: {role}")
++    if endpoint:
++        print(f"endpoint: {endpoint}")
++
++
++def run(argv: list[str], agents: Path) -> int:
++    p = argparse.ArgumentParser(description="把点名的 Role 解成默认 Endpoint")
++    p.add_argument("role", nargs="?", help="role id")
++    p.add_argument("endpoint", nargs="?", help="仅与 --write 合用：host/kind")
++    p.add_argument("--write", action="store_true", help="写入对照表；调用前须已得到使用者明确同意")
++    args = p.parse_args(argv)
++
++    if not args.role or not ROLE_RE.match(args.role):
++        print("error: role id 须为小写字母开头，其余为小写字母、数字或连字符", file=sys.stderr)
++        return 2
++    if not agents.is_dir():
++        print(f"error: 名册目录不存在: {agents}", file=sys.stderr)
++        return 2
++
++    path = agents / "roles.yaml"
++    try:
++        roles = load_roles(path.read_text(encoding="utf-8")) if path.is_file() else {}
++    except ValueError as exc:
++        print(f"error: {exc}", file=sys.stderr)
++        return 2
++
++    if args.write:
++        if not args.endpoint or not ENDPOINT_RE.match(args.endpoint):
++            print("error: --write 需要 host/kind", file=sys.stderr)
++            return 2
++        host, kind = args.endpoint.split("/", 1)
++        profile = agents / host / f"{kind}.md"
++        if not profile.is_file():
++            print(f"error: 名册里没有 {args.endpoint}", file=sys.stderr)
++            return 2
++        existing = path.read_text(encoding="utf-8") if path.is_file() else ""
++        path.write_text(upsert(existing, args.role, args.endpoint), encoding="utf-8")
++        print(f"wrote: {args.role}: {args.endpoint}")
++        return 0
++
++    if args.endpoint:
++        print("error: 解析时不要带 Endpoint；写入请加 --write", file=sys.stderr)
++        return 2
++
++    binding = roles.get(args.role, "")
++    endpoint = binding or None
++    profile_text = ""
++    profile_exists = False
++    if binding:
++        host, kind = binding.split("/", 1)
++        profile = agents / host / f"{kind}.md"
++        profile_exists = profile.is_file()
++        if profile_exists:
++            profile_text = profile.read_text(encoding="utf-8")
++    verdict, reason = decide(binding or None, profile_exists, profile_text)
++    shown = endpoint if verdict != "ask" or reason != "unbound" else None
++    emit(verdict, args.role, reason, shown if verdict == "ask" or verdict == "use" else None)
++    if verdict == "use":
++        return 0
++    return 1
++
++
++def _profile(body: str) -> str:
++    return f"# example-host/codex\n\n## 探测状态\n\n{body}\n"
++
++
++def self_check() -> None:
++    with tempfile.TemporaryDirectory() as tmp:
++        agents = Path(tmp)
++        codex = agents / "example-host"
++        codex.mkdir()
++        ok = codex / "codex.md"
++        ok.write_text(_profile("- 2026-01-01 00:00 —— L1 ✅ x —— L2 ✅ ACP 握手通过"), encoding="utf-8")
++        down = codex / "down.md"
++        down.write_text(
++            _profile(
++                "- 2026-01-01 00:00 —— L1 ✅ x —— L2 ✅ ACP 握手通过\n"
++                "- 2026-01-02 00:00 —— L1 ✅ x —— L2 ❌ failed: nope"
++            ),
++            encoding="utf-8",
++        )
++        warned = codex / "warned.md"
++        warned.write_text(
++            _profile("- 2026-01-01 00:00 —— L1 ✅ x —— L2 ✅ ACP 握手通过 —— ⚠ argv gap"),
++            encoding="utf-8",
++        )
++        skipped = codex / "skipped.md"
++        skipped.write_text(_profile("- 2026-01-01 00:00 —— L1 ✅ x —— L2 ⏭ 未测"), encoding="utf-8")
++
++        text = "# comment\ndeveloper: example-host/codex\nreviewer:\nplanner: example-host/down\ncode-reviewer: example-host/warned\ndesigner: example-host/skipped\n"
++        roles = load_roles(text)
++        assert roles["developer"] == "example-host/codex"
++        assert roles["reviewer"] == ""
++        assert decide(roles["developer"], True, ok.read_text(encoding="utf-8")) == ("use", None)
++        assert decide("", True, "") == ("ask", "unbound")
++        assert decide(None, True, "") == ("ask", "unbound")
++        assert decide("example-host/missing", False, "") == ("ask", "missing")
++        assert decide("example-host/down", True, down.read_text(encoding="utf-8")) == ("ask", "down")
++        assert decide("example-host/warned", True, warned.read_text(encoding="utf-8")) == ("ask", "down")
++        assert decide("example-host/skipped", True, skipped.read_text(encoding="utf-8")) == ("use", None)
++        assert upsert("# keep\nreviewer:\n", "reviewer", "example-host/codex") == "# keep\nreviewer: example-host/codex\n"
++        assert upsert("", "developer", "example-host/codex") == "developer: example-host/codex\n"
++
++        assert run(["reviewer"], agents) == 1
++        assert run(["--write", "developer", "example-host/codex"], agents) == 0
++        assert run(["developer"], agents) == 0
++        assert run(["--write", "developer", "example-host/nope"], agents) == 2
++        assert run(["--write", "planner", "example-host/down"], agents) == 0
++        assert run(["planner"], agents) == 1
++        assert run(["NotARole"], agents) == 2
++        written = (agents / "roles.yaml").read_text(encoding="utf-8")
++        assert "developer: example-host/codex" in written
++        assert "planner: example-host/down" in written
++
++
++def main(argv: list[str] | None = None) -> int:
++    if argv is None:
++        argv = sys.argv[1:]
++    if "--self-check" in argv:
++        self_check()
++        print("self-check: ok")
++        return 0
++    sys.path.insert(0, str(Path(__file__).resolve().parent))
++    from _roster import agents_dir  # noqa: E402
++
++    return run(argv, agents_dir())
++
++
++if __name__ == "__main__":
++    sys.exit(main())

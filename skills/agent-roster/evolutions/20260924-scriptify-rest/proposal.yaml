@@ -1,0 +1,39 @@
+skill: agent-roster
+
+problem: |
+  delegate.py/run_status.py 落地后，委派链路仍有六处确定性操作靠手做，每处都有实测出处：
+  1) 冒烟门禁「该组合有无 L3 记录」靠翻画像与 trace 的记忆裁决
+  2) 探测 --render 的 Markdown 块靠复制粘贴回填画像
+  3) 重试前 4 步检查单（trace 20260924-agentweb 教训）靠自觉执行
+  4) 契约输出表的 handoff_paths 字段无人实现——回收靠 cat NDJSON 人肉验收
+  5) 后台 run 超时后进程无人收尸（--wait 才杀，后台模式不杀）
+  6) 固化门槛「同一句理由 >=2 条 trace 复现」没人去数，攒够也不提案
+
+evidence:
+  - 2026-09-24 全面测试（trace 20260924-minimax-m3-five-agent-delegation-test）：验收五个
+    agent 的答案是 cat 文件人肉看的；opencode/pi/qwen 三次失败重试前均未跑过检查单
+  - 同轮 delegate.py 并行五连发暴露同秒同 slug 目录冲突风险
+  - SKILL.md 固化节规定「写完 Trace 立即检查」，历史上从未执行过——规则缺工具即失效
+
+pattern: |
+  规则写出来不等于发生；凡是「确定性判定 + 每次都要做」的环节，没有脚本兜底就一定被跳过。
+  语义判断（选人、写 Trace、提案确认）继续留给人/agent。
+
+proposed_change: |
+  1) 新增 scripts/smoke_gate.py <host>/<kind> [model]：按画像「探测状态」+ traces 裁决
+     冒烟 skip/required，required 时给出 delegate.py 冒烟命令
+  2) 新增 scripts/retry_check.py <run-id>：PID 已退出 / 无残留适配器（按 kind 查 /proc
+     cmdline，禁 pgrep -f 自匹配）/ ndjson 停涨 / 失败已归类，四项全过才 retry-allowed
+  3) delegate.py 加 --kill <run-id>（按记录 PID 杀进程组，后台收尸）+ 目录冲突防护
+  4) 新增 scripts/collect_handoff.py <run-id>：抽最终文本（剥 think，未闭合不硬删）
+     写 Handoff、回填 status.json handoff_paths、短文本 suspicious 警告；仅 done 放行
+  5) probe_endpoints.py 加 --write：按 schema 回填「探测状态」段，L3 记录永不被挤掉
+  6) 新增 scripts/promotion_check.py：跨 trace 计数「为什么选它」复现，达门槛打印提案草稿
+  7) 契约「受控执行」加 3a/3b/3c 三条脚本引用；handoff_paths 落地写进输出表；
+     SKILL.md 名册维护加 --write、固化节加 promotion_check.py 指针；evals +3 条 regression
+
+expected_improvement: |
+  冒烟裁决、重试检查、超时收尸、探测回填、handoff 回收、固化门槛六环节从「靠自觉」
+  变为「一条命令」；handoff_paths 从契约空头字段变为落地；selector 误判面不再新增
+
+risk: low

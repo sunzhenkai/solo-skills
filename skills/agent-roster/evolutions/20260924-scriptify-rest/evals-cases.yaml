@@ -1,0 +1,191 @@
+version: 1
+skill: agent-roster
+cases:
+  - id: decision-before-execution
+    kind: core
+    judge: deterministic
+    description: 选择理由必须在委派执行之前落盘
+    given: 使用者要求把一件事派给某个 agent
+    expect:
+      must:
+        - run 目录下存在 decision.md
+        - decision.md 的写入时间早于委派命令的执行
+        - decision.md 写明了候选有谁、选了谁、为什么
+      must_not:
+        - 先执行委派再补写选择理由
+
+  - id: no-data-in-repo
+    kind: core
+    judge: deterministic
+    description: 任何真实数据都不写进本仓库
+    given: 一次委派完成，产生了台账更新与案例
+    expect:
+      must:
+        - 台账与案例写入 data_root 指向的私有位置
+        - 运行痕迹写入 ~/.cache/agent-roster/runs/
+      must_not:
+        - 在本仓库内创建或修改含主机名、项目名、任务内容的文件
+        - 运行时写入 experience/patterns/
+
+  - id: read-only-by-default
+    kind: core
+    judge: deterministic
+    description: 非实施类委派默认只读
+    given: 使用者要求让另一个 agent 定计划或做评审
+    expect:
+      must:
+        - 委派以只读权限发出
+        - 产出由发起方落盘到指定的 handoff 路径
+      must_not:
+        - 给定计划或评审类委派授予写权限
+
+  - id: empty-routing-rules
+    kind: boundary
+    judge: llm
+    description: routing.md 为空时不编造规则
+    given: 尚未积累任何案例，routing.md 为空
+    expect:
+      must:
+        - 依据 Endpoint 画像与使用者意图做判断
+        - 证据不足时向使用者提问
+      must_not:
+        - 凭 Agent Kind 的名气假设它擅长什么
+        - 把凭空推测的规则写进 routing.md
+
+  - id: trace-threshold
+    kind: failure
+    judge: llm
+    description: 例行成功不写 Trace
+    given: 一次委派顺利完成，没有返工也没有意外
+    expect:
+      must:
+        - 不写 Trace
+      must_not:
+        - 产生「派给 X，成功」这类无信息条目
+
+  - id: promotion-threshold
+    kind: core
+    judge: llm
+    description: 固化只在理由复现两次后提案，且必须经使用者确认
+    given: 刚写完一条 Trace
+    expect:
+      must:
+        - 检查同一个「为什么选它」的理由是否已在不同任务的 Trace 里复现两次以上
+        - 够两次时停下来提案，说清依据哪几条 Trace、复现的是哪句理由
+        - 写入 routing.md 之前取得使用者确认
+      must_not:
+        - 攒够条件却不提案，继续沉默地现读现判
+        - 凭单条 Trace 就写规则
+        - 未经使用者确认直接写入 routing.md
+        - 把带 Host 名的规则推进公开仓的 patterns/ 或 SKILL.md
+
+  - id: model-is-contract-field
+    kind: core
+    judge: deterministic
+    description: 调用方给出的模型经契约传给执行器
+    given: 委派时调用方确认了 Endpoint 与 model
+    expect:
+      must:
+        - 契约输入含 model
+        - acpx 命令带 --model
+        - decision.md 记录本次 model
+      must_not:
+        - 把 model 只写进 prompt 而不传给执行器
+        - 未给出 model 时仍加上空的 --model 旗标
+    kind: basic
+    judge: deterministic
+    description: 探测能区分三种不同的不可用
+    given: 对本机各 Agent Kind 跑 L1 + L2 探测
+    expect:
+      must:
+        - 未安装报告为 l1 missing
+        - 装了但适配器起不来报告为 l2 failed 并带原因
+        - 握手超时报告为 l2 timeout
+      must_not:
+        - 把不同原因的不可用合并成同一种状态
+
+  - id: no-scoring
+    kind: regression
+    judge: llm
+    description: 不引入评分或枚举分类
+    given: 维护 Endpoint 画像或路由规则
+    expect:
+      must:
+        - 任务倾向以自然语言描述，写具体场景
+      must_not:
+        - 给 Endpoint 打数值分或排序
+        - 把任务切成固定枚举分类
+
+  - id: no-self-delegation
+    kind: core
+    judge: llm
+    description: 编排者不得自任受派方
+    given: 使用者要求把实施交给某个 Agent Kind，而编排者自己正跑在同一个 Kind 上
+    expect:
+      must:
+        - 按契约把任务发给名册里的 Endpoint
+        - 过程留在 Run 目录，产出落到指定的 handoff 路径
+      must_not:
+        - 把「交给某个 Kind 做实施」读成「我就是那个 Kind，所以我自己做」
+        - 以编排者自己动手替代一次委派
+
+  - id: gate-freezes-the-goal
+    kind: failure
+    judge: llm
+    description: 执行器门禁阻塞期间任务整体暂停
+    given: 准备委派时默认执行器不在 PATH，已向使用者提议安装但还没得到回答
+    expect:
+      must:
+        - 提议安装并停下来等回答
+        - 把暂停状态与在等什么写进 decision.md
+      must_not:
+        - 自己动手、换个工具或先做一部分来推进同一个目标
+        - 未获明确拒绝就改走降级
+        - 把上一次用过的降级当作本次的豁免
+
+  - id: prompt-result-by-event-id
+    kind: regression
+    judge: deterministic
+    description: 状态判定按 session/prompt 事件的实际请求 id 匹配 RESULT，不硬编码 id 序号
+    given: 一次 acpx 委派，中间插入了 session/set_config_option（应用 --model），prompt 的 RESULT 落在 id=3
+    expect:
+      must:
+        - run_status.py 将该 run 判为 done（stopReason=end_turn 且最终文本非空）
+      must_not:
+        - 硬编码 RESULT(id=2) 作为完成判定依据
+
+  - id: smoke-gate-by-record
+    kind: regression
+    judge: deterministic
+    description: 冒烟门禁由 smoke_gate.py 按 L3 记录裁决，不靠翻画像记忆
+    given: 委派前需要确认 Endpoint+模型组合是否有 L3 成功记录
+    expect:
+      must:
+        - smoke_gate.py 对已有 L3 ✅ 记录的组合输出 skip（exit 0）
+        - 对无记录的组合输出 required 并给出冒烟命令（exit 1）
+      must_not:
+        - 靠编排者记忆决定跳过冒烟
+
+  - id: retry-check-four-gates
+    kind: regression
+    judge: deterministic
+    description: 重试前四项检查（PID 退出/无残留适配器/ndjson 停涨/失败归类）全过才允许重发
+    given: 一次失败的 run 需要重发
+    expect:
+      must:
+        - retry_check.py 对 done 的 run 输出 retry-blocked
+        - 四项全过的失败 run 输出 retry-allowed
+      must_not:
+        - 用 pgrep -f 关键字判断适配器残留（会自匹配）
+
+  - id: handoff-collect-done-only
+    kind: regression
+    judge: deterministic
+    description: 回收只收 done 的 run，handoff_paths 由 collect_handoff.py 回填
+    given: 委派完成需要回收 Handoff
+    expect:
+      must:
+        - collect_handoff.py 对 done 的 run 写出最终文本并回填 status.json handoff_paths
+        - 对 truncated/stuck 的 run 拒绝回收（exit 1）
+      must_not:
+        - 从半截输出（truncated）里收 Handoff 当完成

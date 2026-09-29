@@ -1,0 +1,16 @@
+skill: agent-roster
+status: confirmed
+problem: |
+  当使用者已明确指定 Endpoint 时，Skill 仍按同一套完整流程处理：枚举候选、读取多份画像与 references、检索全部相关 Trace，再写完整 decision.md。选人空间已经被收窄，这些加载大多没有增量价值，只增加 context 与流程开销。
+evidence:
+  - 本次任务连续 5 次委派，Endpoint 均由使用者明确指定；实际仍加载了 7 份 Endpoint 画像、routing.md、3 份 references 和相关 Trace，合计约 2.8 万字符。
+  - SKILL.md 的“一次委派的完整顺序”和“路由：选谁”只有单一流程，没有“已指定 Endpoint”的快速路径；即使不需要选人，也必须走候选与证据检查。
+  - references/delegation-contract.md、endpoint-schema.md、trace-format.md 只在特定步骤需要，但 Skill 没有明确“按需加载”规则，执行时会倾向提前全部读取。
+  - 已有 20260917-235205-prune-duplication patch 只减少了正文重复，没有处理流程形态与 context 加载策略。
+pattern: |
+  明确指定单一 Endpoint 的线性委派应先收窄证据面，再按需加载格式/契约文档；否则 agent-roster 把“选人能力”的完整仪式施加到所有委派上，产生稳定的 context tax。
+proposed_change: |
+  在 SKILL.md 增加窄范围的快速路径：使用者明确指定唯一 Endpoint 且任务线性时，只读 routing.md、指定画像与相关 Trace，不枚举其他候选；decision.md 可压缩，但仍须在委派前写入且保留可复用的“为什么选它”。references 改为按步骤加载，不预读全部。保留 acpx、权限、回收、Trace 与固化门禁。
+expected_improvement: |
+  明确指定 Endpoint 时减少无关 context 加载和重复流程步骤，同时不降低权限、安全门禁与证据留痕的可审计性。
+risk: medium

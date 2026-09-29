@@ -1,0 +1,26 @@
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -18,6 +18,10 @@
+ 
+ 第 2 步与第 6 步的位置是本 skill 的不变量，不可重排。
+ 
++## 快速路径
++
++使用者明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace，不枚举其他候选；画像缺失或不可用时回到完整路由。`decision.md` 可压缩为指定来源、可用性证据、权限、Handoff，但「为什么选它」仍须可复用；acpx、权限、回收与留痕门禁不变。
++
+ ## 数据在哪
+ 
+ 本仓库只有机制，一条真实记录都没有：名册、案例、路由规则、运行痕迹一律不进本仓库。数据位置由 `~/.config/agent-roster/config.yaml` 的 `data_root` 指出（缺省时先问使用者，不要猜）。
+@@ -36,8 +40,12 @@
+ 
+ 格式见 [references/endpoint-schema.md](./references/endpoint-schema.md) 与 [references/trace-format.md](./references/trace-format.md)。
+ 
++references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`。
++
+ ## 路由：选谁
+ 
++只有需要自行选人时才执行以下完整路由。
++
+ 1. 读 `routing.md`。为空就跳过——规则只能从累积案例中固化，凭想象写满会让它退化成硬编码分支。
+ 2. 读候选 Endpoint 的画像，只读与当前任务相关的那几个。
+ 3. 检索相关 Trace（按 Agent Kind 与任务关键词），重点看失败与返工的那些。
