@@ -175,7 +175,7 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
 
 ```text
-agents/skills/taskflow/
+skills/taskflow/
 ├── SKILL.md
 ├── examples/      # 经过验证的优秀执行案例
 ├── evals/         # 可验证成功标准
