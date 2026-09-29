@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[2]
 ROLES_DIR = ROOT / "references" / "roles"
 
 ROLE_RE = re.compile(r"references/roles/([a-z0-9-]+)\.md")
@@ -98,11 +97,19 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(entries, {"SKILL.md", "references", "tests"})
 
     def test_runtime_allowlist_compatibility(self) -> None:
+        import os
+
         import yaml
 
-        policy = yaml.safe_load(
-            (REPO_ROOT / "agents" / "runtime.yaml").read_text(encoding="utf-8")
-        )["skills"]
+        # 安装策略归 dotfiles 所有（agents/runtime.yaml）；本机检出缺失时跳过。
+        candidates = [
+            Path(p) / "agents" / "runtime.yaml"
+            for p in filter(None, [os.environ.get("DOTFILES_ROOT")])
+        ] + [Path.home() / "code/repos/github/sunzhenkai/dotfiles/agents/runtime.yaml"]
+        runtime = next((c for c in candidates if c.is_file()), None)
+        if runtime is None:
+            self.skipTest("dotfiles agents/runtime.yaml not found")
+        policy = yaml.safe_load(runtime.read_text(encoding="utf-8"))["skills"]
         self.assertIn("SKILL.md", policy["files"])
         self.assertIn("references", policy["sidecars"])
         self.assertNotIn("tests", policy["files"] + policy["sidecars"])
