@@ -96,7 +96,7 @@ make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ## 说明
 
 - 源布局：`skills/<id>/`（git 真相）。仓库根 `.claude/skills/` 下的软链仅为本仓开发时在 Claude Code 里即时生效，不影响安装路径（安装一律走 `npx skills` / `dotf`）。
-- 每个 skill 自包含（`SKILL.md` + `references/` + `scripts/` + `tests/` + `evals/` + `patches/`/`evolutions/`），目录结构相对各自根目录。
+- skill 结构按「最小 → 完整」分层：`SKILL.md` + `references/` 是底线，`tests/` `evals/` `examples/` `experience/` `patches/`/`evolutions/` 按各 skill 成熟度逐步补齐（现状多数 skill 尚无全套）；规范定义见 AGENTS.md「结构约定」。
 - `agent-roster` 的仓级文档（ADR、CONTEXT、README）在 `docs/agent-roster/`，保留自其独立仓的完整 git 历史。
 - `lark-cli` 的官方 `lark-*` skill 嵌在 lark-cli 二进制里（`lark-cli skills read` 按需读取），不需要也不应该装进 `~/.agents/skills`。
 - License: MIT。
