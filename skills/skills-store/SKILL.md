@@ -109,6 +109,8 @@ bash "$AUDIT" "$AUDIT_DIR/src/<skill-path>"
 | `binary_in_skill` | 真正的 ELF / Mach-O / PE32 / shared object。带 shebang 的纯文本脚本不再报 |
 | `sudo_usage` / `force_push` 等 | 安全规范类 skill 在讲反面例子（脚本已尝试按「禁止/不要/avoid/不记录」跳过，但覆盖不全） |
 
+**审计范围与豁免**：审计面=安装面。`patches/`、`evals/`、`experience/`、`evolutions/` 是 authoring 数据、不进 runtime bundle，不扫描。被审 skill 可在根下放 `.audit-allow` 豁免自指文本（skill 文档逐字讲解规则样例、审计工具自身源码必然自命中）：每行 `规则|相对路径|snippet 的 ERE`，规则与路径可写 `*`，snippet 字段为 `*` 表示该路径全豁免；只豁免逐字命中行，豁免项以计数展示。`.audit-allow` 随 skill 内容 hash 入锁，改动可审计。**禁止**用豁免绕过真发现——豁免只收编自指文本，新内容一律照常上报。
+
 **`-s '*'` / `--all` 批量安装**：应对**每个** skill 子目录分别审计；任一阻断则整批中止，除非用户明确只要通过项。
 
 用户说「跳过安全检查 / 强制安装」时：仍执行审计并展示结果。警告级可由用户明确承担风险后放行；阻断级**不接受**这类笼统口令，必须先逐条复核、给出误报依据，再由用户针对具体条目明确豁免。

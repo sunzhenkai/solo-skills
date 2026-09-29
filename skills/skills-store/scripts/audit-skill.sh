@@ -54,10 +54,43 @@ TEXT_NAMES='^(SKILL|README|LICENSE|CHANGELOG)(\.md)?$|^(Makefile|Dockerfile)$'
 
 CRITICAL=0
 WARN=0
+EXEMPT=0
 FINDINGS=()
+
+# 豁免清单（可选）：被审 skill 根下的 .audit-allow，每行 `规则|相对路径|snippet 的 ERE`，
+# `#` 注释。只豁免逐字命中行，文件本身随 skill 内容 hash 入锁，可审计。
+ALLOW_FILE="$SKILL_DIR/.audit-allow"
+ALLOWED=()
+if [[ -f "$ALLOW_FILE" ]]; then
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    ALLOWED+=("$line")
+  done < "$ALLOW_FILE"
+fi
+
+is_allowed() {
+  local name="$1" rel="$2" snippet="$3" entry
+  for entry in "${ALLOWED[@]:-}"; do
+    [[ -z "$entry" ]] && continue
+    local e_rule="${entry%%|*}"
+    local e_rest="${entry#*|}"
+    local e_path="${e_rest%%|*}"
+    local e_re="${e_rest#*|}"
+    # 规则、路径字段可为 *（整字段通配）；snippet 字段为 * 表示该路径全豁免。
+    [[ "$e_rule" == "*" || "$name" == "$e_rule" ]] || continue
+    [[ "$e_path" == "*" || "$rel" == "$e_path" ]] || continue
+    [[ "$e_re" == "*" ]] && return 0
+    echo "$snippet" | grep -qE -- "$e_re" && return 0
+  done
+  return 1
+}
 
 add_finding() {
   local sev="$1" name="$2" file="$3" line="$4" snippet="$5"
+  if is_allowed "$name" "$file" "$snippet"; then
+    EXEMPT=$((EXEMPT + 1))
+    return
+  fi
   FINDINGS+=("$sev|$name|$file|$line|$snippet")
   [[ "$sev" == "critical" ]] && CRITICAL=$((CRITICAL + 1)) || WARN=$((WARN + 1))
 }
@@ -108,11 +141,14 @@ scan_binaries() {
   done < <(
     find "$SKILL_DIR" -type f \
       ! -path '*/.git/*' ! -path '*/node_modules/*' ! -path '*/vendor/*' \
+      ! -path '*/patches/*' ! -path '*/evals/*' ! -path '*/experience/*' ! -path '*/evolutions/*' \
       -print0 2>/dev/null
   )
 }
 
 scan_tree() {
+  # 审计面=安装面：patches/、evals/、experience/、evolutions/ 是 authoring 数据，
+  # 不进 runtime bundle，不扫描。
   while IFS= read -r -d '' file; do
     local base
     base="$(basename "$file")"
@@ -122,6 +158,7 @@ scan_tree() {
   done < <(
     find "$SKILL_DIR" -type f \
       ! -path '*/.git/*' ! -path '*/node_modules/*' ! -path '*/vendor/*' \
+      ! -path '*/patches/*' ! -path '*/evals/*' ! -path '*/experience/*' ! -path '*/evolutions/*' \
       -print0 2>/dev/null
   )
 
@@ -149,9 +186,13 @@ if [[ "$JSON" -eq 1 ]]; then
 else
   echo "=== Skill 安全审计: $SKILL_DIR ==="
   if [[ ${#FINDINGS[@]} -eq 0 ]]; then
-    echo "结果: 通过（未发现风险模式）"
+    if [[ $EXEMPT -gt 0 ]]; then
+      echo "结果: 通过（未发现风险模式；豁免 ${EXEMPT} 项，见 .audit-allow）"
+    else
+      echo "结果: 通过（未发现风险模式）"
+    fi
   else
-    echo "发现: ${CRITICAL} 项阻断, ${WARN} 项警告"
+    echo "发现: ${CRITICAL} 项阻断, ${WARN} 项警告$([[ $EXEMPT -gt 0 ]] && echo "（另豁免 ${EXEMPT} 项，见 .audit-allow）")"
     echo
     for f in "${FINDINGS[@]}"; do
       IFS='|' read -r sev name file line snippet <<< "$f"

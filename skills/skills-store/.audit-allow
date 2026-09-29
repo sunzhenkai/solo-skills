@@ -1,0 +1,11 @@
+# skills-store 自扫描豁免。两类自指内容：
+# 1. 审计工具自身源码：PATTERNS 规则定义表与注释必然逐字枚举威胁模式，整文件豁免；
+#    该文件内容的真实管控是 solo-skills 的 code review 与 lock 锁定的 revision。
+# 2. SKILL.md「已知误报」参考表：逐行讲解各规则的典型误报，仅豁免锚点逐字命中的行，
+#    表外新增同类文本照常上报。
+# 格式：规则|相对路径|snippet 的 ERE；规则与路径可写 *；snippet 取行首 120 字符，
+# 锚点须落在其中。`#` 为注释。
+*|scripts/audit-skill.sh|*
+jailbreak_role|SKILL.md|MIT LICENSE 正文的
+credential_paths|SKILL.md|现要求独立单词
+eval_external|SKILL.md|Markdown 反引号
