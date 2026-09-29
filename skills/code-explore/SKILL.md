@@ -32,6 +32,8 @@ description: 用于回答代码问题、追踪调用链、评估变更影响以�
 
 如果请求在两个阶段之间存在歧义，应提供两种解释，而不是悄悄执行写入操作。如果用户要求实现或编辑代码，则停在探索边界，并交接给仓库的实现工作流。
 
+维护知识 wiki 本身（typed 页面重组、lint、健康检查）不在本 skill 范围：已有 llm-wiki 时交给它，本 skill 只把经过验证的探索结论写进项目知识库。
+
 ## 证据与安全规则
 
 1. **在检查源代码前优先使用已有知识。** 从索引、规范、架构笔记和项目 profile 开始。
@@ -293,16 +295,6 @@ related_knowledge: []
 
 用户提出“分析”“追踪”“理解”或“审查”请求，并不代表授权编辑源代码。
 
-## 公共复用清理
-
-为其他工作区创建或导出此技能时：
-
-- 将个人姓名、账号、电子邮件、团队名称、产品名称、客户名称和内部项目代号替换为通用占位符。
-- 将绝对主目录、公司仓库根目录、内部服务路径、集群名称、主机名和专有分类体系替换为 `REPO_ROOT`、`KNOWLEDGE_ROOT` 和 `<repository>` 等变量。
-- 删除凭据、令牌、包含私有基础设施信息的 URL、事件标识符和组织特定的升级规则。
-- 删除特殊情况排除项，除非它们表达的是通用安全原则；将其改写为可配置策略。
-- 优先使用仓库相对路径示例和中性术语。
-
 ## 触发示例
 
 - “这个配置标志控制什么？” → `ask`
@@ -313,88 +305,10 @@ related_knowledge: []
 
 ---
 
-## Self-evolution
+## 经验回灌
 
-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
+安装到各 agent 目录的 skill 是字节复制镜像：往 skill 目录内写的内容会在下次同步时丢失，运行时只读是仓库纪律。因此：
 
-```text
-skills/code-explore/
-├── SKILL.md
-├── examples/      # 经过验证的优秀执行案例
-├── evals/         # 可验证成功标准
-└── experience/    # 真实失败 / 成功 / 规律
-```
-
-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
-
-### Examples
-
-执行复杂任务前：
-
-1. 检查 `examples/`
-2. 找到与当前任务相关的成功案例
-3. 优先复用已经验证的方法
-
-没有相关案例时按上文正常执行，不要编造案例。
-
-### Evaluation
-
-任务完成前：
-
-1. 检查相关 `evals/`
-2. 验证关键输出
-3. 检查是否违反 Skill 约束
-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
-
-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
-
-### Experience
-
-任务完成后，出现以下情况才写入 `experience/`：
-
-- 失败
-- 用户纠正
-- 明显成功
-- 新的有效执行方法
-- 可复用的经验
-
-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
-
-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
-
-### Evolution
-
-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
-
-遵循：
-
-```text
-Experience
-    ↓
-Repeated Pattern
-    ↓
-Improvement Proposal
-    ↓
-Eval
-    ↓
-Pass
-    ↓
-Update Skill
-```
-
-禁止：
-
-```text
-Single Failure
-    ↓
-Directly modify SKILL.md
-```
-
-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
-
-实际更新生产 `SKILL.md` 时：
-
-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
-2. 若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`skills/code-explore/patches/`），仍须先提案再应用。
-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
+- 探索产物与可复用教训一律落**工作区**（用户指定的知识库、任务台账），不落本 skill 目录。
+- 需要改进本 skill 正文时，在**源仓**走显式流程：来自真实执行经验的改动委托 `skill-evolver`（先提案、经用户确认再写 `evolutions/`）；结构或规则的显式修订走 `skill-upgrader` 的 update 模式（`patches/` 审计）。未展示 Proposal 并获用户确认前，不改生产正文。
+- 单次失败或单次用户纠正不足以改 skill；可复用、跨任务稳定出现的规律才够门槛。
