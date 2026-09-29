@@ -10,7 +10,7 @@
 2. **已脱敏**：不含主机名、项目名、任务细节、账号信息。
 3. **是规律不是特例**：换一台机器、换一个项目仍然成立。
 
-达不到的，留在私有数据目录的 Trace 里。这条边界的理由见 [ADR 0001](../../../../docs/adr/0001-ledger-lives-outside-this-repo.md)。
+达不到的，留在私有数据目录的 Trace 里。这条边界的理由见 [ADR 0001](../../../../docs/agent-roster/adr/0001-ledger-lives-outside-this-repo.md)。
 
 ## 这个目录不会被分发
 
