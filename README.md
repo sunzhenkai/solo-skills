@@ -17,8 +17,11 @@
 
 ### 通用（npx skills）
 
+skill 源在仓库的 `skills/<id>/`；CLI 的发现优先级前缀含 `skills/`，整仓安装即可：
+
 ```bash
-npx skills add sunzhenkai/task-flow-skills
+npx skills add sunzhenkai/task-flow-skills                 # 全部六个
+npx skills add sunzhenkai/task-flow-skills -s taskflow     # 只装一个
 ```
 
 ### dotfiles 编目（第三方）
@@ -27,6 +30,7 @@ npx skills add sunzhenkai/task-flow-skills
 
 ## 说明
 
+- 源布局：`skills/<id>/`（git 真相）。仓库内 `.agents/skills -> ../skills` 是**本地软链、已 gitignore 不提交**——dotfiles 第三方 lock 校验器拒绝 symlink，且 `subdirectory` 直接指向 `skills/<id>`，无需该链。
 - 每个 skill 自包含（`SKILL.md` + `references/` + `scripts/` + `tests/` + `evals/` + `patches/`/`evolutions/`），目录结构相对各自根目录。
 - `agent-roster-flow` 依赖底层的 `agent-roster` skill（不在本仓库，来自 `sunzhenkai/agent-roster`）。
 - License: MIT。
