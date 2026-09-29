@@ -106,7 +106,7 @@ role-based-reviewer mode=review roles=product,design,engineer
 
 **异源门**：评审者 MUST 与实现者异源。选人顺序：(a) 经 agent-roster 把 reviewer / designer 委派到其他 Endpoint 的其他 coding agent（名册有可用时首选）；(b) 本机委派 subagent 时显式指定与实现不同的模型；(c) 两者皆不可用则停下问使用者，禁止静默同源自审交卷。同模型同 prompt 家族的评审输出只作线索、不作通过线——同源的「稳定高分」证明自洽，不证明与人类判断的对应。
 
-**回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决。
+**回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决：写明冲突项、双方口径原文、推荐裁决与需要的一句话决定，一次性说明，不列选项，不把等待裁决登记为任务。
 
 **观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；「卓越」天花板 MUST 已在实现前定义（可数构成件或外部参照集），且每个修复轮后 MUST 经「中途真人门」——给使用者看最小一批实物并收一句反馈；使用者未看过实物不得进入收口。
 
