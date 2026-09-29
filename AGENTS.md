@@ -47,7 +47,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 | 依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、task-explore、task-wizard、agent-roster-flow |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、task-explore、task-wizard、task-goal、agent-roster-flow |
 | `grilling` | `mattpocock/skills` | task-explore（explore 阶段唯一委托） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | task-wizard、agent-roster-flow（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |

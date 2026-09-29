@@ -8,20 +8,19 @@
 goal: <逐字原文>
 mode: normal | benchmark
 budget: <用户给定预算，或 loop-control: slices=1-3; repairs-per-slice<=2; full-chain=1>
-evidence_root: <项目约定临时目录，或 /tmp/delivery-loop/<slug>>
+evidence_root: <项目约定临时目录，或 /tmp/task-delivery/<slug>>
 ```
 
 检查依赖 skill 可读。缺依赖时停止；不手写替代 OpenSpec / taskflow / reviewer 流程。
 
 `<slug>` 由目标归纳为 kebab-case；同名冲突时追加运行时间戳或唯一 run id。`evidence_root` 一旦写入 manifest，本轮不得改路径；后续报告只引用该路径。
 
-## Stage 1 — Intent and complexity
+## Stage 1 — Intent and plan intake
 
-- 复杂信号：项目级重构、多个主页面、两个以上角色 / 权限、跨请求或用户复用持久化数据、外部集成、实时协作、通知 / 审计、业务面广。
-- 简单局部修改：退出 delivery-loop，说明直接执行即可。
-- 目标过短但复杂：按最合理解释生成质量画像；除危险、线上、降级确认外不追问。normal 的画像经 task-wizard / task-explore 门禁冻结；benchmark 在派发实现前由编排者冻结一份评审专用画像并记录哈希，不发给实现者。
+委托 task-wizard 产方案（含复杂度档位、建议路由，复杂档含质量画像）。方案原文原样带入本循环，不自产方案、不改写。goal 模式下方案的外部参照与审阅由 task-goal 接管。用户点名 task-delivery 视为接受自动编排和推荐路由，不视为授权危险操作。
 
-调用 task-wizard 生成 Goal 方案。用户点名 delivery-loop 视为接受自动编排和推荐路由，不视为授权危险操作。
+- 档位非复杂：退出 task-delivery，说明按方案的建议路由执行即可。
+- 目标过短但复杂：除危险、线上、降级确认外不追问。normal 的质量画像由 task-wizard 复杂档产出并经 task-explore 门禁冻结；benchmark 在派发实现前由编排者冻结一份评审专用画像并记录哈希，不发给实现者。
 
 ## Stage 2 — Explore and freeze
 
@@ -42,7 +41,7 @@ evidence_root: <项目约定临时目录，或 /tmp/delivery-loop/<slug>>
 - 窄切片拆分
 - 证据要求
 
-从现在起，不另建进度账本；delivery-loop 只根据 driver / 子 change checkbox 汇报状态。
+从现在起，不另建进度账本；task-delivery 只根据 driver / 子 change checkbox 汇报状态。
 
 ## Stage 4 — Narrow slice
 
@@ -94,7 +93,7 @@ evidence_root: <项目约定临时目录，或 /tmp/delivery-loop/<slug>>
 role-based-reviewer mode=review roles=product,design,engineer
 ```
 
-评分维度、UI/UX 六子项与通过线的真相源是 [../../taskflow/references/acceptance-rubric.md](../../taskflow/references/acceptance-rubric.md)。delivery-loop 不复制第二份 rubric 或数字口径；报告引用当次代码 / skill 状态。
+评分维度、UI/UX 六子项与通过线的真相源是 [../../taskflow/references/acceptance-rubric.md](../../taskflow/references/acceptance-rubric.md)。task-delivery 不复制第二份 rubric 或数字口径；报告引用当次代码 / skill 状态。
 要求返回：
 
 - product / design / engineer 独立 findings

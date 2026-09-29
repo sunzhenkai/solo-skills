@@ -314,7 +314,7 @@ class ContractTest(unittest.TestCase):
 
     def test_goal_confirmations_go_to_review(self) -> None:
         section = self._section(self.skill, "## Goal 里的确认")
-        self.assertIn("走 task-wizard 的「审阅」", section)
+        self.assertIn("走 task-goal 的「审阅」", section)
         self.assertIn("不列选项", section)
         self.assertIn("不在 goal 里时，下面的确认规则不变", section)
         self.assertIn("不交给审阅放行", section)
@@ -327,7 +327,7 @@ class ContractTest(unittest.TestCase):
 
     def test_pending_degrade_gates_in_decide_and_handoff(self) -> None:
         # pending 降级只有用户能确认：decide 不冻结、handoff 不建 driver，
-        # 审阅收敛与「继续」都不算确认（与 task-wizard/taskflow 三处同源纪律）。
+        # 审阅收敛与「继续」都不算确认（与 task-goal/taskflow 三处同源纪律）。
         self.assertIn("存在确认状态为 `pending` 的显式降级时**不得冻结**", self.decide)
         self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认", self.decide)
         self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", self.decide)

@@ -1,0 +1,18 @@
+# Change：新建 task-goal，承接 task-wizard 的 Goal 执行协议
+
+完整 diff 见 git（新文件），要点：
+
+## 新增文件
+
+- `skills/task-goal/SKILL.md`：触发条件（三选一 goal 判定，全仓唯一）；起手接方案约定（上游方案逐字采用，跳过产方案）；Goal 方案正文模板（退出点列表加「评审者未定」）；外部参照（复用 task-wizard 的 external-precedent.md）；审阅（人选改为三选一必选：role-based-reviewer / agent-roster / subagent，选中唯一、记录评审者；新增退出点「评审者未定」）；旧方案迁移；写完之后三档路由；退出点；授权；执行中改步骤；做完。
+- `skills/task-goal/CONTEXT.md`：从 task-wizard 迁入 14 条 Goal 术语；「审阅者」条目更新为三种之一必选；「复杂度档位」补「上游带来档位时逐字采用」。
+- `skills/task-goal/references/quality-profile.md`（git mv 自 task-wizard，首行补服务对象）。
+- `skills/task-goal/references/legacy-plans.md`（git mv 自 task-wizard，原文）。
+- `skills/task-goal/tests/test_task_goal_contract.py`：23 条契约（含 TestReviewerSelection 5 条、TestPlanIntake 2 条）。
+
+## 审阅·人选的关键 diff（相对 task-wizard 旧文）
+
+- 删：四条并列规则（复杂档固定 / agent-roster 点名 / role-based-reviewer 点名 / 其余情况兜底）。
+- 加：必选句「评审者是必选项，每次审阅从三种里选一种，选中即唯一，不叠加」+ 三行表格（何时选 / 怎么派）+ 记录评审者句 + 「评审者未定」退出点。
+
+其余审阅机制（边界、环节表、P 级、核对循环、完成程度显式判定）逐字保留。

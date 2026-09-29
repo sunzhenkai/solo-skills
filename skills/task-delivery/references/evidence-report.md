@@ -5,7 +5,7 @@
 `<slug>` 从目标归纳为 kebab-case；冲突时追加运行时间戳或 run id。优先使用项目已有临时目录约定；没有约定时使用：
 
 ```text
-/tmp/delivery-loop/<slug>
+/tmp/task-delivery/<slug>
 ```
 
 证据路径一律写绝对路径。不把运行截图、导出日志或数据库写进共享 skill。
@@ -15,7 +15,7 @@
 每次运行写 `manifest.md`：
 
 ```markdown
-# Delivery Loop Manifest
+# Task Delivery Manifest
 
 - goal:
 - mode:

@@ -1,11 +1,11 @@
 version: 1
-skill: delivery-loop
+skill: task-delivery
 cases:
   - id: explicit-loop-orchestrates-existing-skills
     kind: core
     judge: deterministic
     description: 显式自闭环复杂目标走现有 skill 链，不发明替代流程
-    given: 用户明确要求 delivery-loop 或自动探索加自动验证实现一个复杂目标
+    given: 用户明确要求 task-delivery 或自动探索加自动验证实现一个复杂目标
     expect:
       must:
         - 调用 task-wizard 生成质量画像与路由
@@ -18,11 +18,11 @@ cases:
   - id: ordinary-request-does-not-activate
     kind: boundary
     judge: deterministic
-    description: 未点名自动闭环的普通任务不进入 delivery-loop
+    description: 未点名自动闭环的普通任务不进入 task-delivery
     given: 用户只要求修改一个局部函数或只询问方案
     expect:
       must:
-        - 退出 delivery-loop
+        - 退出 task-delivery
         - 按普通任务处理
       must_not:
         - 强制多阶段编排

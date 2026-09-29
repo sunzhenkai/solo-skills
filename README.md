@@ -8,10 +8,11 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `task-wizard` | 生成步骤级任务方案（动作/要点/验证 + 质量画像） |
+| `task-wizard` | 生成步骤级任务方案（动作/要点/验证 + 决策收敛；复杂档含质量画像） |
+| `task-goal` | goal 模式下唯一的确认与审阅协议（接方案 → 派审 → 收敛 → 三档开工） |
 | `task-explore` | 长周期/目标不清任务的探索台账（tasks/INDEX.md 推进） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
-| `delivery-loop` | 把复杂交付目标编排成自动闭环（探索→实现→证据→评审→复验） |
+| `task-delivery` | 把复杂交付目标编排成自动闭环（探索→实现→证据→评审→复验） |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
 
 ### 跨 agent 委派

@@ -1,4 +1,4 @@
-"""task-wizard 文本契约：完成程度条件、P 级定义、pending 确认门与退出点。"""
+"""task-wizard 文本契约：方案层只做产出与决策收敛，goal 语义已迁往 task-goal。"""
 
 from __future__ import annotations
 
@@ -26,100 +26,85 @@ class TestFrontmatter(unittest.TestCase):
 
     def test_referenced_references_exist(self) -> None:
         for rel in (
-            "references/quality-profile.md",
             "references/external-precedent.md",
-            "references/legacy-plans.md",
             "CONTEXT.md",
         ):
             self.assertTrue((SKILL_ROOT / rel).is_file(), rel)
 
-
-class TestCompletionGradeConditions(unittest.TestCase):
-    """完成程度写入是显式条件分支，P0/P1 有无优先于审阅者定级。"""
-
-    def setUp(self) -> None:
-        self.text = read("SKILL.md")
-
-    def test_explicit_condition_intro(self) -> None:
-        self.assertIn("完成程度的写入按显式条件判定，P0/P1 的有无优先于审阅者定级：", self.text)
-
-    def test_branch_with_p0_p1(self) -> None:
-        self.assertIn("本轮发现含 P0 或 P1：完成程度取「中或低」。审阅者定级为高 → 写「中」；定级为中或低 → 从其值。", self.text)
-
-    def test_branch_without_p0_p1(self) -> None:
-        self.assertIn("本轮无 P0 也无 P1：完成程度写「高」，审阅者定级不参与。", self.text)
-
-    def test_reviewer_grade_not_self_decided(self) -> None:
-        self.assertIn("完成程度按本节规则写入，不由它自定", self.text)
-        self.assertIn("执行者自己给出的完成程度不算审阅结论", self.text)
-
-
-class TestSeverityDefinitions(unittest.TestCase):
-    def setUp(self) -> None:
-        self.text = read("SKILL.md")
-
-    def test_p0_p1_p2_defined(self) -> None:
-        self.assertIn("**P0**：完成判据不可检查", self.text)
-        self.assertIn("**P1**：验证对不住判据", self.text)
-        self.assertIn("**P2**：不改道的写法、顺序、两行限制或省略。P2 不参与完成程度", self.text)
-
-    def test_role_reviewer_mapping(self) -> None:
-        self.assertIn("Blocker 记 P0，Major 记 P1，Minor / Suggestion 记 P2", self.text)
-
-
-class TestPendingDowngradeGate(unittest.TestCase):
-    """`pending` 降级只有用户能确认，审阅收敛与「继续」都不算。"""
-
-    def setUp(self) -> None:
-        self.text = read("SKILL.md")
-
-    def test_exit_point_wording(self) -> None:
-        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认时，才把该项改为 `confirmed` 并继续；审阅收敛与单独的「继续」都不算确认", self.text)
-
-    def test_quality_profile_reiterates_user_only(self) -> None:
-        text = read("references/quality-profile.md")
-        self.assertIn("只有用户能改 `confirmed`：点名接受该项，或明确说按降级表全部确认。执行者、审阅者、评审收敛都不算确认", text)
-
-    def test_completion_requires_zero_pending(self) -> None:
-        self.assertIn("`pending` 降级数为 0", self.text)
-        text = read("references/quality-profile.md")
-        self.assertIn("完成门：字段齐全，`pending` 降级数为 0", text)
-
-
-class TestExitPoints(unittest.TestCase):
-    def setUp(self) -> None:
-        self.text = read("SKILL.md")
-
-    def test_exit_point_labels_defined(self) -> None:
-        for label in (
-            "**理解不够**",
-            "**审阅不通过**",
-            "**审阅派不出**",
-            "**审阅没有结论**",
-            "**降级未确认**",
-            "**线上动作**",
-            "**泄密**",
-            "**执行中升档**",
+    def test_moved_references_gone(self) -> None:
+        for rel in (
+            "references/quality-profile.md",
+            "references/legacy-plans.md",
         ):
-            self.assertIn(label, self.text)
-
-    def test_exit_list_present_in_template(self) -> None:
-        self.assertIn("审阅不通过；审阅派不出；审阅没有结论；降级未确认", self.text)
+            self.assertFalse((SKILL_ROOT / rel).exists(), rel)
 
 
-class TestQualityProfileContract(unittest.TestCase):
+class TestGoalProtocolRemoved(unittest.TestCase):
+    """Goal 方案与审阅语义整体迁往 task-goal，本 skill 不感知 goal。"""
+
     def setUp(self) -> None:
-        self.text = read("references/quality-profile.md")
+        self.text = read("SKILL.md")
 
-    def test_ui_four_questions_no_builtin_answers(self) -> None:
-        self.assertIn("四问只约束「底线要写清」，不规定具体取值", self.text)
-        self.assertIn("icon 形态: <是否收敛到单一 icon primitive 及其来源", self.text)
+    def test_goal_sections_gone(self) -> None:
+        for marker in (
+            "## Goal 方案",
+            "## 先分流",
+            "## 审阅",
+            "## 授权",
+            "## 退出点",
+            "## 写完之后",
+            "### 不套模板",
+            "### 旧方案",
+        ):
+            self.assertNotIn(marker, self.text)
 
-    def test_adjective_not_allowed(self) -> None:
-        self.assertIn("「高质量」「体验好」「足够健壮」这类形容词不算", self.text)
+    def test_goal_terms_gone(self) -> None:
+        for term in (
+            "方案置信度",
+            "完成程度",
+            "评审收敛",
+            "Goal 方案",
+        ):
+            self.assertNotIn(term, self.text)
 
-    def test_role_bottom_lines_all_three(self) -> None:
-        self.assertIn("`角色底线` 下的 product、design、engineer 三条一条都不能省", self.text)
+    def test_handoff_pointer_to_task_goal(self) -> None:
+        self.assertIn("执行中的确认与审阅走 task-goal，本 skill 不参与", self.text)
+
+
+class TestDecisionConvergence(unittest.TestCase):
+    """决策收敛：所有要人拍板的缺口在方案落稿前写进方案。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+        self.context = read("CONTEXT.md")
+
+    def test_convergence_section(self) -> None:
+        self.assertIn("## 决策收敛", self.text)
+
+    def test_three_choice_only(self) -> None:
+        self.assertIn("按此执行 / 调整哪步 / 改路由", self.text)
+
+    def test_no_new_gaps_during_execution(self) -> None:
+        self.assertIn("方案里没列出的缺口，不允许在执行期冒出来向人要答案", self.text)
+
+    def test_context_term_defined(self) -> None:
+        self.assertIn("**决策收敛**", self.context)
+
+
+class TestComplexityRouting(unittest.TestCase):
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_three_tiers_present(self) -> None:
+        self.assertIn("| 简单 | 局部修改 |", self.text)
+        self.assertIn("| 中等 | 一个中等需求", self.text)
+        self.assertIn("| 复杂 | 项目级重构或逻辑重塑", self.text)
+
+    def test_product_hard_criteria(self) -> None:
+        self.assertIn("产品交付硬指标，命中任一条即复杂", self.text)
+
+    def test_no_goal_notes_in_routing(self) -> None:
+        self.assertNotIn("Goal 方案进入「写完之后」时用同一套", self.text)
 
 
 if __name__ == "__main__":

@@ -1,24 +1,24 @@
 ---
-id: delivery-loop
-name: delivery-loop
-description: "把一句复杂交付目标编排成自动闭环：task-wizard 质量画像、task-explore 探索、taskflow 小切片、实现与运行证据、product/design/engineer 评审、失败归因、修复和复验。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：显式指定或自动检测到进行中 goal 时，调用 task-wizard 改走其 Goal 方案路径。"
+id: task-delivery
+name: task-delivery
+description: "把一句复杂交付目标编排成自动闭环：委托 task-wizard 产方案与质量画像、task-explore 探索、taskflow 小切片、实现与运行证据、product/design/engineer 评审、失败归因、修复和复验。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：显式指定或自动检测到进行中 goal 时，本循环内所有确认与方案审阅委托 task-goal，不列选项。"
 ---
 
-# Delivery Loop
+# Task Delivery
 
 把用户的短目标变成可验证交付，而不是一次性生成大而全的实现。本 skill 是**薄编排层**：不新建第二份任务账本，不复制 taskflow 的质量规则；进度以 taskflow checkbox 为唯一真相。
 
 ## 输入
 
 ```text
-delivery-loop <一句话目标>
-delivery-loop goal: <一句话目标>
+task-delivery <一句话目标>
+task-delivery goal: <一句话目标>
 ```
 
 可识别的前缀：
 
 - `normal:` 默认，真实交付。
-- `goal:` 显式 goal 模式，调用 task-wizard 时走其「Goal 方案」分支。
+- `goal:` 显式 goal 模式：本循环内所有要向用户确认的决定、以及方案审阅，一律委托 task-goal 的「审阅」，不列选项。
 - `benchmark:` / `盲测:` / `回归复跑:` 只用于评估 skill 或 agent 能力。
 
 未显式标记 benchmark 时一律按 normal 处理。
@@ -30,6 +30,7 @@ delivery-loop goal: <一句话目标>
 本轮真正执行前，确认下列 skill 可读；缺任一项停下报告安装选项，不发明等价流程：
 
 - task-wizard
+- task-goal（goal 模式必需）
 - task-explore
 - taskflow
 - role-based-reviewer
@@ -38,10 +39,10 @@ delivery-loop goal: <一句话目标>
 ## 主循环
 
 1. **接收目标**：逐字保留目标原文，记录模式、预算、工作区和验证产物位置。
-2. **生成方案**：调用 task-wizard。用户点名 `delivery-loop` 已表示接受自动编排；这不授权危险操作、线上动作、提交或部署。goal 模式下明确要求 task-wizard 走其「Goal 方案」分支（正文 → 外部参照 → 审阅 → 档位路由），并把本循环内所有向用户确认的决定改为走 task-wizard 的「审阅」，不列选项；复杂门之后其余阶段不变。
-3. **复杂门**：只继续项目级 / 多模块 / 多角色 / 持久化 / 产品面广的复杂目标。简单或局部任务退出本 skill，不硬套闭环。
+2. **移交方案决策**：委托 task-wizard 产方案（含复杂度档位与建议路由）。方案原文原样带入本循环，不自产方案、不改写。用户点名 `task-delivery` 已表示接受自动编排；这不授权危险操作、线上动作、提交或部署。goal 模式下，方案的外部参照与审阅由 task-goal 接管，本循环其余阶段不变。
+3. **复杂门**：读方案的复杂度档位。非复杂（简单 / 中等）退出本 skill，说明按方案的建议路由执行即可，不硬套闭环；复杂才继续。不自建第二套复杂度判据。
 4. **预算**：用户未给预算时，不虚构时间或 token 限额，按 Stage 9 的默认节奏执行；用户另给时间 / 轮次 / 资源预算时以用户值为上限。
-5. **探索冻结**：按 task-wizard 路由进入 task-explore，完成 explore → design → decide。
+5. **探索冻结**：按方案路由进入 task-explore，完成 explore → design → decide。
 6. **taskflow 交接**：交给 taskflow 建 driver 与子 change；后续进度只认 driver / 子 change checkbox。**回归门**：driver 收口（含交接后中途长出的任何派生 driver / 子循环）时，MUST 回到本循环 Stage 7–12 继续执行，不得以子循环自定验收替代主循环完成门；子循环自定 rubric 与 acceptance-rubric 口径冲突时，冲突项 MUST 停下报使用者裁决。
 7. **首轮窄切片**：只选 1-3 个能从入口走到结束状态的核心闭环，先实现、测试、留证据。
 8. **实现派发**：normal 必须给实现者质量画像或保留语义的子范围裁剪；benchmark 只给目标原文与运行约束。

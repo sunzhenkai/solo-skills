@@ -1,7 +1,7 @@
 ---
 id: task-explore
 name: task-explore
-description: 针对任务不明确、周期可能很长或需要复杂问题排查的工作，在当前目录维护 tasks/INDEX.md、tasks/ongoing 与 tasks/archive，按 new / explore / chat / resume / design / decide / save / handoff / archive / reopen / split 阶段推进；split 把当前任务的一个方向拆成子任务。explore 委托 grilling；decide 冻结方案；handoff 把探索任务交给 taskflow 的 {task}-driver，任务转入 handed-off（不归档、留在 ongoing 可见，后续可点名 archive 关闭）。处在 goal 里时，向用户确认的决定改走 task-wizard 审阅，不列选项。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复/交接/归档/重新打开任务时使用。已有探索任务要交付时用 handoff，不要绕开另起无关 driver。
+description: 针对任务不明确、周期可能很长或需要复杂问题排查的工作，在当前目录维护 tasks/INDEX.md、tasks/ongoing 与 tasks/archive，按 new / explore / chat / resume / design / decide / save / handoff / archive / reopen / split 阶段推进；split 把当前任务的一个方向拆成子任务。explore 委托 grilling；decide 冻结方案；handoff 把探索任务交给 taskflow 的 {task}-driver，任务转入 handed-off（不归档、留在 ongoing 可见，后续可点名 archive 关闭）。处在 goal 里时，向用户确认的决定改走 task-goal 的审阅，不列选项。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复/交接/归档/重新打开任务时使用。已有探索任务要交付时用 handoff，不要绕开另起无关 driver。
 ---
 
 # 任务探索
@@ -16,11 +16,11 @@ description: 针对任务不明确、周期可能很长或需要复杂问题排�
 
 ## Goal 里的确认
 
-处在 goal 里（消息里有 `/goal`，或当前有进行中的 goal，或本任务由 Goal 方案交接且方案里带完成判据）时，下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 task-wizard 的「审阅」。不列选项，不用向用户提问的选择界面。
+处在 goal 里（消息里有 `/goal`，或当前有进行中的 goal，或本任务由 Goal 方案交接且方案里带完成判据）时，下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 task-goal 的「审阅」：派审规则、核对循环、收敛与停止条件以 task-goal 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
 
 推荐默认是该处已经写出的默认建议。没有写出默认时，取能让完成判据成立、且不覆盖已有目录、不泄密、不做未点名危险操作的那一条，只审这一条。
 
-派审贴上完成判据、「不做的事」、这条推荐默认，以及在审什么：采纳它能否让完成判据成立。完成程度为高且没有未消失的 P0 或 P1：视为已确认，采纳推荐默认，同一轮继续。冻结未决并交接时，审阅收敛即「按推荐冻结并交接」：本轮 `decide` 完立刻 `handoff`。有 P0 或 P1：写入后再审，不向用户要答复。审阅不通过、派不出或没有结论：停，不列选项。task-wizard 读不到：停并给出安装选项，不改回问用户。
+审阅收敛则采纳推荐默认并同一轮继续。冻结未决并交接时，审阅收敛即「按推荐冻结并交接」：本轮 `decide` 完立刻 `handoff`。审阅不通过、派不出或没有结论：停，不列选项。task-goal 读不到：停并给出安装选项，不改回问用户。
 
 不在 goal 里时，下面的确认规则不变。目标已存在则仍禁止覆盖，不交给审阅放行。
 

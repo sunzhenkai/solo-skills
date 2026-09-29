@@ -94,8 +94,8 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
     任一处缺失即 fail：防止三份同源纪律改一处漏两处。
     """
 
-    def test_task_wizard_declares_user_only_confirmation(self) -> None:
-        text = (REPO_ROOT / "skills/task-wizard/SKILL.md").read_text(encoding="utf-8")
+    def test_task_goal_declares_user_only_confirmation(self) -> None:
+        text = (REPO_ROOT / "skills/task-goal/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("审阅收敛与单独的「继续」都不算确认", text)
 
     def test_task_explore_decide_declares_user_only_confirmation(self) -> None:
