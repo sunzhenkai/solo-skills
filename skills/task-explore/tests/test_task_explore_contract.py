@@ -50,6 +50,8 @@ class ContractTest(unittest.TestCase):
             "references/phase-handoff.md",
             "references/phase-archive.md",
             "references/phase-reopen.md",
+            "references/phase-plan-review.md",
+            "references/external-precedent.md",
             "references/design-template.md",
             "references/task-template.md",
             "references/index-template.md",
@@ -322,6 +324,22 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不在 goal 里时执行本节", self.decide)
         self.assertIn("逐条请用户确认", self.decide)
         self.assertIn("处在 goal 里时，不询问是否交接", self.handoff)
+
+    def test_pending_degrade_gates_in_decide_and_handoff(self) -> None:
+        # pending 降级只有用户能确认：decide 不冻结、handoff 不建 driver，
+        # 审阅收敛与「继续」都不算确认（与 task-wizard/taskflow 三处同源纪律）。
+        self.assertIn("存在确认状态为 `pending` 的显式降级时**不得冻结**", self.decide)
+        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认", self.decide)
+        self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", self.decide)
+        self.assertIn("仍有 `pending` 就停在本门禁，**不创建 driver**", self.handoff)
+        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认后才继续", self.handoff)
+
+    def test_profile_snapshot_frozen_verbatim(self) -> None:
+        # 上游质量画像与显式降级要原文快照入台账，不许只留指针，也不许编造。
+        self.assertIn("质量画像与显式降级原文快照属于成功标准输入", self.decide)
+        self.assertIn("不得只留 `TASK.md` 路径或小节指针", self.decide)
+        self.assertIn("快照缺失或与上游不一致时先 `save` 补回再冻结", self.decide)
+        self.assertIn("输入里没有画像时不编造一份", self.decide)
 
 
 if __name__ == "__main__":

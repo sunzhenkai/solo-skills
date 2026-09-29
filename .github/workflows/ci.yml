@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 安装 pytest（运行器，测试本身只用标准库）
+        run: pip install pytest
+      - name: pytest 契约测试
+        run: python3 -m pytest skills -q
+      - name: frontmatter lint（id/name/description 齐全且 id = 目录名）
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          bad = []
+          skills = sorted(p for p in Path('skills').iterdir() if p.is_dir())
+          for skill in skills:
+              f = skill / 'SKILL.md'
+              text = f.read_text(encoding='utf-8')
+              m = re.match(r'^---\n(.*?)\n---', text, re.S)
+              if not m:
+                  bad.append(f'{f}: 无 frontmatter')
+                  continue
+              fm = m.group(1)
+              for key in ('id', 'name', 'description'):
+                  if not re.search(rf'^{key}:', fm, re.M):
+                      bad.append(f'{f}: 缺 {key}')
+              mid = re.search(r'^id:\s*(\S+)', fm, re.M)
+              if mid and mid.group(1) != skill.name:
+                  bad.append(f'{f}: id={mid.group(1)} != 目录名 {skill.name}')
+          if bad:
+              print('\n'.join(bad))
+              sys.exit(1)
+          print(f'frontmatter OK ({len(skills)} skills)')
+          PY
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
