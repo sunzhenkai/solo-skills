@@ -239,6 +239,6 @@ tasks/
 |------|------|
 | 从未建探索任务，范围清楚、马上实现 | 直接实现，或 `taskflow` / `openspec-propose` |
 | 已有探索任务，路径已清、要交付 | 本 skill 的 `handoff`（不要另起无关 `{task}-driver` 名） |
-| 只要读代码、不需要任务台账 | `dotf-code-explore` |
+| 只要读代码、不需要任务台账 | `code-explore` |
 | 只要一次 grill、不需要 `tasks/` | `grill-with-docs` / `grilling` |
 | 已在 OpenSpec change 里交付 | `taskflow` + `openspec-*` |

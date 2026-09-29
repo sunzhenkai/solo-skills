@@ -1,5 +1,5 @@
 version: 1
-skill: dotf-code-explore
+skill: code-explore
 cases:
   - id: ask-routes-before-source
     kind: basic

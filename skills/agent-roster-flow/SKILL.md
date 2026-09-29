@@ -77,4 +77,4 @@ Resident Stage（理解）不派出：仍在 spine 记录当前 Orchestrator 的
 
 ## 可选代码评审
 
-实现 Stage 完成后停在本会话：做或跳过。跳过则该 Stage 不发生、不跑脚本。选做才确认 Assignment 并派出。范围门（uncommitted / 默认分支 / MR）也在本会话问完，写入 Frozen Input；受派方执行 `$dotf-code-review`，不再改范围。
+实现 Stage 完成后停在本会话：做或跳过。跳过则该 Stage 不发生、不跑脚本。选做才确认 Assignment 并派出。范围门（uncommitted / 默认分支 / MR）也在本会话问完，写入 Frozen Input；受派方执行 `$solo-code-review`，不再改范围。

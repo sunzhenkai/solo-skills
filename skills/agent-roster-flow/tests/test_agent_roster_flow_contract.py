@@ -53,7 +53,7 @@ class ContractTest(unittest.TestCase):
     def test_code_review_is_optional_and_bound(self) -> None:
         self.assertIn("问是否做代码评审", self.skill)
         self.assertIn("Simple 默认跳过", self.skill)
-        self.assertIn("$dotf-code-review", self.stages)
+        self.assertIn("$solo-code-review", self.stages)
         self.assertIn("不允许 `human`", self.stages)
 
     def test_complex_explore_does_not_call_grill_with_docs(self) -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Helpers for /dotf-code-review: resolve repositories, inspect change source, parse MR/PR, and write docs."""
+"""Helpers for /solo-code-review: resolve repositories, inspect change source, parse MR/PR, and write docs."""
 
 from __future__ import annotations
 

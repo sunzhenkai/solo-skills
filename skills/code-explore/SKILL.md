@@ -1,5 +1,5 @@
 ---
-name: dotf-code-explore
+name: code-explore
 description: 用于回答代码问题、追踪调用链、评估变更影响以及记录可复用项目知识的仓库代码理解工作流。当用户询问代码的作用、某项行为的实现位置、某项变更可能影响什么、仓库之间的关系，或要求记录调查结果时使用；除非用户明确要求实现，否则探索过程必须保持只读。
 ---
 
@@ -317,7 +317,7 @@ related_knowledge: []
 本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
 
 ```text
-skills/dotf-code-explore/
+skills/code-explore/
 ├── SKILL.md
 ├── examples/      # 经过验证的优秀执行案例
 ├── evals/         # 可验证成功标准
@@ -395,5 +395,5 @@ Directly modify SKILL.md
 
 1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
 2. 若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`skills/dotf-code-explore/patches/`），仍须先提案再应用。
+3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`skills/code-explore/patches/`），仍须先提案再应用。
 4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。

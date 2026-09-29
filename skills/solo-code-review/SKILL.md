@@ -1,10 +1,10 @@
 ---
-name: dotf-code-review
+name: solo-code-review
 description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
 license: MIT
 ---
 
-# dotf-code-review
+# solo-code-review
 
 用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎使用已配置的 `ocr` 命令，不要用通用 agent 逐文件替代。
 
@@ -13,8 +13,8 @@ license: MIT
 ## 调用
 
 ```text
-/dotf-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
-/dotf-code-review <GitLab/GitHub MR 或 PR URL>
+/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
+/solo-code-review <GitLab/GitHub MR 或 PR URL>
 ```
 
 可选：业务背景（commit/MR 说明、需求一句话）→ 传给 `ocr --background`。

@@ -58,7 +58,7 @@ class ContractTest(unittest.TestCase):
 
     def test_handoff_boundaries(self) -> None:
         self.assertIn("project-spec-mirror", self.skill)
-        self.assertIn("dotf-code-explore", self.skill)
+        self.assertIn("code-explore", self.skill)
 
     def test_privacy_gate(self) -> None:
         self.assertIn("摄入前做隐私自查", self.skill)

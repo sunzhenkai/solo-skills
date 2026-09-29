@@ -55,12 +55,12 @@ cases:
   - id: optional-code-review
     kind: core
     judge: deterministic
-    description: 代码评审可选且绑定 dotf-code-review
+    description: 代码评审可选且绑定 solo-code-review
     given: 实现 Stage 完成
     expect:
       must:
         - 在本会话问做不做；Simple 默认跳过
-        - 选做则派出执行 $dotf-code-review
+        - 选做则派出执行 $solo-code-review
       must_not:
         - 代码评审选 human
         - 用通用 agent 逐文件替代 ocr 审查

@@ -16,7 +16,7 @@ description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki�
 
 - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
 - 不写软件项目 spec 镜像（交给 `project-spec-mirror`）。
-- 不探索或修改业务源码（交给 `dotf-code-explore`）。
+- 不探索或修改业务源码（交给 `code-explore`）。
 - 不编辑 `raw/` 中的源材料。
 - 不自动 commit / push / sync 安装。
 - 不要创建 `.llmwiki/`、`.obsidian/` 或任何应用私有目录。

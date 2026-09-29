@@ -47,5 +47,5 @@ _Avoid_: 把可选并进相邻 Stage
 _Avoid_: 评审（单独出现时）
 
 **Code Review**:
-实现之后可选的 Git diff 级审查，绑定 `$dotf-code-review`。
+实现之后可选的 Git diff 级审查，绑定 `$solo-code-review`。
 _Avoid_: 评审（单独出现时）, 用通用 agent 逐文件看代码
