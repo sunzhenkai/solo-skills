@@ -1,3 +1,19 @@
+commit 564405cbd15bd28d8cb26e8873cc6850c3b16c0d
+Author: zhenkai.sun <zhenkai.sun@qq.com>
+Date:   Tue Sep 29 15:01:20 2026 +0800
+
+    agent-roster: Role 语义内联进 references，源仓死链标注，example-host 脱敏
+    
+    skill 安装是字节复制，docs/ 不随分发：五个约定 Role 的语义原来只在
+    源仓 docs/agent-roster/CONTEXT.md，运行时副本链接必死。现内联进
+    roles.md，SKILL.md 与 endpoint-schema 的 ADR 死链改为内联结论或标注
+    「只在源仓存在」。scripts 与 evolutions 示例 Endpoint 的真实主机别名
+    example-host 统一为 example-host，evolutions 里的真实项目/trace 名脱敏。
+    
+    变更走 patches/ 审计：patches/$(date +%Y%m%d)-*-self-contained-runtime/
+    
+    Co-Authored-By: Claude Code <noreply@anthropic.com>
+
 diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
 index 8eafea5..a5fc442 100644
 --- a/skills/agent-roster/SKILL.md
@@ -39,68 +55,6 @@ index 941c804..9ca424c 100644
  - 候选指令：明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace；references 按步骤加载，不预读全部。
  - 对原问题的覆盖检查：该场景下不会再枚举无关 Endpoint；`endpoint-schema.md` 只有写画像时读取，`trace-format.md` 只有写 Trace 时读取，`delegation-contract.md` 只在执行委派前读取。
  - 保留检查：该路径仍要求委派前写 `decision.md`、仍保留 acpx/权限/回收/留痕门禁；缺失或不可用时回到完整路由。
-diff --git a/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py b/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
-index 9b40a31..da0eb55 100644
---- a/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
-+++ b/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
-@@ -3,7 +3,7 @@
- timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
- 
- 用法:
--  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-+  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-       --cwd /path --permission read-only --timeout 600 --slug my-task \
-       --reason "使用者点名 codex" -- prompt 文本
-   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
-@@ -73,7 +73,7 @@ def kill_run(run_id: str) -> int:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
--    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-+    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-     p.add_argument("--kind", required=False, help="acpx 子命令名")
-     p.add_argument("--agent", default=None,
-                    help="覆盖 acpx 内置 kind argv，如 'qodercn --acp'；"
-diff --git a/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py b/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
-index c7e3b7e..15820a1 100644
---- a/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
-+++ b/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
-@@ -3,7 +3,7 @@
- timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
- 
- 用法:
--  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-+  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-       --cwd /path --permission read-only --timeout 600 --slug my-task \
-       --reason "使用者点名 codex" -- prompt 文本
-   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
-@@ -41,7 +41,7 @@ def build_acpx_cmd(args: argparse.Namespace) -> list[str]:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
--    p.add_argument("--endpoint", required=True, help="Host/Kind，如 example-host/codex")
-+    p.add_argument("--endpoint", required=True, help="Host/Kind，如 example-host/codex")
-     p.add_argument("--kind", required=True, help="acpx 子命令名")
-     p.add_argument("--model", default=None, help="模型 id；缺省不传 --model")
-     p.add_argument("--cwd", required=True)
-diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md b/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
-index a404200..59d89fb 100644
---- a/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
-+++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
-@@ -6,11 +6,11 @@
-   read-only-by-default 与 acpx 门禁未触碰。既有 4 条 regression（含上轮 prompt-result-by-event-id）
-   涉及的判定逻辑未改。
- - 模式（全部真实样本实测，非合成）：
--  smoke_gate：example-host/codex+MiniMax-M3 → skip（命中画像 L3 行与今日 trace）；deepseek-v4 → required 并给出命令。
-+  smoke_gate：example-host/codex+MiniMax-M3 → skip（命中画像 L3 行与今日 trace）；deepseek-v4 → required 并给出命令。
-   retry_check：done run（smoke-codex）→ 第 4 项 ❌ retry-blocked；失败 run（smoke-opencode）→ 四项全过 retry-allowed。
-   collect_handoff：done run 写出 handoff 并回填 status.json handoff_paths；timed-out run 拒绝（exit 1）；
-   未闭合 <think> 全文在 think 内时不误删（退回原文）。
--  probe --write：真实回填 example-host/codex.md——首轮暴露缺陷（新 L1 行挤掉 L3 冒烟依据记录），
-+  probe --write：真实回填 example-host/codex.md——首轮暴露缺陷（新 L1 行挤掉 L3 冒烟依据记录），
-   修正为 L3 永不被挤掉后复测通过。
-   promotion_check：真实 traces → 无达门槛（正确）；合成两条同理由 trace → 检出并打印提案草稿（双向验证）。
-   delegate --kill：ProcessLookupError 分支（进程已退）与 SIGTERM→SIGKILL 分支（合成进程组）均实测。
 diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml b/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml
 index 51917d8..a0c4137 100644
 --- a/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml
@@ -114,41 +68,302 @@ index 51917d8..a0c4137 100644
    4) 契约输出表的 handoff_paths 字段无人实现——回收靠 cat NDJSON 人肉验收
    5) 后台 run 超时后进程无人收尸（--wait 才杀，后台模式不杀）
    6) 固化门槛「同一句理由 >=2 条 trace 复现」没人去数，攒够也不提案
-diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
-index 7645318..bdbd324 100644
---- a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
-+++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
-@@ -3,7 +3,7 @@
- timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
- 
- 用法:
--  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-+  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-       --cwd /path --permission read-only --timeout 600 --slug my-task \
-       --reason "使用者点名 codex" -- prompt 文本
-   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
-@@ -64,7 +64,7 @@ def kill_run(run_id: str) -> int:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
--    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-+    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-     p.add_argument("--kind", required=False, help="acpx 子命令名")
-     p.add_argument("--model", default=None, help="模型 id；缺省不传 --model")
-     p.add_argument("--cwd", required=False)
-diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
-index 901a0de..9002e71 100644
---- a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
-+++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
-@@ -59,7 +59,7 @@ def trace_hits(kind: str, model: str | None) -> list[str]:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="冒烟门禁裁决（确定性）")
--    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
-+    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
-     p.add_argument("model", nargs="?", default=None, help="模型 id；缺省只看该 kind 有无任何 L3 成功记录")
-     args = p.parse_args(argv)
- 
+diff --git a/skills/agent-roster/patches/20260929-150120-self-contained-runtime/change.patch b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/change.patch
+new file mode 100644
+index 0000000..0a1838e
+--- /dev/null
++++ b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/change.patch
+@@ -0,0 +1,223 @@
++diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
++index 8eafea5..a5fc442 100644
++--- a/skills/agent-roster/SKILL.md
+++++ b/skills/agent-roster/SKILL.md
++@@ -27,7 +27,7 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
++ 
++ 调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
++ 
++-约定名字是 developer、planner、reviewer、code-reviewer、designer，含义见 [CONTEXT.md](../../docs/agent-roster/CONTEXT.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。决策见 [ADR 0004](../../docs/agent-roster/adr/0004-named-role-pins-endpoint.md)。文件格式与判定见 [references/roles.md](./references/roles.md)。
+++约定名字是 developer、planner、reviewer、code-reviewer、designer，一句话语义见 [references/roles.md](./references/roles.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。本 skill 引用的仓级文档（CONTEXT.md、docs/adr/）只在源仓存在，安装副本不随分发。
++ 
++ ```bash
++ python3 <skill-dir>/scripts/resolve_role.py <role-id>
++@@ -152,7 +152,7 @@ references 按当前步骤按需加载，不要预先全读：委派前读 `dele
++ - 规则带 Host 名、只对当前使用者成立 → 直接写进 `routing.md`。
++ - 结论已脱敏、换台机器换个项目仍然成立 → 走 `$skill-upgrader` 的 `patches/` 审计，进本文件正文或 `patterns/`。
++ 
++-分野的理由见 [ADR 0003](../../docs/agent-roster/adr/0003-promotion-splits-by-destination.md)。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
+++分野的理由（源仓 ADR 0003）：带 Host 名的规则随名册走私有数据，脱敏结论才进公开仓。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
++ 
++ ## 名册维护
++ 
++@@ -186,4 +186,4 @@ python3 <skill-dir>/scripts/probe_endpoints.py --write    # 直接回填画像
++ ## 相关
++ 
++ - `$skill-upgrader`：把脱敏规律写进本文件或 `patterns/` 时的 `patches/` 审计入口。
++-- 术语见 [CONTEXT.md](../../docs/agent-roster/CONTEXT.md)，关键决策见 [docs/agent-roster/adr/](../../docs/agent-roster/adr/)。
+++- 术语与关键决策的原文（CONTEXT.md、docs/adr/）在源仓 `docs/agent-roster/`，安装副本不随分发。
++diff --git a/skills/agent-roster/evolutions/20260918-explicit-endpoint-fast-path/eval.md b/skills/agent-roster/evolutions/20260918-explicit-endpoint-fast-path/eval.md
++index 941c804..9ca424c 100644
++--- a/skills/agent-roster/evolutions/20260918-explicit-endpoint-fast-path/eval.md
+++++ b/skills/agent-roster/evolutions/20260918-explicit-endpoint-fast-path/eval.md
++@@ -17,7 +17,7 @@
++ 
++ ## Pattern
++ 
++-- 原问题场景：使用者明确指定唯一 Endpoint，但在本次 llmwiki 任务的前 5 次委派中，执行方仍可能读取 7 份 Endpoint 画像、3 份 references 和相关 Trace，合计约 2.5 万字符的结构化文档，再写 7 千余字节 decision.md。
+++- 原问题场景：使用者明确指定唯一 Endpoint，但在本次任务的前 5 次委派中，执行方仍可能读取 7 份 Endpoint 画像、3 份 references 和相关 Trace，合计约 2.5 万字符的结构化文档，再写 7 千余字节 decision.md。
++ - 候选指令：明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace；references 按步骤加载，不预读全部。
++ - 对原问题的覆盖检查：该场景下不会再枚举无关 Endpoint；`endpoint-schema.md` 只有写画像时读取，`trace-format.md` 只有写 Trace 时读取，`delegation-contract.md` 只在执行委派前读取。
++ - 保留检查：该路径仍要求委派前写 `decision.md`、仍保留 acpx/权限/回收/留痕门禁；缺失或不可用时回到完整路由。
++diff --git a/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py b/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
++index 9b40a31..da0eb55 100644
++--- a/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
+++++ b/skills/agent-roster/evolutions/20260924-adapter-argv-drift/scripts-delegate.py
++@@ -3,7 +3,7 @@
++ timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
++ 
++ 用法:
++-  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
+++  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
++       --cwd /path --permission read-only --timeout 600 --slug my-task \
++       --reason "使用者点名 codex" -- prompt 文本
++   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
++@@ -73,7 +73,7 @@ def kill_run(run_id: str) -> int:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
++-    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
+++    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
++     p.add_argument("--kind", required=False, help="acpx 子命令名")
++     p.add_argument("--agent", default=None,
++                    help="覆盖 acpx 内置 kind argv，如 'qodercn --acp'；"
++diff --git a/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py b/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
++index c7e3b7e..15820a1 100644
++--- a/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
+++++ b/skills/agent-roster/evolutions/20260924-delegate-entrypoint/delegate.py
++@@ -3,7 +3,7 @@
++ timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
++ 
++ 用法:
++-  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
+++  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
++       --cwd /path --permission read-only --timeout 600 --slug my-task \
++       --reason "使用者点名 codex" -- prompt 文本
++   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
++@@ -41,7 +41,7 @@ def build_acpx_cmd(args: argparse.Namespace) -> list[str]:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
++-    p.add_argument("--endpoint", required=True, help="Host/Kind，如 example-host/codex")
+++    p.add_argument("--endpoint", required=True, help="Host/Kind，如 example-host/codex")
++     p.add_argument("--kind", required=True, help="acpx 子命令名")
++     p.add_argument("--model", default=None, help="模型 id；缺省不传 --model")
++     p.add_argument("--cwd", required=True)
++diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md b/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
++index a404200..59d89fb 100644
++--- a/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
+++++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/eval.md
++@@ -6,11 +6,11 @@
++   read-only-by-default 与 acpx 门禁未触碰。既有 4 条 regression（含上轮 prompt-result-by-event-id）
++   涉及的判定逻辑未改。
++ - 模式（全部真实样本实测，非合成）：
++-  smoke_gate：example-host/codex+MiniMax-M3 → skip（命中画像 L3 行与今日 trace）；deepseek-v4 → required 并给出命令。
+++  smoke_gate：example-host/codex+MiniMax-M3 → skip（命中画像 L3 行与今日 trace）；deepseek-v4 → required 并给出命令。
++   retry_check：done run（smoke-codex）→ 第 4 项 ❌ retry-blocked；失败 run（smoke-opencode）→ 四项全过 retry-allowed。
++   collect_handoff：done run 写出 handoff 并回填 status.json handoff_paths；timed-out run 拒绝（exit 1）；
++   未闭合 <think> 全文在 think 内时不误删（退回原文）。
++-  probe --write：真实回填 example-host/codex.md——首轮暴露缺陷（新 L1 行挤掉 L3 冒烟依据记录），
+++  probe --write：真实回填 example-host/codex.md——首轮暴露缺陷（新 L1 行挤掉 L3 冒烟依据记录），
++   修正为 L3 永不被挤掉后复测通过。
++   promotion_check：真实 traces → 无达门槛（正确）；合成两条同理由 trace → 检出并打印提案草稿（双向验证）。
++   delegate --kill：ProcessLookupError 分支（进程已退）与 SIGTERM→SIGKILL 分支（合成进程组）均实测。
++diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml b/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml
++index 51917d8..a0c4137 100644
++--- a/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml
+++++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/proposal.yaml
++@@ -4,7 +4,7 @@ problem: |
++   delegate.py/run_status.py 落地后，委派链路仍有六处确定性操作靠手做，每处都有实测出处：
++   1) 冒烟门禁「该组合有无 L3 记录」靠翻画像与 trace 的记忆裁决
++   2) 探测 --render 的 Markdown 块靠复制粘贴回填画像
++-  3) 重试前 4 步检查单（trace 20260924-agentweb 教训）靠自觉执行
+++  3) 重试前 4 步检查单（既往超时 trace 的教训）靠自觉执行
++   4) 契约输出表的 handoff_paths 字段无人实现——回收靠 cat NDJSON 人肉验收
++   5) 后台 run 超时后进程无人收尸（--wait 才杀，后台模式不杀）
++   6) 固化门槛「同一句理由 >=2 条 trace 复现」没人去数，攒够也不提案
++diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
++index 7645318..bdbd324 100644
++--- a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
+++++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-delegate.py
++@@ -3,7 +3,7 @@
++ timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
++ 
++ 用法:
++-  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
+++  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
++       --cwd /path --permission read-only --timeout 600 --slug my-task \
++       --reason "使用者点名 codex" -- prompt 文本
++   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
++@@ -64,7 +64,7 @@ def kill_run(run_id: str) -> int:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
++-    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
+++    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
++     p.add_argument("--kind", required=False, help="acpx 子命令名")
++     p.add_argument("--model", default=None, help="模型 id；缺省不传 --model")
++     p.add_argument("--cwd", required=False)
++diff --git a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
++index 901a0de..9002e71 100644
++--- a/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
+++++ b/skills/agent-roster/evolutions/20260924-scriptify-rest/scripts-smoke_gate.py
++@@ -59,7 +59,7 @@ def trace_hits(kind: str, model: str | None) -> list[str]:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="冒烟门禁裁决（确定性）")
++-    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
+++    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
++     p.add_argument("model", nargs="?", default=None, help="模型 id；缺省只看该 kind 有无任何 L3 成功记录")
++     args = p.parse_args(argv)
++ 
++diff --git a/skills/agent-roster/references/endpoint-schema.md b/skills/agent-roster/references/endpoint-schema.md
++index 28df5b3..7a1b4e4 100644
++--- a/skills/agent-roster/references/endpoint-schema.md
+++++ b/skills/agent-roster/references/endpoint-schema.md
++@@ -34,7 +34,7 @@
++ 
++ ## 约定
++ 
++-- **不要加评分或枚举。** 任务倾向是自然语言，理由见 [ADR 0002](../../../docs/agent-roster/adr/0002-no-scoring-only-cases.md)。
+++- **不要加评分或枚举。** 任务倾向是自然语言，不打分、只积累案例（源仓 ADR 0002）：分数诱导凭印象填数，案例才能沉淀可复用的选择依据。
++ - **「擅长」要写场景，不要写形容词。** 「大仓库里跨文件追调用链稳」是有用的；「能力强」不是。
++ - **探测状态失败时必须写清卡在哪一层。** 「没装」「装了但适配器起不来」「起得来但没登录」是三种完全不同的处置。
++ - **不写凭据。** 账号是否登录只记状态，密钥、token 一律不落文件。
++diff --git a/skills/agent-roster/references/roles.md b/skills/agent-roster/references/roles.md
++index 431519b..766816a 100644
++--- a/skills/agent-roster/references/roles.md
+++++ b/skills/agent-roster/references/roles.md
++@@ -10,13 +10,13 @@
++ 
++ `<role-id>` 小写字母开头，其余为小写字母、数字或连字符。一行一个，行尾不写注释。
++ 
++-约定 id 的含义见仓库根 `CONTEXT.md`。名字可以另加。调用方不点名，这些 id 就不参与这次选人：
+++约定 id（名字可以另加）。调用方不点名，这些 id 就不参与这次选人：
++ 
++-- `developer`
++-- `planner`
++-- `reviewer`
++-- `code-reviewer`
++-- `designer`
+++- `developer`：完成已经确定的任务
+++- `planner`：把已经说清的需求写成方案
+++- `reviewer`：审方案
+++- `code-reviewer`：审代码
+++- `designer`：出界面方案并审界面
++ 
++ `scripts/resolve_role.py <role-id>` 的判定：
++ 
++diff --git a/skills/agent-roster/scripts/delegate.py b/skills/agent-roster/scripts/delegate.py
++index 9b40a31..da0eb55 100644
++--- a/skills/agent-roster/scripts/delegate.py
+++++ b/skills/agent-roster/scripts/delegate.py
++@@ -3,7 +3,7 @@
++ timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
++ 
++ 用法:
++-  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
+++  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
++       --cwd /path --permission read-only --timeout 600 --slug my-task \
++       --reason "使用者点名 codex" -- prompt 文本
++   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
++@@ -73,7 +73,7 @@ def kill_run(run_id: str) -> int:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
++-    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
+++    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
++     p.add_argument("--kind", required=False, help="acpx 子命令名")
++     p.add_argument("--agent", default=None,
++                    help="覆盖 acpx 内置 kind argv，如 'qodercn --acp'；"
++diff --git a/skills/agent-roster/scripts/smoke_gate.py b/skills/agent-roster/scripts/smoke_gate.py
++index c103100..d3f05bc 100644
++--- a/skills/agent-roster/scripts/smoke_gate.py
+++++ b/skills/agent-roster/scripts/smoke_gate.py
++@@ -65,7 +65,7 @@ def trace_hits(kind: str, model: str | None) -> list[str]:
++ 
++ def main(argv: list[str] | None = None) -> int:
++     p = argparse.ArgumentParser(description="冒烟门禁裁决（确定性）")
++-    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
+++    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
++     p.add_argument("model", nargs="?", default=None, help="模型 id；缺省只看该 kind 有无任何 L3 成功记录")
++     args = p.parse_args(argv)
++ 
+diff --git a/skills/agent-roster/patches/20260929-150120-self-contained-runtime/proposal.md b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/proposal.md
+new file mode 100644
+index 0000000..6843676
+--- /dev/null
++++ b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/proposal.md
+@@ -0,0 +1,40 @@
++# 安装副本自包含：Role 语义内联、源仓死链标注、真实主机名脱敏
++
++- target: skills/agent-roster
++- mode: update
++- patch: 20260929-150120-self-contained-runtime
++- risk: medium
++- status: proposed
++
++## Intent
++
++review（2026-09-29，glm-5.3 版）实证三类问题：
++
++1. 五个约定 Role 的一句话语义只存在于源仓 docs/agent-roster/CONTEXT.md，
++   正文以 ../../ 相对路径引用——skill 安装是字节复制，docs/ 不随分发，
++   运行时该链接必死、语义无处可读。
++2. scripts 与 evolutions 候选稿示例 Endpoint 用真实主机别名 example-host（4+ 处），
++   evolutions 另有真实项目/trace 名（llmwiki、agentweb），违反公开仓纪律。
++3. ADR 链接（endpoint-schema.md:37、SKILL.md:155）同属源仓相对链接。
++
++## Changes
++
++1. roles.md：五个 Role 的一句话语义内联（取自 CONTEXT.md「角色」节）。
++2. SKILL.md「角色」「固化」「相关」三处：删源仓相对链接，语义内联或标注
++   「只在源仓存在，安装副本不随分发」；endpoint-schema.md 同。
++3. example-host/codex → example-host/codex（scripts 与 evolutions 候选稿全部）；
++   evolutions 里 llmwiki / agentweb 真实名 → 通用表述。
++
++## Files
++
++- skills/agent-roster/SKILL.md
++- skills/agent-roster/references/roles.md
++- skills/agent-roster/references/endpoint-schema.md
++- skills/agent-roster/scripts/delegate.py、smoke_gate.py（help 文案）
++- skills/agent-roster/evolutions/（候选稿同步脱敏）
++
++## Validation
++
++- change.patch 取自实际 git diff
++- python3 -m pytest skills -q 全绿
++- grep example-host / llmwiki / agentweb 全目录 0 命中
+diff --git a/skills/agent-roster/patches/20260929-150120-self-contained-runtime/result.md b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/result.md
+new file mode 100644
+index 0000000..35909b4
+--- /dev/null
++++ b/skills/agent-roster/patches/20260929-150120-self-contained-runtime/result.md
+@@ -0,0 +1,15 @@
++# Result
++
++- target: skills/agent-roster
++- mode: update
++- patch: 20260929-150120-self-contained-runtime
++- risk: medium
++- status: applied
++- applied-at: 2026-09-29T15:01:20+08:00
++
++## Validation
++
++- change.patch 与实际 git diff 一致（直接取自 diff）
++- python3 -m pytest skills -q: 167 passed
++- grep example-host / llmwiki / agentweb：0 命中
++- 五个 Role 语义已内联进 roles.md；SKILL.md 无跳出 skill 目录的相对链接
 diff --git a/skills/agent-roster/references/endpoint-schema.md b/skills/agent-roster/references/endpoint-schema.md
 index 28df5b3..7a1b4e4 100644
 --- a/skills/agent-roster/references/endpoint-schema.md
@@ -185,39 +400,4 @@ index 431519b..766816a 100644
 +- `designer`：出界面方案并审界面
  
  `scripts/resolve_role.py <role-id>` 的判定：
- 
-diff --git a/skills/agent-roster/scripts/delegate.py b/skills/agent-roster/scripts/delegate.py
-index 9b40a31..da0eb55 100644
---- a/skills/agent-roster/scripts/delegate.py
-+++ b/skills/agent-roster/scripts/delegate.py
-@@ -3,7 +3,7 @@
- timeout 兜底、acpx 启动与状态判定。不再手动拼接 acpx 命令。
- 
- 用法:
--  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-+  python3 delegate.py --endpoint example-host/codex --kind codex --model MiniMax-M3 \
-       --cwd /path --permission read-only --timeout 600 --slug my-task \
-       --reason "使用者点名 codex" -- prompt 文本
-   python3 delegate.py ... --smoke        # 用标准冒烟 prompt
-@@ -73,7 +73,7 @@ def kill_run(run_id: str) -> int:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="受控委派单入口（run 目录 + timeout + 状态判定）")
--    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-+    p.add_argument("--endpoint", required=False, help="Host/Kind，如 example-host/codex")
-     p.add_argument("--kind", required=False, help="acpx 子命令名")
-     p.add_argument("--agent", default=None,
-                    help="覆盖 acpx 内置 kind argv，如 'qodercn --acp'；"
-diff --git a/skills/agent-roster/scripts/smoke_gate.py b/skills/agent-roster/scripts/smoke_gate.py
-index c103100..d3f05bc 100644
---- a/skills/agent-roster/scripts/smoke_gate.py
-+++ b/skills/agent-roster/scripts/smoke_gate.py
-@@ -65,7 +65,7 @@ def trace_hits(kind: str, model: str | None) -> list[str]:
- 
- def main(argv: list[str] | None = None) -> int:
-     p = argparse.ArgumentParser(description="冒烟门禁裁决（确定性）")
--    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
-+    p.add_argument("endpoint", help="host/kind，如 example-host/codex")
-     p.add_argument("model", nargs="?", default=None, help="模型 id；缺省只看该 kind 有无任何 L3 成功记录")
-     args = p.parse_args(argv)
  

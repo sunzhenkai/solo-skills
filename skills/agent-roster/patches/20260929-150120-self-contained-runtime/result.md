@@ -11,5 +11,5 @@
 
 - change.patch 与实际 git diff 一致（直接取自 diff）
 - python3 -m pytest skills -q: 167 passed
-- grep example-host / llmwiki / agentweb：0 命中
+- grep 真实主机别名 / llmwiki / agentweb：0 命中
 - 五个 Role 语义已内联进 roles.md；SKILL.md 无跳出 skill 目录的相对链接

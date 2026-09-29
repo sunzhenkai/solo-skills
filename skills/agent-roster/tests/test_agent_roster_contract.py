@@ -106,5 +106,5 @@ class RedactionPlaceholderContract(unittest.TestCase):
     def test_no_real_host_alias_in_scripts(self) -> None:
         for name in ("delegate.py", "smoke_gate.py"):
             body = read(f"scripts/{name}")
-            self.assertNotIn("example-host", body, f"{name} 残留真实主机别名 example-host")
+            self.assertNotIn("is" "hip", body, f"{name} 残留真实主机别名（拼写拆串，避免名单本身入库）")
             self.assertIn("example-host/codex", body, f"{name} 缺 example-host 占位")
