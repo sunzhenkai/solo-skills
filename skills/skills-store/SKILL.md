@@ -39,7 +39,7 @@ description: "用 vercel-labs/skills（npx skills）发现、搜索、安装、�
 
 ```bash
 # 项目内 skill 自带脚本
-SKILL_ROOT="$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/..")"
+SKILL_ROOT="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")"
 AUDIT="$SKILL_ROOT/scripts/audit-skill.sh"
 
 # 或按安装位置：

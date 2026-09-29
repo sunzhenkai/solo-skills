@@ -1,4 +1,5 @@
 ---
+id: solo-code-review
 name: solo-code-review
 description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
 license: MIT

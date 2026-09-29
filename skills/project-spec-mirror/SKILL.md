@@ -1,6 +1,6 @@
 ---
-name: project-spec-mirror
 id: project-spec-mirror
+name: project-spec-mirror
 description: 创建或增量维护项目的双读者 spec 镜像：briefing 给人扫读架构与业务流，agent spec 用 OpenSpec 形态写可换栈复现的功能契约。Git 源按 commit 更新。在用户要求 project spec 镜像、spec 孪生、可读规格、功能复现 spec 时使用。不用于 OpenSpec change、实现代码或只读问答；用户要求图表时委托 archify。
 compatibility: Requires Python 3.10+; Git is required for commit-diff updates. Requested diagrams additionally require Node.js and an installed archify skill.
 ---

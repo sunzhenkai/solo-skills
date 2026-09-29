@@ -1,4 +1,5 @@
 ---
+id: trouble-grill
 name: trouble-grill
 description: 根因排查时持续拷问 agent 自己，防止失焦、把假设当结论、思路闭塞。排查开始、下结论、切换方向、收口时触发；单步可复现的简单问题直接修，不走本流程。
 ---

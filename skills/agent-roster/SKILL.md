@@ -1,4 +1,5 @@
 ---
+id: agent-roster
 name: agent-roster
 description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。不实现被委派 agent 自身的能力。
 ---

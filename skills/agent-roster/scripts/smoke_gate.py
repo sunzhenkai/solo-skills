@@ -29,13 +29,19 @@ def section(text: str, header_prefix: str) -> str:
     return rest[: nxt.start()] if nxt else rest
 
 
+def model_mentioned(text: str, model: str) -> bool:
+    # 词边界匹配：glm-5.3 不得命中 glm-5.3-flash 这类变体
+    pat = rf"(?<![A-Za-z0-9._-]){re.escape(model)}(?![A-Za-z0-9._-])"
+    return re.search(pat, text) is not None
+
+
 def profile_l3_hits(profile: Path, model: str | None) -> list[str]:
     if not profile.exists():
         return []
     sec = section(profile.read_text(encoding="utf-8"), "探测状态")
     hits = [ln.strip() for ln in sec.splitlines() if "L3" in ln and "✅" in ln]
     if model:
-        hits = [ln for ln in hits if model in ln]
+        hits = [ln for ln in hits if model_mentioned(ln, model)]
     return hits
 
 
@@ -48,7 +54,7 @@ def trace_hits(kind: str, model: str | None) -> list[str]:
         t = f.read_text(encoding="utf-8", errors="replace")
         if kind not in t:
             continue
-        if model and model not in t:
+        if model and not model_mentioned(t, model):
             continue
         if not re.search(r"Outcome:\s*completed", t):
             continue

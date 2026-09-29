@@ -92,6 +92,8 @@ cases:
       must_not:
         - 把 model 只写进 prompt 而不传给执行器
         - 未给出 model 时仍加上空的 --model 旗标
+
+  - id: probe-distinguishes-failures
     kind: basic
     judge: deterministic
     description: 探测能区分三种不同的不可用
