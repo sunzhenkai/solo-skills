@@ -250,5 +250,18 @@ class FailClosedOnMissingPcre(unittest.TestCase):
         self.assertIn("拒绝给出结论", script)
 
 
+class SelfScanPasses(unittest.TestCase):
+    """skills-store 自己必须过自己的审计。
+
+    检测样本随 fixture 增长，豁免面（.audit-allow）若漏更新，被锁定时会以
+    阻断项形式卡在消费侧；本用例让它在仓库门禁里先炸。
+    """
+
+    def test_own_skill_directory_audits_clean(self) -> None:
+        proc = _audit(SKILL_ROOT)
+        self.assertNotIn("[BLOCK]", proc.stdout, proc.stdout)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

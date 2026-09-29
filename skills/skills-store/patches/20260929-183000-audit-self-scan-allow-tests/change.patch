@@ -1,0 +1,46 @@
+diff --git a/skills/skills-store/.audit-allow b/skills/skills-store/.audit-allow
+index 60d35a6..7f914ec 100644
+--- a/skills/skills-store/.audit-allow
++++ b/skills/skills-store/.audit-allow
+@@ -1,11 +1,17 @@
+-# skills-store 自扫描豁免。两类自指内容：
++# skills-store 自扫描豁免。三类自指内容：
+ # 1. 审计工具自身源码：PATTERNS 规则定义表与注释必然逐字枚举威胁模式，整文件豁免；
+ #    该文件内容的真实管控是 solo-skills 的 code review 与 lock 锁定的 revision。
+ # 2. SKILL.md「已知误报」参考表：逐行讲解各规则的典型误报，仅豁免锚点逐字命中的行，
+ #    表外新增同类文本照常上报。
++# 3. 契约测试里的检测样本：tests/test_skills_store_contract.py 整份是「必须被本脚本
++#    命中」的威胁样本字符串（rm -rf /、~/.env、假 api_key、eval $(curl …)），
++#    与规则定义表同构，整文件豁免。tests/ 不在消费侧 runtime bundle 白名单里
++#    （只发 SKILL.md/CONTEXT.md + references/ + scripts/），真实管控是仓库门禁
++#    `python3 -m pytest skills -q` 与 SelfScanPasses 自扫用例。
+ # 格式：规则|相对路径|snippet 的 ERE；规则与路径可写 *；snippet 取行首 120 字符，
+ # 锚点须落在其中。`#` 为注释。
+ *|scripts/audit-skill.sh|*
++*|tests/test_skills_store_contract.py|*
+ jailbreak_role|SKILL.md|MIT LICENSE 正文的
+ credential_paths|SKILL.md|现要求独立单词
+ eval_external|SKILL.md|Markdown 反引号
+diff --git a/skills/skills-store/tests/test_skills_store_contract.py b/skills/skills-store/tests/test_skills_store_contract.py
+index 3b0086b..33cc0d1 100644
+--- a/skills/skills-store/tests/test_skills_store_contract.py
++++ b/skills/skills-store/tests/test_skills_store_contract.py
+@@ -250,5 +250,18 @@ class FailClosedOnMissingPcre(unittest.TestCase):
+         self.assertIn("拒绝给出结论", script)
+ 
+ 
++class SelfScanPasses(unittest.TestCase):
++    """skills-store 自己必须过自己的审计。
++
++    检测样本随 fixture 增长，豁免面（.audit-allow）若漏更新，被锁定时会以
++    阻断项形式卡在消费侧；本用例让它在仓库门禁里先炸。
++    """
++
++    def test_own_skill_directory_audits_clean(self) -> None:
++        proc = _audit(SKILL_ROOT)
++        self.assertNotIn("[BLOCK]", proc.stdout, proc.stdout)
++        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
++
++
+ if __name__ == "__main__":
+     unittest.main()
