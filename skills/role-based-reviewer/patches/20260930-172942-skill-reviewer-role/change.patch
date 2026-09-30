@@ -1,0 +1,243 @@
+diff --git a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+index 46150a6..76fee56 100644
+--- a/skills/role-based-reviewer/SKILL.md
++++ b/skills/role-based-reviewer/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: role-based-reviewer
+ name: role-based-reviewer
+-description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、diag。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
++description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、skill。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
+ ---
+ 
+ # 角色化评审
+@@ -31,7 +31,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre
+ 
+ ## 输入
+ 
+-- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`diag`。
++- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
+ - `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
+ - `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
+ - `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
+@@ -63,7 +63,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre
+   - 目标就是部署/CI/集群/密钥（不是应用代码里读了环境变量）→ + **sre**
+   - 目标就是模型/策略/实验效果 → + **algo**
+   - 目标就是管道/数仓/口径 → + **data**
+-  - 目标就是故障/报错/性能倒退的根因排查（现象→根因，而非静态质量审查）→ + **diag**
++  - 目标就是 Agent Skill 的质量诊断（description 触发面、门禁、协议一致性、契约测试）→ + **skill**
+   - 目标就是运营配置/灰度节奏 → + **ops**
+   - 目标就是对外协议/多租户对接 → + **biz**
+ - 推断结果将超过 2 个角色：停下来问，不猜。已传入的 `roles` 属指定而非推断，不在「先问」之列。
+diff --git a/skills/role-based-reviewer/references/brief-protocol.md b/skills/role-based-reviewer/references/brief-protocol.md
+index 07d0f41..3782379 100644
+--- a/skills/role-based-reviewer/references/brief-protocol.md
++++ b/skills/role-based-reviewer/references/brief-protocol.md
+@@ -7,12 +7,12 @@
+ ```markdown
+ ## RoleBrief
+ 
+-**角色**：<engineer / algo / data / sre / ops / biz / product / design（别名 uiux） / qa / diag>
++**角色**：<engineer / algo / data / sre / ops / biz / product / design（别名 uiux） / qa / skill>
+ **问题视角**：<用户问题的角色化重述，一句话>
+ 
+ ### 领域上下文
+ - 锚点：<本次实际读到的文件路径>
+-- 运行态：<仅 engineer / sre / ops / diag 需要时填；其余省略>
++- 运行态：<仅 engineer / sre / ops 需要时填；其余省略>
+ 
+ ### 下游建议
+ - `<skill 或动作>` → <用途一句话>
+diff --git a/skills/role-based-reviewer/references/constraints.md b/skills/role-based-reviewer/references/constraints.md
+index a95b78c..328b716 100644
+--- a/skills/role-based-reviewer/references/constraints.md
++++ b/skills/role-based-reviewer/references/constraints.md
+@@ -13,11 +13,11 @@
+ 
+ ## 命令边界
+ 
+-| | engineer | algo | data | sre | ops | biz | product | design | qa | diag |
++| | engineer | algo | data | sre | ops | biz | product | design | qa | skill |
+ |---|---|---|---|---|---|---|---|---|---|---|
+-| 视角 | 在线实现、性能、调用链 | 模型/策略/实验 | 管道、数仓、口径 | 集群、监控、发布 | 业务配置、灰度、运营流程 | 对外对接、多租户 | 需求与 spec | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉一致性 | 可测性与回归 | 现象→根因、复现与取证 |
+-| 典型下游 | `task-explore`、`taskflow`、`service-manager` | `task-explore`、`taskflow` | `task-explore`、`taskflow` | `service-manager`、部署/CI 相关约定 | 运营手册 / 配置变更流程 | 协议/对接文档 | `task-explore`、`taskflow`、OpenSpec（若项目有） | `ui-template-design` | 测试与回归计划 | `diagnosing-bugs`、`trouble-grill`、`service-manager` |
+-| 运行态上下文 | 按需 | 否 | 否 | 按需 | 按需 | 否 | 否 | 否 | 否 | 按需 |
++| 视角 | 在线实现、性能、调用链 | 模型/策略/实验 | 管道、数仓、口径 | 集群、监控、发布 | 业务配置、灰度、运营流程 | 对外对接、多租户 | 需求与 spec | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉一致性 | 可测性与回归 | 触发面、协议一致性、可执行性 |
++| 典型下游 | `task-explore`、`taskflow`、`service-manager` | `task-explore`、`taskflow` | `task-explore`、`taskflow` | `service-manager`、部署/CI 相关约定 | 运营手册 / 配置变更流程 | 协议/对接文档 | `task-explore`、`taskflow`、OpenSpec（若项目有） | `ui-template-design` | 测试与回归计划 | `skill-creator`、`skill-upgrader`、`skill-evolver` |
++| 运行态上下文 | 按需 | 否 | 否 | 按需 | 按需 | 否 | 否 | 否 | 否 | 否 |
+ | 输出 | RoleBrief / 审查报告 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 |
+ 
+ 本 skill **不调用**其他 skill 的内部逻辑；在输出里写清「下一步建议执行哪个 skill」，由用户/主 agent 触发。项目里没有对应 skill 时，写清动作本身，不要编造不存在的 skill 名。
+@@ -47,8 +47,8 @@
+ | design ↔ product | 体验 | 视觉/交互/无障碍 → design；价值/范围/文案 → product | 互引 |
+ | design ↔ engineer | UI 落地 | 视觉与交互规格 → design；实现与性能 → engineer | 互引 |
+ | qa ↔ engineer | 测试 | 覆盖/回归/可测性 → qa；实现正确性 → engineer | 互引 |
+-| diag ↔ engineer | 定位 → 修复 | 现象→根因的假设验证与取证 → diag；已定根因的修复与代码质量 → engineer | 互引 |
+-| diag ↔ sre | 故障根因归属 | 应用内逻辑/数据根因 → diag；部署/资源/依赖/集群侧根因 → sre | 互引 |
++| skill ↔ engineer | skill 内 `scripts/` | SKILL.md/references 的触发、协议与契约质量 → skill；scripts/ 代码缺陷 → engineer | 互引 |
++| skill ↔ qa | 契约测试 | 正文承诺与 tests/ 断言的对应缺口 → skill；通用可测性与回归策略 → qa | 互引 |
+ 
+ ## 结尾巴块
+ 
+diff --git a/skills/role-based-reviewer/references/preload-protocol.md b/skills/role-based-reviewer/references/preload-protocol.md
+index acf7bf5..218f2f7 100644
+--- a/skills/role-based-reviewer/references/preload-protocol.md
++++ b/skills/role-based-reviewer/references/preload-protocol.md
+@@ -19,7 +19,7 @@
+ 
+ ## 运行态上下文
+ 
+-仅 engineer / sre / ops / diag 在问题依赖环境时启用；其余角色省略。多角色请求中只收集一次，并只用于启用角色的结论。
++仅 engineer / sre / ops 在问题依赖环境时启用；其余角色省略。多角色请求中只收集一次，并只用于启用角色的结论。
+ 
+ 来源（存在才读）：compose / Helm / K8s 清单、`.env.example`、项目内环境说明。只做摘要，不计入「为求全而堆文件」。涉及生产写操作时必须额外确认——本 skill 默认不执行写操作。
+ 
+diff --git a/skills/role-based-reviewer/references/role-vocabulary.md b/skills/role-based-reviewer/references/role-vocabulary.md
+index 44c0c1f..6f26964 100644
+--- a/skills/role-based-reviewer/references/role-vocabulary.md
++++ b/skills/role-based-reviewer/references/role-vocabulary.md
+@@ -15,7 +15,7 @@
+ | `product` | 产品 | 需求覆盖、用户价值、边界与异常、交互闭环、文案、与既有行为一致 | 对接落地与代码实现（→ biz / engineer）；视觉细节（→ design） |
+ | `design`（别名 `uiux`） | UI/UX | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉与设计系统一致性、响应式 | 后端逻辑（→ engineer）；需求范围与价值（→ product） |
+ | `qa` | QA | 可测性、覆盖缺口、边界/异常、回归、并发与时序、数据一致性 | 产品价值判断（→ product）；实现方案选型（→ engineer） |
+-| `diag` | 诊断/排障 | 现象→根因的假设验证、复现与取证（日志/监控/堆栈）、症状与根因区分、回归验证 | 已定根因的修复与实现质量（→ engineer）；部署/资源/集群侧根因的处置（→ sre）；离线口径与管道（→ data） |
++| `skill` | Skill 诊断 | Agent Skill 的 description 触发面、门禁/协议一致性与可执行性、references 按需加载、契约测试覆盖、公开仓纪律 | `scripts/` 代码质量（→ engineer）；通用可测性（→ qa）；skill 存在价值（→ product） |
+ 
+ 项目没有对应域时，不要强行启用 `algo` / `data` / `biz` / `ops` / `design`。目录或文件名沾边不是强信号；主体问题不在该角色职责内就不要加。
+ 
+diff --git a/skills/role-based-reviewer/references/roles/diag.md b/skills/role-based-reviewer/references/roles/diag.md
+deleted file mode 100644
+index 82defe3..0000000
+--- a/skills/role-based-reviewer/references/roles/diag.md
++++ /dev/null
+@@ -1,50 +0,0 @@
+-# 诊断/排障（`diag`）
+-
+-角色文件：仅在本角色生效时加载（见 [preload-protocol](../preload-protocol.md)）；职责边界以 [role-vocabulary](../role-vocabulary.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。`[运行态]` 条目纯 diff 评审降级为「⚠ 需运行态验证」。
+-
+-## 优先锚点
+-
+-报错原文与堆栈、日志与监控/告警记录、复现步骤、最近变更（`git log` / diff / 发布记录）、最小复现用例、相关测试。
+-
+-跳过：与症状无关的全库通读；已定根因后的修复方案细节（→ engineer）。
+-
+-## 诊断方法（`mode=ask`）
+-
+-- 先固化现象：可复现步骤、影响面、起始时间；不能复现也要固定「观察到的症状清单」。
+-- 一次只验一个假设：每个假设配一个能证伪它的取证动作（日志、二分、对照实验），不并排猜多个原因。
+-- 区分症状与根因：结论必须能解释「为什么是这个现象」；只覆盖表象的结论是症状，不是根因。
+-- 最近变更优先：把症状起始时间与发布 / 配置 / 数据变更时间线对齐，先验变更假设。
+-- 证据分级：直接证据（日志 / 堆栈 / 度量）> 间接推断 > 猜测；结论标注证据等级。
+-
+-## 核心检查清单
+-
+-每条附命中判据；判据不满足则不报。评审视角是「出问题能不能定位」与「结论是不是根因」。
+-
+-1. 🔴 [代码] 现象即根因：修复或结论只针对表层症状，因果链未闭合，同类故障必然复发。
+-   命中判据：给出的根因解释无法说明「为什么偏偏是这个现象」，或按该结论修复后仍存在未解释的其他症状。
+-2. 🟡 [代码] 可诊断性：错误路径的日志 / 异常缺定位上下文（请求标识、关键输入摘要、状态机位置），线上无法从日志反推现场。
+-   命中判据：指出一条具体错误路径，其日志 / 异常信息不含足以区分不同触发源与输入的字段。
+-3. 🟡 [代码] 静默失败与兜底掩盖：catch 兜底、重试、默认值降级掩盖原始错误，现象与根因在时间 / 位置上分离。
+-   命中判据：存在一条路径，原始错误被吞或替换后，外层只能观察到下游的次生症状。
+-4. 🟡 [代码] 关键路径无观测点：故障假设清单上的关键环节无日志 / 指标，排障只能盲猜。
+-   命中判据：给出该模块最可能的 2~3 个故障假设，指出其中无法通过现有日志 / 指标证伪的环节。
+-5. 🟡 [运行态] 症状-变更时间线：症状起始时间与发布 / 配置 / 数据变更对不上时，「最近变更」假设不成立，须明示并换方向。
+-   命中判据：拿到症状起始时间与变更记录后仍存在未解释的时差。
+-6. ⚪ [代码] 排障支持：无 runbook、无复现环境说明、无错误码表，接手者无法独立定位。
+-
+-## 不算问题
+-
+-- **日志 / 指标数量少**：数量本身不是问题；关键故障假设无法取证（判据 4）才是。
+-- **没有 tracing / APM 体系**：观测体系成熟度选型归项目阶段，不因标杆报。
+-- **「可能还有其他原因」**：没有可证伪假设与取证动作的猜测不报。
+-- **已闭环的历史故障**：根因已验证且回归已覆盖的旧问题不重复审。
+-
+-## 下游建议
+-
+-`diagnosing-bugs` → 系统化根因排查循环（假设-验证）；`trouble-grill` → 根因结论拷问防失焦；`service-manager` → 起本地服务复现与验证。
+-
+-## 跨角色 redirect
+-
+-- diag ↔ engineer（定位 → 修复）：现象 → 根因的假设验证与取证 → diag；已定根因的修复方案、代码质量与回归防护 → engineer
+-- diag ↔ sre（根因归属）：应用内逻辑 / 数据根因 → diag；部署 / 资源 / 依赖 / 集群侧根因 → sre
+-- diag ↔ data / algo：离线口径、样本与管道症状 → data；模型效果与策略异常 → algo
+diff --git a/skills/role-based-reviewer/references/roles/skill.md b/skills/role-based-reviewer/references/roles/skill.md
+new file mode 100644
+index 0000000..de9a16b
+--- /dev/null
++++ b/skills/role-based-reviewer/references/roles/skill.md
+@@ -0,0 +1,51 @@
++# Agent Skill 诊断（`skill`）
++
++角色文件：仅在本角色生效时加载（见 [preload-protocol](../preload-protocol.md)）；职责边界以 [role-vocabulary](../role-vocabulary.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。审查对象是 Agent Skill 本身（`SKILL.md` / `references/` / `tests/`），不是业务代码。
++
++## 优先锚点
++
++目标 skill 的 `SKILL.md`（frontmatter + 正文）、`references/`（按需加载结构）、`tests/`（文本契约）、`evals/` 与 `examples/`（若有）、README 中的安装 / 触发说明、调用方 skill 的引用点。
++
++跳过：`scripts/` 的逐行实现（代码缺陷 → engineer）；skill 该不该存在的价值论证（→ product）。
++
++## 诊断方法（`mode=ask`）
++
++- 触发面用样例说话：评 description 时先各举 1 个「应触发」与「不应触发」的用户表述，再对照现状。
++- 以契约为真相源：正文承诺的 MUST / 禁止，先在 `tests/` 里找对应断言；没有断言的承诺按「契约缺口」处理。
++- 改动建议落到机制：优先协议 / 门禁 / 契约层面的通用解，不为单一场景特例化。
++
++## 核心检查清单
++
++每条附命中判据；判据不满足则不报，不为凑数降级描述。
++
++1. 🔴 description 触发面：过宽误触（普通问答被拉进流程）或过窄漏触（目标场景进不来）；缺「何时不用」。
++   命中判据：给出一个具体用户表述，按当前 description 会错误触发或错误不触发。
++2. 🔴 指令不可检查：正文要求的行为无判据、无落点，执行者无法自检（「注意质量」「保持简洁」式空话）。
++   命中判据：指出一条指令，两个独立执行者会产生可分辨的不同行为，且文中无判定标准。
++3. 🟡 术语 / 协议漂移：同一概念（阶段名、门禁、状态值、路径）在 SKILL.md 与 references 间表述不一致。
++   命中判据：同一概念两处以上不同写法，且差异会影响行为判断。
++4. 🟡 预加载失控：MUST 先读取清单过大、references 未按需加载、无文件预算。
++   命中判据：默认路径加载的文件数 / 体量无上限约束，或所有场景加载同一批大文件。
++5. 🟡 契约测试缺口：正文新增 MUST / 禁止 / 落点，`tests/` 无对应文本契约断言。
++   命中判据：指出一条正文承诺在 `tests/` 中无任何断言覆盖。
++6. 🟡 职责越界：内嵌了其他 skill 的职责且缺 redirect。
++   命中判据：指出一段指令与某既有 skill 的 description 重叠，且文中未 redirect。
++7. ⚪ 公开仓纪律：正文 / 示例含个人、凭据、内部 URL 痕迹；运行产物约定写进 skill 目录。
++8. ⚪ 自进化纪律：正文诱导自动进化（如「失败后自动更新本文件」），绕过 skill-evolver 的显式触发。
++
++## 不算问题
++
++- **文风与措辞偏好**：表达口味不报；只有影响行为判定的歧义（判据 3）才报。
++- **缺 `examples/` `evals/` `experience/`**：自进化结构是显式升级决策（skill-upgrader 的 self-upgrade），缺失本身不是缺陷。
++- **「还能写得更详细」**：无量化判据的润色建议不报。
++- **`scripts/` 的代码风格**：归 engineer 的约定一致性条目，不在本角色重复。
++
++## 下游建议
++
++`skill-creator` → 新建或大改 skill；`skill-upgrader` → 可审计 patch 更新正文 / 结构；`skill-evolver` → 按真实执行经验进化（仅显式触发）。
++
++## 跨角色 redirect
++
++- skill ↔ engineer（`scripts/`）：SKILL.md / references 的触发、协议与契约质量 → skill；scripts/ 代码缺陷与质量 → engineer
++- skill ↔ qa（契约测试）：正文承诺与 tests/ 断言的对应缺口 → skill；通用可测性与回归策略 → qa
++- skill ↔ product（存在价值）：skill 该不该存在、合并还是拆分 → product；已存在 skill 的质量诊断 → skill
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index 08d5556..2f3c408 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -36,15 +36,15 @@ class TestGates(unittest.TestCase):
+             "product",
+             "design",
+             "qa",
+-            "diag",
++            "skill",
+         ):
+             self.assertIn(f"`{role}`", self.text)
+ 
+ 
+ class TestRoleFilesStructure(unittest.TestCase):
+-    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 diag）。"""
++    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 skill）。"""
+ 
+-    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "diag")
++    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill")
+ 
+     def test_thickened_roles_have_criteria(self) -> None:
+         for role in self.THICKENED_FULL:

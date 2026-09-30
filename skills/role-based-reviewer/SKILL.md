@@ -1,7 +1,7 @@
 ---
 id: role-based-reviewer
 name: role-based-reviewer
-description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
+description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、skill。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
 ---
 
 # 角色化评审
@@ -31,7 +31,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre�
 
 ## 输入
 
-- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`。
+- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
 - `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
 - `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
 - `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。质量目标含审美 / 体验等无法用确定性度量完备验收的项时，角色底线里还须带天花板参照集（把「卓越」落成可数构成件或外部参照）。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
@@ -63,6 +63,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre�
   - 目标就是部署/CI/集群/密钥（不是应用代码里读了环境变量）→ + **sre**
   - 目标就是模型/策略/实验效果 → + **algo**
   - 目标就是管道/数仓/口径 → + **data**
+  - 目标就是 Agent Skill 的质量诊断（description 触发面、门禁、协议一致性、契约测试）→ + **skill**
   - 目标就是运营配置/灰度节奏 → + **ops**
   - 目标就是对外协议/多租户对接 → + **biz**
 - 推断结果将超过 2 个角色：停下来问，不猜。已传入的 `roles` 属指定而非推断，不在「先问」之列。

@@ -36,14 +36,15 @@ class TestGates(unittest.TestCase):
             "product",
             "design",
             "qa",
+            "skill",
         ):
             self.assertIn(f"`{role}`", self.text)
 
 
 class TestRoleFilesStructure(unittest.TestCase):
-    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design）。"""
+    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 skill）。"""
 
-    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz")
+    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill")
 
     def test_thickened_roles_have_criteria(self) -> None:
         for role in self.THICKENED_FULL:

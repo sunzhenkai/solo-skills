@@ -13,12 +13,12 @@
 
 ## 命令边界
 
-| | engineer | algo | data | sre | ops | biz | product | design | qa |
-|---|---|---|---|---|---|---|---|---|---|
-| 视角 | 在线实现、性能、调用链 | 模型/策略/实验 | 管道、数仓、口径 | 集群、监控、发布 | 业务配置、灰度、运营流程 | 对外对接、多租户 | 需求与 spec | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉一致性 | 可测性与回归 |
-| 典型下游 | `task-explore`、`taskflow`、`service-manager` | `task-explore`、`taskflow` | `task-explore`、`taskflow` | `service-manager`、部署/CI 相关约定 | 运营手册 / 配置变更流程 | 协议/对接文档 | `task-explore`、`taskflow`、OpenSpec（若项目有） | `ui-template-design` | 测试与回归计划 |
-| 运行态上下文 | 按需 | 否 | 否 | 按需 | 按需 | 否 | 否 | 否 | 否 |
-| 输出 | RoleBrief / 审查报告 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 |
+| | engineer | algo | data | sre | ops | biz | product | design | qa | skill |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 视角 | 在线实现、性能、调用链 | 模型/策略/实验 | 管道、数仓、口径 | 集群、监控、发布 | 业务配置、灰度、运营流程 | 对外对接、多租户 | 需求与 spec | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉一致性 | 可测性与回归 | 触发面、协议一致性、可执行性 |
+| 典型下游 | `task-explore`、`taskflow`、`service-manager` | `task-explore`、`taskflow` | `task-explore`、`taskflow` | `service-manager`、部署/CI 相关约定 | 运营手册 / 配置变更流程 | 协议/对接文档 | `task-explore`、`taskflow`、OpenSpec（若项目有） | `ui-template-design` | 测试与回归计划 | `skill-creator`、`skill-upgrader`、`skill-evolver` |
+| 运行态上下文 | 按需 | 否 | 否 | 按需 | 按需 | 否 | 否 | 否 | 否 | 否 |
+| 输出 | RoleBrief / 审查报告 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 |
 
 本 skill **不调用**其他 skill 的内部逻辑；在输出里写清「下一步建议执行哪个 skill」，由用户/主 agent 触发。项目里没有对应 skill 时，写清动作本身，不要编造不存在的 skill 名。
 
@@ -47,6 +47,8 @@
 | design ↔ product | 体验 | 视觉/交互/无障碍 → design；价值/范围/文案 → product | 互引 |
 | design ↔ engineer | UI 落地 | 视觉与交互规格 → design；实现与性能 → engineer | 互引 |
 | qa ↔ engineer | 测试 | 覆盖/回归/可测性 → qa；实现正确性 → engineer | 互引 |
+| skill ↔ engineer | skill 内 `scripts/` | SKILL.md/references 的触发、协议与契约质量 → skill；scripts/ 代码缺陷 → engineer | 互引 |
+| skill ↔ qa | 契约测试 | 正文承诺与 tests/ 断言的对应缺口 → skill；通用可测性与回归策略 → qa | 互引 |
 
 ## 结尾巴块
 
