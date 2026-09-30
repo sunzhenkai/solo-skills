@@ -112,7 +112,7 @@ class TestReviewerSelection(unittest.TestCase):
 
 
 class TestPendingDowngradeGate(unittest.TestCase):
-    """`pending` 降级只有用户能确认，审阅收敛与「继续」都不算。"""
+    """降级分级后：A 类硬门不变——confirmed 仍只有用户能写；B 类走临时确认。"""
 
     def setUp(self) -> None:
         self.text = read("SKILL.md")
@@ -122,12 +122,57 @@ class TestPendingDowngradeGate(unittest.TestCase):
 
     def test_quality_profile_reiterates_user_only(self) -> None:
         text = read("references/quality-profile.md")
-        self.assertIn("只有用户能改 `confirmed`：点名接受该项，或明确说按降级表全部确认。执行者、审阅者、评审收敛都不算确认", text)
+        self.assertIn("`confirmed` 只有用户能写", text)
+        self.assertIn("`provisional` 只有 B 类可经审阅收敛写入（临时确认），A 类任何情况下都不许", text)
 
     def test_completion_requires_zero_pending(self) -> None:
-        self.assertIn("`pending` 降级数为 0", self.text)
+        self.assertIn("降级表无 `pending` 且无 `provisional`", self.text)
         text = read("references/quality-profile.md")
-        self.assertIn("完成门：字段齐全，`pending` 降级数为 0", text)
+        self.assertIn("完成门：字段齐全，降级表无 `pending` 且无 `provisional`", text)
+
+
+class TestExitUnblock(unittest.TestCase):
+    """退出点松绑包：降级 A/B 分级、复述生效、无进展轮括号语义修复。"""
+
+    def setUp(self) -> None:
+        self.skill = read("SKILL.md")
+        self.profile = read("references/quality-profile.md")
+        self.grid = read("references/state-machine.md")
+        self.state_file = read("references/state-file.md")
+
+    def test_downgrade_ab_classification(self) -> None:
+        self.assertIn("**A 类**（使完成判据不成立或收窄交付面；拿不准一律归 A）", self.skill)
+        self.assertIn("**B 类**（完成判据与交付面都不缩）", self.skill)
+        self.assertIn("拿不准一律归 A", self.profile)
+        self.assertIn("回滚说明", self.profile)
+
+    def test_class_b_does_not_stop(self) -> None:
+        self.assertIn("不停机、不命中本退出点", self.skill)
+        self.assertIn("B 类 `pending` 走审阅临时确认，不停机", self.profile)
+
+    def test_ratification_at_presence_points(self) -> None:
+        self.assertIn("到用户在场点（真人门、收口）集中追认", self.skill)
+        self.assertIn("否决按该项回滚说明处理后回本退出点重定级", self.skill)
+
+    def test_confirmation_status_enum_extended(self) -> None:
+        self.assertIn("<confirmed | provisional | pending>", self.profile)
+
+    def test_echo_back_authorization(self) -> None:
+        self.assertIn("理解为授权 <项>，若无纠正即生效", self.skill)
+        self.assertIn("不可逆动作除外", self.skill)
+        self.assertIn("逐字点名该动作本身", self.skill)
+        self.assertIn("单独的「继续」仍不算授权", self.skill)
+
+    def test_no_progress_paren_fixed(self) -> None:
+        self.assertIn("任一到达即算新输入", self.skill)
+        self.assertIn("任一到达即算新输入", self.grid)
+        self.assertNotIn("均不算", self.skill)
+        self.assertNotIn("均不算", self.grid)
+
+    def test_grid_and_state_file_synced(self) -> None:
+        self.assertIn("复述生效", self.grid)
+        self.assertIn("降级无 `pending` 无 `provisional`", self.grid)
+        self.assertIn("意图命中", self.state_file)
 
 
 class TestExitPoints(unittest.TestCase):
