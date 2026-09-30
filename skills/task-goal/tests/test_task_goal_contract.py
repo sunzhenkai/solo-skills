@@ -429,6 +429,26 @@ class TestReviewQueue(unittest.TestCase):
         self.assertIn("该\n等待自动解除", self.suspension)
 
 
+class TestHypothesisStreak(unittest.TestCase):
+    """验证连败按假设身份计数：同假设两败、换假设写判伪差异、假设空间封顶。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_per_hypothesis_counting(self) -> None:
+        self.assertIn("同一条验证在**同一假设**下连续失败两次", self.text)
+        self.assertIn("对失败原因的可判伪解释", self.text)
+
+    def test_hypothesis_switch_writes_falsifier(self) -> None:
+        self.assertIn("换假设必须写下新假设及其与旧假设的判伪差异", self.text)
+
+    def test_hypothesis_budget_capped(self) -> None:
+        self.assertIn("累计假设已达 3 个仍失败", self.text)
+
+    def test_no_external_condition(self) -> None:
+        self.assertNotIn("且没有新事实", self.text)
+
+
 class TestSuspensionProtocol(unittest.TestCase):
     """挂起子协议：五元组、白名单、blocked 形态、恢复语义统一定义。"""
 
