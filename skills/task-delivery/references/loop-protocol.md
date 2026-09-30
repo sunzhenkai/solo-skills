@@ -17,10 +17,10 @@ evidence_root: <项目约定临时目录，或 /tmp/task-delivery/<slug>>
 
 ## Stage 1 — Intent and plan intake
 
-委托 task-wizard 产方案（含复杂度档位、建议路由，复杂档含质量画像）。方案原文原样带入本循环，不自产方案、不改写。goal 模式下方案的外部参照与审阅由 task-goal 接管。用户点名 task-delivery 视为接受自动编排和推荐路由，不视为授权危险操作。
+委托 task-wizard 产方案（含完成判据、复杂度档位与建议路由）。方案原文原样带入本循环，不自产方案、不改写。goal 模式下方案的外部参照与审阅由 task-goal 接管。用户点名 task-delivery 视为接受自动编排和推荐路由，不视为授权危险操作。
 
 - 档位非复杂：退出 task-delivery，说明按方案的建议路由执行即可。
-- 目标过短但复杂：除危险、线上、降级确认外不追问。normal 的质量画像由 task-wizard 复杂档产出并经 task-explore 门禁冻结；benchmark 在派发实现前由编排者冻结一份评审专用画像并记录哈希，不发给实现者。
+- 目标过短但复杂：除危险、线上、降级确认外不追问。normal 的质量画像由 task-goal 复杂档产出（或逐字采用上游快照）并经 task-explore 门禁冻结；benchmark 在派发实现前由编排者冻结一份评审专用画像并记录哈希，不发给实现者。
 
 ## Stage 2 — Explore and freeze
 
@@ -35,8 +35,8 @@ evidence_root: <项目约定临时目录，或 /tmp/task-delivery/<slug>>
 
 交给 taskflow 建 `{task}-driver`。driver proposal 必须保留：
 
-- 完成判据原文
-- 质量画像原文快照
+- 完成判据原文（来自 task-wizard）
+- 质量画像原文快照（来自 task-goal 复杂档）
 - 显式降级表
 - 窄切片拆分
 - 证据要求
@@ -170,8 +170,7 @@ skill gap 的 patch 必须通过 `git apply --check` 后应用，并重跑受影
 - A 类 pending 降级未确认（缩完成判据或交付面；B 类经审阅临时确认不停机）
 - 危险操作、线上动作、泄密风险
 - reviewer 派不出或无结论
-- 同一验证在同一假设下连败两次且写不出新假设，或累计假设已达 3 个仍失败（假设与判伪差异记入验证记录）
-- 同一条 P0/P1 连续两轮修复仍在，或单轮新增达恶化闸
+- 失败计数命中上限：同一验证在同一假设下连败、同一条 P0/P1 连败、或单轮新增达恶化闸。计数口径与上限的唯一真源见 [task-goal 退出点](../../task-goal/SKILL.md)；假设与判伪差异记入验证记录
 - 预算耗尽
 - driver checkbox 全勾但完成判据不成立
 

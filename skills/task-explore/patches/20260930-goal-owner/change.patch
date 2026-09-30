@@ -1,0 +1,13 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index cec272e..7a4800d 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -16,7 +16,7 @@ description: "任务不明确、周期很长或需要复杂排查时的探索台
+ 
+ ## Goal 里的确认
+ 
+-处在 goal 里（消息里有 `/goal`，或当前有进行中的 goal，或本任务由 Goal 方案交接且方案里带完成判据）时，下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 task-goal 的「审阅」：派审规则、核对循环、收敛与停止条件以 task-goal 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
++处在 goal 里时（判据以 task-goal 的「触发」节为单一真源，本 skill 不另写一份）,下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 task-goal 的「审阅」：派审规则、核对循环、收敛与停止条件以 task-goal 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
+ 
+ 推荐默认是该处已经写出的默认建议。没有写出默认时，取能让完成判据成立、且不覆盖已有目录、不泄密、不做未点名危险操作的那一条，只审这一条。
+ 

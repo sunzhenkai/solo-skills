@@ -132,8 +132,8 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 ### 质量画像与降级确认
 
 - 质量画像与显式降级原文快照由上游任务描述带入 driver proposal，实施阶段不改写、不删减，只按下面规则补新发现的降级。
-- 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../../task-goal/references/quality-profile.md](../../task-goal/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
-- 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../../task-goal/SKILL.md](../../task-goal/SKILL.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
+- 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../task-goal/references/quality-profile.md](../task-goal/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
+- 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../task-goal/SKILL.md](../task-goal/SKILL.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
 - driver 的最终验收必须按 [references/acceptance-rubric.md](references/acceptance-rubric.md) 给出五维分数与证据，并满足五维均 ≥2、UI/UX 均值 ≥2.5；缺分不得勾验收标准 checkbox。
 
 ### 一轮结束
@@ -142,7 +142,7 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 模板之外的增量：不因一项卡住就整轮停下；不把未完成项勾成完成；不用「某 change 还剩 3 项」这类按 change 汇总的数量代替逐条说明。
 
-「需要用户决策」结束一轮时，按 [../../task-goal/references/suspension.md](../../task-goal/references/suspension.md) 的挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）：依赖该决策的 checkbox 停，不依赖的继续按「一轮结束」推进，不整轮停摆。用户输入到达先比对授权形状——逐字点名或意图命中（复述生效）都算，命中即恢复对应条目，未命中重申仍停，不写成选项列表。
+「需要用户决策」结束一轮时，按 [../task-goal/references/suspension.md](../task-goal/references/suspension.md) 的挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）：依赖该决策的 checkbox 停，不依赖的继续按「一轮结束」推进，不整轮停摆。用户输入到达先比对授权形状——逐字点名或意图命中（复述生效）都算，命中即恢复对应条目，未命中重申仍停，不写成选项列表。
 
 ### 并行执行
 

@@ -12,7 +12,11 @@ state 文件是**运行产物**，落在仓库之外。推荐沿用 task-deliver
 <task 运行目录>/goal-state.yaml
 ```
 
-由 task-delivery 或 goal 系统在创建任务时指定路径，随 goal 生命周期存续；goal 标完成或 blocked 交接后可归档，不删。
+路径由进入 side 指定，随 goal 生命周期存续，goal 标完成或 blocked 交接后可归档，不删：
+
+- **被 task-delivery 以 goal 模式委派**：delivery 在建任务时写入 `goal-state-file:` 交给本协议（默认 `<evidence_root>/goal-state.yaml`）。本文件不替它决定落点。
+- **独立 `/goal` 进入**：由执行者按上表落 `<task 运行目录>/goal-state.yaml`。
+- goal 系统若能改，可在每轮 prompt 里盖 `goal-state-file: <path>` 戳覆盖上述默认。
 
 ## Schema（封闭字段集）
 

@@ -84,8 +84,11 @@ class TestRepairLossStreak(unittest.TestCase):
     def test_budget_semantics_updated(self) -> None:
         self.assertIn("repairs-per-finding<=2", self.loop)
 
-    def test_hard_boundary_synced(self) -> None:
-        self.assertIn("同一条 P0/P1 连续两轮修复仍在、或单轮修复新增达恶化闸", self.skill)
+    def test_hard_boundary_points_to_source(self) -> None:
+        """失败计数口径已去重：本 skill 不复述数字，只指向 task-goal 真源。"""
+        self.assertIn("失败计数", self.skill)
+        self.assertIn("task-goal", self.skill)
+        self.assertNotIn("假设累计封顶 3", self.skill)
 
 
 class TestBudgetExhaustionRecovery(unittest.TestCase):
@@ -98,13 +101,16 @@ class TestHypothesisStreakSync(unittest.TestCase):
     """验证连败按假设计数：与 task-goal 侧定义同步。"""
 
     def test_hard_boundary_synced(self) -> None:
+        """数字口径唯一真源在 task-goal：本 skill 只保留「命中即停」的 hook。"""
         skill = read("SKILL.md")
-        self.assertIn("同一验证在同一假设下连败两次且无新假设可用（假设累计封顶 3", skill)
+        self.assertIn("失败计数", skill)
+        self.assertNotIn("假设累计封顶 3", skill)
 
     def test_stop_condition_synced(self) -> None:
         loop = read("references/loop-protocol.md")
-        self.assertIn("累计假设已达 3 个仍失败", loop)
+        self.assertIn("失败计数命中上限", loop)
         self.assertIn("判伪差异记入验证记录", loop)
+        self.assertNotIn("累计假设已达 3 个仍失败", loop)
 
     def test_task_goal_source_defined(self) -> None:
         goal = (SKILL_ROOT.parent / "task-goal" / "SKILL.md").read_text(encoding="utf-8")
