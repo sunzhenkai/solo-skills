@@ -459,6 +459,23 @@ class TestMinimalUnblock(unittest.TestCase):
         self.assertIn("写明这句解掉哪几个退出点", text)
 
 
+class TestUpgradeProfile(unittest.TestCase):
+    """升到复杂档：当轮补画像草稿过审，不因画像缺失直接停机。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_medium_upgrade_unchanged(self) -> None:
+        self.assertIn("升到中等：状态改为 `已交接`", self.text)
+
+    def test_complex_upgrade_profiles_first(self) -> None:
+        self.assertIn("升到复杂：当轮以已有摸底与已验证步骤为素材补质量画像草稿与显式降级表", self.text)
+        self.assertIn("升档不因画像缺失直接停机", self.text)
+
+    def test_profile_draft_goes_through_review(self) -> None:
+        self.assertIn("按「审阅」节过审——完善中，此阶段不改代码", self.text)
+
+
 class TestSuspensionProtocol(unittest.TestCase):
     """挂起子协议：五元组、白名单、blocked 形态、恢复语义统一定义。"""
 
