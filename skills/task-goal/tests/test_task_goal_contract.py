@@ -320,5 +320,71 @@ class TestQualityProfileContract(unittest.TestCase):
         self.assertIn("`角色底线` 下的 product、design、engineer 三条一条都不能省", self.text)
 
 
+class TestReviewLoopLossStreak(unittest.TestCase):
+    """核对循环：按条计数（连败/恶化闸），不按轮次封顶；回归条有通道。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_per_finding_tracking(self) -> None:
+        self.assertIn("核对的单位是「条」不是「轮」", self.text)
+        self.assertIn("**已消失**", self.text)
+        self.assertIn("**仍在**", self.text)
+        self.assertIn("**新增**", self.text)
+
+    def test_loss_streak_cap(self) -> None:
+        self.assertIn("连败封顶", self.text)
+        self.assertIn("连续两轮核过「仍在」", self.text)
+
+    def test_deterioration_gate(self) -> None:
+        self.assertIn("恶化闸", self.text)
+        self.assertIn("回归账", self.text)
+
+    def test_no_round_cap_wording(self) -> None:
+        self.assertNotIn("第二次核对", self.text)
+        self.assertNotIn("再写入一次", self.text)
+
+    def test_exit_point_aligned_with_loss_streak(self) -> None:
+        self.assertIn("连续两轮核过仍在（连败封顶）", self.text)
+        self.assertIn("旧条全消只有新增条（未达恶化闸），不是这个标签", self.text)
+
+    def test_exit_point_label_set_unchanged(self) -> None:
+        self.assertIn("审阅不通过；审阅派不出；审阅没有结论；评审者未定；降级未确认", self.text)
+
+    def test_stopped_means_no_more_writes(self) -> None:
+        self.assertIn("已停后不再写入，等授权", self.text)
+
+
+class TestSuspensionProtocol(unittest.TestCase):
+    """挂起子协议：五元组、白名单、blocked 形态、恢复语义统一定义。"""
+
+    def setUp(self) -> None:
+        self.skill = read("SKILL.md")
+        self.text = read("references/suspension.md")
+
+    def test_reference_file_exists(self) -> None:
+        self.assertTrue((SKILL_ROOT / "references" / "suspension.md").is_file())
+
+    def test_five_tuple_fields(self) -> None:
+        for field in ("**等待项**", "**授权形状**", "**阻塞面**", "**非依赖面**", "**恢复触发**"):
+            self.assertIn(field, self.text)
+
+    def test_whitelist_and_forbidden(self) -> None:
+        self.assertIn("只读环境查证、外部原文取证、证据固化", self.text)
+        self.assertIn("禁止", self.text)
+
+    def test_blocked_four_sections(self) -> None:
+        self.assertIn("已完成、未完成、证据、下一步", self.text)
+        self.assertIn("blocked 不是新状态", self.text)
+
+    def test_non_goal_first_stop_presents_tuple(self) -> None:
+        self.assertIn("首次停下即按五元组呈现", self.text)
+
+    def test_skill_references_suspension(self) -> None:
+        self.assertEqual(self.skill.count("references/suspension.md"), 4)
+        self.assertIn("挂起五元组", self.skill)
+        self.assertIn("以本节为准", self.skill)
+
+
 if __name__ == "__main__":
     unittest.main()

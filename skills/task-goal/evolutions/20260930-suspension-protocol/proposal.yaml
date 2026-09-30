@@ -1,0 +1,42 @@
+skill: task-goal
+
+problem:
+  族内「等用户」点（降级确认、真人门、仓库选择、预算耗尽、方案缺口）
+  散在各 skill，形态不一：task-goal 有 blocked 交接，taskflow /
+  task-delivery 只有「停下」二字——无挂起五元组、无合法动作白名单、
+  无交接摘要格式、无恢复触发定义。审计发现 5 个卡点直接源于「没有
+  挂起状态」；恢复义务全落在用户记得回来。
+
+evidence:
+  - 2026-09-30 三份同族审计：taskflow 无「已停」状态（需要用户决策时
+    轮次语义三条件都可能不满足）；task-delivery 真人门在自动续跑场景
+    永久冻结；预算耗尽后恢复路径未定义；非 goal 模式方案缺口三不管。
+  - task-goal 自身 blocked 交接形态已经真实执行验证（2026-09-29/30 两份
+    交接摘要四段完整：已完成/未完成/证据/下一步），但定义只覆盖
+    「自动续跑第三次」，未上升为一般「等用户」点的统一协议。
+
+pattern:
+  等待是状态不是终点；各处重复发明「停下」文案，缺统一的（等待项、
+  授权形状、阻塞面、非依赖面、恢复触发）五元组与挂起期间合法动作
+  白名单。
+
+proposed_change:
+  只新增 + 两句引用，不改既有规则语义：
+  1) 新增 references/suspension.md：挂起五元组定义、合法动作白名单、
+     blocked 交接形态（含非 goal 模式「首次停下即按五元组呈现」）、
+     恢复语义；声明族内通用，其他 skill 后续接入时引用。
+  2) SKILL.md「授权」节第二段：停下形状改为指向 suspension.md 五元组。
+  3) SKILL.md「授权」节自动续跑段：末尾加一句指向 suspension.md，
+     并明示「本节与该文件有出入时以本节为准」（沿用 state-machine.md
+     的索引关系先例）。
+  4) tests/ 补契约断言：references/suspension.md 存在、五元组字段名
+     齐全、SKILL.md 含两处引用、白名单与 blocked 四段在文中。
+  本提案只改 task-goal；taskflow / task-delivery 的接入各走各的
+  进化轮（一次会话一个 skill 一轮）。
+
+expected_improvement:
+  「等用户」从各处自由发挥变为可审计的统一形态；taskflow 等 skill
+  后续接入时有现成协议可引用，五个同根卡点一处定义。非 goal 模式
+  首次停下即给完整五元组，不再等到第三轮。
+
+risk: low
