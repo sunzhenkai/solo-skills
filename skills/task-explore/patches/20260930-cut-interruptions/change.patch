@@ -1,0 +1,13 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index f8f0c31..cec272e 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -162,6 +162,8 @@ tasks/
+ 
+ 在 `design` 与 `decide` 之间：把成形方案交给名册里的 agent 评审，回收意见后回 `design` 修正。**可选**——用户不要求则跳过，直接 `decide`；用户/同事已评审也算完成。
+ 
++处在 goal 里时本阶段默认跳过：方案已由 task-goal 审阅收敛，再派名册评审会形成嵌套派审（审阅又要派审阅者），是「审阅派不出」的主要来源。用户点名要名册评审时才走。
++
+ 评审是**只读**委派，直接委托 `$agent-roster`（单次评审，不走 `$agent-roster-flow`）。进入本阶段后 **先读** [references/phase-plan-review.md](references/phase-plan-review.md)。
+ 
+ 候选收成编号表（Endpoint / Model / 擅长方向 / 依据）供用户圈选；名册里没有合适候选时直接问用户，**不要凭 CLI 名假设可用**。名册查询、`decision.md`、acpx 门禁、失败分类与留痕一律按 `$agent-roster`，本阶段不复制其契约。

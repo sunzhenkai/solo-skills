@@ -26,7 +26,7 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 ## 委托契约
 
-`openspec-*` skill 默认由 `dotf agents -c` 装到全局 `~/.agents/skills`（`openspec init --tools agents`），**不是每个仓都自带**。委托前确认当前 agent 环境能读到它们；不可用就停下报告并给出可选项（跑 `dotf agents -c` / `openspec init --tools agents` 装到全局，或改用 openspec CLI 直调），**不要自行发明等价命令**。
+`openspec-*` skill 默认由 `dotf agents -c` 装到全局 `~/.agents/skills`（`openspec init --tools agents`），**不是每个仓都自带**。委托前确认当前 agent 环境能读到它们；不可用就在同一条回复里给全可选项与推荐项——跑 `dotf agents -c` / `openspec init --tools agents` 装到全局，或改用 openspec CLI 直调——用户选完即继续，不反复停，**不要自行发明等价命令**。
 
 可用时，委托必须同时具备两项绑定：**在 driver 的 planning root 下执行**，并**显式给出 change name `{task}-driver`**。缺任一项不得委托——openspec CLI 只认 cwd 最近的 `openspec/`，无绑定会写错位置或反问用户选 change。无法确定时停下报告。
 

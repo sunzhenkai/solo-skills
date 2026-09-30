@@ -502,7 +502,7 @@ class TestSuspensionProtocol(unittest.TestCase):
         self.assertIn("首次停下即按五元组呈现", self.text)
 
     def test_skill_references_suspension(self) -> None:
-        self.assertEqual(self.skill.count("references/suspension.md"), 4)
+        self.assertEqual(self.skill.count("references/suspension.md"), 6)
         self.assertIn("挂起五元组", self.skill)
         self.assertIn("以本节为准", self.skill)
 
