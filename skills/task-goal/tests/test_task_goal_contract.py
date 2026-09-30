@@ -400,6 +400,35 @@ class TestReviewLoopLossStreak(unittest.TestCase):
         self.assertIn("已停后不再写入，等授权", self.text)
 
 
+class TestReviewQueue(unittest.TestCase):
+    """审阅排队：资源等待与授权等待分离；已停期间可重试派审。"""
+
+    def setUp(self) -> None:
+        self.skill = read("SKILL.md")
+        self.grid = read("references/state-machine.md")
+        self.suspension = read("references/suspension.md")
+
+    def test_queue_defined(self) -> None:
+        self.assertIn("**审阅排队**（资源等待，不是授权等待）", self.skill)
+        self.assertIn("连续两轮重试仍派不出", self.skill)
+        self.assertIn("路由写「等端点恢复」", self.skill)
+
+    def test_no_conclusion_does_not_queue(self) -> None:
+        self.assertIn("「审阅没有结论」（派得出、回不来可用结论）不排队", self.skill)
+
+    def test_stopped_round_dispatch_retry(self) -> None:
+        self.assertIn("还允许重试派审（审阅者只读）", self.skill)
+        self.assertIn("本退出点的已停期间，goal 自动续跑轮允许重试派审", self.skill)
+
+    def test_grid_cell_synced(self) -> None:
+        self.assertIn("审阅类退出点可重试派审", self.grid)
+
+    def test_suspension_whitelist_synced(self) -> None:
+        self.assertIn("审阅类等待", self.suspension)
+        self.assertIn("重试派审", self.suspension)
+        self.assertIn("该\n等待自动解除", self.suspension)
+
+
 class TestSuspensionProtocol(unittest.TestCase):
     """挂起子协议：五元组、白名单、blocked 形态、恢复语义统一定义。"""
 
