@@ -449,6 +449,16 @@ class TestHypothesisStreak(unittest.TestCase):
         self.assertNotIn("且没有新事实", self.text)
 
 
+class TestMinimalUnblock(unittest.TestCase):
+    """blocked 交接的下一步按最小解除集排序。"""
+
+    def test_minimal_unblock_ordering(self) -> None:
+        text = read("references/suspension.md")
+        self.assertIn("**最小解除集**", text)
+        self.assertIn("一句授权能同时解掉最多退出点的", text)
+        self.assertIn("写明这句解掉哪几个退出点", text)
+
+
 class TestSuspensionProtocol(unittest.TestCase):
     """挂起子协议：五元组、白名单、blocked 形态、恢复语义统一定义。"""
 
