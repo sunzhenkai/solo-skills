@@ -1,0 +1,638 @@
+diff --git a/skills/repo-manager/SKILL.md b/skills/repo-manager/SKILL.md
+index 243a321..0c412b7 100644
+--- a/skills/repo-manager/SKILL.md
++++ b/skills/repo-manager/SKILL.md
+@@ -298,85 +298,19 @@ glab --help
+ 
+ ## Self-evolution
+ 
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
++本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+ 
+ ```text
+ skills/repo-manager/
+ ├── SKILL.md
+ ├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
++├── evals/         # 可验证成功标准（cases.yaml）
+ └── experience/    # 真实失败 / 成功 / 规律
+ ```
+ 
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
++自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
+ 
+-### Examples
+-
+-执行复杂任务前：
+-
+-1. 检查 `examples/`
+-2. 找到与当前任务相关的成功案例
+-3. 优先复用已经验证的方法
+-
+-没有相关案例时按上文正常执行，不要编造案例。
+-
+-### Evaluation
+-
+-任务完成前：
+-
+-1. 检查相关 `evals/`
+-2. 验证关键输出
+-3. 检查是否违反 Skill 约束
+-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
+-
+-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
+-
+-### Experience
+-
+-任务完成后，出现以下情况才写入 `experience/`：
+-
+-- 失败
+-- 用户纠正
+-- 明显成功
+-- 新的有效执行方法
+-- 可复用的经验
+-
+-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
+-
+-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
+-
+-### Evolution
+-
+-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
+-
+-遵循：
+-
+-```text
+-Experience
+-    ↓
+-Repeated Pattern
+-    ↓
+-Improvement Proposal
+-    ↓
+-Eval
+-    ↓
+-Pass
+-    ↓
+-Update Skill
+-```
+-
+-禁止：
+-
+-```text
+-Single Failure
+-    ↓
+-Directly modify SKILL.md
+-```
+-
+-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
+-
+-实际更新生产 `SKILL.md` 时：
+-
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若当前环境有 `skill-evolver`，委托它走候选 patch → 验证 → 晋升，不要本 Skill 自己改生产稿。
+-3. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
++- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
++- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
++- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+diff --git a/skills/skill-upgrader/references/skill-injection.md b/skills/skill-upgrader/references/skill-injection.md
+index 94d0cca..bbf2150 100644
+--- a/skills/skill-upgrader/references/skill-injection.md
++++ b/skills/skill-upgrader/references/skill-injection.md
+@@ -2,86 +2,19 @@
+ 
+ ## Self-evolution
+ 
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
++本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+ 
+ ```text
+ <skill-dir>/
+ ├── SKILL.md
+ ├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
++├── evals/         # 可验证成功标准（cases.yaml）
+ └── experience/    # 真实失败 / 成功 / 规律
+ ```
+ 
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
++自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
+ 
+-### Examples
+-
+-执行复杂任务前：
+-
+-1. 检查 `examples/`
+-2. 找到与当前任务相关的成功案例
+-3. 优先复用已经验证的方法
+-
+-没有相关案例时按上文正常执行，不要编造案例。
+-
+-### Evaluation
+-
+-任务完成前：
+-
+-1. 检查相关 `evals/`
+-2. 验证关键输出
+-3. 检查是否违反 Skill 约束
+-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
+-
+-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
+-
+-### Experience
+-
+-任务完成后，出现以下情况才写入 `experience/`：
+-
+-- 失败
+-- 用户纠正
+-- 明显成功
+-- 新的有效执行方法
+-- 可复用的经验
+-
+-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
+-
+-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
+-
+-### Evolution
+-
+-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
+-
+-遵循：
+-
+-```text
+-Experience
+-    ↓
+-Repeated Pattern
+-    ↓
+-Improvement Proposal
+-    ↓
+-Eval
+-    ↓
+-Pass
+-    ↓
+-Update Skill
+-```
+-
+-禁止：
+-
+-```text
+-Single Failure
+-    ↓
+-Directly modify SKILL.md
+-```
+-
+-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
+-
+-实际更新生产 `SKILL.md` 时：
+-
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
+-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`<skill-dir>/patches/`），仍须先提案再应用。
+-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
++- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
++- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
++- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+diff --git a/skills/skills-store/SKILL.md b/skills/skills-store/SKILL.md
+index ff0d112..81f8815 100644
+--- a/skills/skills-store/SKILL.md
++++ b/skills/skills-store/SKILL.md
+@@ -278,85 +278,19 @@ npx skills use <owner/repo> --skill <skill-name>
+ 
+ ## Self-evolution
+ 
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
++本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+ 
+ ```text
+ skills/skills-store/
+ ├── SKILL.md
+ ├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
++├── evals/         # 可验证成功标准（cases.yaml）
+ └── experience/    # 真实失败 / 成功 / 规律
+ ```
+ 
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
++自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
+ 
+-### Examples
+-
+-执行复杂任务前：
+-
+-1. 检查 `examples/`
+-2. 找到与当前任务相关的成功案例
+-3. 优先复用已经验证的方法
+-
+-没有相关案例时按上文正常执行，不要编造案例。
+-
+-### Evaluation
+-
+-任务完成前：
+-
+-1. 检查相关 `evals/`
+-2. 验证关键输出
+-3. 检查是否违反 Skill 约束
+-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
+-
+-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
+-
+-### Experience
+-
+-任务完成后，出现以下情况才写入 `experience/`：
+-
+-- 失败
+-- 用户纠正
+-- 明显成功
+-- 新的有效执行方法
+-- 可复用的经验
+-
+-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
+-
+-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
+-
+-### Evolution
+-
+-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
+-
+-遵循：
+-
+-```text
+-Experience
+-    ↓
+-Repeated Pattern
+-    ↓
+-Improvement Proposal
+-    ↓
+-Eval
+-    ↓
+-Pass
+-    ↓
+-Update Skill
+-```
+-
+-禁止：
+-
+-```text
+-Single Failure
+-    ↓
+-Directly modify SKILL.md
+-```
+-
+-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
+-
+-实际更新生产 `SKILL.md` 时：
+-
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若当前环境有 `skill-evolver`，委托它走候选 patch → 验证 → 晋升，不要本 Skill 自己改生产稿。
+-3. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
++- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
++- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
++- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+diff --git a/skills/task-delivery/SKILL.md b/skills/task-delivery/SKILL.md
+index 1ed8595..97b39d9 100644
+--- a/skills/task-delivery/SKILL.md
++++ b/skills/task-delivery/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-delivery
+ name: task-delivery
+-description: "把一句复杂交付目标编排成自动闭环：委托 task-wizard 产方案与质量画像、task-explore 探索、taskflow 小切片、实现与运行证据、product/design/engineer 评审、失败归因、修复和复验。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：显式指定或自动检测到进行中 goal 时，本循环内所有确认与方案审阅委托 task-goal，不列选项。"
++description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 三角色评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
+ ---
+ 
+ # Task Delivery
+diff --git a/skills/task-delivery/references/loop-protocol.md b/skills/task-delivery/references/loop-protocol.md
+index 3c1ea61..348da2d 100644
+--- a/skills/task-delivery/references/loop-protocol.md
++++ b/skills/task-delivery/references/loop-protocol.md
+@@ -108,7 +108,7 @@ role-based-reviewer mode=review roles=product,design,engineer
+ 
+ **回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决：写明冲突项、双方口径原文、推荐裁决与需要的一句话决定，一次性说明，不列选项，不把等待裁决登记为任务。
+ 
+-**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；「卓越」天花板 MUST 已在实现前定义（可数构成件或外部参照集），且每个修复轮后 MUST 经「中途真人门」——给使用者看最小一批实物并收一句反馈；使用者未看过实物不得进入收口。真人门同时是 B 类降级的集中追认点（呈现与回滚规则见 SKILL.md「观感类质量目标」）。
++**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。
+ 
+ ## Stage 8 — Failure triage
+ 
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index dbfcb8f..f8f0c31 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-explore
+ name: task-explore
+-description: 针对任务不明确、周期可能很长或需要复杂问题排查的工作，在当前目录维护 tasks/INDEX.md、tasks/ongoing 与 tasks/archive，按 new / explore / chat / resume / design / decide / save / handoff / archive / reopen / split 阶段推进；split 把当前任务的一个方向拆成子任务。explore 委托 grilling；decide 冻结方案；handoff 把探索任务交给 taskflow 的 {task}-driver，任务转入 handed-off（不归档、留在 ongoing 可见，后续可点名 archive 关闭）。处在 goal 里时，向用户确认的决定改走 task-goal 的审阅，不列选项。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复/交接/归档/重新打开任务时使用。已有探索任务要交付时用 handoff，不要绕开另起无关 driver。
++description: "任务不明确、周期很长或需要复杂排查时的探索台账：在 `tasks/` 下维护 ongoing / archive 并按阶段推进；交付时 handoff 给 taskflow 的 `{task}-driver`（转入 handed-off，不归档，留在 ongoing 可见）。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复 / 交接 / 归档 / 重新打开任务时使用；已有探索任务要交付时用 handoff，不要绕开另起无关 driver。"
+ ---
+ 
+ # 任务探索
+@@ -190,7 +190,7 @@ tasks/
+ - 绑定父任务 → 父是纯伞不可交接，自动批量交接所有「已 `decide` 未交接」的子任务，无需逐项确认；就绪为零则打断并报告各子任务所缺条件；未 `decide` 的子任务跳过且不阻塞其余。批量中任一失败即停，已交接的不回滚。
+ - 父任务无子任务 → 提示 `split` 拆分或 `new` 另建，**不建 `{parent}-driver`**。
+ 
+-**`handed-off` 状态**：任务留在 `tasks/ongoing/`，INDEX 的 Ongoing 表保留该行（一句话以 `→ {task-name}-driver` 结尾）；可 `resume` 查看方案/决策/交接记录，交付进度只认 taskflow checkbox，任务文档不再勾交付进度；再次 `handoff` 只报告 driver 路径。方案修订默认直接改 driver 的 `proposal.md`；改动大或要推翻决策时，点名 `reopen` 撤回交接（`status` 回 `ongoing`）后重新 `decide` → `handoff`。
++**`handed-off` 状态**：任务留在 `tasks/ongoing/`，INDEX 的 Ongoing 表保留该行（一句话以 `→ {task-name}-driver` 结尾）；可 `resume` 查看方案/决策/交接记录，进度只认 taskflow checkbox，任务文档不再勾交付进度；再次 `handoff` 只报告 driver 路径。方案修订默认直接改 driver 的 `proposal.md`；改动大或要推翻决策时，点名 `reopen` 撤回交接（`status` 回 `ongoing`）后重新 `decide` → `handoff`。
+ 
+ ## `archive`
+ 
+diff --git a/skills/task-goal/SKILL.md b/skills/task-goal/SKILL.md
+index e90a930..3b84d80 100644
+--- a/skills/task-goal/SKILL.md
++++ b/skills/task-goal/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-goal
+ name: task-goal
+-description: "goal 模式下唯一的确认与审阅协议：接一份带完成判据的方案（上游 task-wizard 的步骤级方案，或自己按本协议产），复杂档先外部参照，再派评审者审阅、核对收敛，按简单/中等/复杂三档路由开工；执行中所有要向用户确认的决定一律走审阅，不列选项。在消息里有 /goal、当前有进行中的 goal 且本条消息挂了本 skill，或被上游 skill（如 task-delivery、task-explore）以 goal 模式委派时使用；不在 goal 里、只要一份方案给人确认时不要使用（那是 task-wizard）。"
++description: "goal 模式下唯一的确认与审阅协议：接一份带完成判据的方案（上游 task-wizard 的，或自己按本协议产），派评审者审阅、核对收敛后按简单 / 中等 / 复杂三档路由开工；执行中所有要向用户确认的决定一律走审阅，不列选项。在消息里有 /goal、当前有进行中的 goal 且本条消息挂了本 skill，或被上游 skill（如 task-delivery、task-explore）以 goal 模式委派时使用；不在 goal 里、只要一份方案给人确认时不要使用（那是 task-wizard）。"
+ ---
+ 
+ # Task Goal：goal 执行协议
+@@ -25,7 +25,7 @@ description: "goal 模式下唯一的确认与审阅协议：接一份带完成
+ 
+ ## 减少确认
+ 
+-凡要向用户确认的决定，含本协议的路由选择和下游 skill 里的确认，都走「审阅」，不列选项。审阅收敛则采纳该处推荐默认并继续。单独「继续」只对退出点造成的 `已停` 无效。详细设计，以及危险操作、线上动作、泄密等退出点，仍停，不交给审阅放行。排查写不出步骤时，推荐走 task-explore，先走审阅；收敛后直接开始，不向用户要这句话。
++凡要向用户确认的决定，含本协议的路由选择和下游 skill 里的确认，都走「审阅」，不列选项。审阅收敛则采纳该处推荐默认并继续。单独「继续」只对退出点造成的 `已停` 无效。详细设计，以及危险操作、线上动作、泄密等退出点，仍停，不交给审阅放行。
+ 
+ 术语见同目录 `CONTEXT.md`。
+ 
+@@ -233,86 +233,19 @@ goal 自动续跑（续跑提示来自 goal 系统而非用户回复）既不是
+ 
+ ## Self-evolution
+ 
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
++本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+ 
+ ```text
+ skills/task-goal/
+ ├── SKILL.md
+ ├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
++├── evals/         # 可验证成功标准（cases.yaml）
+ └── experience/    # 真实失败 / 成功 / 规律
+ ```
+ 
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
++自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
+ 
+-### Examples
+-
+-执行复杂任务前：
+-
+-1. 检查 `examples/`
+-2. 找到与当前任务相关的成功案例
+-3. 优先复用已经验证的方法
+-
+-没有相关案例时按上文正常执行，不要编造案例。
+-
+-### Evaluation
+-
+-任务完成前：
+-
+-1. 检查相关 `evals/`
+-2. 验证关键输出
+-3. 检查是否违反 Skill 约束
+-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
+-
+-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
+-
+-### Experience
+-
+-任务完成后，出现以下情况才写入 `experience/`：
+-
+-- 失败
+-- 用户纠正
+-- 明显成功
+-- 新的有效执行方法
+-- 可复用的经验
+-
+-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
+-
+-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
+-
+-### Evolution
+-
+-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
+-
+-遵循：
+-
+-```text
+-Experience
+-    ↓
+-Repeated Pattern
+-    ↓
+-Improvement Proposal
+-    ↓
+-Eval
+-    ↓
+-Pass
+-    ↓
+-Update Skill
+-```
+-
+-禁止：
+-
+-```text
+-Single Failure
+-    ↓
+-Directly modify SKILL.md
+-```
+-
+-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
+-
+-实际更新生产 `SKILL.md` 时：
+-
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
+-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`<skill-dir>/patches/`），仍须先提案再应用。
+-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
++- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
++- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
++- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+diff --git a/skills/task-wizard/SKILL.md b/skills/task-wizard/SKILL.md
+index e9f2447..f203a72 100644
+--- a/skills/task-wizard/SKILL.md
++++ b/skills/task-wizard/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-wizard
+ name: task-wizard
+-description: "理解用户意图并生成步骤级任务方案：每步动作、要点、验证，列出阻塞点与坑，带可检查的交付标准与完成判据；方案落稿前把所有要人拍板的缺口收敛进方案，不做详细设计、不执行。产出后由人选择执行 / 调整 / 改路由；处在 goal 里的执行与确认由 task-goal 接管，本 skill 不感知 goal。在用户点名 /task-wizard、要求做方案/拆解任务/规划步骤时使用。"
++description: "把用户意图变成步骤级任务方案：每步含动作、要点与验证，列阻塞点与坑，带可检查的交付标准；只产方案，不做详细设计、不执行。在用户点名 /task-wizard、要求做方案 / 拆解任务 / 规划步骤时使用。"
+ ---
+ 
+ # Task Wizard：任务完成方案
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index d086474..ae9f2d3 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: taskflow
+ name: taskflow
+-description: "用一个 driver change 编排一批子 change 的任务生命周期：`taskflow-new` 建 `{task}-driver`（`skip_specs: true` + 协议写进 proposal），explore / propose / apply / archive 全部委托 stock `openspec-*` skill，进度只认 OpenSpec checkbox，零脚本、无第二份任务账本。在用户点名 taskflow、执行 `taskflow-new`、跟进 `{task}-driver`、要把一个任务拆成多个 OpenSpec change 时使用。"
++description: "把一个任务拆成多个 OpenSpec change 并推进到底：`taskflow-new` 建 `{task}-driver`，四个阶段委托 stock `openspec-*`，进度只认 OpenSpec checkbox。在用户点名 taskflow、执行 `taskflow-new`、跟进 `{task}-driver`、要把一个任务拆成多个 OpenSpec change 时使用。"
+ ---
+ 
+ # taskflow
+@@ -174,85 +174,19 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
+ 
+ ## Self-evolution
+ 
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
++本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+ 
+ ```text
+ skills/taskflow/
+ ├── SKILL.md
+ ├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
++├── evals/         # 可验证成功标准（cases.yaml）
+ └── experience/    # 真实失败 / 成功 / 规律
+ ```
+ 
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
++自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
+ 
+-### Examples
+-
+-执行复杂任务前：
+-
+-1. 检查 `examples/`
+-2. 找到与当前任务相关的成功案例
+-3. 优先复用已经验证的方法
+-
+-没有相关案例时按上文正常执行，不要编造案例。
+-
+-### Evaluation
+-
+-任务完成前：
+-
+-1. 检查相关 `evals/`
+-2. 验证关键输出
+-3. 检查是否违反 Skill 约束
+-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
+-
+-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
+-
+-### Experience
+-
+-任务完成后，出现以下情况才写入 `experience/`：
+-
+-- 失败
+-- 用户纠正
+-- 明显成功
+-- 新的有效执行方法
+-- 可复用的经验
+-
+-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
+-
+-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
+-
+-### Evolution
+-
+-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
+-
+-遵循：
+-
+-```text
+-Experience
+-    ↓
+-Repeated Pattern
+-    ↓
+-Improvement Proposal
+-    ↓
+-Eval
+-    ↓
+-Pass
+-    ↓
+-Update Skill
+-```
+-
+-禁止：
+-
+-```text
+-Single Failure
+-    ↓
+-Directly modify SKILL.md
+-```
+-
+-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
+-
+-实际更新生产 `SKILL.md` 时：
+-
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若当前环境有 `skill-evolver`，委托它走候选 patch → 验证 → 晋升，不要本 Skill 自己改生产稿。
+-3. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
++- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
++- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
++- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index 8d1b150..31c3655 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -170,5 +170,58 @@ class TestDowngradeABSync(unittest.TestCase):
+         self.assertIn("B 类可按 `provisional` 临时确认的范围评分并标注「待追认」", self.rubric)
+ 
+ 
++class TestSelfEvolutionSingleSource(unittest.TestCase):
++    """Self-evolution 注入块为紧凑单一模板：各 skill 逐字同文，只换目录名。
++
++    writing-for-agents 优化：原 84 行样板压成一段指针式短块，常驻 context 只付一次。
++    """
++
++    DIRS = ("taskflow", "task-goal", "repo-manager", "skills-store")
++
++    def _block(self, skill: str) -> str:
++        text = (REPO_ROOT / f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
++        idx = text.find("## Self-evolution")
++        self.assertGreater(idx, 0, f"{skill}: 缺 Self-evolution 段")
++        return text[idx:].replace(f"skills/{skill}", "<skill-dir>")
++
++    def test_blocks_are_byte_identical(self) -> None:
++        blocks = {s: self._block(s) for s in self.DIRS}
++        first = blocks[self.DIRS[0]]
++        for skill, block in blocks.items():
++            self.assertEqual(first, block, f"{skill}: Self-evolution 块与其他 skill 漂移")
++
++    def test_compact_form_kept(self) -> None:
++        block = self._block("taskflow")
++        self.assertLess(len(block.splitlines()), 30, "样板块过长，应保持指针式短块")
++        for kept in ("examples/", "evals/cases.yaml", "experience/", "skill-evolver", "patches/"):
++            self.assertIn(kept, block)
++
++    def test_injection_template_matches_blocks(self) -> None:
++        tpl = (REPO_ROOT / "skills/skill-upgrader/references/skill-injection.md").read_text(encoding="utf-8")
++        tpl_block = tpl[tpl.find("## Self-evolution"):].replace("<skill-dir>", "<skill-dir>")
++        self.assertEqual(self._block("taskflow"), tpl_block, "注入模板与生产块漂移")
++
++    def test_long_form_scaffolding_gone(self) -> None:
++        block = self._block("taskflow")
++        for gone in ("Directly modify SKILL.md", "Improvement Proposal", "不要记录 trivial information"):
++            self.assertNotIn(gone, block)
++
++
++class TestDescriptionTriggerBranches(unittest.TestCase):
++    """description 是常驻 context 的顶层 context pointer：只留触发分支，不复述正文。"""
++
++    def setUp(self) -> None:
++        self.text = read("SKILL.md")
++
++    def test_trigger_branches_kept(self) -> None:
++        for branch in ("taskflow-new", "{task}-driver", "OpenSpec change"):
++            self.assertIn(branch, self.text.split("---")[1], f"description 丢了触发分支 {branch}")
++
++    def test_description_drops_body_detail(self) -> None:
++        desc = self.text.split("---")[1]
++        for detail in ("skip_specs", "零脚本", "第二份任务账本"):
++            self.assertNotIn(detail, desc, f"description 复述了正文细节：{detail}")
++
++
+ if __name__ == "__main__":
+     unittest.main()

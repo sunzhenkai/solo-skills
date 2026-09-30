@@ -1,7 +1,7 @@
 ---
 id: task-explore
 name: task-explore
-description: 针对任务不明确、周期可能很长或需要复杂问题排查的工作，在当前目录维护 tasks/INDEX.md、tasks/ongoing 与 tasks/archive，按 new / explore / chat / resume / design / decide / save / handoff / archive / reopen / split 阶段推进；split 把当前任务的一个方向拆成子任务。explore 委托 grilling；decide 冻结方案；handoff 把探索任务交给 taskflow 的 {task}-driver，任务转入 handed-off（不归档、留在 ongoing 可见，后续可点名 archive 关闭）。处在 goal 里时，向用户确认的决定改走 task-goal 的审阅，不列选项。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复/交接/归档/重新打开任务时使用。已有探索任务要交付时用 handoff，不要绕开另起无关 driver。
+description: "任务不明确、周期很长或需要复杂排查时的探索台账：在 `tasks/` 下维护 ongoing / archive 并按阶段推进；交付时 handoff 给 taskflow 的 `{task}-driver`（转入 handed-off，不归档，留在 ongoing 可见）。在用户点名 task-explore、任务目标不清、长周期探索、复杂排查，或要求恢复 / 交接 / 归档 / 重新打开任务时使用；已有探索任务要交付时用 handoff，不要绕开另起无关 driver。"
 ---
 
 # 任务探索
@@ -190,7 +190,7 @@ tasks/
 - 绑定父任务 → 父是纯伞不可交接，自动批量交接所有「已 `decide` 未交接」的子任务，无需逐项确认；就绪为零则打断并报告各子任务所缺条件；未 `decide` 的子任务跳过且不阻塞其余。批量中任一失败即停，已交接的不回滚。
 - 父任务无子任务 → 提示 `split` 拆分或 `new` 另建，**不建 `{parent}-driver`**。
 
-**`handed-off` 状态**：任务留在 `tasks/ongoing/`，INDEX 的 Ongoing 表保留该行（一句话以 `→ {task-name}-driver` 结尾）；可 `resume` 查看方案/决策/交接记录，交付进度只认 taskflow checkbox，任务文档不再勾交付进度；再次 `handoff` 只报告 driver 路径。方案修订默认直接改 driver 的 `proposal.md`；改动大或要推翻决策时，点名 `reopen` 撤回交接（`status` 回 `ongoing`）后重新 `decide` → `handoff`。
+**`handed-off` 状态**：任务留在 `tasks/ongoing/`，INDEX 的 Ongoing 表保留该行（一句话以 `→ {task-name}-driver` 结尾）；可 `resume` 查看方案/决策/交接记录，进度只认 taskflow checkbox，任务文档不再勾交付进度；再次 `handoff` 只报告 driver 路径。方案修订默认直接改 driver 的 `proposal.md`；改动大或要推翻决策时，点名 `reopen` 撤回交接（`status` 回 `ongoing`）后重新 `decide` → `handoff`。
 
 ## `archive`
 

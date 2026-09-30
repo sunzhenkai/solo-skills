@@ -170,5 +170,58 @@ class TestDowngradeABSync(unittest.TestCase):
         self.assertIn("B 类可按 `provisional` 临时确认的范围评分并标注「待追认」", self.rubric)
 
 
+class TestSelfEvolutionSingleSource(unittest.TestCase):
+    """Self-evolution 注入块为紧凑单一模板：各 skill 逐字同文，只换目录名。
+
+    writing-for-agents 优化：原 84 行样板压成一段指针式短块，常驻 context 只付一次。
+    """
+
+    DIRS = ("taskflow", "task-goal", "repo-manager", "skills-store")
+
+    def _block(self, skill: str) -> str:
+        text = (REPO_ROOT / f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
+        idx = text.find("## Self-evolution")
+        self.assertGreater(idx, 0, f"{skill}: 缺 Self-evolution 段")
+        return text[idx:].replace(f"skills/{skill}", "<skill-dir>")
+
+    def test_blocks_are_byte_identical(self) -> None:
+        blocks = {s: self._block(s) for s in self.DIRS}
+        first = blocks[self.DIRS[0]]
+        for skill, block in blocks.items():
+            self.assertEqual(first, block, f"{skill}: Self-evolution 块与其他 skill 漂移")
+
+    def test_compact_form_kept(self) -> None:
+        block = self._block("taskflow")
+        self.assertLess(len(block.splitlines()), 30, "样板块过长，应保持指针式短块")
+        for kept in ("examples/", "evals/cases.yaml", "experience/", "skill-evolver", "patches/"):
+            self.assertIn(kept, block)
+
+    def test_injection_template_matches_blocks(self) -> None:
+        tpl = (REPO_ROOT / "skills/skill-upgrader/references/skill-injection.md").read_text(encoding="utf-8")
+        tpl_block = tpl[tpl.find("## Self-evolution"):].replace("<skill-dir>", "<skill-dir>")
+        self.assertEqual(self._block("taskflow"), tpl_block, "注入模板与生产块漂移")
+
+    def test_long_form_scaffolding_gone(self) -> None:
+        block = self._block("taskflow")
+        for gone in ("Directly modify SKILL.md", "Improvement Proposal", "不要记录 trivial information"):
+            self.assertNotIn(gone, block)
+
+
+class TestDescriptionTriggerBranches(unittest.TestCase):
+    """description 是常驻 context 的顶层 context pointer：只留触发分支，不复述正文。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_trigger_branches_kept(self) -> None:
+        for branch in ("taskflow-new", "{task}-driver", "OpenSpec change"):
+            self.assertIn(branch, self.text.split("---")[1], f"description 丢了触发分支 {branch}")
+
+    def test_description_drops_body_detail(self) -> None:
+        desc = self.text.split("---")[1]
+        for detail in ("skip_specs", "零脚本", "第二份任务账本"):
+            self.assertNotIn(detail, desc, f"description 复述了正文细节：{detail}")
+
+
 if __name__ == "__main__":
     unittest.main()

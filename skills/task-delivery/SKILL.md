@@ -1,7 +1,7 @@
 ---
 id: task-delivery
 name: task-delivery
-description: "把一句复杂交付目标编排成自动闭环：委托 task-wizard 产方案与质量画像、task-explore 探索、taskflow 小切片、实现与运行证据、product/design/engineer 评审、失败归因、修复和复验。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：显式指定或自动检测到进行中 goal 时，本循环内所有确认与方案审阅委托 task-goal，不列选项。"
+description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 三角色评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
 ---
 
 # Task Delivery

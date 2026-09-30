@@ -1,7 +1,7 @@
 ---
 id: task-goal
 name: task-goal
-description: "goal 模式下唯一的确认与审阅协议：接一份带完成判据的方案（上游 task-wizard 的步骤级方案，或自己按本协议产），复杂档先外部参照，再派评审者审阅、核对收敛，按简单/中等/复杂三档路由开工；执行中所有要向用户确认的决定一律走审阅，不列选项。在消息里有 /goal、当前有进行中的 goal 且本条消息挂了本 skill，或被上游 skill（如 task-delivery、task-explore）以 goal 模式委派时使用；不在 goal 里、只要一份方案给人确认时不要使用（那是 task-wizard）。"
+description: "goal 模式下唯一的确认与审阅协议：接一份带完成判据的方案（上游 task-wizard 的，或自己按本协议产），派评审者审阅、核对收敛后按简单 / 中等 / 复杂三档路由开工；执行中所有要向用户确认的决定一律走审阅，不列选项。在消息里有 /goal、当前有进行中的 goal 且本条消息挂了本 skill，或被上游 skill（如 task-delivery、task-explore）以 goal 模式委派时使用；不在 goal 里、只要一份方案给人确认时不要使用（那是 task-wizard）。"
 ---
 
 # Task Goal：goal 执行协议
@@ -25,7 +25,7 @@ description: "goal 模式下唯一的确认与审阅协议：接一份带完成�
 
 ## 减少确认
 
-凡要向用户确认的决定，含本协议的路由选择和下游 skill 里的确认，都走「审阅」，不列选项。审阅收敛则采纳该处推荐默认并继续。单独「继续」只对退出点造成的 `已停` 无效。详细设计，以及危险操作、线上动作、泄密等退出点，仍停，不交给审阅放行。排查写不出步骤时，推荐走 task-explore，先走审阅；收敛后直接开始，不向用户要这句话。
+凡要向用户确认的决定，含本协议的路由选择和下游 skill 里的确认，都走「审阅」，不列选项。审阅收敛则采纳该处推荐默认并继续。单独「继续」只对退出点造成的 `已停` 无效。详细设计，以及危险操作、线上动作、泄密等退出点，仍停，不交给审阅放行。
 
 术语见同目录 `CONTEXT.md`。
 
@@ -233,86 +233,19 @@ goal 自动续跑（续跑提示来自 goal 系统而非用户回复）既不是
 
 ## Self-evolution
 
-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
+本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
 
 ```text
 skills/task-goal/
 ├── SKILL.md
 ├── examples/      # 经过验证的优秀执行案例
-├── evals/         # 可验证成功标准
+├── evals/         # 可验证成功标准（cases.yaml）
 └── experience/    # 真实失败 / 成功 / 规律
 ```
 
-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。
+自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
 
-### Examples
-
-执行复杂任务前：
-
-1. 检查 `examples/`
-2. 找到与当前任务相关的成功案例
-3. 优先复用已经验证的方法
-
-没有相关案例时按上文正常执行，不要编造案例。
-
-### Evaluation
-
-任务完成前：
-
-1. 检查相关 `evals/`
-2. 验证关键输出
-3. 检查是否违反 Skill 约束
-4. 尽可能运行相关 Eval Cases（见 `evals/cases.yaml`）
-
-优先确定性 Eval；无法确定性判断时再用 LLM Judge。Eval 失败则先修输出，不要带着失败交卷。
-
-### Experience
-
-任务完成后，出现以下情况才写入 `experience/`：
-
-- 失败
-- 用户纠正
-- 明显成功
-- 新的有效执行方法
-- 可复用的经验
-
-不要记录 trivial information。不要伪造条目。密钥、内部 URL、凭据不得写入。
-
-单次失败 → `experience/failures/`。重复出现的规律 → `experience/patterns/`（至少两次同类证据）。
-
-### Evolution
-
-只有当 Experience 暴露出**可复用、稳定的问题或模式**时，才考虑修改本 Skill。
-
-遵循：
-
-```text
-Experience
-    ↓
-Repeated Pattern
-    ↓
-Improvement Proposal
-    ↓
-Eval
-    ↓
-Pass
-    ↓
-Update Skill
-```
-
-禁止：
-
-```text
-Single Failure
-    ↓
-Directly modify SKILL.md
-```
-
-进入 Skill 正文的 Experience 必须同时满足：可复用于多个类似任务、有足够证据、能明确改善结果、不破坏已有能力、可通过 Eval 验证。一次性特殊情况只留 Experience，不改 Skill。
-
-实际更新生产 `SKILL.md` 时：
-
-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
-2. 若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`<skill-dir>/patches/`），仍须先提案再应用。
-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
+- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
+- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
+- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
+- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。

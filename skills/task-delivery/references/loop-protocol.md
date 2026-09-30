@@ -108,7 +108,7 @@ role-based-reviewer mode=review roles=product,design,engineer
 
 **回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决：写明冲突项、双方口径原文、推荐裁决与需要的一句话决定，一次性说明，不列选项，不把等待裁决登记为任务。
 
-**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；「卓越」天花板 MUST 已在实现前定义（可数构成件或外部参照集），且每个修复轮后 MUST 经「中途真人门」——给使用者看最小一批实物并收一句反馈；使用者未看过实物不得进入收口。真人门同时是 B 类降级的集中追认点（呈现与回滚规则见 SKILL.md「观感类质量目标」）。
+**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。
 
 ## Stage 8 — Failure triage
 
