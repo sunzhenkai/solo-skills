@@ -1,0 +1,42 @@
+skill: taskflow
+
+problem:
+  1)「需要用户决策」无挂起语义：三条件可能全不满足（全部剩余条目
+     依赖该决策时无合法结束形态），停机无五元组、无恢复触发——
+     恢复义务全落在用户记得回来（审计 F1/F4）。
+  2) 回填与收尾门把继续工作判违规：「pending 降级为 0 才回填验收」
+     在收尾期发现新降级时使 driver 进入无法合法收尾的状态（F2/F5），
+     且不区分 A/B 类——B 类（判据不缩）实质是记录也全额阻塞。
+
+evidence:
+  - 2026-09-30 三份全族审计的 taskflow 部分（F1/F2/F4/F5 五个卡点
+    同根：无挂起状态）；task-goal 已晋升 suspension.md / A/B 分级 /
+    复述生效，task-delivery 已接入（20260930-partial-suspend），
+    本轮补齐族内最后一环。
+
+pattern:
+  taskflow 只有「执行中」一种活体语义；「等用户」要么整轮停摆、
+  要么无形态自由发挥。缺的是局部性（只停依赖面）与恢复触发。
+
+proposed_change:
+  仅改 SKILL.md（Driver 协议模板一句、质量画像与降级确认两条、
+  一轮结束追加一段）与两份 references（delivery-quality-loop 收尾
+  门、acceptance-rubric 降级评分），追加契约测试：
+  1)「需要用户决策」按挂起五元组呈现（引用
+     ../../task-goal/references/suspension.md），只停依赖该项的
+     checkbox，非依赖继续；恢复触发：用户输入先比对授权形状，
+     逐字或意图命中（复述生效）即恢复。
+  2) Driver 协议模板补「需要用户决策只停依赖该项的条目，其余继续」。
+  3) 新降级按 A/B 定级（引用 task-goal quality-profile）：A 类 pending
+     停；B 类审阅收敛记 provisional 不停机，用户在场点集中追认；
+     provisional 期间可回填不依赖该项的验收标准。
+  4) 收尾门与评分门同步：A 类 pending=0 + B 类全部 confirmed 才
+     回填与勾收尾；B 类按 provisional 范围评分并标注待追认。
+
+expected_improvement:
+  等用户不再整轮停摆、恢复有协议形状；收尾期发现 B 类降级不再
+  死锁；与 task-goal/task-delivery 三处同源纪律保持一致（既有
+  跨 skill 同步锁测试继续通过并扩到新语义）。
+
+risk: medium（改停止与回填条件；确认权未放宽——A 类与 confirmed
+仍只有用户能写）

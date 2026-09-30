@@ -116,5 +116,59 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
         self.assertIn("不静默接受、不自行确认", text)
 
 
+class TestSuspendIntegration(unittest.TestCase):
+    """「需要用户决策」挂起五元组 + 只停依赖面 + 恢复触发。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+
+    def test_suspension_reference(self) -> None:
+        self.assertIn("task-goal/references/suspension.md", self.text)
+        self.assertTrue(
+            (REPO_ROOT / "skills/task-goal/references/suspension.md").is_file(),
+            "cross-ref target missing",
+        )
+
+    def test_five_tuple_presented(self) -> None:
+        self.assertIn("挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）", self.text)
+
+    def test_only_dependency_surface_stops(self) -> None:
+        self.assertIn("「需要用户决策」只停依赖该项的条目，其余条目继续", self.text)
+        self.assertIn("不整轮停摆", self.text)
+
+    def test_resume_trigger_with_echo_back(self) -> None:
+        self.assertIn("用户输入到达先比对授权形状", self.text)
+        self.assertIn("复述生效", self.text)
+
+
+class TestDowngradeABSync(unittest.TestCase):
+    """新降级 A/B 定级与 provisional 追认；收尾门按类拆分。"""
+
+    def setUp(self) -> None:
+        self.text = read("SKILL.md")
+        self.loop = read("references/delivery-quality-loop.md")
+        self.rubric = read("references/acceptance-rubric.md")
+
+    def test_ab_classification_in_skill(self) -> None:
+        self.assertIn("**A 类**（缩完成判据或交付面；拿不准归 A）", self.text)
+        self.assertIn("**B 类**（判据与交付面都不缩）", self.text)
+        self.assertIn("task-goal/references/quality-profile.md", self.text)
+
+    def test_provisional_exception_narrow(self) -> None:
+        self.assertIn("B 类 `provisional` 是唯一例外", self.text)
+        self.assertIn("追认前不算 `confirmed`", self.text)
+
+    def test_ratification_and_rollback(self) -> None:
+        self.assertIn("到用户在场点（真人门、收口）集中追认", self.text)
+        self.assertIn("回滚说明处理后回降级确认门重定级", self.text)
+
+    def test_backfill_split_by_class(self) -> None:
+        self.assertIn("B 类 `provisional` 期间可回填不依赖该项的验收标准", self.loop)
+        self.assertIn("A 类 `pending` 降级为 0、B 类无未追认 `provisional`（全部 `confirmed`）", self.loop)
+
+    def test_rubric_scoring_with_provisional(self) -> None:
+        self.assertIn("B 类可按 `provisional` 临时确认的范围评分并标注「待追认」", self.rubric)
+
+
 if __name__ == "__main__":
     unittest.main()
