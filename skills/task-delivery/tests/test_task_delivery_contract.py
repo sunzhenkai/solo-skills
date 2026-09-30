@@ -94,5 +94,22 @@ class TestBudgetExhaustionRecovery(unittest.TestCase):
         self.assertIn("预算耗尽的「下一步」写恢复路径与授权形状", loop)
 
 
+class TestHypothesisStreakSync(unittest.TestCase):
+    """验证连败按假设计数：与 task-goal 侧定义同步。"""
+
+    def test_hard_boundary_synced(self) -> None:
+        skill = read("SKILL.md")
+        self.assertIn("同一验证在同一假设下连败两次且无新假设可用（假设累计封顶 3", skill)
+
+    def test_stop_condition_synced(self) -> None:
+        loop = read("references/loop-protocol.md")
+        self.assertIn("累计假设已达 3 个仍失败", loop)
+        self.assertIn("判伪差异记入验证记录", loop)
+
+    def test_task_goal_source_defined(self) -> None:
+        goal = (SKILL_ROOT.parent / "task-goal" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("同一条验证在**同一假设**下连续失败两次", goal)
+
+
 if __name__ == "__main__":
     unittest.main()
