@@ -90,13 +90,15 @@ evidence_root: <项目约定临时目录，或 /tmp/task-delivery/<slug>>
 调用：
 
 ```text
-role-based-reviewer mode=review roles=product,design,engineer
+role-based-reviewer mode=review roles=<按任务适用面推断>
 ```
+
+`roles` 按本任务实际涉及面推断，不预置固定清单：基线取质量画像 `角色底线` 里写成可检查要求的那几条（写「不适用」的不取），任务确实触及部署 / 模型 / 数据 / 运营配置 / 对外对接时补对应角色。推断依据连同角色集写进 manifest 的 `role_review`，使「为什么没派 design」可复核。
 
 评分维度、UI/UX 六子项与通过线的真相源是 [../../taskflow/references/acceptance-rubric.md](../../taskflow/references/acceptance-rubric.md)。task-delivery 不复制第二份 rubric 或数字口径；报告引用当次代码 / skill 状态。
 要求返回：
 
-- product / design / engineer 独立 findings
+- 各生效角色的独立 findings
 - Blocker / Major / Minor
 - 五维评分
 - UI/UX 六子项评分
@@ -108,7 +110,7 @@ role-based-reviewer mode=review roles=product,design,engineer
 
 **回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决：写明冲突项、双方口径原文、推荐裁决与需要的一句话决定，一次性说明，不列选项，不把等待裁决登记为任务。
 
-**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。
+**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。天花板参照集取自画像 design 底线（[quality-profile](../../task-goal/references/quality-profile.md#天花板参照集的去向)），作为审阅边界输入交给 role-based-reviewer 的 design 角色；design 未生效或模板未给参照集时，不补审天花板，按缺字段报。
 
 ## Stage 8 — Failure triage
 

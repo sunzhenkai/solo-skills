@@ -1,0 +1,124 @@
+diff -ruN a/skills/task-delivery/evals/cases.yaml b/skills/task-delivery/evals/cases.yaml
+--- a/skills/task-delivery/evals/cases.yaml	2026-09-30 17:16:58.014155077 +0800
++++ b/skills/task-delivery/evals/cases.yaml	2026-09-30 17:18:14.692303918 +0800
+@@ -104,7 +104,7 @@
+     expect:
+       must:
+         - 先收集启动、测试、运行时证据
+-        - 调用 product/design/engineer 三角色评审
++        - 角色按任务实际涉及面推断后派审，不预置固定三角色
+         - 输出五维分数与 UI/UX 六子项
+       must_not:
+         - 只凭实现者自评通过
+diff -ruN a/skills/task-delivery/references/loop-protocol.md b/skills/task-delivery/references/loop-protocol.md
+--- a/skills/task-delivery/references/loop-protocol.md	2026-09-30 17:16:58.012220747 +0800
++++ b/skills/task-delivery/references/loop-protocol.md	2026-09-30 17:18:14.692234952 +0800
+@@ -90,13 +90,15 @@
+ 调用：
+ 
+ ```text
+-role-based-reviewer mode=review roles=product,design,engineer
++role-based-reviewer mode=review roles=<按任务适用面推断>
+ ```
+ 
++`roles` 按本任务实际涉及面推断，不预置固定清单：基线取质量画像 `角色底线` 里写成可检查要求的那几条（写「不适用」的不取），任务确实触及部署 / 模型 / 数据 / 运营配置 / 对外对接时补对应角色。推断依据连同角色集写进 manifest 的 `role_review`，使「为什么没派 design」可复核。
++
+ 评分维度、UI/UX 六子项与通过线的真相源是 [../../taskflow/references/acceptance-rubric.md](../../taskflow/references/acceptance-rubric.md)。task-delivery 不复制第二份 rubric 或数字口径；报告引用当次代码 / skill 状态。
+ 要求返回：
+ 
+-- product / design / engineer 独立 findings
++- 各生效角色的独立 findings
+ - Blocker / Major / Minor
+ - 五维评分
+ - UI/UX 六子项评分
+diff -ruN a/skills/task-delivery/SKILL.md b/skills/task-delivery/SKILL.md
+--- a/skills/task-delivery/SKILL.md	2026-09-30 17:16:58.010907062 +0800
++++ b/skills/task-delivery/SKILL.md	2026-09-30 17:18:14.692055971 +0800
+@@ -1,7 +1,7 @@
+ ---
+ id: task-delivery
+ name: task-delivery
+-description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 三角色评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
++description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 角色化评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
+ ---
+ 
+ # Task Delivery
+@@ -46,7 +46,7 @@
+ 6. **taskflow 交接**：交给 taskflow 建 driver 与子 change；后续进度只认 driver / 子 change checkbox。**回归门**：driver 收口（含交接后中途长出的任何派生 driver / 子循环）时，MUST 回到本循环 Stage 7–12 继续执行，不得以子循环自定验收替代主循环的收口门；子循环自定 rubric 与 acceptance-rubric 口径冲突时，冲突项 MUST 停下报使用者裁决。
+ 7. **首轮窄切片**：只选 1-3 个能从入口走到结束状态的核心闭环，先实现、测试、留证据。
+ 8. **实现派发**：normal 必须给实现者质量画像或保留语义的子范围裁剪；benchmark 只给目标原文与运行约束。
+-9. **三角色评审**：调用 `role-based-reviewer mode=review roles=product,design,engineer`，先证据后评分。**异源门**：评审 MUST 与实现异源，按序降级——(a) 经 agent-roster 委派 reviewer / designer 到其他 Endpoint 的其他 coding agent；(b) 本机 subagent 显式指定与实现不同的模型跑本评审；(c) 两者皆不可用则停下问使用者，禁止静默同源自审交卷。同源评审输出只作线索、不作通过线。
++9. **角色化评审**：调用 `role-based-reviewer mode=review roles=<按任务适用面推断>`，先证据后评分。角色按本任务实际涉及面推断，不写死固定清单：基线取质量画像 `角色底线` 里写成可检查要求的那几条（写「不适用」的不取），任务确实触及部署 / 模型 / 数据 / 运营配置 / 对外对接时，再按 role-based-reviewer 的角色表补 `sre` / `algo` / `data` / `ops` / `biz`。推断结果与依据写进 evidence manifest 的 `role_review`。**异源门**：评审 MUST 与实现异源，按序降级——(a) 经 agent-roster 委派 reviewer / designer 到其他 Endpoint 的其他 coding agent；(b) 本机 subagent 显式指定与实现不同的模型跑本评审；(c) 两者皆不可用则停下问使用者，禁止静默同源自审交卷。同源评审输出只作线索、不作通过线。
+ 10. **失败归因**：每条 Blocker / Major 只归因为 skill gap、implementation bug 或 acceptance gap；不许笼统“再改改”。归因前按 [归因自检](references/loop-protocol.md#stage-8--failure-triage)确认同一 finding 没有第二种解释、且修复层次已分清。
+ 11. **修复复验**：skill gap 走 skill-upgrader patch；implementation bug 修交付仓；acceptance gap 补验收标准。修复后按 [增量验证协议](references/loop-protocol.md#增量验证协议)只重跑受影响门禁，Stage 10 再跑全链路。
+ 12. **收口报告**：输出证据、分数、剩余限制和后续动作。它是交给 task-goal 判完成门的输入，本身不是完成门（goal 模式下的 owner 见「goal 模式的归属」）。
+@@ -60,7 +60,7 @@
+ goal 模式（显式 `goal:` 前缀，或自动识别命中）下，同一个 task 的生命周期只有一个 owner：
+ 
+ - **task-goal 持有**：四状态（`执行中` / `已停` / `已交接` / `已完成`）、state-file、退出点与授权、完成门（完成判据成立 + 交付标准全过）。state-file 路径由本 skill 在建任务时写入 `goal-state-file:` 交给 task-goal（默认 `<evidence_root>/goal-state.yaml`）。
+-- **本 skill 持有**：Stage 1–12 的执行循环（探索冻结、窄切片、实现派发、证据、三角色评审、失败归因、修复复验）。
++- **本 skill 持有**：Stage 1–12 的执行循环（探索冻结、窄切片、实现派发、证据、角色化评审、失败归因、修复复验）。
+ - **每轮收口回报**：一轮结束时把「本轮勾掉哪些 checkbox / 是否成立完成判据」回报给 task-goal（带 `goal-event:` 戳优先，无戳则按 task-goal 的事件推断顺序）。**本 skill 不写 `已完成`**——终态由 task-goal 在完成判据成立且交付标准全过时写入。
+ - **本 skill 的「收口报告」不是完成门**：它是交给 task-goal 判定用的证据与分数（见 Stage 12）。
+ - 停机口径不来自本 skill：命中 task-goal 的退出点（A 类降级未确认、失败计数上限、危险操作、线上动作、泄密）时按 task-goal 的规则停与呈现；本 skill 的 Stop conditions 只列执行器特有的停机项。
+diff -ruN a/skills/task-delivery/tests/test_task_delivery_contract.py b/skills/task-delivery/tests/test_task_delivery_contract.py
+--- a/skills/task-delivery/tests/test_task_delivery_contract.py	2026-09-30 17:16:58.015685608 +0800
++++ b/skills/task-delivery/tests/test_task_delivery_contract.py	2026-09-30 17:18:14.692370264 +0800
+@@ -97,6 +97,23 @@
+         self.assertIn("预算耗尽的「下一步」写恢复路径与授权形状", loop)
+ 
+ 
++class TestRoleReviewOnDemand(unittest.TestCase):
++    """评审角色按任务涉及面推断，不写死三角色。"""
++
++    def setUp(self) -> None:
++        self.skill = read("SKILL.md")
++        self.loop = read("references/loop-protocol.md")
++
++    def test_no_hardcoded_role_list(self) -> None:
++        for text in (self.skill, self.loop):
++            self.assertNotIn("roles=product,design,engineer", text)
++
++    def test_roles_derived_from_task_surface(self) -> None:
++        self.assertIn("按本任务实际涉及面推断", self.loop)
++        self.assertIn("不预置固定清单", self.loop)
++        self.assertIn("role_review", self.loop)
++
++
+ class TestHypothesisStreakSync(unittest.TestCase):
+     """验证连败按假设计数：与 task-goal 侧定义同步。"""
+ 
+diff -ruN a/skills/task-goal/evals/cases.yaml b/skills/task-goal/evals/cases.yaml
+--- a/skills/task-goal/evals/cases.yaml	2026-09-30 17:16:58.018542041 +0800
++++ b/skills/task-goal/evals/cases.yaml	2026-09-30 17:18:14.692802422 +0800
+@@ -40,11 +40,11 @@
+   - id: complex-tier-fixed-role-reviewer
+     kind: core
+     judge: deterministic
+-    description: 复杂档初审与执行中新决策点固定 role-based-reviewer 三角色，分级发现按映射记 P 级
++    description: 复杂档初审与执行中新决策点固定 role-based-reviewer，角色按任务适用面推断，分级发现按映射记 P 级
+     given: 复杂档的初审或执行中的新决策点
+     expect:
+       must:
+-        - 委托 role-based-reviewer，mode=review、roles=product,design,engineer
++        - 委托 role-based-reviewer，mode=review，roles 按任务适用面推断，不预置固定清单
+         - Blocker 记 P0、Major 记 P1、Minor / Suggestion 记 P2
+         - 完成程度按显式条件写入，不由 reviewer 自定
+       must_not:
+diff -ruN a/skills/task-goal/SKILL.md b/skills/task-goal/SKILL.md
+--- a/skills/task-goal/SKILL.md	2026-09-30 17:16:58.017231562 +0800
++++ b/skills/task-goal/SKILL.md	2026-09-30 17:18:14.692724542 +0800
+@@ -136,11 +136,11 @@
+ 
+ | 方式 | 何时选 | 怎么派 |
+ |------|--------|--------|
+-| role-based-reviewer | 复杂档的初审与执行中的新决策点（固定，不可替换）；goal 原文或当轮用户消息点名、写 `roles=`、或要求按岗位 / 多角色视角审 | 固定项与点名 `mode=review`：`mode=review`、`roles=product,design,engineer`；点名的 `mode=ask` 时 `roles` 用点名的，没点名由它按自己的门禁推断，不替它加角色 |
++| role-based-reviewer | 复杂档的初审与执行中的新决策点（固定，不可替换）；goal 原文或当轮用户消息点名、写 `roles=`、或要求按岗位 / 多角色视角审 | 固定项与点名 `mode=review`：`mode=review`、`roles=<按任务适用面推断>`——角色取任务实际涉及面（画像底线里可检查的那几条 + 命中域），不写死固定清单，推断依据连同角色集写进回复记录；点名的 `mode=ask` 时 `roles` 用点名的，没点名由它按自己的门禁推断，不替它加角色 |
+ | agent-roster | goal 原文或当轮用户消息写了 `agent-roster` 或点名名册 Endpoint | 委托 `$agent-roster` 做名册审阅；点名唯一 Endpoint 走它的快速路径，只说用名册没点名谁时按它的 routing 选一个最匹配的直接派，不列候选表 |
+ | subagent | 前两条都不命中时的默认选择 | 宿主另起一个子 agent，按质量画像挑视角（无画像按默认）；宿主能分出更强模型时用更强的一档，给不出排序时用该宿主的最强档；当前模型已是最强档时，仍另起一个同模型子 agent，并在前提的事实里记「无更强档」 |
+ 
+-- 点名冲突时以当轮消息为准。简单和中等不强制三角色。
++- 点名冲突时以当轮消息为准。角色集不预置，按任务适用面推断；简单和中等不强制角色化评审。
+ - role-based-reviewer 固定项：返回的分级发现映射：Blocker 记 P0，Major 记 P1，Minor / Suggestion 记 P2；完成程度按本节规则写入，不由它自定。读不到该 skill：状态改为 `已停`，退出点「审阅派不出」。goal 原文或当轮用户消息点名了其他审阅方式时以点名为准，不叠加。
+ - agent-roster：执行器不可用、证据不足、或还要人：状态改为 `已停`，退出点「审阅派不出」。
+ - subagent：起不来就换下一个可用模型，最多两次。两次都没有审阅结论：状态改为 `已停`，退出点「审阅没有结论」。

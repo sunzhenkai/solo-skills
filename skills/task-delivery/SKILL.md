@@ -1,7 +1,7 @@
 ---
 id: task-delivery
 name: task-delivery
-description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 三角色评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
+description: "把一句复杂交付目标编排成自动闭环：探索 → 小切片实现 → 运行证据 → 角色化评审 → 失败归因 → 修复复验，进度只认 taskflow checkbox。仅在用户明确要求自闭环交付、自动探索加自动验证、或短目标端到端实现时使用；简单局部修改、只要方案、或未授权多阶段编排时不进入。支持 `goal:` 模式：本循环内的确认与方案审阅委托 task-goal，不列选项。"
 ---
 
 # Task Delivery
@@ -46,7 +46,7 @@ task-delivery goal: <一句话目标>
 6. **taskflow 交接**：交给 taskflow 建 driver 与子 change；后续进度只认 driver / 子 change checkbox。**回归门**：driver 收口（含交接后中途长出的任何派生 driver / 子循环）时，MUST 回到本循环 Stage 7–12 继续执行，不得以子循环自定验收替代主循环的收口门；子循环自定 rubric 与 acceptance-rubric 口径冲突时，冲突项 MUST 停下报使用者裁决。
 7. **首轮窄切片**：只选 1-3 个能从入口走到结束状态的核心闭环，先实现、测试、留证据。
 8. **实现派发**：normal 必须给实现者质量画像或保留语义的子范围裁剪；benchmark 只给目标原文与运行约束。
-9. **三角色评审**：调用 `role-based-reviewer mode=review roles=product,design,engineer`，先证据后评分。**异源门**：评审 MUST 与实现异源，按序降级——(a) 经 agent-roster 委派 reviewer / designer 到其他 Endpoint 的其他 coding agent；(b) 本机 subagent 显式指定与实现不同的模型跑本评审；(c) 两者皆不可用则停下问使用者，禁止静默同源自审交卷。同源评审输出只作线索、不作通过线。
+9. **角色化评审**：调用 `role-based-reviewer mode=review roles=<按任务适用面推断>`，先证据后评分。角色按本任务实际涉及面推断，不写死固定清单：基线取质量画像 `角色底线` 里写成可检查要求的那几条（写「不适用」的不取），任务确实触及部署 / 模型 / 数据 / 运营配置 / 对外对接时，再按 role-based-reviewer 的角色表补 `sre` / `algo` / `data` / `ops` / `biz`。推断结果与依据写进 evidence manifest 的 `role_review`。**异源门**：评审 MUST 与实现异源，按序降级——(a) 经 agent-roster 委派 reviewer / designer 到其他 Endpoint 的其他 coding agent；(b) 本机 subagent 显式指定与实现不同的模型跑本评审；(c) 两者皆不可用则停下问使用者，禁止静默同源自审交卷。同源评审输出只作线索、不作通过线。
 10. **失败归因**：每条 Blocker / Major 只归因为 skill gap、implementation bug 或 acceptance gap；不许笼统“再改改”。归因前按 [归因自检](references/loop-protocol.md#stage-8--failure-triage)确认同一 finding 没有第二种解释、且修复层次已分清。
 11. **修复复验**：skill gap 走 skill-upgrader patch；implementation bug 修交付仓；acceptance gap 补验收标准。修复后按 [增量验证协议](references/loop-protocol.md#增量验证协议)只重跑受影响门禁，Stage 10 再跑全链路。
 12. **收口报告**：输出证据、分数、剩余限制和后续动作。它是交给 task-goal 判完成门的输入，本身不是完成门（goal 模式下的 owner 见「goal 模式的归属」）。
@@ -60,7 +60,7 @@ benchmark 输入隔离读 [references/benchmark-isolation.md](references/benchma
 goal 模式（显式 `goal:` 前缀，或自动识别命中）下，同一个 task 的生命周期只有一个 owner：
 
 - **task-goal 持有**：四状态（`执行中` / `已停` / `已交接` / `已完成`）、state-file、退出点与授权、完成门（完成判据成立 + 交付标准全过）。state-file 路径由本 skill 在建任务时写入 `goal-state-file:` 交给 task-goal（默认 `<evidence_root>/goal-state.yaml`）。
-- **本 skill 持有**：Stage 1–12 的执行循环（探索冻结、窄切片、实现派发、证据、三角色评审、失败归因、修复复验）。
+- **本 skill 持有**：Stage 1–12 的执行循环（探索冻结、窄切片、实现派发、证据、角色化评审、失败归因、修复复验）。
 - **每轮收口回报**：一轮结束时把「本轮勾掉哪些 checkbox / 是否成立完成判据」回报给 task-goal（带 `goal-event:` 戳优先，无戳则按 task-goal 的事件推断顺序）。**本 skill 不写 `已完成`**——终态由 task-goal 在完成判据成立且交付标准全过时写入。
 - **本 skill 的「收口报告」不是完成门**：它是交给 task-goal 判定用的证据与分数（见 Stage 12）。
 - 停机口径不来自本 skill：命中 task-goal 的退出点（A 类降级未确认、失败计数上限、危险操作、线上动作、泄密）时按 task-goal 的规则停与呈现；本 skill 的 Stop conditions 只列执行器特有的停机项。
@@ -69,7 +69,7 @@ goal 模式（显式 `goal:` 前缀，或自动识别命中）下，同一个 ta
 
 质量目标含审美 / 体验等**无法用确定性度量完备验收**的项时（典型：UI 观感、文案气质、交互手感），追加三条约束：
 
-1. **天花板前置**：进入实现前 MUST 先定「卓越」的可数构成件或外部参照集；缺失则停下找使用者补，禁止以「无缺陷」默认收工。
+1. **天花板前置**：进入实现前 MUST 先定义「卓越」。定义落在质量画像的 design 角色底线（见 [../task-goal/references/quality-profile.md](../task-goal/references/quality-profile.md)「天花板参照集」），以可数构成件或外部参照集写出，与其余底线同样可检查；缺失则停下找使用者补，禁止以「无缺陷」默认收工。参照集随画像快照进 Stage 7 审阅边界，由 design 角色据它出评审意见；本循环不另立评审主体。
 2. **度量只声明地板**：收口报告 MUST NOT 用度量全绿支持「美观 / 优雅达标」类表述。
 3. **中途真人门**（也是复杂档 B 类降级的唯一集中追认点）：每个修复轮后 MUST 给使用者看最小一批实物并收一句反馈再继续；使用者未看过实物的视觉交付不得进入收口。真人门同时是 B 类降级的集中追认点：逐条呈现 `provisional` 项（含回滚说明），追认改 `confirmed`，否决按回滚说明处理后回到降级确认门。等待使用者反馈期间按挂起五元组呈现（见 [../task-goal/references/suspension.md](../task-goal/references/suspension.md)），非依赖工作继续。
 

@@ -59,6 +59,11 @@ class TestRoleFilesStructure(unittest.TestCase):
             self.assertIn("🔴", text, role)
             self.assertIn("🟡", text, role)
 
+    def test_design_has_ceiling_reference_section(self) -> None:
+        text = read("references/roles/design.md")
+        self.assertIn("## 天花板参照集", text)
+        self.assertIn("不受下面「不算问题」节", text)
+
     def test_design_has_not_a_problem_section(self) -> None:
         # design 已有完整判据清单，第二批只补「不算问题」小节。
         text = read("references/roles/design.md")

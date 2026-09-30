@@ -97,6 +97,23 @@ class TestBudgetExhaustionRecovery(unittest.TestCase):
         self.assertIn("预算耗尽的「下一步」写恢复路径与授权形状", loop)
 
 
+class TestRoleReviewOnDemand(unittest.TestCase):
+    """评审角色按任务涉及面推断，不写死三角色。"""
+
+    def setUp(self) -> None:
+        self.skill = read("SKILL.md")
+        self.loop = read("references/loop-protocol.md")
+
+    def test_no_hardcoded_role_list(self) -> None:
+        for text in (self.skill, self.loop):
+            self.assertNotIn("roles=product,design,engineer", text)
+
+    def test_roles_derived_from_task_surface(self) -> None:
+        self.assertIn("按本任务实际涉及面推断", self.loop)
+        self.assertIn("不预置固定清单", self.loop)
+        self.assertIn("role_review", self.loop)
+
+
 class TestHypothesisStreakSync(unittest.TestCase):
     """验证连败按假设计数：与 task-goal 侧定义同步。"""
 

@@ -40,11 +40,11 @@ cases:
   - id: complex-tier-fixed-role-reviewer
     kind: core
     judge: deterministic
-    description: 复杂档初审与执行中新决策点固定 role-based-reviewer 三角色，分级发现按映射记 P 级
+    description: 复杂档初审与执行中新决策点固定 role-based-reviewer，角色按任务适用面推断，分级发现按映射记 P 级
     given: 复杂档的初审或执行中的新决策点
     expect:
       must:
-        - 委托 role-based-reviewer，mode=review、roles=product,design,engineer
+        - 委托 role-based-reviewer，mode=review，roles 按任务适用面推断，不预置固定清单
         - Blocker 记 P0、Major 记 P1、Minor / Suggestion 记 P2
         - 完成程度按显式条件写入，不由 reviewer 自定
       must_not:
@@ -106,6 +106,19 @@ cases:
         - 状态已停，路由用「本流程不做详细设计」
       must_not:
         - 在方案或审阅意见里给出设计内容
+
+  - id: aesthetics-ceiling-reference-set
+    kind: core
+    judge: deterministic
+    description: 审美 / 体验类质量目标在画像 design 底线写天花板参照集，缺失按缺字段判 P0
+    given: 复杂档质量目标含无法用确定性度量完备验收的项（UI 观感、文案气质、交互手感等）
+    expect:
+      must:
+        - design 底线写出天花板参照集：可数构成件，或外部参照各指到具体件并写清取哪一点
+        - 参照集随画像原文快照进入审阅边界，由 design 角色据它出评审意见
+      must_not:
+        - 用实测指标或地板通过替代参照集
+        - 以「无缺陷」默认收工，或把参照集缺失按通过处理
 
   - id: contract-tests-pass
     kind: regression

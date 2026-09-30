@@ -104,7 +104,7 @@ cases:
     expect:
       must:
         - 先收集启动、测试、运行时证据
-        - 调用 product/design/engineer 三角色评审
+        - 角色按任务实际涉及面推断后派审，不预置固定三角色
         - 输出五维分数与 UI/UX 六子项
       must_not:
         - 只凭实现者自评通过
@@ -123,6 +123,19 @@ cases:
       must_not:
         - 为局部修复重跑全量测试或全量截图矩阵
         - 用旧截图充当受影响键的新证据
+
+  - id: aesthetics-ceiling-comes-from-profile
+    kind: core
+    judge: deterministic
+    description: 审美 / 体验类目标的天花板定义落在画像 design 底线，随快照进审阅边界
+    given: 复杂档目标含无法用确定性度量完备验收的观感项
+    expect:
+      must:
+        - 进入实现前先定义「卓越」：可数构成件或外部参照集，写在质量画像 design 底线
+        - 参照集随画像快照作为审阅边界输入交给 role-based-reviewer 的 design 角色
+      must_not:
+        - 以度量全绿支持「美观 / 优雅达标」
+        - 在循环里另立一个天花板评审主体
 
   - id: bydesign-rejection-requires-derivation
     kind: boundary

@@ -1,0 +1,54 @@
+diff -ruN a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+--- a/skills/role-based-reviewer/references/roles/design.md	2026-09-30 17:37:12.685534626 +0800
++++ b/skills/role-based-reviewer/references/roles/design.md	2026-09-30 17:37:12.699928224 +0800
+@@ -103,6 +103,14 @@
+ 61. 🟡 [代码] 控件高度分档默认单档；出现第二档必须有与正文字号、整体密度的比例依据（写在 token 注释或设计文档里），「有的页面历来是这样」不算依据
+ 62. 🟡 [代码] 禁止把遗留默认值 / 框架默认值直接升格为设计档位；引入或保留任何尺寸档位时 diff 中应能找到推导（字号倍数、密度基准或可读注释），而非只有取值
+ 
++## 天花板参照集（仅当审阅边界给了参照集）
++
++调用方带天花板参照集时，本角色按它出自己的意见，不受下面「不算问题」节「像素与间距口味」「设计趋势追逐」两条的免报保护——那两条针对的是**无可落条目**的审美主张，参照集正是把主张落到可指认件的机制。
++
++- 每条意见 MUST 指到参照集里的具体件，并写清差在哪（构图层级、间距节奏、字号阶梯、色彩关系等），不写「不够精致」「不够高级」这类无法对照的结论。
++- 参照集未覆盖到的美学选择：报 Suggestion 并注明「参照集未覆盖」；不提「换一种更好看」的方向。
++- 参照集缺失、或与本轮实现的目标不一致：报告开头写明缺哪一块，按调用方规则处理；不自行拟定参照集，也不因此放行地板判定。
++
+ ## 不算问题
+ 
+ 门 3 已限定默认只报 Blocker/Major；本小节给「看起来像问题但不是」的角色级反例，评审时先对照再报。
+diff -ruN a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+--- a/skills/role-based-reviewer/SKILL.md	2026-09-30 17:37:12.682446788 +0800
++++ b/skills/role-based-reviewer/SKILL.md	2026-09-30 17:37:12.699873413 +0800
+@@ -24,7 +24,7 @@
+    - 用户写出 `roles=` / 岗位短名（如「用 algo 看」「engineer+sre review」）
+    - 用户明确要求按岗位、多角色、跨职能视角看问题
+    **不算触发**：单独的「看看这段」「帮我 review」「有没有 bug」「审查一下 diff」——没有岗位意图时不要自动进来。
+-   - 上游编排型工作流以结构化参数调用，且三样齐备：`mode=review`、完整合法的角色集 `roles=`、审阅边界输入（完成判据、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围）。齐备时承认其为正当调用方，按传入角色执行；这类流程固定 3 个角色属预期，不算角色膨胀。
++   - 上游编排型工作流以结构化参数调用，且三样齐备：`mode=review`、完整合法的角色集 `roles=`、审阅边界输入（完成判据、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围）。齐备时承认其为正当调用方，按传入角色执行；角色集由调用方按任务适用面给定，数量随任务变，不算角色膨胀。
+ 2. **门 2 · 角色确认**：未指定 `roles` 时默认只开 **engineer**。其它角色必须有**强信号**才加（见下节）；一次推断将超过 2 个角色时，先列出候选问用户，禁止静默堆视角。文件名/目录沾边（有 CSS、有 Dockerfile、有 `model` 字样）不够。
+    - 调用方传入完整 `roles=` 属「已指定」而非推断：照单执行，不列候选、不反问，即使角色数超过 2 个。用户当轮显式点名的 `roles` 优先于传入值；两者都不增删。
+ 3. **门 3 · 发现克制**：`mode=review` 默认只报 **Blocker** 与 **Major**。Minor / Suggestion 仅在用户要求「仔细 / 全面 / 含风格」时输出。不确定的不当 Blocker；没有问题就说没有，不为每个角色凑一条。
+@@ -34,7 +34,7 @@
+ - `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
+ - `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
+ - `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
+-- `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
++- `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。质量目标含审美 / 体验等无法用确定性度量完备验收的项时，角色底线里还须带天花板参照集（把「卓越」落成可数构成件或外部参照）。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
+ - `model=<模型名>`：可选。subagent 派发时显式指定评审所用模型（异源评审用）；不指定则模型继承调用方。
+ - `endpoint=<agent-roster 端点>`：可选。经 agent-roster 委派该端点的 agent 执行评审，Handoff / 回收按 agent-roster 契约；与 `model` 同给时，`model` 作建议、端点自行解析时以其为准。
+ 
+diff -ruN a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-09-30 17:37:12.688686768 +0800
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-09-30 17:37:12.699954908 +0800
+@@ -60,6 +60,11 @@
+             self.assertIn("🔴", text, role)
+             self.assertIn("🟡", text, role)
+ 
++    def test_design_has_ceiling_reference_section(self) -> None:
++        text = read("references/roles/design.md")
++        self.assertIn("## 天花板参照集", text)
++        self.assertIn("不受下面「不算问题」节", text)
++
+     def test_design_has_not_a_problem_section(self) -> None:
+         # design 已有完整判据清单，第二批只补「不算问题」小节。
+         text = read("references/roles/design.md")

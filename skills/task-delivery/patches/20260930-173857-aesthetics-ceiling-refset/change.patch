@@ -1,0 +1,47 @@
+diff -ruN a/skills/task-delivery/evals/cases.yaml b/skills/task-delivery/evals/cases.yaml
+--- a/skills/task-delivery/evals/cases.yaml	2026-09-30 17:38:03.540515774 +0800
++++ b/skills/task-delivery/evals/cases.yaml	2026-09-30 17:38:03.540950367 +0800
+@@ -124,6 +124,19 @@
+         - 为局部修复重跑全量测试或全量截图矩阵
+         - 用旧截图充当受影响键的新证据
+ 
++  - id: aesthetics-ceiling-comes-from-profile
++    kind: core
++    judge: deterministic
++    description: 审美 / 体验类目标的天花板定义落在画像 design 底线，随快照进审阅边界
++    given: 复杂档目标含无法用确定性度量完备验收的观感项
++    expect:
++      must:
++        - 进入实现前先定义「卓越」：可数构成件或外部参照集，写在质量画像 design 底线
++        - 参照集随画像快照作为审阅边界输入交给 role-based-reviewer 的 design 角色
++      must_not:
++        - 以度量全绿支持「美观 / 优雅达标」
++        - 在循环里另立一个天花板评审主体
++
+   - id: bydesign-rejection-requires-derivation
+     kind: boundary
+     judge: deterministic
+diff -ruN a/skills/task-delivery/references/loop-protocol.md b/skills/task-delivery/references/loop-protocol.md
+--- a/skills/task-delivery/references/loop-protocol.md	2026-09-30 17:38:03.537858537 +0800
++++ b/skills/task-delivery/references/loop-protocol.md	2026-09-30 17:38:03.538538535 +0800
+@@ -110,7 +110,7 @@
+ 
+ **回归门**：taskflow 交接后中途长出的任何派生 driver / 子循环收口时，MUST 回到主循环执行本 Stage 与 Stage 10，不得以子循环自定验收替代；子循环自定 rubric 与 [acceptance-rubric](../../taskflow/references/acceptance-rubric.md) 冲突时，冲突项 MUST 停下报使用者裁决：写明冲突项、双方口径原文、推荐裁决与需要的一句话决定，一次性说明，不列选项，不把等待裁决登记为任务。
+ 
+-**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。
++**观感类目标**：目标含无法用确定性度量完备验收的项时，本 Stage 的评分只声明地板；天花板前置与中途真人门按 SKILL.md「观感类质量目标」执行。天花板参照集取自画像 design 底线（[quality-profile](../../task-goal/references/quality-profile.md#天花板参照集的去向)），作为审阅边界输入交给 role-based-reviewer 的 design 角色；design 未生效或模板未给参照集时，不补审天花板，按缺字段报。
+ 
+ ## Stage 8 — Failure triage
+ 
+diff -ruN a/skills/task-delivery/SKILL.md b/skills/task-delivery/SKILL.md
+--- a/skills/task-delivery/SKILL.md	2026-09-30 17:38:03.535660315 +0800
++++ b/skills/task-delivery/SKILL.md	2026-09-30 17:38:03.536160356 +0800
+@@ -69,7 +69,7 @@
+ 
+ 质量目标含审美 / 体验等**无法用确定性度量完备验收**的项时（典型：UI 观感、文案气质、交互手感），追加三条约束：
+ 
+-1. **天花板前置**：进入实现前 MUST 先定「卓越」的可数构成件或外部参照集；缺失则停下找使用者补，禁止以「无缺陷」默认收工。
++1. **天花板前置**：进入实现前 MUST 先定义「卓越」。定义落在质量画像的 design 角色底线（见 [../task-goal/references/quality-profile.md](../task-goal/references/quality-profile.md)「天花板参照集」），以可数构成件或外部参照集写出，与其余底线同样可检查；缺失则停下找使用者补，禁止以「无缺陷」默认收工。参照集随画像快照进 Stage 7 审阅边界，由 design 角色据它出评审意见；本循环不另立评审主体。
+ 2. **度量只声明地板**：收口报告 MUST NOT 用度量全绿支持「美观 / 优雅达标」类表述。
+ 3. **中途真人门**（也是复杂档 B 类降级的唯一集中追认点）：每个修复轮后 MUST 给使用者看最小一批实物并收一句反馈再继续；使用者未看过实物的视觉交付不得进入收口。真人门同时是 B 类降级的集中追认点：逐条呈现 `provisional` 项（含回滚说明），追认改 `confirmed`，否决按回滚说明处理后回到降级确认门。等待使用者反馈期间按挂起五元组呈现（见 [../task-goal/references/suspension.md](../task-goal/references/suspension.md)），非依赖工作继续。
+ 

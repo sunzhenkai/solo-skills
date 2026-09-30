@@ -364,6 +364,11 @@ class TestQualityProfileContract(unittest.TestCase):
     def test_role_bottom_lines_all_three(self) -> None:
         self.assertIn("`角色底线` 下的 product、design、engineer 三条一条都不能省", self.text)
 
+    def test_aesthetics_ceiling_reference_set(self) -> None:
+        """审美 / 体验类目标的天花板落在画像里，且随快照进审阅边界。"""
+        self.assertIn("天花板参照集", self.text)
+        self.assertIn("## 天花板参照集的去向", self.text)
+
 
 class TestReviewLoopLossStreak(unittest.TestCase):
     """核对循环：按条计数（连败/恶化闸），不按轮次封顶；回归条有通道。"""
