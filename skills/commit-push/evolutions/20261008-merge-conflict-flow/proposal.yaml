@@ -1,0 +1,22 @@
+skill: commit-push
+
+problem:
+  现有 SKILL.md 只覆盖线性 staged/unstaged/push 流程；遇到 merge/rebase 冲突时缺少统一的盘点、分流、解决与验证步骤，容易反复读取原始 diff/冲突块，token 消耗高且处理路径不稳定。
+
+evidence:
+  - 2026-10-08 一次真实合并：5 个冲突文件（4 个追加型台账、1 个语义型配置），需要多轮 status/diff/sed/grep 才能盘点并判断取舍。
+  - 当前 SKILL.md 没有“处理冲突”章节，也没有冲突盘点脚本入口。
+  - 用户明确要求把总结命令沉淀为通用脚本，提升效率、减少 token 使用量。
+
+pattern:
+  有冲突时应先做“冲突清单 + 类型分流”：追加型冲突保留双侧并保持顺序；语义型冲突对比历史，取较新的明确决策；删除/修改、二进制等危险冲突停下询问。冲突盘点可由一个通用只读脚本压缩输出，替代多轮原始 git 输出。
+
+proposed_change:
+  - 新增 scripts/commit_push_context.sh：默认输出分支/upstream/ahead-behind、进行中的操作、staged/unstaged/untracked 分类、未合并文件；--conflicts 输出冲突数、行范围和每侧 capped 摘要；--push/--stat 对应仅 push 与大改动场景；只读。
+  - SKILL.md 收集段改为先调用该脚本；新增“处理冲突”章节，覆盖盘点、追加型/语义型/危险型分流、解决、验证和提交推送。
+  - tests/test_commit_push_contract.py 补冲突流程契约与脚本可用性测试，保持现有契约通过。
+
+expected_improvement:
+  单次冲突场景从多轮原始 git diff/grep/sed 收敛为一次脚本调用加少量局部读取；冲突处理有统一决策表；token 消耗降低；现有安全协议与推送确认门不变。
+
+risk: low
