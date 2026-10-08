@@ -33,6 +33,12 @@ class ContractTest(unittest.TestCase):
         cls.ledger = (
             ROOT / "references" / "ledger-write-discipline.md"
         ).read_text(encoding="utf-8")
+        cls.plan_review = (
+            ROOT / "references" / "phase-plan-review.md"
+        ).read_text(encoding="utf-8")
+        cls.design_template = (
+            ROOT / "references" / "design-template.md"
+        ).read_text(encoding="utf-8")
 
     @staticmethod
     def _section(text: str, head: str) -> str:
@@ -340,6 +346,17 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不得只留 `TASK.md` 路径或小节指针", self.decide)
         self.assertIn("快照缺失或与上游不一致时先 `save` 补回再冻结", self.decide)
         self.assertIn("输入里没有画像时不编造一份", self.decide)
+
+    def test_design_requires_rationale_for_structure_choices(self) -> None:
+        # 架构 / 接口 / 技术栈的选择须有设计依据，写不出即入未决，不算设计完成。
+        self.assertIn("## 设计依据（架构 / 接口 / 技术栈）", self.design)
+        self.assertIn("选择 → 模式 / 原则 → 为何适用 → 可检后果", self.design)
+        self.assertIn("写不出依据的选择列入未决", self.design)
+        self.assertIn("写不出就列入未决，不算设计完成", self.design)
+        self.assertIn("本任务不涉及这三类选择时写「不适用」并说明", self.design)
+        self.assertIn("推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出", self.design)
+        self.assertIn("## 设计依据", self.design_template)
+        self.assertIn("设计依据核对", self.plan_review)
 
 
 class TestExternalPrecedentThinReference(unittest.TestCase):

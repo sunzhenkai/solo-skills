@@ -1,0 +1,106 @@
+diff --git a/skills/task-explore/references/design-template.md b/skills/task-explore/references/design-template.md
+index 63cfa4f..1b41860 100644
+--- a/skills/task-explore/references/design-template.md
++++ b/skills/task-explore/references/design-template.md
+@@ -47,6 +47,14 @@
+ 
+ 回退计划：[选错了怎么撤]。
+ 
++## 设计依据
++
++每个架构 / 接口 / 技术栈选择一行：`选择 → 模式 / 原则 → 为何适用 → 可检后果`。
++
++- [选择] → [模式 / 原则] → [为何适用] → [少了什么：耦合面 / 接口面 / 重复 / 可替换点 / 可测性 / 回归面]
++- 不引入模式的选择：[选择] → 当前做法，理由 […]
++- 本任务不涉及这三类选择：「不适用」+ 一句原因
++
+ ## Architecture
+ 
+ ```
+diff --git a/skills/task-explore/references/phase-design.md b/skills/task-explore/references/phase-design.md
+index fbf1fc2..68712d6 100644
+--- a/skills/task-explore/references/phase-design.md
++++ b/skills/task-explore/references/phase-design.md
+@@ -15,6 +15,7 @@
+ - 「方案」含质量画像与显式降级原文快照时，先按「画像展开」把它落进设计稿再落盘；快照缺失则按缺口停下报告，不自己补一份画像
+ - 约束（技术 / 时间 / 范围）已知或已标明未知
+ - 能形成至少两个可行方案；否则说明还缺哪些信息
++- 架构 / 接口 / 技术栈的选择都写得出依据（设计模式或软件工程原则）；写不出就列入未决，不算设计完成。本任务不涉及这三类选择时写「不适用」并说明，不为凑数贴模式名
+ 
+ 推荐若依赖未决项，把未决单独列出，不要写成已定。
+ 
+@@ -25,12 +26,25 @@
+ - 展开只细化画像已有字段，不改档位与范围，也不新增架构 / 接口 / schema / 代码骨架设计。某条展不下去：列入未决并提示缺口，不默默省掉。
+ - 输入里没有质量画像时本节不适用，不要为设计稿编造一份。
+ 
++## 设计依据（架构 / 接口 / 技术栈）
++
++每个影响架构、接口或技术栈的选择，写明依据与它换来的可检后果。这是「方案」与「贴模式名」的分界：模式名本身不是依据。
++
++- 一行一条：`选择 → 模式 / 原则 → 为何适用 → 可检后果`。
++- 可检后果写成少了什么——耦合面、接口面、重复、可替换点、可测性、回归面；「更优雅」「更规范」不算。
++- 模式要落到具体的变化点或重复点：「这里用了工厂模式」不是依据，「这三处创建分支只差一个参数，收进一个构造点」才是。
++- 引入该模式拿不出可检后果时，写「不引入」并说明当前做法为何够用，不为对齐名词引入结构。
++- 既有代码里已有同类问题的成熟做法时，优先对齐并链到它（「现状」节），偏离处写明理由。
++- 写不出依据的选择列入未决，不算已设计。
++
++与「外部参照」的分工：外部参照追的是别人怎么做的**出处**（[external-precedent.md](external-precedent.md)），设计依据写的是本选择**凭什么成立**；一条选择可以两者都有，互不替代。
++
+ ## 三阶段：探索 → 设计 → 写入任务
+ 
+ 停在实现边界。只写入 `{taskRoot}/design/`。
+ 
+ 1. **探索（对话，可不落盘）**：干系人与成功标准；现状（读代码与已有文档）；约束；未知与风险（写明「还不知道 X」）。写对比表之前读并做完 [external-precedent.md](external-precedent.md)。问题仍模糊时给 2–3 种问题框架让用户选。
+-2. **设计**：至少两个可行方案再推荐。选项 + 对比表（成本、风险、复杂度、可逆性、工期）。产物见 [design-template.md](design-template.md)。多用 ASCII / Mermaid。
++2. **设计**：至少两个可行方案再推荐。选项 + 对比表（成本、风险、复杂度、可逆性、工期）。产物见 [design-template.md](design-template.md)。推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出。多用 ASCII / Mermaid。
+ 3. **写入当前任务**（不晋升到仓库文档）：
+ 
+ | 文件 | 作用 |
+diff --git a/skills/task-explore/references/phase-plan-review.md b/skills/task-explore/references/phase-plan-review.md
+index 67ff970..d8dedeb 100644
+--- a/skills/task-explore/references/phase-plan-review.md
++++ b/skills/task-explore/references/phase-plan-review.md
+@@ -16,7 +16,7 @@
+ 1. 读 `TASK.md` 与 `design/`，把「评审什么」压成一句话 + 一段边界（改什么、不改什么、已知约束）。说不清就是 `design` 没做完，回去补。
+ 2. 按 `$agent-roster` 路由：读 `routing.md`、相关 Endpoint 画像与 Trace，先建 Run 目录并写 `decision.md`（候选、选了谁、为什么、依据），**顺序不可颠倒**。规则为空就跳过，证据不足就说「无推荐」。
+ 3. 把候选收成编号表供用户选：Endpoint / Model / 一句话擅长方向 / 依据（读了哪几条 Trace）。用户圈定前不发出委派。名册里没有合适候选就直接问用户。**名册里没有的 Endpoint 就是不存在，不要凭 CLI 名假设可用。**
+-4. 按 `$agent-roster` 契约委派：`permission: read-only`，`endpoint` + `model` 带上，prompt 只含方案路径与评审要求（改什么、不改什么、看哪几类风险），不塞完整历史；`handoff` 指向 `{taskRoot}/design/review-<yyyy-mm-dd>.md`。
++4. 按 `$agent-roster` 契约委派：`permission: read-only`，`endpoint` + `model` 带上，prompt 只含方案路径与评审要求（改什么、不改什么、看哪几类风险），不塞完整历史；`handoff` 指向 `{taskRoot}/design/review-<yyyy-mm-dd>.md`。评审要求须含**设计依据核对**：逐条按 [phase-design.md](phase-design.md) 的「设计依据」核模式与变化点是否匹配、可检后果是否兑现、有没有写不出依据却当成已设计的选择。
+ 5. `acpx` 未装：**停下这件事**，按 `$agent-roster` 提议安装并等回答；未获明确拒绝不得降级，等待期间编排者不得自己顶上。
+ 6. 回收：评审意见落到 `handoff` 路径。结论与方案问题分开列——评审结论、必须改的、可选的、被驳回的并写明理由。
+ 7. 按评审结果修正 `design/`：接受的写回方案稿并留变更记录；不接受的当面说明理由。**修正动作回到 `design`，不在本阶段改方案。**
+diff --git a/skills/task-explore/tests/test_task_explore_contract.py b/skills/task-explore/tests/test_task_explore_contract.py
+index 6743b1f..d2d9be3 100644
+--- a/skills/task-explore/tests/test_task_explore_contract.py
++++ b/skills/task-explore/tests/test_task_explore_contract.py
+@@ -33,6 +33,12 @@ class ContractTest(unittest.TestCase):
+         cls.ledger = (
+             ROOT / "references" / "ledger-write-discipline.md"
+         ).read_text(encoding="utf-8")
++        cls.plan_review = (
++            ROOT / "references" / "phase-plan-review.md"
++        ).read_text(encoding="utf-8")
++        cls.design_template = (
++            ROOT / "references" / "design-template.md"
++        ).read_text(encoding="utf-8")
+ 
+     @staticmethod
+     def _section(text: str, head: str) -> str:
+@@ -341,6 +347,17 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("快照缺失或与上游不一致时先 `save` 补回再冻结", self.decide)
+         self.assertIn("输入里没有画像时不编造一份", self.decide)
+ 
++    def test_design_requires_rationale_for_structure_choices(self) -> None:
++        # 架构 / 接口 / 技术栈的选择须有设计依据，写不出即入未决，不算设计完成。
++        self.assertIn("## 设计依据（架构 / 接口 / 技术栈）", self.design)
++        self.assertIn("选择 → 模式 / 原则 → 为何适用 → 可检后果", self.design)
++        self.assertIn("写不出依据的选择列入未决", self.design)
++        self.assertIn("写不出就列入未决，不算设计完成", self.design)
++        self.assertIn("本任务不涉及这三类选择时写「不适用」并说明", self.design)
++        self.assertIn("推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出", self.design)
++        self.assertIn("## 设计依据", self.design_template)
++        self.assertIn("设计依据核对", self.plan_review)
++
+ 
+ class TestExternalPrecedentThinReference(unittest.TestCase):
+     """external-precedent.md 改为薄引用：细则唯一真源在 task-wizard，本文件只留阶段钩子。"""

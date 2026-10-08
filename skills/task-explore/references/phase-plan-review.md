@@ -16,7 +16,7 @@
 1. 读 `TASK.md` 与 `design/`，把「评审什么」压成一句话 + 一段边界（改什么、不改什么、已知约束）。说不清就是 `design` 没做完，回去补。
 2. 按 `$agent-roster` 路由：读 `routing.md`、相关 Endpoint 画像与 Trace，先建 Run 目录并写 `decision.md`（候选、选了谁、为什么、依据），**顺序不可颠倒**。规则为空就跳过，证据不足就说「无推荐」。
 3. 把候选收成编号表供用户选：Endpoint / Model / 一句话擅长方向 / 依据（读了哪几条 Trace）。用户圈定前不发出委派。名册里没有合适候选就直接问用户。**名册里没有的 Endpoint 就是不存在，不要凭 CLI 名假设可用。**
-4. 按 `$agent-roster` 契约委派：`permission: read-only`，`endpoint` + `model` 带上，prompt 只含方案路径与评审要求（改什么、不改什么、看哪几类风险），不塞完整历史；`handoff` 指向 `{taskRoot}/design/review-<yyyy-mm-dd>.md`。
+4. 按 `$agent-roster` 契约委派：`permission: read-only`，`endpoint` + `model` 带上，prompt 只含方案路径与评审要求（改什么、不改什么、看哪几类风险），不塞完整历史；`handoff` 指向 `{taskRoot}/design/review-<yyyy-mm-dd>.md`。评审要求须含**设计依据核对**：逐条按 [phase-design.md](phase-design.md) 的「设计依据」核模式与变化点是否匹配、可检后果是否兑现、有没有写不出依据却当成已设计的选择。
 5. `acpx` 未装：**停下这件事**，按 `$agent-roster` 提议安装并等回答；未获明确拒绝不得降级，等待期间编排者不得自己顶上。
 6. 回收：评审意见落到 `handoff` 路径。结论与方案问题分开列——评审结论、必须改的、可选的、被驳回的并写明理由。
 7. 按评审结果修正 `design/`：接受的写回方案稿并留变更记录；不接受的当面说明理由。**修正动作回到 `design`，不在本阶段改方案。**

@@ -71,6 +71,12 @@ class TestRoleFilesStructure(unittest.TestCase):
         self.assertIn("## 不算问题", text)
         self.assertIn("## 跨角色 redirect", text)
 
+    def test_engineer_checks_structure_rationale(self) -> None:
+        text = read("references/roles/engineer.md")
+        self.assertIn("结构选择的依据", text)
+        self.assertIn("具体变化点或重复点", text)
+        self.assertIn("模式命名", text)
+
 
 if __name__ == "__main__":
     unittest.main()
