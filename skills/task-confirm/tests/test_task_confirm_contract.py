@@ -26,6 +26,13 @@ class ContractTest(unittest.TestCase):
         self.assertIn("| goal |", self.skill)
         self.assertIn("不列选项", self.skill)
 
+    def test_human_gate_requires_recommend(self) -> None:
+        self.assertIn("## human 闸口呈现（强制）", self.skill)
+        self.assertIn("只列问题、不写推荐", self.skill)
+        self.assertIn("按推荐", self.skill)
+        self.assertIn("human 与 goal 均必填", self.skill)
+        self.assertIn("或缺推荐默认", self.skill)
+
     def test_trigger_is_single_source(self) -> None:
         self.assertIn("单一真源", self.skill)
         self.assertIn("/goal", self.skill)

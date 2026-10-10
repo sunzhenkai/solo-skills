@@ -55,6 +55,11 @@ class ContractTest(unittest.TestCase):
         self.assertIn("complex", self.wizard)
         self.assertIn("grilling", self.wizard)
 
+    def test_human_gate_aligns_recommend(self) -> None:
+        self.assertIn("列选项（含推荐）", self.contract)
+        self.assertIn("空问清单", self.wizard)
+        self.assertIn("未决口子须已带推荐再交", self.wizard)
+
 
 if __name__ == "__main__":
     unittest.main()

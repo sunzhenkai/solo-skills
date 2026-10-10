@@ -1,0 +1,90 @@
+diff --git a/skills/task-confirm/SKILL.md b/skills/task-confirm/SKILL.md
+index e837706..d5f2e41 100644
+--- a/skills/task-confirm/SKILL.md
++++ b/skills/task-confirm/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-confirm
+ name: task-confirm
+-description: "确认与审阅协议：human 模式列选项等人确认；goal 模式推荐默认→派审→收敛即放行。不编排档位、不执行步骤。在消息含 /goal、被 taskrail/task-explore 以 goal 模式委派、或任一确认闸口需要本协议时使用。只要步骤级方案给人看用 taskrail wizard；不要用本 skill 代替编排。"
++description: "确认与审阅协议：human 模式列选项（含推荐）等人确认；goal 模式推荐默认→派审→收敛即放行。不编排档位、不执行步骤。在消息含 /goal、被 taskrail/task-explore 以 goal 模式委派、或任一确认闸口需要本协议时使用。只要步骤级方案给人看用 taskrail wizard；不要用本 skill 代替编排。"
+ ---
+ 
+ # task-confirm：确认与审阅
+@@ -29,9 +29,28 @@ description: "确认与审阅协议：human 模式列选项等人确认；goal 
+ 
+ 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+ 
++## human 闸口呈现（强制）
++
++每个未决口子必须含：**问题**、**推荐**、**一句话理由**；可选备选。**禁止**只列问题、不写推荐。
++
++收口句默认：「按推荐继续 / 改第 N 条」。用户回「按推荐」即按表内推荐放行。
++
++输出模板（半屏内）：
++
++```markdown
++## 闸口：<名>
++推荐整体：<一句话放行路径>
++
++| # | 口子 | 推荐 | 理由 |
++|---|------|------|------|
++| 1 | … | 是/否/具体值 | … |
++
++回复「按推荐」即放行；改哪条说编号即可。
++```
++
+ ## 闸口输入
+ 
+-调用方须给出：闸口名、推荐默认（goal 必填）、审阅边界材料（完成判据、「不做的事」；approve/复杂档另附质量画像与显式降级原文）。缺材料则停，退出点「理解不够」。
++调用方须给出：闸口名、推荐默认（**human 与 goal 均必填**）、审阅边界材料（完成判据、「不做的事」；approve/复杂档另附质量画像与显式降级原文）。缺材料（含缺推荐默认）则停，退出点「理解不够」。
+ 
+ ## 审阅（goal；human 在 approve 需要派审时也可复用）
+ 
+@@ -68,7 +87,7 @@ description: "确认与审阅协议：human 模式列选项等人确认；goal 
+ 
+ 命中则停，向调用方返回标签与所需授权；不标任务完成。
+ 
+-- **理解不够**：写不出可检查判据，或步骤靠会改方案的猜测。
++- **理解不够**：写不出可检查判据，或缺推荐默认，或步骤靠会改方案的猜测。
+ - **审阅不通过** / **审阅派不出** / **审阅没有结论** / **评审者未定**。
+ - **降级未确认**：A 类仍 `pending`——仅用户点名接受该项、或明确说按降级表全部确认可放行；审阅收敛与单独的「继续」都不算确认。B 类可经审阅记 `provisional`，到用户在场点追认。
+ - **阻塞解不开**。
+diff --git a/skills/task-confirm/evals/cases.yaml b/skills/task-confirm/evals/cases.yaml
+index 53d0f54..ba951bb 100644
+--- a/skills/task-confirm/evals/cases.yaml
++++ b/skills/task-confirm/evals/cases.yaml
+@@ -34,3 +34,15 @@ cases:
+         - 进度以 taskrail 契约的 phase / checkbox 为准
+       must_not:
+         - 强制依赖 goal_transition 四状态网格才能开工
++
++  - id: human-gate-with-recommend
++    kind: core
++    judge: deterministic
++    description: human 闸口禁止空问，须带推荐表
++    given: human 模式确认闸口有未决口子
++    expect:
++      must:
++        - 每个口子含问题、推荐、一句话理由
++        - 收口可「按推荐」放行
++      must_not:
++        - 只列问题、不写推荐
+diff --git a/skills/task-confirm/tests/test_task_confirm_contract.py b/skills/task-confirm/tests/test_task_confirm_contract.py
+index 0ea2b34..02a681c 100644
+--- a/skills/task-confirm/tests/test_task_confirm_contract.py
++++ b/skills/task-confirm/tests/test_task_confirm_contract.py
+@@ -26,6 +26,13 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("| goal |", self.skill)
+         self.assertIn("不列选项", self.skill)
+ 
++    def test_human_gate_requires_recommend(self) -> None:
++        self.assertIn("## human 闸口呈现（强制）", self.skill)
++        self.assertIn("只列问题、不写推荐", self.skill)
++        self.assertIn("按推荐", self.skill)
++        self.assertIn("human 与 goal 均必填", self.skill)
++        self.assertIn("或缺推荐默认", self.skill)
++
+     def test_trigger_is_single_source(self) -> None:
+         self.assertIn("单一真源", self.skill)
+         self.assertIn("/goal", self.skill)

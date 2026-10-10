@@ -34,3 +34,15 @@ cases:
         - 进度以 taskrail 契约的 phase / checkbox 为准
       must_not:
         - 强制依赖 goal_transition 四状态网格才能开工
+
+  - id: human-gate-with-recommend
+    kind: core
+    judge: deterministic
+    description: human 闸口禁止空问，须带推荐表
+    given: human 模式确认闸口有未决口子
+    expect:
+      must:
+        - 每个口子含问题、推荐、一句话理由
+        - 收口可「按推荐」放行
+      must_not:
+        - 只列问题、不写推荐
