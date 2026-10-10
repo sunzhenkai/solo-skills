@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """goal_transition.py — 状态迁移查表 + 状态文件读写 + 生产者戳解析。
 
-数据来源：references/state-machine.md 的迁移网格（唯一真源）。
+数据来源：references/legacy/state-machine.md 的迁移网格（legacy 唯一真源）。
 状态文件：只存计数器（state / exit_point / autocontinue_count /
 last_input_event / blocked / handoff_summary），不存迁移规则。
 
@@ -41,7 +41,7 @@ from pathlib import Path
 # =============================================================================
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-STATE_MACHINE_MD = SKILL_ROOT / "references" / "state-machine.md"
+STATE_MACHINE_MD = SKILL_ROOT / "references" / "legacy" / "state-machine.md"
 
 STATES = ("执行中", "已停", "已交接", "已完成")
 

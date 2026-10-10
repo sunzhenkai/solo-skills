@@ -114,6 +114,14 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
 
+### simple 单切片
+
+上游（taskrail）`tier: simple` 时：
+
+- 实施段默认**仅 1 个子 change**（或等价单切片编排）；不要为 simple 再拆多切片，除非用户点名。
+- 进度仍只认 checkbox；脚手架仍不要写满 `tasks.md`。
+- 不改变上方 Driver 协议逐字块。
+
 ## 纪律
 
 ### 进度归属

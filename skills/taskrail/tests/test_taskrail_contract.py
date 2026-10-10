@@ -30,7 +30,10 @@ class ContractTest(unittest.TestCase):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
     def test_pipeline_named(self) -> None:
-        self.assertIn("wizard → explore(+grill) → design → approve → propose → apply → archive", self.contract)
+        self.assertIn(
+            "wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive",
+            self.contract,
+        )
         self.assertIn("confirm_mode: human | goal", self.contract)
 
     def test_task_dir_layout(self) -> None:
@@ -59,6 +62,34 @@ class ContractTest(unittest.TestCase):
         self.assertIn("列选项（含推荐）", self.contract)
         self.assertIn("空问清单", self.wizard)
         self.assertIn("未决口子须已带推荐再交", self.wizard)
+
+    def test_pipeline_includes_handoff_action(self) -> None:
+        self.assertIn("[handoff]", self.contract)
+        self.assertIn("handoff = 动作，不是 phase", self.contract)
+
+    def test_tier_paths_aligned(self) -> None:
+        self.assertIn("explore(仅 grill)", self.contract)
+        self.assertIn("propose(单切片)", self.contract)
+        self.assertIn("handoff → propose", self.contract)
+        self.assertNotIn("可单 change", self.contract)
+        self.assertIn("explore(仅 grill)", self.wizard)
+        self.assertNotIn("→ 实现", self.wizard)
+
+    def test_non_phase_actions_table(self) -> None:
+        self.assertIn("## 非 phase 动作", self.contract)
+        self.assertIn("| `grill`", self.contract)
+        self.assertIn("| `handoff`", self.contract)
+        self.assertIn("| `expand`", self.contract)
+
+    def test_status_phase_matrix(self) -> None:
+        self.assertIn("status × phase 合法组合", self.contract)
+        self.assertIn("handed-off | propose, apply, archive", self.contract)
+
+    def test_simple_requires_taskflow(self) -> None:
+        self.assertIn("### simple 专条", self.contract)
+        self.assertIn("必须 `handoff` + taskflow", self.contract)
+        self.assertIn("禁止**在 taskrail 路径下无 driver", self.contract)
+        self.assertIn("凡经 taskrail 的交付均必需，含 simple", self.skill)
 
 
 if __name__ == "__main__":

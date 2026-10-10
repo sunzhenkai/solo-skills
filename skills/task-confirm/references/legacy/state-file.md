@@ -1,5 +1,7 @@
 # 状态文件：schema 与事件推断顺序
 
+> **legacy（已迁入 references/legacy/）。** 非 taskrail 进度真源；仅旧 goal 计数器可选使用。迁移网格见 [state-machine.md](state-machine.md)。
+
 goal 运行时的**计数器状态**落在一个 YAML 文件里，由 `scripts/goal_transition.py` 读写。本文件规定字段、落点、首轮模板，以及「没有生产者戳时怎么机械地推断事件」。
 
 **红线**：本文件只存计数器（state / exit_point / autocontinue_count / last_input_event / blocked / handoff_summary），**不存迁移规则**——迁移规则唯一真源是 [state-machine.md](state-machine.md) 的网格。

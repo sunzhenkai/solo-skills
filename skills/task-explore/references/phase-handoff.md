@@ -2,7 +2,7 @@
 
 进入本阶段后执行。未绑定则先回到 `SKILL.md` 的绑定规则。
 
-把 **探索任务**（`tasks/ongoing/{task-name}`）交接给 **taskflow 任务**（`{task-name}-driver`）。交付进度之后只认 taskflow checkbox。本阶段 **不写实现代码**，不发明 openspec 等价命令。交接后探索任务转入 `handed-off`：**不归档、不搬目录、不清绑定**。`handed-off` 只表示账本已换，不表示 goal 或交付完成。
+把 **探索任务**（`tasks/ongoing/{task-name}`）交接给 **taskflow 任务**（`{task-name}-driver`）。交付进度之后只认 taskflow checkbox。本阶段 **不写实现代码**，不发明 openspec 等价命令。交接后探索任务转入 `handed-off`：**不归档、不搬目录、不清绑定**；`phase` 置为 `propose`。`handed-off` 只表示账本已换，不表示 goal 或交付完成。
 
 处在 goal 里时，不询问是否交接。`approve` 的审阅已包含交接且已收敛时，本阶段直接执行。批量失败不向用户列选项，停并报告。「降级未确认」除外：门禁 4 要的是用户确认，审阅收敛不放行。
 
@@ -29,7 +29,7 @@
 3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照，driver 的 `proposal.md` 保留同一份原文，不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
 4. 按 taskflow 写入 driver 的 `.openspec.yaml`（`skip_specs: true`）和 `proposal.md`（含逐字 Driver 协议）。**不要写 `tasks.md`。**
 5. taskflow / openspec 不可用，或无法确定 planning root：停下报告可选项，**保持探索任务在 `ongoing/`、状态不变**，已写的交接段可保留。
-6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。
+6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，`phase` 改为 `propose`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。`handoff` 是命令不是 phase，禁止把 `phase` 写成 `handoff`。
 7. 桥接 stock `openspec-propose`（方案已定时选继续已有 change；未定时先 `openspec-explore`）。之后不要在 `tasks/` 里勾交付进度。
 
 ## 父任务批量交接

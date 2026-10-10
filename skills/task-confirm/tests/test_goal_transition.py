@@ -17,7 +17,7 @@ import goal_transition as gt  # noqa: E402
 
 class TestGridParsing(unittest.TestCase):
     def setUp(self) -> None:
-        text = (gt.SKILL_ROOT / "references" / "state-machine.md").read_text(encoding="utf-8")
+        text = (gt.SKILL_ROOT / "references" / "legacy" / "state-machine.md").read_text(encoding="utf-8")
         self.grid = gt._parse_grid(text)
 
     def test_four_states_present(self) -> None:
@@ -230,10 +230,10 @@ class TestCLIWithStateFile(unittest.TestCase):
 
 
 class TestEventInferenceTable(unittest.TestCase):
-    """references/state-file.md 必须含「事件推断顺序」与关键条目。"""
+    """references/legacy/state-file.md 必须含「事件推断顺序」与关键条目。"""
 
     def setUp(self) -> None:
-        self.text = (Path(__file__).resolve().parents[1] / "references" / "state-file.md").read_text(encoding="utf-8")
+        self.text = (Path(__file__).resolve().parents[1] / "references" / "legacy" / "state-file.md").read_text(encoding="utf-8")
 
     def test_inference_section_present(self) -> None:
         self.assertIn("## 事件推断顺序", self.text)

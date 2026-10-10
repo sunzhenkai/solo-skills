@@ -104,5 +104,33 @@ class TestFamilyComplete(unittest.TestCase):
         )
 
 
+class TestPhaseEnumClosed(unittest.TestCase):
+    def test_no_ambiguous_simple_delivery(self) -> None:
+        for path, text in live_texts():
+            self.assertNotIn(
+                "可单 change",
+                text,
+                f"{path} 仍含歧义 simple 交付措辞",
+            )
+
+    def test_phase_line_excludes_actions(self) -> None:
+        contract = read("taskrail", "references/contract.md")
+        # closed phase enum line
+        self.assertIn(
+            "phase: wizard | explore | design | approve | propose | apply | archive | done",
+            contract,
+        )
+        phase_line = [
+            ln for ln in contract.splitlines() if ln.startswith("phase: wizard")
+        ][0]
+        for banned in ("grill", "handoff", "chat", "expand"):
+            self.assertNotIn(banned, phase_line)
+
+    def test_non_phase_section_present(self) -> None:
+        contract = read("taskrail", "references/contract.md")
+        self.assertIn("## 非 phase 动作", contract)
+        self.assertIn("status × phase 合法组合", contract)
+
+
 if __name__ == "__main__":
     unittest.main()

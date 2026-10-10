@@ -60,7 +60,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 ### task* 要点
 
-- 流程：`wizard → explore(+grill) → design → approve → propose → apply → archive`（档位可跳过中间阶段）。
+- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位可跳过；simple/medium 的 explore 仅为 grill；handoff 是动作不是 phase；凡经 taskrail 均走 OpenSpec，simple 为单切片）。
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
 - 契约真源：`skills/taskrail/references/contract.md`。
 - 四件套：`taskrail` + `task-confirm` + `task-explore` + `taskflow`。

@@ -1,6 +1,13 @@
-# explore 阶段
+# explore 命令
 
-进入本阶段后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。
+进入本命令后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。
+
+## 仅 grill 与完整 explore
+
+| 形态 | 何时 | 做什么 |
+|------|------|--------|
+| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 澄清目标/判据/范围；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
+| **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
 
 针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
 

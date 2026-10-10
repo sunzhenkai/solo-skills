@@ -76,7 +76,7 @@ class ContractTest(unittest.TestCase):
 
     def test_unbound_requires_new_or_resume(self) -> None:
         self.assertIn("应提示创建或者恢复", self.skill)
-        self.assertIn("在确认后进行 new/resume 阶段", self.skill)
+        self.assertIn("在确认后进行 new/resume 命令", self.skill)
         self.assertIn("用户确认前不进入", self.skill)
 
     def test_archive_checks_dest_before_mutating_task_md(self) -> None:
@@ -174,7 +174,7 @@ class ContractTest(unittest.TestCase):
         )
 
     def test_phase_loaded_on_demand(self) -> None:
-        self.assertIn("只读该阶段详情", self.skill)
+        self.assertIn("只读该命令详情", self.skill)
         self.assertIn("不要预加载其它 phase", self.skill)
         self.assertIn("references/phase-explore.md", self.skill)
         self.assertIn("references/phase-design.md", self.skill)
@@ -361,6 +361,36 @@ class ContractTest(unittest.TestCase):
         self.assertIn("推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出", self.design)
         self.assertIn("## 设计依据", self.design_template)
         self.assertIn("设计依据核对", self.plan_review)
+
+
+    def test_commands_are_not_phase(self) -> None:
+        self.assertIn("命令与 `TASK.md.phase`", self.skill)
+        self.assertIn("禁止把命令名写入 `phase`", self.skill)
+        self.assertIn("## 命令", self.skill)
+        # 命令表标题不得再叫「阶段」
+        self.assertNotIn("| 阶段 | 何时 | 写入 |", self.skill)
+
+    def test_handoff_sets_phase_propose(self) -> None:
+        self.assertIn("`phase` 改为 `propose`", self.handoff)
+        self.assertIn("禁止把 `phase` 写成 `handoff`", self.handoff)
+        handoff_sec = self._section(self.skill, "## `handoff`")
+        self.assertIn("phase: propose", handoff_sec)
+
+    def test_explore_light_vs_full(self) -> None:
+        self.assertIn("仅 grill 与完整 explore", self.explore)
+        self.assertIn("仅 grill", self.explore)
+        explore_sec = self._section(self.skill, "## `explore`")
+        self.assertIn("仅 grill", explore_sec)
+        self.assertIn("完整 explore", explore_sec)
+
+    def test_cmd_refs_exist(self) -> None:
+        for rel in (
+            "references/cmd-new.md",
+            "references/cmd-chat.md",
+            "references/cmd-resume.md",
+            "references/cmd-save.md",
+        ):
+            self.assertTrue((ROOT / rel).is_file(), rel)
 
 
 class TestExternalPrecedentThinReference(unittest.TestCase):

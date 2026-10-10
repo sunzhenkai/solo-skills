@@ -68,11 +68,18 @@ class ContractTest(unittest.TestCase):
     def test_migrated_assets(self) -> None:
         for rel in (
             "references/suspension.md",
-            "references/state-file.md",
-            "references/state-machine.md",
+            "references/legacy/state-file.md",
+            "references/legacy/state-machine.md",
             "scripts/goal_transition.py",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
+
+
+
+    def test_legacy_not_progress_source_in_skill(self) -> None:
+        self.assertIn("legacy（勿作进度真源）", self.skill)
+        self.assertIn("references/legacy/state-machine.md", self.skill)
+        self.assertNotIn("](references/state-machine.md)", self.skill)
 
 
 if __name__ == "__main__":

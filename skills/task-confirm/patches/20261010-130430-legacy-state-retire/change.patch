@@ -1,0 +1,358 @@
+--- a/skills/task-confirm/SKILL.md
++++ b/skills/task-confirm/SKILL.md
+@@ -110,7 +110,7 @@
+ 
+ - 质量画像：[references/quality-profile.md](references/quality-profile.md)
+ - 挂起五元组：[references/suspension.md](references/suspension.md)
+-- **遗留可选**状态机：[references/state-machine.md](references/state-machine.md)、[references/state-file.md](references/state-file.md)、`scripts/goal_transition.py`——仅在需要旧 goal 计数器时使用；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
++- **legacy（勿作进度真源）**：[references/legacy/state-machine.md](references/legacy/state-machine.md)、[references/legacy/state-file.md](references/legacy/state-file.md)、`scripts/goal_transition.py`——仅旧 goal 计数器可选；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
+ 
+ ---
+ 
+--- a/skills/task-confirm/scripts/goal_transition.py
++++ b/skills/task-confirm/scripts/goal_transition.py
+@@ -41,7 +41,7 @@
+ # =============================================================================
+ 
+ SKILL_ROOT = Path(__file__).resolve().parents[1]
+-STATE_MACHINE_MD = SKILL_ROOT / "references" / "state-machine.md"
++STATE_MACHINE_MD = SKILL_ROOT / "references" / "legacy" / "state-machine.md"
+ 
+ STATES = ("执行中", "已停", "已交接", "已完成")
+ 
+--- a/skills/task-confirm/references/suspension.md
++++ b/skills/task-confirm/references/suspension.md
+@@ -31,7 +31,7 @@
+ 
+ 同一等待项被 goal 自动续跑连续第三次且仍无用户输入：标记 blocked，
+ 给交接摘要四段——已完成、未完成、证据、下一步（下一步写授权形状里
+-那句话）。给出摘要的同一轮把四段写入 state-file 的 `handoff_summary` 字段并落盘 `blocked: true`（schema 见 [state-file.md](state-file.md)）；后续轮只读该字段，不重算。blocked 不是新状态，goal 留在已停。无自动续跑的环境
++那句话）。给出摘要的同一轮把四段写入 state-file 的 `handoff_summary` 字段并落盘 `blocked: true`（schema 见 [legacy/state-file.md](legacy/state-file.md)）；后续轮只读该字段，不重算。blocked 不是新状态，goal 留在已停。无自动续跑的环境
+ （非 goal 模式）：首次停下即按五元组呈现，不空等第三轮才给摘要。
+ 
+ 「下一步」按**最小解除集**排序：一句授权能同时解掉最多退出点的
+--- a/skills/task-confirm/tests/test_task_confirm_contract.py
++++ b/skills/task-confirm/tests/test_task_confirm_contract.py
+@@ -68,12 +68,19 @@
+     def test_migrated_assets(self) -> None:
+         for rel in (
+             "references/suspension.md",
+-            "references/state-file.md",
+-            "references/state-machine.md",
++            "references/legacy/state-file.md",
++            "references/legacy/state-machine.md",
+             "scripts/goal_transition.py",
+         ):
+             self.assertTrue((ROOT / rel).is_file(), rel)
+ 
+ 
++
++    def test_legacy_not_progress_source_in_skill(self) -> None:
++        self.assertIn("legacy（勿作进度真源）", self.skill)
++        self.assertIn("references/legacy/state-machine.md", self.skill)
++        self.assertNotIn("](references/state-machine.md)", self.skill)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+--- a/skills/task-confirm/tests/test_goal_transition.py
++++ b/skills/task-confirm/tests/test_goal_transition.py
+@@ -233,7 +233,7 @@
+     """references/state-file.md 必须含「事件推断顺序」与关键条目。"""
+ 
+     def setUp(self) -> None:
+-        self.text = (Path(__file__).resolve().parents[1] / "references" / "state-file.md").read_text(encoding="utf-8")
++        self.text = (Path(__file__).resolve().parents[1] / "references" / "legacy" / "state-file.md").read_text(encoding="utf-8")
+ 
+     def test_inference_section_present(self) -> None:
+         self.assertIn("## 事件推断顺序", self.text)
+--- a/skills/task-confirm/references/state-machine.md
++++ /dev/null
+@@ -1,50 +0,0 @@
+-# 状态机：事件枚举与迁移网格（遗留可选）
+-
+-> **遗留资产。** 新编排以 `taskrail` 的 `TASK.md.phase` / OpenSpec checkbox 为进度真相。本网格仅供可选 `goal_transition.py` 计数器；不要用四状态替代阶段推进。
+-
+-每轮开头把本条输入对照「事件」节归到一类，再在网格里找 `(当前状态, 事件)` 格；有格按格走，已停行没有的事件按空格调「无进展轮」。**网格与正文或「无进展轮」有出入时，以正文与无进展轮为准。**
+-
+-**blocked**：「已停」的交接形态，不是第五状态。达成后给出交接摘要（已完成、未完成、证据、下一步），goal 留在已停，等用户处理。本表只在 blocked 格出现时引用它。
+-
+-子状态（完善中、审阅循环、写完之后）不是第五状态：各归属四状态之一，行内的迁移只在备注里点一句；详细规则见正文对应小节。
+-
+-## 事件（封闭枚举，11 种）
+-
+-- **用户授权**：用户点名接受退出点已列的动作，或按意图命中已列授权项（复述生效，见 SKILL.md「授权」节；不可逆动作仍逐字点名）；「仍按此方案执行」视为对「审阅收敛后续走」的授权。
+-- **用户继续**：用户只回「继续」或同义短句，没点名授权项。
+-- **用户改向**：用户改任务、改判据、升档或换路由的明确消息。
+-- **goal 自动续跑**：续跑提示来自 goal 系统而非用户回复。
+-- **审阅收敛**：完成程度为高且无未消失 P0/P1（P2 已写入坑）。
+-- **审阅未收敛**：本轮有 P0 或 P1，或同一条连败封顶 / 新增达恶化闸 / 写不出改法。
+-- **退出点命中**：撞上退出点任一标签（理解不够、审阅不通过、审阅派不出、审阅没有结论、评审者未定、降级未确认、阻塞解不开、未点名的危险操作、线上动作、同一验证连败两次、泄密、执行中升档）。
+-- **判据成立**：完成判据成立且交付标准全过（复杂档还要求质量画像齐全、降级无 `pending` 无 `provisional`）。
+-- **步骤推进**：执行中验证掉一个步骤，或已交接勾掉一个 checkbox。
+-- **外部新事实到达**：非用户消息、非自动续跑，但带来会改步骤或判据的新事实（环境变化、查证结果）。
+-- **用户补充信息**：用户答复了执行者的事实性问题，不含授权/改向语义。
+-
+-## 网格
+-
+-> 已停行穷举全部 11 事件（问题集中区）；其余三行只列有迁移的事件，未列事件按「无进展轮」兜底。空格 = 未定义。
+-
+-| 状态＼事件 | 用户授权 | 用户继续 | 用户改向 | goal 自动续跑 | 审阅收敛 | 审阅未收敛 | 退出点命中 | 判据成立 | 步骤推进 | 外部新事实到达 | 用户补充信息 |
+-|---|---|---|---|---|---|---|---|---|---|---|---|
+-| **执行中** | — | — | 已停（按改向重审方案） | — | 已交接（按档位路由）或执行中（简单档） | 执行中（完善中，不改代码） | 已停（路由写授权；执行中升档除外→已交接） | 已完成 | 执行中（从下一未验证步继续） | 已停（重审方案）或执行中（事实不影响步骤） | — |
+-| **已停** | 执行中（做已点名授权的那一件） | 已停（重申仍停，不写成选项列表） | 已停（按改向重写方案，走对应档） | 已停（第1~2次：只读查证/取证/固化，审阅类退出点可重试派审；连续第3次且仍无用户输入：blocked 交接） | 已停（收敛后路由不属待授权，仍按对应档走） | 已停（保持，核对未了） | 已停（叠加多条时一次说清） | — | — | 已停（只读查证更新证据，不重写方案） | 已停（若答复等于授权则按授权格，否则重申仍停） |
+-| **已交接** | — | — | 已停（重走方案） | — | — | — | 已停（除执行中升档外，改回） | 已完成（checkbox 全勾且判据成立） | 已交接（下一未勾项） | 已停（重审） | — |
+-| **已完成** | — | — | — | — | — | — | — | — | — | — | — |
+-
+-「—」= 该事件在此状态通常不出现；出现且无格覆盖时按「无进展轮」处理。
+-
+-## 无进展轮（兜底）
+-
+-状态与退出点和上一轮**完全相同**、且本轮没有带来新的外部输入（用户消息、审阅结论、环境新事实任一到达即算新输入）时，禁止原样重复上一轮回复：
+-
+-- 已停且该输入形态在网格里有格 → 按格走；
+-- 已停且该输入形态无格 → 做「授权」节列名的只读工作；无可做的只读工作时，按 goal 自动续跑第 3 次处理：标记 blocked，给交接摘要，不再原样重申。
+-- 执行中 / 已交接出现无进展轮 → 视为协议异常，状态改已停，路由写「无进展轮兜底触发」，等用户处置。
+-
+-## 与既有规则的关系
+-
+-- 「授权」节第 3 段（goal 自动续跑 1~2 次只读查证、第 3 次 blocked）在此登记为「已停 × goal 自动续跑」一格，语义不变。
+-- 「授权」节第 2 段（授权封闭集合）与第 4 段（无进展轮）共同构成已停行的规则；本表不新增授权项。
+-- 退出点、审阅、写完之后各小节的散文规则是这些格子的**定义来源**；本表只做索引与穷举，不替代正文。
+--- a/skills/task-confirm/references/state-file.md
++++ /dev/null
+@@ -1,88 +0,0 @@
+-# 状态文件：schema 与事件推断顺序
+-
+-goal 运行时的**计数器状态**落在一个 YAML 文件里，由 `scripts/goal_transition.py` 读写。本文件规定字段、落点、首轮模板，以及「没有生产者戳时怎么机械地推断事件」。
+-
+-**红线**：本文件只存计数器（state / exit_point / autocontinue_count / last_input_event / blocked / handoff_summary），**不存迁移规则**——迁移规则唯一真源是 [state-machine.md](state-machine.md) 的网格。
+-
+-## 落点
+-
+-state 文件是**运行产物**，落在仓库之外。推荐沿用 taskrail 的 `evidence_root` 风格：
+-
+-```text
+-<task 运行目录>/goal-state.yaml
+-```
+-
+-路径由进入方指定，随 goal 生命周期存续，goal 标完成或 blocked 交接后可归档，不删：
+-
+-- **被 taskrail 以 goal 模式推进**：建任务时写入 `goal-state-file:` / `evidence_root`（默认 `<evidence_root>/goal-state.yaml`）。本文件不替它决定落点。
+-- **独立 `/goal` 进入**：由执行者按上表落 `<task 运行目录>/goal-state.yaml`。
+-- 可在每轮 prompt 里盖 `goal-state-file: <path>` 戳覆盖上述默认。
+-
+-新编排以 `TASK.md.phase` 为进度真相；本状态机为可选计数器资产。
+-
+-## Schema（封闭字段集）
+-
+-```yaml
+-# goal-state.yaml — 计数器与上轮输入，不存规则
+-state: 已停                    # 四状态之一；首轮由执行者按方案路由写入
+-exit_point: 降级未确认          # 命中退出点的标签；未命中为 null
+-autocontinue_count: 2          # 已停 × goal 自动续跑 已连续发生次数；其它事件清零
+-last_input_event: goal 自动续跑 # 上一轮的事件名（封闭枚举 11 种之一）
+-blocked: false                 # 是否已 blocked 交接
+-handoff_summary: null          # blocked 时的交接摘要占位（已完成/未完成/证据/下一步）
+-```
+-
+-字段规则：
+-
+-- 只列上表 6 个 key；新增 key 会被 `goal_transition.py` 静默忽略（防止漂移）。
+-- 值都是标量（字符串 / 整数 / 布尔 / null），不嵌套、不列表。
+-- `autocontinue_count` 只在「已停 × goal 自动续跑」时递增；其它事件触发时由脚本清零。
+-- `blocked: true` 后脚本不再主动改 `state`，等用户处置。
+-
+-## 首轮模板
+-
+-goal 启动（或方案路由确定状态）时，由执行者写入：
+-
+-```yaml
+-state: 执行中                  # 或按路由写 已交接 / 已停
+-exit_point: null
+-autocontinue_count: 0
+-last_input_event: null
+-blocked: false
+-handoff_summary: null
+-```
+-
+-state-file 不存在时，脚本按 `--state` 回退并在 `--write` 时创建。
+-
+-## 事件推断顺序（无生产者戳时的降级路径）
+-
+-goal 系统若没在每轮 prompt 开头盖 `goal-event: <tag>` 戳，执行者**按以下顺序逐条比对**，命中即停，不跳过、不合并：
+-
+-1. 本轮 prompt 与上一轮**逐字相同** → `goal 自动续跑`
+-2. 消息点名或按意图命中退出点已列的授权项（含「仍按此方案执行」「接受降级」「按降级表全部确认」；意图命中须复述「理解为授权 X，若无纠正即生效」后生效，不可逆动作除外） → `用户授权`
+-3. 消息为「继续」「接着做」「go on」类短句、无其它语义 → `用户继续`
+-4. 消息含改向词（「改」「换成」「不要」「重新」「升档」「换个方案」「先别做」） → `用户改向`
+-5. 消息是对执行者提问的事实性答复、不含授权/改向 → `用户补充信息`
+-6. 以上都不命中 → 按 state-file 里 `last_input_event` 与当前环节推断：
+-   - 上次处于完善中（路由以「完善中」开头） → `审阅未收敛`
+-   - 上次处于写完之后且 checkbox 有推进 → `步骤推进`
+-   - 上次处于写完之后且判据成立 → `判据成立`
+-   - 其它情况 → 走「无进展轮」兜底
+-
+-**判断细节**：
+-
+-- 「逐字相同」去掉前后空白与时间戳类差异后比对；防止 goal 系统带轻微噪声。
+-- 改向词列表是封闭集合；新增词要改本表 + 测试。
+-- 推断顺序本身**只是分类辅助**，分类错了脚本会返回 `defined: false` 走无进展轮——最坏结局仍是 blocked 交接，不会越权。
+-
+-## 生产者戳（优先路径）
+-
+-goal 系统若能改，每轮 prompt 开头加一行：
+-
+-```text
+-goal-event: auto-continue
+-goal-round: 3
+-goal-state-file: <path>
+-```
+-
+-执行者看到戳就直接 `--event-tag auto-continue` 调脚本，跳过上面的推断顺序。tag → 事件名的映射表内置在 `scripts/goal_transition.py` 的 `EVENT_TAGS`，本文件不重复列。
+--- /dev/null
++++ b/skills/task-confirm/references/legacy/state-machine.md
+@@ -0,0 +1,50 @@
++# 状态机：事件枚举与迁移网格（legacy）
++
++> **legacy（已迁入 references/legacy/）。** 新编排以 `taskrail` 的 `TASK.md.phase` / OpenSpec checkbox 为进度真相。本网格仅供可选 `goal_transition.py` 计数器；不要用四状态替代阶段推进。
++
++每轮开头把本条输入对照「事件」节归到一类，再在网格里找 `(当前状态, 事件)` 格；有格按格走，已停行没有的事件按空格调「无进展轮」。**网格与正文或「无进展轮」有出入时，以正文与无进展轮为准。**
++
++**blocked**：「已停」的交接形态，不是第五状态。达成后给出交接摘要（已完成、未完成、证据、下一步），goal 留在已停，等用户处理。本表只在 blocked 格出现时引用它。
++
++子状态（完善中、审阅循环、写完之后）不是第五状态：各归属四状态之一，行内的迁移只在备注里点一句；详细规则见正文对应小节。
++
++## 事件（封闭枚举，11 种）
++
++- **用户授权**：用户点名接受退出点已列的动作，或按意图命中已列授权项（复述生效，见 SKILL.md「授权」节；不可逆动作仍逐字点名）；「仍按此方案执行」视为对「审阅收敛后续走」的授权。
++- **用户继续**：用户只回「继续」或同义短句，没点名授权项。
++- **用户改向**：用户改任务、改判据、升档或换路由的明确消息。
++- **goal 自动续跑**：续跑提示来自 goal 系统而非用户回复。
++- **审阅收敛**：完成程度为高且无未消失 P0/P1（P2 已写入坑）。
++- **审阅未收敛**：本轮有 P0 或 P1，或同一条连败封顶 / 新增达恶化闸 / 写不出改法。
++- **退出点命中**：撞上退出点任一标签（理解不够、审阅不通过、审阅派不出、审阅没有结论、评审者未定、降级未确认、阻塞解不开、未点名的危险操作、线上动作、同一验证连败两次、泄密、执行中升档）。
++- **判据成立**：完成判据成立且交付标准全过（复杂档还要求质量画像齐全、降级无 `pending` 无 `provisional`）。
++- **步骤推进**：执行中验证掉一个步骤，或已交接勾掉一个 checkbox。
++- **外部新事实到达**：非用户消息、非自动续跑，但带来会改步骤或判据的新事实（环境变化、查证结果）。
++- **用户补充信息**：用户答复了执行者的事实性问题，不含授权/改向语义。
++
++## 网格
++
++> 已停行穷举全部 11 事件（问题集中区）；其余三行只列有迁移的事件，未列事件按「无进展轮」兜底。空格 = 未定义。
++
++| 状态＼事件 | 用户授权 | 用户继续 | 用户改向 | goal 自动续跑 | 审阅收敛 | 审阅未收敛 | 退出点命中 | 判据成立 | 步骤推进 | 外部新事实到达 | 用户补充信息 |
++|---|---|---|---|---|---|---|---|---|---|---|---|
++| **执行中** | — | — | 已停（按改向重审方案） | — | 已交接（按档位路由）或执行中（简单档） | 执行中（完善中，不改代码） | 已停（路由写授权；执行中升档除外→已交接） | 已完成 | 执行中（从下一未验证步继续） | 已停（重审方案）或执行中（事实不影响步骤） | — |
++| **已停** | 执行中（做已点名授权的那一件） | 已停（重申仍停，不写成选项列表） | 已停（按改向重写方案，走对应档） | 已停（第1~2次：只读查证/取证/固化，审阅类退出点可重试派审；连续第3次且仍无用户输入：blocked 交接） | 已停（收敛后路由不属待授权，仍按对应档走） | 已停（保持，核对未了） | 已停（叠加多条时一次说清） | — | — | 已停（只读查证更新证据，不重写方案） | 已停（若答复等于授权则按授权格，否则重申仍停） |
++| **已交接** | — | — | 已停（重走方案） | — | — | — | 已停（除执行中升档外，改回） | 已完成（checkbox 全勾且判据成立） | 已交接（下一未勾项） | 已停（重审） | — |
++| **已完成** | — | — | — | — | — | — | — | — | — | — | — |
++
++「—」= 该事件在此状态通常不出现；出现且无格覆盖时按「无进展轮」处理。
++
++## 无进展轮（兜底）
++
++状态与退出点和上一轮**完全相同**、且本轮没有带来新的外部输入（用户消息、审阅结论、环境新事实任一到达即算新输入）时，禁止原样重复上一轮回复：
++
++- 已停且该输入形态在网格里有格 → 按格走；
++- 已停且该输入形态无格 → 做「授权」节列名的只读工作；无可做的只读工作时，按 goal 自动续跑第 3 次处理：标记 blocked，给交接摘要，不再原样重申。
++- 执行中 / 已交接出现无进展轮 → 视为协议异常，状态改已停，路由写「无进展轮兜底触发」，等用户处置。
++
++## 与既有规则的关系
++
++- 「授权」节第 3 段（goal 自动续跑 1~2 次只读查证、第 3 次 blocked）在此登记为「已停 × goal 自动续跑」一格，语义不变。
++- 「授权」节第 2 段（授权封闭集合）与第 4 段（无进展轮）共同构成已停行的规则；本表不新增授权项。
++- 退出点、审阅、写完之后各小节的散文规则是这些格子的**定义来源**；本表只做索引与穷举，不替代正文。
+--- /dev/null
++++ b/skills/task-confirm/references/legacy/state-file.md
+@@ -0,0 +1,90 @@
++# 状态文件：schema 与事件推断顺序
++
++> **legacy（已迁入 references/legacy/）。** 非 taskrail 进度真源；仅旧 goal 计数器可选使用。迁移网格见 [state-machine.md](state-machine.md)。
++
++goal 运行时的**计数器状态**落在一个 YAML 文件里，由 `scripts/goal_transition.py` 读写。本文件规定字段、落点、首轮模板，以及「没有生产者戳时怎么机械地推断事件」。
++
++**红线**：本文件只存计数器（state / exit_point / autocontinue_count / last_input_event / blocked / handoff_summary），**不存迁移规则**——迁移规则唯一真源是 [state-machine.md](state-machine.md) 的网格。
++
++## 落点
++
++state 文件是**运行产物**，落在仓库之外。推荐沿用 taskrail 的 `evidence_root` 风格：
++
++```text
++<task 运行目录>/goal-state.yaml
++```
++
++路径由进入方指定，随 goal 生命周期存续，goal 标完成或 blocked 交接后可归档，不删：
++
++- **被 taskrail 以 goal 模式推进**：建任务时写入 `goal-state-file:` / `evidence_root`（默认 `<evidence_root>/goal-state.yaml`）。本文件不替它决定落点。
++- **独立 `/goal` 进入**：由执行者按上表落 `<task 运行目录>/goal-state.yaml`。
++- 可在每轮 prompt 里盖 `goal-state-file: <path>` 戳覆盖上述默认。
++
++新编排以 `TASK.md.phase` 为进度真相；本状态机为可选计数器资产。
++
++## Schema（封闭字段集）
++
++```yaml
++# goal-state.yaml — 计数器与上轮输入，不存规则
++state: 已停                    # 四状态之一；首轮由执行者按方案路由写入
++exit_point: 降级未确认          # 命中退出点的标签；未命中为 null
++autocontinue_count: 2          # 已停 × goal 自动续跑 已连续发生次数；其它事件清零
++last_input_event: goal 自动续跑 # 上一轮的事件名（封闭枚举 11 种之一）
++blocked: false                 # 是否已 blocked 交接
++handoff_summary: null          # blocked 时的交接摘要占位（已完成/未完成/证据/下一步）
++```
++
++字段规则：
++
++- 只列上表 6 个 key；新增 key 会被 `goal_transition.py` 静默忽略（防止漂移）。
++- 值都是标量（字符串 / 整数 / 布尔 / null），不嵌套、不列表。
++- `autocontinue_count` 只在「已停 × goal 自动续跑」时递增；其它事件触发时由脚本清零。
++- `blocked: true` 后脚本不再主动改 `state`，等用户处置。
++
++## 首轮模板
++
++goal 启动（或方案路由确定状态）时，由执行者写入：
++
++```yaml
++state: 执行中                  # 或按路由写 已交接 / 已停
++exit_point: null
++autocontinue_count: 0
++last_input_event: null
++blocked: false
++handoff_summary: null
++```
++
++state-file 不存在时，脚本按 `--state` 回退并在 `--write` 时创建。
++
++## 事件推断顺序（无生产者戳时的降级路径）
++
++goal 系统若没在每轮 prompt 开头盖 `goal-event: <tag>` 戳，执行者**按以下顺序逐条比对**，命中即停，不跳过、不合并：
++
++1. 本轮 prompt 与上一轮**逐字相同** → `goal 自动续跑`
++2. 消息点名或按意图命中退出点已列的授权项（含「仍按此方案执行」「接受降级」「按降级表全部确认」；意图命中须复述「理解为授权 X，若无纠正即生效」后生效，不可逆动作除外） → `用户授权`
++3. 消息为「继续」「接着做」「go on」类短句、无其它语义 → `用户继续`
++4. 消息含改向词（「改」「换成」「不要」「重新」「升档」「换个方案」「先别做」） → `用户改向`
++5. 消息是对执行者提问的事实性答复、不含授权/改向 → `用户补充信息`
++6. 以上都不命中 → 按 state-file 里 `last_input_event` 与当前环节推断：
++   - 上次处于完善中（路由以「完善中」开头） → `审阅未收敛`
++   - 上次处于写完之后且 checkbox 有推进 → `步骤推进`
++   - 上次处于写完之后且判据成立 → `判据成立`
++   - 其它情况 → 走「无进展轮」兜底
++
++**判断细节**：
++
++- 「逐字相同」去掉前后空白与时间戳类差异后比对；防止 goal 系统带轻微噪声。
++- 改向词列表是封闭集合；新增词要改本表 + 测试。
++- 推断顺序本身**只是分类辅助**，分类错了脚本会返回 `defined: false` 走无进展轮——最坏结局仍是 blocked 交接，不会越权。
++
++## 生产者戳（优先路径）
++
++goal 系统若能改，每轮 prompt 开头加一行：
++
++```text
++goal-event: auto-continue
++goal-round: 3
++goal-state-file: <path>
++```
++
++执行者看到戳就直接 `--event-tag auto-continue` 调脚本，跳过上面的推断顺序。tag → 事件名的映射表内置在 `scripts/goal_transition.py` 的 `EVENT_TAGS`，本文件不重复列。

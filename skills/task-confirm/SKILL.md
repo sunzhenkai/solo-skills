@@ -110,7 +110,7 @@ description: "确认与审阅协议：human 模式列选项（含推荐）等人
 
 - 质量画像：[references/quality-profile.md](references/quality-profile.md)
 - 挂起五元组：[references/suspension.md](references/suspension.md)
-- **遗留可选**状态机：[references/state-machine.md](references/state-machine.md)、[references/state-file.md](references/state-file.md)、`scripts/goal_transition.py`——仅在需要旧 goal 计数器时使用；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
+- **legacy（勿作进度真源）**：[references/legacy/state-machine.md](references/legacy/state-machine.md)、[references/legacy/state-file.md](references/legacy/state-file.md)、`scripts/goal_transition.py`——仅旧 goal 计数器可选；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
 
 ---
 

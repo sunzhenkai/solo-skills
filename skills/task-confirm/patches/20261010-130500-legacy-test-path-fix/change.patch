@@ -1,0 +1,31 @@
+--- a/skills/task-confirm/tests/test_goal_transition.py
++++ b/skills/task-confirm/tests/test_goal_transition.py
+@@ -17,7 +17,7 @@
+ 
+ class TestGridParsing(unittest.TestCase):
+     def setUp(self) -> None:
+-        text = (gt.SKILL_ROOT / "references" / "state-machine.md").read_text(encoding="utf-8")
++        text = (gt.SKILL_ROOT / "references" / "legacy" / "state-machine.md").read_text(encoding="utf-8")
+         self.grid = gt._parse_grid(text)
+ 
+     def test_four_states_present(self) -> None:
+@@ -230,7 +230,7 @@
+ 
+ 
+ class TestEventInferenceTable(unittest.TestCase):
+-    """references/state-file.md 必须含「事件推断顺序」与关键条目。"""
++    """references/legacy/state-file.md 必须含「事件推断顺序」与关键条目。"""
+ 
+     def setUp(self) -> None:
+         self.text = (Path(__file__).resolve().parents[1] / "references" / "legacy" / "state-file.md").read_text(encoding="utf-8")
+--- a/skills/task-confirm/scripts/goal_transition.py
++++ b/skills/task-confirm/scripts/goal_transition.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ """goal_transition.py — 状态迁移查表 + 状态文件读写 + 生产者戳解析。
+ 
+-数据来源：references/state-machine.md 的迁移网格（唯一真源）。
++数据来源：references/legacy/state-machine.md 的迁移网格（legacy 唯一真源）。
+ 状态文件：只存计数器（state / exit_point / autocontinue_count /
+ last_input_event / blocked / handoff_summary），不存迁移规则。
+ 

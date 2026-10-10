@@ -72,9 +72,9 @@
 
 | 档位 | 典型 | wizard 之后 |
 |------|------|-------------|
-| 简单 | 局部修改 | grill → approve(轻) → 实现 |
-| 中等 | 跨模块/仓库、改动量稍大 | grill → design(可轻) → approve → propose → apply → archive |
-| 复杂 | 项目级重构、逻辑重塑、涉及面广 | explore → design → approve → handoff → propose → apply → archive |
+| 简单 | 局部修改 | explore(仅 grill) → approve(轻) → handoff → propose(单切片) → apply → archive |
+| 中等 | 跨模块/仓库、改动量稍大 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
+| 复杂 | 项目级重构、逻辑重塑、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive |
 
 - 产品交付硬指标命中即复杂：多主页面；两以上角色/权限边界；持久化跨请求/用户复用；外部集成/实时协作/通知/审计；项目级重构。单组件、单页原型、无持久化静态演示不触发。
 - 跨模块/仓库本身是中等；同时属项目级重构等则升复杂。

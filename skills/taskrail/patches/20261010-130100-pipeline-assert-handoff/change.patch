@@ -1,0 +1,14 @@
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -30,7 +30,10 @@
+             self.assertTrue((ROOT / rel).is_file(), rel)
+ 
+     def test_pipeline_named(self) -> None:
+-        self.assertIn("wizard → explore(+grill) → design → approve → propose → apply → archive", self.contract)
++        self.assertIn(
++            "wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive",
++            self.contract,
++        )
+         self.assertIn("confirm_mode: human | goal", self.contract)
+ 
+     def test_task_dir_layout(self) -> None:

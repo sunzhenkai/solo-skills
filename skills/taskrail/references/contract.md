@@ -7,17 +7,34 @@
 ```text
 confirm_mode: human | goal
 
-wizard → explore(+grill) → design → approve → propose → apply → archive
+wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive
          ↑ expand 可插在 explore / design 之后
+         ↑ handoff = 动作，不是 phase
 ```
 
 | 档位 (`tier`) | 路径 |
 |---------------|------|
-| simple | wizard → grill → approve(轻) → 实现（可单 change）→ 收口 |
-| medium | wizard → grill → design(可轻) → approve → propose → apply → archive |
-| complex | wizard → explore(+grill) → design → approve → handoff/propose → apply → archive |
+| simple | wizard → explore(仅 grill) → approve(轻) → handoff → propose(单切片) → apply → archive |
+| medium | wizard → explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
+| complex | wizard → explore(+grill) → design → approve → handoff → propose → apply → archive |
 
-简单/中等是**跳过**中间阶段，不是另一套 skill。
+简单/中等是**跳过**中间阶段（simple 跳过 design；simple/medium 的 explore 仅为 grill），不是另一套 skill。
+
+### simple 专条
+
+- 凡经 `taskrail` 的任务（含 simple）必须 `handoff` + taskflow：建 `{slug}-driver`，走 propose → apply → archive。
+- `propose(单切片)`：driver 实施段默认仅 1 个子 change（或等价单切片编排），进度仍只认 checkbox。
+- **禁止**在 taskrail 路径下无 driver 直接改业务代码。用户明确拒绝 OpenSpec → **退出 taskrail**，改直接实现（与 task-explore「何时不用」一致），不在本轨道开无账本分支。
+
+## 非 phase 动作
+
+下列是动作，**不得**写入 `TASK.md.phase`：
+
+| 动作 | 时机 | phase / status 影响 |
+|------|------|---------------------|
+| `grill` | 属 `explore` 子步骤；有台账时委托 `grilling` | 不单独占 phase |
+| `handoff` | approve 已冻结后、进入 `propose` 前；委托 task-explore `handoff` | `status:=handed-off`，`phase:=propose`，写入 `driver` |
+| `expand` | explore / design 后按需 | 建子任务目录；父 `phase` 不变 |
 
 ## 目录
 
@@ -57,10 +74,21 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ```
 
+- `phase` 只允许上列封闭枚举。task-explore 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，禁止写入 `phase`。
 - `phase` + 各阶段目录产物 = wizard→approve 区间的进度真相。
 - propose 之后进度只认 OpenSpec checkbox（driver / 子 change）。
 - `handed-off` 只表示账本已换到 taskflow，**不等于** `done`。
 - `done` 仅当完成判据成立且交付标准全过（复杂档另要求质量画像齐全、降级无 `pending`/`provisional`）。
+
+### status × phase 合法组合
+
+| status | 允许的 phase |
+|--------|----------------|
+| ongoing | wizard, explore, design, approve |
+| handed-off | propose, apply, archive |
+| blocked | 停在进入 blocked 时的 phase（上表该 status 原允许集合内） |
+| done | done |
+| archived | archive 或 done（目录已迁 `tasks/archive/`） |
 
 ## 阶段载荷契约
 
@@ -69,8 +97,8 @@ updated: YYYY-MM-DD
 | 进入阶段 | 必须已有 |
 |----------|----------|
 | explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文） |
-| approve | design 产出路径（或简单档的 plan）+ `criterion` + 「不做的事」 |
-| propose / handoff | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照 |
+| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」 |
+| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；`status: handed-off` 与 `driver` 已写入 |
 | apply | driver `tasks.md` 已由 propose 产出 |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 
@@ -81,7 +109,7 @@ updated: YYYY-MM-DD
 | 闸口 | 说明 |
 |------|------|
 | wizard 定稿 | 方案落盘前 |
-| explore 关键 | 探索方向/范围收敛 |
+| explore 关键 | 探索方向/范围收敛（含仅 grill） |
 | design 定稿 | 方案稿可审前 |
 | approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量） |
 | expand 创建 | 拆子任务前 |
@@ -98,7 +126,7 @@ updated: YYYY-MM-DD
 |-------|------|
 | `taskrail` | 唯一编排入口；绑定任务；推进阶段；完成门 |
 | `task-confirm` | human/goal 确认与审阅；退出点；质量画像字段规范 |
-| `task-explore` | 台账与 explore/design/expand/approve/handoff/archive |
+| `task-explore` | 台账与 explore/design/expand/approve/handoff/archive 等**命令** |
 | `taskflow` | driver + propose/apply/archive；交付 checkbox |
 
 已删除的旧 id（`task-wizard` / `task-goal` / `task-delivery`）勿再引用；统一用上表四 skill。

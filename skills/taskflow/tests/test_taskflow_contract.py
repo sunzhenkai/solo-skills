@@ -225,5 +225,14 @@ class TestDescriptionTriggerBranches(unittest.TestCase):
             self.assertNotIn(detail, desc, f"description 复述了正文细节：{detail}")
 
 
+
+class TestSimpleSingleSlice(unittest.TestCase):
+    def test_simple_single_slice_section(self) -> None:
+        text = read("SKILL.md")
+        self.assertIn("### simple 单切片", text)
+        self.assertIn("实施段默认**仅 1 个子 change**", text)
+        self.assertIn("进度仍只认 checkbox", text)
+
+
 if __name__ == "__main__":
     unittest.main()

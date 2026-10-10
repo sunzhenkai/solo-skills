@@ -261,3 +261,16 @@ cases:
       must_not:
         - 用五维分数或证据清单推断未勾 checkbox 已完成
         - 另建完成度、暂缓或分支状态台账
+
+  - id: simple-driver-one-slice
+    kind: core
+    judge: deterministic
+    description: simple 档默认单切片实施
+    given: 上游 taskrail tier 为 simple 且已 handoff 建 driver
+    expect:
+      must:
+        - 实施段默认仅 1 个子 change（或等价单切片）
+        - 进度只认 checkbox
+      must_not:
+        - 为 simple 默认拆多切片
+

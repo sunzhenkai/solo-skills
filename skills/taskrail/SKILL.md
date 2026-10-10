@@ -30,8 +30,8 @@ taskrail list
 执行前确认可读；缺任一项停下报告安装选项：
 
 - `task-confirm`
-- `task-explore`（中等轻 design 可跳过完整 explore；复杂档必需）
-- `taskflow`（中等/复杂交付必需）
+- `task-explore`（simple/medium 的 explore 仅为 grill；复杂档完整 explore；medium 可轻 design）
+- `taskflow`（凡经 taskrail 的交付均必需，含 simple）
 - `grilling`（有任务目录时的拷问）
 - stock `openspec-*`（propose/apply/archive；经 taskflow）
 
@@ -50,17 +50,17 @@ taskrail list
 | phase | 动作 |
 |-------|------|
 | `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`；闸口定稿 |
-| `explore` | 委托 task-explore `explore`（grilling）；复杂档默认经过 |
-| `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录） |
+| `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
+| `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
-| `propose` | 经 handoff（若尚未）委托 taskflow / `openspec-propose` |
+| `propose` | **先** handoff（若 `status` 尚未 `handed-off`），再委托 taskflow / `openspec-propose`；simple 为单切片 |
 | `apply` | 委托 `openspec-apply-change`；进度只认 checkbox |
 | `archive` | 交付侧归档 driver；探索侧关闭走 task-explore `archive` |
 | `done` | 完成门已过；停止新增工作 |
 
 ### 档位跳过
 
-wizard 定稿后写 `tier`，按契约表跳过未列出的阶段（例如 simple 跳过 explore/design 的完整流程，但仍建任务目录并经轻量 approve）。
+wizard 定稿后写 `tier`，按契约表跳过未列出的阶段（simple 跳过 design，explore 仅为 grill；仍建任务目录、经轻量 approve，且必须 handoff + taskflow）。`grill` / `handoff` / `expand` 是非 phase 动作，见契约。
 
 ### expand
 
@@ -76,7 +76,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 
 1. 完成判据成立（`criterion` 原文）。
 2. 交付标准全过（方案写「无」则只看判据）。
-3. 中等/复杂：相关 checkbox 全勾。
+3. 相关 checkbox 全勾（含 simple 单切片）。
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
 
 `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。

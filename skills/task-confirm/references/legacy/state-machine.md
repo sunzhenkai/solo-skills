@@ -1,6 +1,6 @@
-# 状态机：事件枚举与迁移网格（遗留可选）
+# 状态机：事件枚举与迁移网格（legacy）
 
-> **遗留资产。** 新编排以 `taskrail` 的 `TASK.md.phase` / OpenSpec checkbox 为进度真相。本网格仅供可选 `goal_transition.py` 计数器；不要用四状态替代阶段推进。
+> **legacy（已迁入 references/legacy/）。** 新编排以 `taskrail` 的 `TASK.md.phase` / OpenSpec checkbox 为进度真相。本网格仅供可选 `goal_transition.py` 计数器；不要用四状态替代阶段推进。
 
 每轮开头把本条输入对照「事件」节归到一类，再在网格里找 `(当前状态, 事件)` 格；有格按格走，已停行没有的事件按空格调「无进展轮」。**网格与正文或「无进展轮」有出入时，以正文与无进展轮为准。**
 

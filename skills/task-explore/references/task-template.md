@@ -10,7 +10,7 @@
 - slug: <task-name>
 - parent: <父任务 slug；仅子任务保留此行，顶层任务删除>
 - status: ongoing
-- phase: wizard
+- phase: wizard  # 仅允许：wizard|explore|design|approve|propose|apply|archive|done；禁止 chat/handoff/save 等命令名
 - confirm_mode: human
 - tier: <simple | medium | complex；未知可暂空>
 - criterion: <完成判据原文；没有则留空，不要编造>

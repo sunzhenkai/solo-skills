@@ -1,0 +1,326 @@
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -1,17 +1,22 @@
+ ---
+ id: task-explore
+ name: task-explore
+-description: "探索台账与阶段能力：在 tasks/ 维护 ongoing/archive，按 explore → design → approve → handoff 推进；支持 expand 拆子任务。编排入口优先 taskrail；本 skill 在点名 task-explore、长周期探索、复杂排查、恢复/交接/归档时使用。交付用 handoff，不要另起无关 driver。"
++description: "探索台账与命令能力：在 tasks/ 维护 ongoing/archive，按 explore → design → approve → handoff 推进；支持 expand 拆子任务。编排入口优先 taskrail；本 skill 在点名 task-explore、长周期探索、复杂排查、恢复/交接/归档时使用。交付用 handoff，不要另起无关 driver。"
+ ---
+ 
+ # 任务探索
+ 
+ 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
+ 
+-在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与阶段细则。
++在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
+ 
+ **探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。两套账；唯一桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)。
+ 
++### 命令与 `TASK.md.phase`（强制）
++
++本 skill 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，不是 `TASK.md.phase` 取值。`phase` 只允许契约封闭枚举：`wizard | explore | design | approve | propose | apply | archive | done`。禁止把命令名写入 `phase`。`handoff` 成功后：`status:=handed-off`，`phase:=propose`，并写入 `driver`（见 [references/phase-handoff.md](references/phase-handoff.md)）。
++
++
+ **子任务** = 探索期从父任务拆出的完整探索任务，承接一个可独立推进的方向：目录嵌套为 `ongoing/{parent}/{sub}/`，`TASK.md` 带 `parent:`，生命周期（explore / approve / handoff 等）与顶层任务相同。**父任务** = 拥有 ≥1 个子任务的探索任务；纯伞，只聚合与登记，`status` 恒 `ongoing`，**禁止 `handoff`、不建 driver**，`approve` 仅限范围/非目标/拆分原则。**handed-off** = 已交接 taskflow 的状态：任务留在 `ongoing/`，INDEX 可见、可 `resume`，不是归档。子任务与交付期的 taskflow 子 change 互不隶属。
+ 
+ ## Goal 里的确认
+@@ -24,13 +29,13 @@
+ 
+ 不在 goal 里时，下面的确认规则不变。目标已存在则仍禁止覆盖，不交给审阅放行。
+ 
+-## 阶段
++## 命令
+ 
+-| 阶段 | 何时 | 写入 |
++| 命令 | 何时 | 写入 |
+ |------|------|------|
+ | `new` | 立项；从输入推断任务名 | `tasks/ongoing/{task-name}/` + `INDEX.md` |
+ | `explore` | 不断探索预期目标 | 术语/ADR 可落任务目录；`TASK.md` 须经确认或 `save` |
+-| `chat` | **默认阶段**：对任务问答 | 默认不写盘 |
++| `chat` | **默认命令**：对任务问答 | 默认不写盘 |
+ | `resume` | 恢复进行中的探索任务 | 任务文档只读；INDEX 漂移可重建 |
+ | `design` | 针对任务方案设计 | `{taskRoot}/design/` |
+ | `approve` | **必经**：结构门 + 评审 + 冻结 | `approve/APPROVED.md`；`TASK.md` 决策；INDEX |
+@@ -42,13 +47,13 @@
+ 
+ 兼容别名：点名 `decide` / `plan-review` → 走 `approve`（细则见 phase-approve；旧文件为薄引用）。
+ 
+-用户点名 `{{slash:task-explore}}` 且首词命中上表阶段名时走该阶段；否则走 `chat`。用户要看任务列表或检索任务时，打印 `INDEX.md`（先 Ongoing，需要时再 Archived），不另造阶段。
++用户点名 `{{slash:task-explore}}` 且首词命中上表命令名时走该命令；否则走 `chat`。用户要看任务列表或检索任务时，打印 `INDEX.md`（先 Ongoing，需要时再 Archived），不另造命令。
+ 
+ ## 加载
+ 
+-进入阶段时 **只读该阶段详情**，不要预加载其它 phase 或文档骨架。
++进入命令时 **只读该命令详情**，不要预加载其它 phase 或文档骨架。
+ 
+-| 阶段 | 进入时读取 |
++| 命令 | 进入时读取 |
+ |------|------------|
+ | `explore` | [references/phase-explore.md](references/phase-explore.md) |
+ | `design` | [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md) |
+@@ -57,11 +62,11 @@
+ | `handoff` | [references/phase-handoff.md](references/phase-handoff.md)；委托时再读 `taskflow` |
+ | `archive` | [references/phase-archive.md](references/phase-archive.md) |
+ | `reopen` | [references/phase-reopen.md](references/phase-reopen.md) |
+-| `new` / `save` | 本文件步骤；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
++| `new` / `save` | [references/cmd-new.md](references/cmd-new.md) / [references/cmd-save.md](references/cmd-save.md)；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
+ | `expand` / `split` | 本文件步骤；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
+-| `chat` / `resume` | 本文件已够 |
++| `chat` / `resume` | [references/cmd-chat.md](references/cmd-chat.md) / [references/cmd-resume.md](references/cmd-resume.md) |
+ 
+-写台账（`INDEX.md` / `TASK.md`）时，除该阶段详情外再读 [references/ledger-write-discipline.md](references/ledger-write-discipline.md)；不写台账的阶段不读。
++写台账（`INDEX.md` / `TASK.md`）时，除该命令详情外再读 [references/ledger-write-discipline.md](references/ledger-write-discipline.md)；不写台账的命令不读。
+ 
+ ## 布局
+ 
+@@ -105,7 +110,7 @@
+ 
+ 会话绑定 `{task-name}` + `{taskRoot}` = `tasks/ongoing/{task-name}`（`reopen` 完成前 `{taskRoot}` 仍在 archive）。绑定子任务时任务名显示为 `{parent}/{sub}`，`{taskRoot}` = `tasks/ongoing/{parent}/{sub}/`。
+ 
+-**无 task 上下文时，应提示创建或者恢复（给出 ongoing 列表选择），在确认后进行 new/resume 阶段。** 归档要拉回则走 `reopen`。不得猜测任务、不得先聊后补目录。
++**无 task 上下文时，应提示创建或者恢复（给出 ongoing 列表选择），在确认后进行 new/resume 命令。** 归档要拉回则走 `reopen`。不得猜测任务、不得先聊后补目录。
+ 
+ 1. 先读 `tasks/INDEX.md` 的 Ongoing 表；无 INDEX 或发现漂移则扫 `ongoing/` 并重建。列出任务名 + 标题/一句话。无 `tasks/` 或 Ongoing 为空则说明「当前没有进行中的任务」。
+ 2. 请用户选择：**创建**（`new`）或 **恢复**（`resume`，从列表选）。
+@@ -127,35 +132,35 @@
+ 
+ ## `new`
+ 
++立项。细则见 [references/cmd-new.md](references/cmd-new.md)。
++
+ 1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
+-2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
+-3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的步骤级方案）时，把完成判据、事实、假设、步骤、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
+-4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
+-5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
++2. 推断 `{task-name}`；冲突则 resume 或换名。创建 `TASK.md`（模板）与 INDEX 行；绑定任务。
++3. 输入含现成方案时登记进「方案」小节，不丢上游产物；无完成判据不编造。
++4. 报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
+ 
+ ## `explore`
+ 
+-不断探索预期目标，委托 `grilling`。进入本阶段后 **先读** [references/phase-explore.md](references/phase-explore.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。会改方案走向的未知，按该阶段详情做完外部参照再问。
++不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/phase-explore.md](references/phase-explore.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
++
++- **仅 grill**（simple / medium，经 taskrail）：只做 grilling 澄清，不强制写 glossary/ADR 全套。
++- **完整 explore**（complex）：按 phase-explore 全文（含外部参照、术语/ADR 落盘）。
+ 
+ ## `chat`（默认）
+ 
+-对任务进行问答：解释、排查、对照代码与已有笔记。先读任务文档再答。
++对任务问答。细则见 [references/cmd-chat.md](references/cmd-chat.md)。
+ 
+ - 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
+ - 不要把 `chat` 默认为 `explore`（不自动 grill）或 `design`（不写方案稿）。
+-- 用户要把方案写下来 → 转 `design`。目标仍糊 → 建议 `explore`。路径已清、要交付 → `approve` 然后 `handoff`，不要直接开一个无关名字的 driver。
+-- 发现任务含多个可独立推进的方向 → 提示一次可 `expand`（别名 `split`）拆子任务，不阻断，用户确认才建。
+-- 用户要看有哪些任务 → 打印 INDEX，不进入 `new`。
+-- 有进展则提示是否更新任务文档。
++- 路径已清、要交付 → `approve` 然后 `handoff`。有进展则提示是否更新任务文档。
+ 
+ ## `resume`
+ 
+-恢复进行中的探索任务。**任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`，不要改 `TASK.md` / `glossary.md` / `design/`。
++恢复进行中的探索任务。细则见 [references/cmd-resume.md](references/cmd-resume.md)。
+ 
+-1. 未指定名字：用 INDEX 的 Ongoing 表列出请用户选。指定了则用该名字。
+-2. 任务不在 `ongoing/`：先查 INDEX 的 Archived 表，再扫 `tasks/archive/`。告知已归档路径；**不要自动恢复**，拉回走 `reopen`。找不到则说明，改走 `new`。
+-3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标/决策节防方向漂移，再读子任务全套；父文档不被修改。
+-4. 用短摘要恢复：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**（`explore` / `chat` / `design` / `approve` / `save` / `handoff` / `archive`）。然后等用户。
++- **任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`（INDEX 漂移可重建），不要改 `TASK.md` / `glossary.md` / `design/`。
++- 未指定名字：用 INDEX 列出请用户选。已归档不要自动恢复，走 `reopen`。
++- 短摘要：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**，然后等用户。
+ 
+ ## `design`
+ 
+@@ -171,17 +176,15 @@
+ 
+ ## `save`
+ 
+-保存任务最新进展到任务文档。
++保存任务最新进展。细则见 [references/cmd-save.md](references/cmd-save.md)。
+ 
+-1. 必须已绑定。读现有 `TASK.md`，合并本轮进展，不抹掉仍有效的旧内容。
+-2. 更新 `updated`、目标/非目标、现状、进展、决策、交接、未决、下一步。有设计结论则链到 `design/`。
+-3. 同步更新 `INDEX.md` 中该任务的标题、日期、一句话目标；不要把进展日志抄进索引。
+-4. 不要贴聊天记录。无新进展则说明无需写入。
+-5. 报告改了哪些文件。
++1. 必须已绑定。合并本轮进展，不抹掉仍有效的旧内容。
++2. 更新 `updated` 与相关章节；同步 INDEX（不要把进展日志抄进索引）。
++3. 不要贴聊天记录。无新进展则说明无需写入。
+ 
+ ## `handoff`
+ 
+-把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。进入本阶段后 **先读** [references/phase-handoff.md](references/phase-handoff.md)。交接目标按绑定自动推断，无需用户逐项指定：
++把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。成功后调用方（taskrail）置 `phase: propose`（本命令不把 `handoff` 写入 `phase`）。进入本阶段后 **先读** [references/phase-handoff.md](references/phase-handoff.md)。交接目标按绑定自动推断，无需用户逐项指定：
+ 
+ - 绑定子任务 → 交接该子任务，建 `{sub}-driver`。
+ - 绑定父任务 → 父是纯伞不可交接，自动批量交接所有「已 `approve`（或兼容 `decide`）未交接」的子任务，无需逐项确认；就绪为零则打断并报告各子任务所缺条件；未批准的子任务跳过且不阻塞其余。批量中任一失败即停，已交接的不回滚。
+--- a/skills/task-explore/references/phase-handoff.md
++++ b/skills/task-explore/references/phase-handoff.md
+@@ -2,7 +2,7 @@
+ 
+ 进入本阶段后执行。未绑定则先回到 `SKILL.md` 的绑定规则。
+ 
+-把 **探索任务**（`tasks/ongoing/{task-name}`）交接给 **taskflow 任务**（`{task-name}-driver`）。交付进度之后只认 taskflow checkbox。本阶段 **不写实现代码**，不发明 openspec 等价命令。交接后探索任务转入 `handed-off`：**不归档、不搬目录、不清绑定**。`handed-off` 只表示账本已换，不表示 goal 或交付完成。
++把 **探索任务**（`tasks/ongoing/{task-name}`）交接给 **taskflow 任务**（`{task-name}-driver`）。交付进度之后只认 taskflow checkbox。本阶段 **不写实现代码**，不发明 openspec 等价命令。交接后探索任务转入 `handed-off`：**不归档、不搬目录、不清绑定**；`phase` 置为 `propose`。`handed-off` 只表示账本已换，不表示 goal 或交付完成。
+ 
+ 处在 goal 里时，不询问是否交接。`approve` 的审阅已包含交接且已收敛时，本阶段直接执行。批量失败不向用户列选项，停并报告。「降级未确认」除外：门禁 4 要的是用户确认，审阅收敛不放行。
+ 
+@@ -29,7 +29,7 @@
+ 3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照，driver 的 `proposal.md` 保留同一份原文，不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
+ 4. 按 taskflow 写入 driver 的 `.openspec.yaml`（`skip_specs: true`）和 `proposal.md`（含逐字 Driver 协议）。**不要写 `tasks.md`。**
+ 5. taskflow / openspec 不可用，或无法确定 planning root：停下报告可选项，**保持探索任务在 `ongoing/`、状态不变**，已写的交接段可保留。
+-6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。
++6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，`phase` 改为 `propose`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。`handoff` 是命令不是 phase，禁止把 `phase` 写成 `handoff`。
+ 7. 桥接 stock `openspec-propose`（方案已定时选继续已有 change；未定时先 `openspec-explore`）。之后不要在 `tasks/` 里勾交付进度。
+ 
+ ## 父任务批量交接
+--- a/skills/task-explore/references/phase-explore.md
++++ b/skills/task-explore/references/phase-explore.md
+@@ -1,6 +1,13 @@
+-# explore 阶段
++# explore 命令
+ 
+-进入本阶段后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。
++进入本命令后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。
++
++## 仅 grill 与完整 explore
++
++| 形态 | 何时 | 做什么 |
++|------|------|--------|
++| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 澄清目标/判据/范围；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
++| **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
+ 
+ 针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
+ 
+--- a/skills/task-explore/references/task-template.md
++++ b/skills/task-explore/references/task-template.md
+@@ -10,7 +10,7 @@
+ - slug: <task-name>
+ - parent: <父任务 slug；仅子任务保留此行，顶层任务删除>
+ - status: ongoing
+-- phase: wizard
++- phase: wizard  # 仅允许：wizard|explore|design|approve|propose|apply|archive|done；禁止 chat/handoff/save 等命令名
+ - confirm_mode: human
+ - tier: <simple | medium | complex；未知可暂空>
+ - criterion: <完成判据原文；没有则留空，不要编造>
+--- a/skills/task-explore/tests/test_task_explore_contract.py
++++ b/skills/task-explore/tests/test_task_explore_contract.py
+@@ -76,7 +76,7 @@
+ 
+     def test_unbound_requires_new_or_resume(self) -> None:
+         self.assertIn("应提示创建或者恢复", self.skill)
+-        self.assertIn("在确认后进行 new/resume 阶段", self.skill)
++        self.assertIn("在确认后进行 new/resume 命令", self.skill)
+         self.assertIn("用户确认前不进入", self.skill)
+ 
+     def test_archive_checks_dest_before_mutating_task_md(self) -> None:
+@@ -174,7 +174,7 @@
+         )
+ 
+     def test_phase_loaded_on_demand(self) -> None:
+-        self.assertIn("只读该阶段详情", self.skill)
++        self.assertIn("只读该命令详情", self.skill)
+         self.assertIn("不要预加载其它 phase", self.skill)
+         self.assertIn("references/phase-explore.md", self.skill)
+         self.assertIn("references/phase-design.md", self.skill)
+@@ -363,6 +363,36 @@
+         self.assertIn("设计依据核对", self.plan_review)
+ 
+ 
++    def test_commands_are_not_phase(self) -> None:
++        self.assertIn("命令与 `TASK.md.phase`", self.skill)
++        self.assertIn("禁止把命令名写入 `phase`", self.skill)
++        self.assertIn("## 命令", self.skill)
++        # 命令表标题不得再叫「阶段」
++        self.assertNotIn("| 阶段 | 何时 | 写入 |", self.skill)
++
++    def test_handoff_sets_phase_propose(self) -> None:
++        self.assertIn("`phase` 改为 `propose`", self.handoff)
++        self.assertIn("禁止把 `phase` 写成 `handoff`", self.handoff)
++        handoff_sec = self._section(self.skill, "## `handoff`")
++        self.assertIn("phase: propose", handoff_sec)
++
++    def test_explore_light_vs_full(self) -> None:
++        self.assertIn("仅 grill 与完整 explore", self.explore)
++        self.assertIn("仅 grill", self.explore)
++        explore_sec = self._section(self.skill, "## `explore`")
++        self.assertIn("仅 grill", explore_sec)
++        self.assertIn("完整 explore", explore_sec)
++
++    def test_cmd_refs_exist(self) -> None:
++        for rel in (
++            "references/cmd-new.md",
++            "references/cmd-chat.md",
++            "references/cmd-resume.md",
++            "references/cmd-save.md",
++        ):
++            self.assertTrue((ROOT / rel).is_file(), rel)
++
++
+ class TestExternalPrecedentThinReference(unittest.TestCase):
+     """external-precedent.md 薄引用：细则唯一真源在 taskrail。"""
+ 
+--- /dev/null
++++ b/skills/task-explore/references/cmd-new.md
+@@ -0,0 +1,11 @@
++# `new` 命令
++
++原 SKILL 小节迁移至此。进入本命令后执行。
++
++## `new`
++
++1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
++2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
++3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的步骤级方案）时，把完成判据、事实、假设、步骤、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
++4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
++5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
+--- /dev/null
++++ b/skills/task-explore/references/cmd-chat.md
+@@ -0,0 +1,13 @@
++# `chat` 命令
++
++原 SKILL 小节迁移至此。进入本命令后执行。
++
++
++对任务进行问答：解释、排查、对照代码与已有笔记。先读任务文档再答。
++
++- 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
++- 不要把 `chat` 默认为 `explore`（不自动 grill）或 `design`（不写方案稿）。
++- 用户要把方案写下来 → 转 `design`。目标仍糊 → 建议 `explore`。路径已清、要交付 → `approve` 然后 `handoff`，不要直接开一个无关名字的 driver。
++- 发现任务含多个可独立推进的方向 → 提示一次可 `expand`（别名 `split`）拆子任务，不阻断，用户确认才建。
++- 用户要看有哪些任务 → 打印 INDEX，不进入 `new`。
++- 有进展则提示是否更新任务文档。
+--- /dev/null
++++ b/skills/task-explore/references/cmd-resume.md
+@@ -0,0 +1,12 @@
++# `resume` 命令
++
++原 SKILL 小节迁移至此。进入本命令后执行。
++
++## `resume`
++
++恢复进行中的探索任务。**任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`，不要改 `TASK.md` / `glossary.md` / `design/`。
++
++1. 未指定名字：用 INDEX 的 Ongoing 表列出请用户选。指定了则用该名字。
++2. 任务不在 `ongoing/`：先查 INDEX 的 Archived 表，再扫 `tasks/archive/`。告知已归档路径；**不要自动恢复**，拉回走 `reopen`。找不到则说明，改走 `new`。
++3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标/决策节防方向漂移，再读子任务全套；父文档不被修改。
++4. 用短摘要恢复：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**（`explore` / `chat` / `design` / `approve` / `save` / `handoff` / `archive`）。然后等用户。
+--- /dev/null
++++ b/skills/task-explore/references/cmd-save.md
+@@ -0,0 +1,13 @@
++# `save` 命令
++
++原 SKILL 小节迁移至此。进入本命令后执行。
++
++## `save`
++
++保存任务最新进展到任务文档。
++
++1. 必须已绑定。读现有 `TASK.md`，合并本轮进展，不抹掉仍有效的旧内容。
++2. 更新 `updated`、目标/非目标、现状、进展、决策、交接、未决、下一步。有设计结论则链到 `design/`。
++3. 同步更新 `INDEX.md` 中该任务的标题、日期、一句话目标；不要把进展日志抄进索引。
++4. 不要贴聊天记录。无新进展则说明无需写入。
++5. 报告改了哪些文件。

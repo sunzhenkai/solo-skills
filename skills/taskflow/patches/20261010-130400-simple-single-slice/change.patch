@@ -1,0 +1,53 @@
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -114,6 +114,14 @@
+ 
+ 子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
+ 
++### simple 单切片
++
++上游（taskrail）`tier: simple` 时：
++
++- 实施段默认**仅 1 个子 change**（或等价单切片编排）；不要为 simple 再拆多切片，除非用户点名。
++- 进度仍只认 checkbox；脚手架仍不要写满 `tasks.md`。
++- 不改变上方 Driver 协议逐字块。
++
+ ## 纪律
+ 
+ ### 进度归属
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -225,5 +225,14 @@
+             self.assertNotIn(detail, desc, f"description 复述了正文细节：{detail}")
+ 
+ 
++
++class TestSimpleSingleSlice(unittest.TestCase):
++    def test_simple_single_slice_section(self) -> None:
++        text = read("SKILL.md")
++        self.assertIn("### simple 单切片", text)
++        self.assertIn("实施段默认**仅 1 个子 change**", text)
++        self.assertIn("进度仍只认 checkbox", text)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -261,3 +261,16 @@
+       must_not:
+         - 用五维分数或证据清单推断未勾 checkbox 已完成
+         - 另建完成度、暂缓或分支状态台账
++
++  - id: simple-driver-one-slice
++    kind: core
++    judge: deterministic
++    description: simple 档默认单切片实施
++    given: 上游 taskrail tier 为 simple 且已 handoff 建 driver
++    expect:
++      must:
++        - 实施段默认仅 1 个子 change（或等价单切片）
++        - 进度只认 checkbox
++      must_not:
++        - 为 simple 默认拆多切片
++

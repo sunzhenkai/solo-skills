@@ -36,3 +36,18 @@ cases:
         - 完成门核对 criterion 与交付标准
       must_not:
         - 仅因 handed-off 或 propose 完标 done
+
+  - id: simple-via-openspec
+    kind: core
+    judge: deterministic
+    description: simple 档仍必须 handoff + taskflow 单切片
+    given: wizard 定档 simple 且用户继续走 taskrail
+    expect:
+      must:
+        - explore 仅为 grill
+        - 轻量 approve 后 handoff 建 {slug}-driver
+        - propose 单切片 → apply → archive
+      must_not:
+        - 无 driver 直接改业务代码
+        - 把 grill 或 handoff 写入 TASK.md.phase
+
