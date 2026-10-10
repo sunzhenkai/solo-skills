@@ -134,6 +134,10 @@ Progress:
 
 patch 必须：只含 proposal 声明的改动；上下文足以精确应用；新文件用 `/dev/null`；不含 patch 目录自身、临时文件或同步镜像。
 
+生成 `change.patch` 用机械方式，不手写 hunk：把原文与改后内容各放一份副本（如 `<tmp>/a/<rel>`、`<tmp>/b/<rel>`），在副本根目录执行 `git diff --no-index a/<rel> b/<rel>`，再把路径前缀 `a/a/`→`a/`、`b/b/`→`b/` 规整为仓库根相对路径。
+
+手写 hunk 的四个已知失败（每个都让 `git apply` 直接拒收，报错只给行号，排查耗时）：hunk 头计数与 body 不符、hunk 体内有空行、diff 头缺 `+++` 行、hunk 末行是 `+`/`-` 而非上下文行——`git apply` 默认要求上下文行（实测：只带尾部上下文即可通过，缺尾部上下文的一律 patch does not apply），零上下文须 `--unidiff-zero`，不要用。
+
 ### 5. 校验与门禁
 
 在 Git 仓库根执行：
@@ -152,6 +156,10 @@ git diff --check -- "<skill-dir>"
 ```
 
 核对：实际 diff 与 proposal/`change.patch` 一致；`SKILL.md` frontmatter 合法且 `name` 与目录名一致；引用路径存在；无隐私泄露；未改镜像目录或历史 `patches/`。
+
+改到被别处引用的规则时，grep 一遍读者（唯一真源 / 执行侧 phase 文档 / 模板 / 其他 Skill），同轮一并更新，避免悬空引用；目标 Skill 自带契约测试时，同轮补一条守卫断言——别把「测试没红」当成「规则已守卫」。
+
+`git diff --check` 只对改动的生产文件跑：patch 文件里的空上下文行必然被报成 trailing whitespace，那不是生产文件的问题。
 
 `self-upgrade` 另跑下方「Final Validation」。`update` 则跑目标 Skill 自带的相关测试或确定性检查（若有）。
 
