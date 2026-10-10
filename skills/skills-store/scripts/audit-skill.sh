@@ -50,7 +50,13 @@ PATTERNS=(
   # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
   # 且要求引号包裹 / 非标识符符号 / 行尾结束。真实凭据（`api_key = "sk_live_..."`、
   # `token: ghp_xxx`、高熵 base64 字符串）仍命中。
-  "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?((?!--)[A-Za-z0-9_\-]){20,}([^A-Za-z0-9_\-]|\$)"
+  # hardcoded_secret 值不以 "--" 开头（排除 CSS variable 设计 token，如
+  # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
+  # 且要求引号包裹 / 非标识符非函数调用符号 / 行尾结束。`(` 视为 JS 函数调用
+  # 语法而非值分隔符：`var token = relationshipTokenGeometry(...)` /
+  # `const token = preparedCacheDirectories.get(...)` 是赋值函数返回值，非凭据字面量。
+  # 真实凭据 `api_key = "sk_live_..."` / `token: ghp_xxx` / 高熵 base64 字符串仍命中。
+  "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?((?!--)[A-Za-z0-9_\-]){20,}([^A-Za-z0-9_\-\(.]|\$)"
   "bearer_literal|critical|(?i)Bearer\s+[A-Za-z0-9\-._~+/]{20,}=*"
   "eval_external|critical|(?i)\beval\s+.{0,80}(\$\(|\bcurl\b|\bwget\b|base64\s+(-d|--decode))"
   "obfuscated_exec|critical|(?i)base64\s+(-d|--decode).{0,40}\|\s*(ba)?sh"

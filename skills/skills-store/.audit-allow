@@ -15,3 +15,4 @@
 jailbreak_role|SKILL.md|MIT LICENSE 正文的
 credential_paths|SKILL.md|现要求独立单词
 eval_external|SKILL.md|Markdown 反引号
+hardcoded_secret|SKILL.md|const token = preparedCacheDirectories

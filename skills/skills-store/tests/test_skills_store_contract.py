@@ -253,6 +253,23 @@ class ScriptBehavior(_FixtureCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertNotIn("hardcoded_secret", proc.stdout)
 
+    def test_hardcoded_secret_js_function_call_passes(self) -> None:
+        # `var token = relationshipTokenGeometry(...)` / `const token = preparedCacheDirectories.get(...)`
+        # 是 JS 赋值函数返回值（`(` 视为函数调用语法而非值分隔符），不是凭据字面量。
+        skill = self.make_skill(
+            "var token = relationshipTokenGeometry(shapes[0], tokenKind, key);\n"
+        )
+        proc = _audit(skill)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertNotIn("hardcoded_secret", proc.stdout)
+
+        skill2 = self.make_skill(
+            "const token = preparedCacheDirectories.get(path.resolve(cacheDirectory));\n"
+        )
+        proc2 = _audit(skill2)
+        self.assertEqual(proc2.returncode, 0, proc2.stdout + proc2.stderr)
+        self.assertNotIn("hardcoded_secret", proc2.stdout)
+
     def test_hardcoded_secret_real_credentials_still_block(self) -> None:
         skill = self.make_skill('api_key = "abcdefghijklmnopqrstuvwxyz012345"\n')
         proc = _audit(skill)
