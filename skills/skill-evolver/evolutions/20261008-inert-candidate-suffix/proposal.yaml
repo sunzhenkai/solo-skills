@@ -1,0 +1,46 @@
+skill: skill-evolver
+patch: 20261008-inert-candidate-suffix
+mode: update
+risk: medium
+status: applied
+
+problem: >
+  候选目录 <skill-dir>/evolutions/<date-slug>/ 位于宿主仓库的工具扫描路径内，但正文只规定
+  SKILL.md 一个候选文件，对同轮携带的测试/脚本候选没有任何落盘约定；同时 Evaluate 的契约判据
+  只要求跑目标 skill 自身的测试。两者叠加：候选副本与生产文件同名时，宿主全量门禁在收集阶段就失败，
+  而该轮的 eval 结论仍是 pass。
+
+evidence:
+  - 2026-08-29 至 2026-10-08 共 5 轮进化携带非 SKILL.md 候选产物，出现 4 种互不相同的避让命名
+    （`.candidate`、扁平前缀、`..._test_snapshot.py.txt`），最后一轮完全未避让
+  - 2026-10-08 一轮晋升后，宿主仓库全量 pytest 在 collection 阶段因候选测试与正式测试同 basename
+    报 import mismatch 而整体中断；同轮 eval.md 记为 `pass`，判据只覆盖目标 skill 自身 tests
+  - 现正文「跑它的测试」一句使执行者按最小范围验证，没有任何一处要求跑宿主仓库声明的全量门禁
+
+pattern: >
+  进化产物目录不是沙箱：它与生产稿同处一个被仓库工具扫描的树，任何与生产文件同名同扩展名的候选副本
+  都是可执行载荷。避让必须是单一确定的约定（原名 + inert 后缀），而不是每轮临场发明；
+  且 Evaluate 必须把宿主仓库声明的全量门禁算作硬判据，「目标 skill 自己绿」不足以支撑 promote。
+
+proposed_change:
+  1. 「4. Patch Skill」：目录布局与规则补明确约定——除 `SKILL.md` 外的候选文件保持相对路径并追加
+     `.candidate` 后缀落盘；禁止 `test_*.py` 与生产文件同名原样复制（会让宿主测试收集整体中断）；
+     晋升时去掉后缀写回生产路径。
+  2. 「5. Evaluate」：契约判据改为两级——先跑目标 skill 自身测试，再跑宿主仓库文档声明的全量门禁；
+     全量门禁不过则该节结论只能写 `fail`，不得进第 6 步 promote。宿主未声明全量门禁时记 `skipped`
+     并说明依据。
+
+expected_improvement: >
+  候选落盘不再需要每轮猜一种命名，同名冲突从「事后被全量门禁炸出来」变为写盘时即可判定；
+  eval 的 `pass` 开始等价于「本仓门禁可提交」，不再出现局部绿、整库红的晋升记录。
+
+risk: medium
+
+risk_notes:
+  - 新增两条硬规则（inert 后缀、全量门禁为硬判据），会回溯性地把既有避让命名判为不合规范；
+    不追溯改名——它们已 inert，改名只会搅动 git 历史，正文只约束后续轮次。
+  - 与 2026-09-29 那条仍是 `proposed` 的进化（状态词汇与对账脚本）主题不同、不冲突，
+    但两轮都动「4. Patch Skill」与「5. Evaluate」，本轮不夹带它的任何内容。
+  - 「全量门禁」按宿主仓库而定，无门禁的宿主退化为只跑目标 skill 测试；正文写成
+    「宿主仓库文档声明的全量门禁」而不是硬编码某条命令。
+  - 本轮不触发 `risk: high`：不改门禁节的触发条件、不删既有硬规则、不扩权限、不改脚本副作用。
