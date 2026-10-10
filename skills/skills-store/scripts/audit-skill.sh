@@ -29,8 +29,15 @@ PATTERNS=(
   # jailbreak_role 的 without limit 分支豁免 "without limitation"：MIT/BSD 授权套话
   # （"including without limitation the rights"）必然误报；"without any limits" 等
   # 真实越狱措辞仍命中，no restrictions 分支不受影响。
-  "jailbreak_role|critical|(?i)(you are now|act as|pretend to be|DAN mode|jailbreak|no restrictions|without (any )?limit(?!ation))"
-  "bypass_approval|critical|(?i)(disable|bypass|skip|turn off).{0,30}(approval|sandbox|security|guardrail|confirmation|human.{0,10}review)"
+  # jailbreak_role 的 act as 分支加词边界：archify 等含 "artifact as ..." /
+  # "same default-canvas contract as lifecycle" 的设计契约注释/测试描述属自然
+  # 英语 "as" 从句，子串命中 "act as" 是误报。词边界不影响真实越狱短语
+  # "act as a DAN"、"act as an unrestricted AI"。
+  "jailbreak_role|critical|(?i)(you are now|\bact as\b|pretend to be|DAN mode|jailbreak|no restrictions|without (any )?limit(?!ation))"
+  # bypass_approval 的 disable 分支允许 disables/disabled 变体 + 词边界，确保前瞻
+  # 从动词后空白开始匹配。限定语 "only ..."（only for root / only when / only if /
+  # explicit opt-in 等）说明前置条件而非无条件 bypass，跳过。
+  "bypass_approval|critical|(?i)(disable[sd]?\b|bypass|skip|turn off)(?!\s+.{0,40}\bonly\b).{0,30}(approval|sandbox|security|guardrail|confirmation|human.{0,10}review)"
   "pipe_to_shell|critical|(?i)(curl|wget).{0,120}\|\s*(ba)?sh"
   "destructive_rm_root|critical|rm\s+-rf\s+(/|\~|\*|\$HOME\b|\$\{HOME\})"
   "destructive_mkfs|critical|(?i)\bmkfs\.|\bdd\s+if=.*of=/dev/"
@@ -39,7 +46,11 @@ PATTERNS=(
   # 由被审 skill 根下的 .audit-allow 承接。
   "credential_paths|critical|(?i)(~/?\.ssh(?!/config\b)|/\.ssh/id_|~/?\.aws/credentials|~/?\.gnupg|~/?\.config/gcloud|\.netrc\b|\.env\b.*\b(read|cat|source|export)\b|\b(cat|source)\b.{0,80}\.env\b)"
   "exfil_env_secret|critical|(?i)(curl|wget|fetch|post|upload|send).{0,80}(\$(API|TOKEN|KEY|SECRET|PASSWORD|ENV|HOME)|process\.env|getenv|os\.environ)"
-  "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}"
+  # hardcoded_secret 值不以 "--" 开头（排除 CSS variable 设计 token，如
+  # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
+  # 且要求引号包裹 / 非标识符符号 / 行尾结束。真实凭据（`api_key = "sk_live_..."`、
+  # `token: ghp_xxx`、高熵 base64 字符串）仍命中。
+  "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?((?!--)[A-Za-z0-9_\-]){20,}([^A-Za-z0-9_\-]|\$)"
   "bearer_literal|critical|(?i)Bearer\s+[A-Za-z0-9\-._~+/]{20,}=*"
   "eval_external|critical|(?i)\beval\s+.{0,80}(\$\(|\bcurl\b|\bwget\b|base64\s+(-d|--decode))"
   "obfuscated_exec|critical|(?i)base64\s+(-d|--decode).{0,40}\|\s*(ba)?sh"
