@@ -1,0 +1,38 @@
+version: 1
+skill: taskrail
+cases:
+  - id: single-entry
+    kind: basic
+    judge: deterministic
+    description: taskrail 是唯一编排入口
+    given: 用户要端到端推进任务或 /goal 编排
+    expect:
+      must:
+        - 绑定或创建 tasks/ongoing/{slug}/
+        - 按 wizard → … → archive 推进；档位可跳过中间阶段
+        - 确认闸口委托 task-confirm
+      must_not:
+        - 另起 task-wizard / task-goal / task-delivery 入口
+
+  - id: phase-resume
+    kind: core
+    judge: deterministic
+    description: 可从 TASK.md.phase 恢复
+    given: 用户 resume 已有任务
+    expect:
+      must:
+        - 输出目标 / phase / 未决 / 建议下一步
+        - 从当前 phase 继续，不默认重出 wizard
+      must_not:
+        - 覆盖已有任务目录
+
+  - id: completion-gate
+    kind: core
+    judge: deterministic
+    description: handed-off 不等于 done
+    given: handoff 完成或 checkbox 全勾但判据不成立
+    expect:
+      must:
+        - 完成门核对 criterion 与交付标准
+      must_not:
+        - 仅因 handed-off 或 propose 完标 done

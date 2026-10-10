@@ -21,6 +21,9 @@ class ContractTest(unittest.TestCase):
         cls.decide = (ROOT / "references" / "phase-decide.md").read_text(
             encoding="utf-8"
         )
+        cls.approve = (ROOT / "references" / "phase-approve.md").read_text(
+            encoding="utf-8"
+        )
         cls.handoff = (ROOT / "references" / "phase-handoff.md").read_text(
             encoding="utf-8"
         )
@@ -53,6 +56,7 @@ class ContractTest(unittest.TestCase):
             "references/phase-explore.md",
             "references/phase-design.md",
             "references/phase-decide.md",
+            "references/phase-approve.md",
             "references/phase-handoff.md",
             "references/phase-archive.md",
             "references/phase-reopen.md",
@@ -165,7 +169,7 @@ class ContractTest(unittest.TestCase):
 
     def test_index_sync_on_mutating_phases(self) -> None:
         self.assertIn(
-            "`new` / `split` / `save` / `decide` / `handoff` / `archive` / `reopen` 必须同步对应行",
+            "`new` / `split` / `expand` / `save` / `approve` / `decide` / `handoff` / `archive` / `reopen` 必须同步对应行",
             self.skill,
         )
 
@@ -174,6 +178,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不要预加载其它 phase", self.skill)
         self.assertIn("references/phase-explore.md", self.skill)
         self.assertIn("references/phase-design.md", self.skill)
+        self.assertIn("references/phase-approve.md", self.skill)
         self.assertIn("references/phase-decide.md", self.skill)
         self.assertIn("references/phase-handoff.md", self.skill)
         self.assertIn("references/phase-archive.md", self.skill)
@@ -203,10 +208,10 @@ class ContractTest(unittest.TestCase):
         self.assertIn("`{task-name}-driver`", self.skill)
 
     def test_decide_is_required_before_handoff(self) -> None:
-        self.assertIn("决策** 小节已写明采纳方案", self.handoff)
-        self.assertIn("没有则打断，先 `decide`", self.handoff)
+        self.assertIn("approve/APPROVED.md", self.handoff)
+        self.assertIn("先 `approve`", self.handoff)
         handoff_sec = self._section(self.skill, "## `handoff`")
-        self.assertIn("已 `decide` 未交接", handoff_sec)
+        self.assertIn("已 `approve`", handoff_sec)
 
     def test_handoff_delegates_taskflow_same_slug(self) -> None:
         self.assertIn("taskflow-new", self.handoff)
@@ -260,12 +265,13 @@ class ContractTest(unittest.TestCase):
         self.assertIn("reopened: YYYY-MM-DD", tpl)
 
     def test_split_phase_is_routed_and_gated(self) -> None:
-        self.assertIn("## `split`", self.skill)
-        split = self._section(self.skill, "## `split`")
+        self.assertIn("## `expand` / `split`", self.skill)
+        split = self._section(self.skill, "## `expand` / `split`")
         self.assertIn("必须已绑定", split)
         self.assertIn("全局唯一", split)
         self.assertIn("只一层", split)
         self.assertIn("`parent:`", split)
+        self.assertIn("必须评估一次", split)
 
     def test_subtask_terms_are_named(self) -> None:
         self.assertIn("**子任务**", self.skill)
@@ -320,32 +326,30 @@ class ContractTest(unittest.TestCase):
 
     def test_goal_confirmations_go_to_review(self) -> None:
         section = self._section(self.skill, "## Goal 里的确认")
-        self.assertIn("走 task-goal 的「审阅」", section)
+        self.assertIn("走 task-confirm 的「审阅」", section)
         self.assertIn("不列选项", section)
         self.assertIn("不在 goal 里时，下面的确认规则不变", section)
         self.assertIn("不交给审阅放行", section)
         self.assertIn("处在 goal 里时不逐条问用户", self.skill)
-        self.assertIn("## Goal 里", self.decide)
+        self.assertIn("## Goal 里", self.approve)
         self.assertIn("全部按默认冻结", self.decide)
         self.assertIn("不在 goal 里时执行本节", self.decide)
         self.assertIn("逐条请用户确认", self.decide)
         self.assertIn("处在 goal 里时，不询问是否交接", self.handoff)
 
     def test_pending_degrade_gates_in_decide_and_handoff(self) -> None:
-        # pending 降级只有用户能确认：decide 不冻结、handoff 不建 driver，
-        # 审阅收敛与「继续」都不算确认（与 task-goal/taskflow 三处同源纪律）。
-        self.assertIn("存在确认状态为 `pending` 的显式降级时**不得冻结**", self.decide)
-        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认", self.decide)
-        self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", self.decide)
+        # pending 降级只有用户能确认：approve 不冻结、handoff 不建 driver。
+        self.assertIn("存在确认状态为 `pending` 的显式降级时**不得冻结**", self.approve)
+        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认", self.approve)
+        self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", self.approve)
         self.assertIn("仍有 `pending` 就停在本门禁，**不创建 driver**", self.handoff)
         self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认后才继续", self.handoff)
 
     def test_profile_snapshot_frozen_verbatim(self) -> None:
-        # 上游质量画像与显式降级要原文快照入台账，不许只留指针，也不许编造。
-        self.assertIn("质量画像与显式降级原文快照属于成功标准输入", self.decide)
-        self.assertIn("不得只留 `TASK.md` 路径或小节指针", self.decide)
-        self.assertIn("快照缺失或与上游不一致时先 `save` 补回再冻结", self.decide)
-        self.assertIn("输入里没有画像时不编造一份", self.decide)
+        self.assertIn("质量画像与显式降级原文快照", self.approve)
+        self.assertIn("不得只留路径指针", self.approve)
+        self.assertIn("先 `save` 补回", self.approve)
+        self.assertIn("不编造", self.approve)
 
     def test_design_requires_rationale_for_structure_choices(self) -> None:
         # 架构 / 接口 / 技术栈的选择须有设计依据，写不出即入未决，不算设计完成。
@@ -360,15 +364,15 @@ class ContractTest(unittest.TestCase):
 
 
 class TestExternalPrecedentThinReference(unittest.TestCase):
-    """external-precedent.md 改为薄引用：细则唯一真源在 task-wizard，本文件只留阶段钩子。"""
+    """external-precedent.md 薄引用：细则唯一真源在 taskrail。"""
 
     def setUp(self) -> None:
         self.precedent = (ROOT / "references" / "external-precedent.md").read_text(
             encoding="utf-8"
         )
 
-    def test_points_to_task_wizard(self) -> None:
-        self.assertIn("task-wizard/references/external-precedent.md", self.precedent)
+    def test_points_to_taskrail(self) -> None:
+        self.assertIn("taskrail/references/external-precedent.md", self.precedent)
         self.assertIn("唯一真源", self.precedent)
 
     def test_no_duplicated_rules(self) -> None:

@@ -49,13 +49,21 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 | 依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、task-explore、task-wizard、task-goal、agent-roster-flow |
-| `grilling` | `mattpocock/skills` | task-explore（explore 阶段唯一委托） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | task-wizard、agent-roster-flow（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster-flow |
+| `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
+| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster-flow；无台账一次性拷问 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-- `task-explore` 的 explore 阶段**禁止**委托 `grill-with-docs` / `domain-modeling`（它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
+- 任务编排入口是 **`taskrail`**；确认协议是 **`task-confirm`**（含质量画像与挂起五元组）。已删除：`task-wizard` / `task-goal` / `task-delivery`。
+- 有 `tasks/` 任务目录时**禁止**委托 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
+
+### task* 要点
+
+- 流程：`wizard → explore(+grill) → design → approve → propose → apply → archive`（档位可跳过中间阶段）。
+- 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
+- 契约真源：`skills/taskrail/references/contract.md`。
+- 四件套：`taskrail` + `task-confirm` + `task-explore` + `taskflow`。
 
 ## Skill 设计原则
 

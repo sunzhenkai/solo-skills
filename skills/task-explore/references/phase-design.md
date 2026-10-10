@@ -81,7 +81,7 @@
 **已设计**：[一句话]
 **位置**：`{taskRoot}/design/`
 **未决问题**：[列表，或无]
-**下一步**：decide / save / chat（要交付走 decide → handoff，不要直接写代码）
+**下一步**：approve / expand / save / chat（要交付走 approve → handoff，不要直接写代码）
 ```
 
 结束后提示是否更新 `TASK.md`。

@@ -1,6 +1,6 @@
 # 台账写入纪律（并发安全）
 
-写 `tasks/INDEX.md` 或 `{taskRoot}/TASK.md` 前必读本文件。适用阶段：`new` / `save` / `split` / `decide` / `handoff` / `archive` / `reopen`。多会话、多 agent 并发写同一台账是常态，下列五条是硬步骤，任一不过即停，不靠事后重建兜底。
+写 `tasks/INDEX.md` 或 `{taskRoot}/TASK.md` 前必读本文件。适用阶段：`new` / `save` / `split` / `expand` / `approve` / `decide` / `handoff` / `archive` / `reopen`。多会话、多 agent 并发写同一台账是常态，下列五条是硬步骤，任一不过即停，不靠事后重建兜底。
 
 ## 1. 锚点唯一才动手
 

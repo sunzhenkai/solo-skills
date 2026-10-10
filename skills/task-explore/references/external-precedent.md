@@ -1,6 +1,6 @@
 # 外部参照
 
-细则唯一真源：[task-wizard/references/external-precedent.md](../../task-wizard/references/external-precedent.md)。先搜后读、来源分级、一次尝试、事实/假设二分写入，一律按该文件执行，本文件不复制第二份。
+细则唯一真源：[taskrail/references/external-precedent.md](../../taskrail/references/external-precedent.md)。先搜后读、来源分级、一次尝试、事实/假设二分写入，一律按该文件执行，本文件不复制第二份。
 
 本 skill 只保留阶段钩子：
 

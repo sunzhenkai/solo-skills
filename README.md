@@ -8,11 +8,10 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `task-wizard` | 生成步骤级任务方案（完成判据 + 动作/要点/验证 + 决策收敛；不产质量画像） |
-| `task-goal` | goal 模式下唯一的确认与审阅协议（接方案 → 派审 → 收敛 → 三档开工）；复杂档产质量画像与显式降级 |
-| `task-explore` | 长周期/目标不清任务的探索台账（tasks/INDEX.md 推进） |
+| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → propose → apply → archive；human/goal 确认；`tasks/` 可恢复 |
+| `task-confirm` | human/goal 确认与审阅协议（闸口放行、派审、退出点；质量画像；挂起五元组） |
+| `task-explore` | 探索台账与阶段能力（explore/design/approve/expand/handoff；服从 taskrail `phase`） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
-| `task-delivery` | 把复杂交付目标编排成自动闭环（探索→实现→证据→评审→复验） |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
 
 ### 跨 agent 委派
@@ -73,12 +72,12 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 
 | 外部依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、task-explore、task-wizard、agent-roster-flow |
-| `grilling` | `mattpocock/skills` | task-explore（explore 阶段唯一委托） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | task-wizard、agent-roster-flow（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster-flow |
+| `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
+| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster-flow；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-> `task-explore` 的 explore 阶段**禁止**调用 `grill-with-docs` / `domain-modeling`（它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）；这两个只在 task-wizard / agent-roster-flow 的路径里出现。
+> 有 `tasks/` 任务目录时**禁止**调用 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
 
 ### 一键安装（Makefile）
 
