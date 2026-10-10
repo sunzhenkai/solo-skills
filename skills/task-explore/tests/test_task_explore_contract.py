@@ -393,6 +393,22 @@ class ContractTest(unittest.TestCase):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
 
+    def test_explore_grills_quality_goal(self) -> None:
+        self.assertIn("质量目标", self.explore)
+        self.assertIn("追问验收方式或参照", self.explore)
+        self.assertIn("供 design 阶段质量画像草稿吸收", self.explore)
+        self.assertIn(
+            "未覆盖的预期目标、成功标准、质量目标、范围、约束与未知",
+            self.explore,
+        )
+
+    def test_template_and_handoff_flow_overview(self) -> None:
+        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
+        self.assertIn("质量属性", tpl)
+        self.assertIn("流程总览", tpl)
+        self.assertIn("流程总览原文快照写入 driver 的 `proposal.md`", self.handoff)
+
+
 class TestExternalPrecedentThinReference(unittest.TestCase):
     """external-precedent.md 薄引用：细则唯一真源在 taskrail。"""
 

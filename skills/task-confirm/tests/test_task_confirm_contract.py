@@ -82,5 +82,14 @@ class ContractTest(unittest.TestCase):
         self.assertNotIn("](references/state-machine.md)", self.skill)
 
 
+    def test_human_walkcheck_and_named_review(self) -> None:
+        self.assertIn("human 强制走查（wizard 定稿 / approve）", self.skill)
+        self.assertIn("human 点名派审", self.skill)
+        self.assertIn("wizard 定稿与 approve 时的流程总览", self.skill)
+        self.assertIn("走查：<通过|失败|不适用>", self.skill)
+        self.assertIn("wizard 定稿 / approve 点名派审", self.skill)
+        self.assertIn("方案/流程总览闸口", self.skill)
+
+
 if __name__ == "__main__":
     unittest.main()

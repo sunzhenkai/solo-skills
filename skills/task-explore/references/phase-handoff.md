@@ -26,7 +26,7 @@
 
 1. 有未写入进展则先按 `save` 写回。
 2. 在 `TASK.md` 写 **交接** 小节：driver 名、采纳方案、`design/` 与 `approve/APPROVED.md` 指针、可带进实现的未决；上游（task-confirm / 复杂档）含质量画像时，把「方案」小节的质量画像与显式降级原文快照**逐字复制**进交接段，不是引用路径。
-3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照，driver 的 `proposal.md` 保留同一份原文，不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
+3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照。有流程总览时（`wizard/plan.md` 或「方案」小节），把流程总览原文快照写入 driver 的 `proposal.md`（可与 `--goal` 同份材料），不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
 4. 按 taskflow 写入 driver 的 `.openspec.yaml`（`skip_specs: true`）和 `proposal.md`（含逐字 Driver 协议）。**不要写 `tasks.md`。**
 5. taskflow / openspec 不可用，或无法确定 planning root：停下报告可选项，**保持探索任务在 `ongoing/`、状态不变**，已写的交接段可保留。
 6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，`phase` 改为 `propose`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。`handoff` 是命令不是 phase，禁止把 `phase` 写成 `handoff`。

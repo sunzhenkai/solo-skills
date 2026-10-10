@@ -13,11 +13,11 @@
 
 1. 必须已绑定任务；否则先走绑定。
 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
-3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的步骤级方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
 4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
-5. 问的是**预期目标、成功标准、范围、约束、未知**。事实自己查，决策交给用户。
+5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
-7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。
+7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
 8. 结束本轮时列出已澄清目标与仍开放的 frontier，并提示是否 `save`。
 
 术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件提示是否更新任务文档。

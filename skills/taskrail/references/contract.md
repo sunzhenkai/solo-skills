@@ -96,9 +96,10 @@ updated: YYYY-MM-DD
 
 | 进入阶段 | 必须已有 |
 |----------|----------|
-| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文） |
+| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节） |
+| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对 |
 | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」 |
-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；`status: handed-off` 与 `driver` 已写入 |
+| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；`status: handed-off` 与 `driver` 已写入 |
 | apply | driver `tasks.md` 已由 propose 产出 |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 
@@ -108,10 +109,10 @@ updated: YYYY-MM-DD
 
 | 闸口 | 说明 |
 |------|------|
-| wizard 定稿 | 方案落盘前 |
+| wizard 定稿 | 方案落盘前；human 含强制走查（判据可检查 / 流程总览可达判据 / 交付标准无漏越界，细则见 task-confirm），可点名派审 |
 | explore 关键 | 探索方向/范围收敛（含仅 grill） |
 | design 定稿 | 方案稿可审前 |
-| approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量） |
+| approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量）；human 结构门含流程总览对齐核对，可点名名册评审 |
 | expand 创建 | 拆子任务前 |
 | 危险类退出点 | 线上 / 泄密 / 未点名危险操作等 |
 

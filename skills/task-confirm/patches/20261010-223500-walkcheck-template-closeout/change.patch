@@ -1,0 +1,40 @@
+diff --git a/skills/task-confirm/SKILL.md b/skills/task-confirm/SKILL.md
+--- a/skills/task-confirm/SKILL.md
++++ b/skills/task-confirm/SKILL.md
+@@ -44,6 +44,7 @@
+ ```markdown
+ ## 闸口：<名>
+ 推荐整体：<一句话放行路径>
++走查：<通过|失败|不适用> — <一句>（wizard 定稿 / approve 必填；其它闸口写「不适用」）
+ 
+ | # | 口子 | 推荐 | 理由 |
+ |---|------|------|------|
+@@ -56,13 +57,13 @@
+ 
+ 调用方须给出：闸口名、推荐默认（**human 与 goal 均必填**）、审阅边界材料（完成判据、「不做的事」、wizard 定稿与 approve 时的流程总览；approve/复杂档另附质量画像与显式降级原文）。缺材料（含缺推荐默认）则停，退出点「理解不够」。
+ 
+-## 审阅（goal；human 在 approve 需要派审时也可复用）
++## 审阅（goal；human 在 wizard 定稿 / approve 点名派审时也可复用）
+ 
+ 派审前贴上完成判据、「不做的事」，复杂档再贴质量画像与显式降级原文，并写明审与不审。返回完成程度（高/中/低）与范围内意见（P0/P1/P2）。有 P0 或 P1 时完成程度取中或低。
+ 
+ | 环节 | 审 | 不审 |
+ |------|----|------|
+-| 方案/步骤闸口 | 判据可检查；步骤能否走到判据；交付标准是否漏或越界；阻塞/退出是否改道 | 架构、接口、schema、代码骨架；判据与「不做的事」没有的新行为 |
++| 方案/流程总览闸口 | 判据可检查；流程总览（或推荐方案步骤）能否走到判据；交付标准是否漏或越界；阻塞/退出是否改道 | 架构、接口、schema、代码骨架；判据与「不做的事」没有的新行为 |
+ | approve | 同上 + 设计依据是否齐；冻结范围是否清楚 | 详细设计正文代写 |
+ | 执行中新决策点 | 该岔路及未验证步骤 | 已验证步骤；详细设计 |
+ 
+diff --git a/skills/task-confirm/tests/test_task_confirm_contract.py b/skills/task-confirm/tests/test_task_confirm_contract.py
+--- a/skills/task-confirm/tests/test_task_confirm_contract.py
++++ b/skills/task-confirm/tests/test_task_confirm_contract.py
+@@ -86,6 +86,9 @@
+         self.assertIn("human 强制走查（wizard 定稿 / approve）", self.skill)
+         self.assertIn("human 点名派审", self.skill)
+         self.assertIn("wizard 定稿与 approve 时的流程总览", self.skill)
++        self.assertIn("走查：<通过|失败|不适用>", self.skill)
++        self.assertIn("wizard 定稿 / approve 点名派审", self.skill)
++        self.assertIn("方案/流程总览闸口", self.skill)
+ 
+ 
+ if __name__ == "__main__":

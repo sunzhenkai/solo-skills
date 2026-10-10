@@ -1,0 +1,17 @@
+diff --git a/skills/task-explore/tests/test_task_explore_contract.py b/skills/task-explore/tests/test_task_explore_contract.py
+index 04ced03..d969764 100644
+--- a/skills/task-explore/tests/test_task_explore_contract.py
++++ b/skills/task-explore/tests/test_task_explore_contract.py
+@@ -393,6 +393,12 @@ class ContractTest(unittest.TestCase):
+             self.assertTrue((ROOT / rel).is_file(), rel)
+ 
+ 
++    def test_explore_grills_quality_goal(self) -> None:
++        self.assertIn("质量目标", self.explore)
++        self.assertIn("追问验收方式或参照", self.explore)
++        self.assertIn("供 design 阶段质量画像草稿吸收", self.explore)
++
++
+ class TestExternalPrecedentThinReference(unittest.TestCase):
+     """external-precedent.md 薄引用：细则唯一真源在 taskrail。"""
+ 

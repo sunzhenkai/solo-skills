@@ -1,0 +1,76 @@
+diff --git a/skills/task-explore/references/phase-explore.md b/skills/task-explore/references/phase-explore.md
+--- a/skills/task-explore/references/phase-explore.md
++++ b/skills/task-explore/references/phase-explore.md
+@@ -13,7 +13,7 @@
+ 
+ 1. 必须已绑定任务；否则先走绑定。
+ 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
+-3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的步骤级方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
++3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+ 4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
+ 5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
+ 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
+diff --git a/skills/task-explore/references/task-template.md b/skills/task-explore/references/task-template.md
+--- a/skills/task-explore/references/task-template.md
++++ b/skills/task-explore/references/task-template.md
+@@ -1,6 +1,6 @@
+ # 任务文档骨架
+ 
+-`new` 时按此创建 `{taskRoot}/TASK.md`。按已知信息填写，未知留空，不要编造。元信息字段见 [../../taskrail/references/contract.md](../../taskrail/references/contract.md)。**输入含现成方案时（含上游 taskrail wizard 的步骤级方案、他人设计稿），把目标、完成判据、事实、假设、步骤、阻塞点、坑逐条登记进「方案」小节**，不要只填目标。输入里没有完成判据时不要编造。**输入含质量画像或显式降级时（上游 task-confirm / 复杂档），在同一小节逐字登记原文快照**，不概括、不改写、不换成路径或小节指针；输入里没有画像或降级时删去对应行，不要编造。
++`new` 时按此创建 `{taskRoot}/TASK.md`。按已知信息填写，未知留空，不要编造。元信息字段见 [../../taskrail/references/contract.md](../../taskrail/references/contract.md)。**输入含现成方案时（含上游 taskrail wizard 的流程总览方案、他人设计稿），把目标、完成判据、事实、假设、质量属性、流程总览、阻塞点、坑逐条登记进「方案」小节**，不要只填目标。输入里没有完成判据时不要编造。**输入含质量画像或显式降级时（上游 task-confirm / 复杂档），在同一小节逐字登记原文快照**，不概括、不改写、不换成路径或小节指针；输入里没有画像或降级时删去对应行，不要编造。
+ 
+ `save` 时更新同一文件：改 `updated` 与有变化的章节，不要整文件重写后丢掉仍有效的内容。同时同步 `tasks/INDEX.md` 对应行（标题、日期、一句话目标），不要把进展抄进索引。
+ 
+@@ -40,7 +40,8 @@
+ - 显式降级原文快照：[逐字登记每条「维度 / 默认期望 / 实际选择 / 原因 / 确认状态」，`pending` 原样保留；没有则删去本行]
+ - 事实：[对上出处的现状或外部参照；没有则删去本行]
+ - 假设：[未对上出处的，含未找到的外部参照；没有则删去本行]
+-- 步骤：[每步动作 — 要点 / 验证]
++- 质量属性：[观感 / 性能 / 可靠性 / 可维护性等；不可确定性度量的写验收方式或参照；不适用写原因；没有则删去本行]
++- 流程总览：[每步动作 — 要点 / 验证；末步走得到判据]
+ - 阻塞点：[会卡住整个方案的事，或「无」]
+ - 坑：[易踩的坑、隐性依赖、顺序敏感点，或「无」]
+ 
+diff --git a/skills/task-explore/references/cmd-new.md b/skills/task-explore/references/cmd-new.md
+--- a/skills/task-explore/references/cmd-new.md
++++ b/skills/task-explore/references/cmd-new.md
+@@ -6,6 +6,6 @@
+ 
+ 1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
+ 2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
+-3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的步骤级方案）时，把完成判据、事实、假设、步骤、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
++3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
+ 4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
+ 5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
+diff --git a/skills/task-explore/references/phase-handoff.md b/skills/task-explore/references/phase-handoff.md
+--- a/skills/task-explore/references/phase-handoff.md
++++ b/skills/task-explore/references/phase-handoff.md
+@@ -26,7 +26,7 @@
+ 
+ 1. 有未写入进展则先按 `save` 写回。
+ 2. 在 `TASK.md` 写 **交接** 小节：driver 名、采纳方案、`design/` 与 `approve/APPROVED.md` 指针、可带进实现的未决；上游（task-confirm / 复杂档）含质量画像时，把「方案」小节的质量画像与显式降级原文快照**逐字复制**进交接段，不是引用路径。
+-3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照，driver 的 `proposal.md` 保留同一份原文，不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
++3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照。有流程总览时（`wizard/plan.md` 或「方案」小节），把流程总览原文快照写入 driver 的 `proposal.md`（可与 `--goal` 同份材料），不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。
+ 4. 按 taskflow 写入 driver 的 `.openspec.yaml`（`skip_specs: true`）和 `proposal.md`（含逐字 Driver 协议）。**不要写 `tasks.md`。**
+ 5. taskflow / openspec 不可用，或无法确定 planning root：停下报告可选项，**保持探索任务在 `ongoing/`、状态不变**，已写的交接段可保留。
+ 6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`，`phase` 改为 `propose`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。`handoff` 是命令不是 phase，禁止把 `phase` 写成 `handoff`。
+diff --git a/skills/task-explore/tests/test_task_explore_contract.py b/skills/task-explore/tests/test_task_explore_contract.py
+--- a/skills/task-explore/tests/test_task_explore_contract.py
++++ b/skills/task-explore/tests/test_task_explore_contract.py
+@@ -397,6 +397,16 @@
+         self.assertIn("质量目标", self.explore)
+         self.assertIn("追问验收方式或参照", self.explore)
+         self.assertIn("供 design 阶段质量画像草稿吸收", self.explore)
++        self.assertIn(
++            "未覆盖的预期目标、成功标准、质量目标、范围、约束与未知",
++            self.explore,
++        )
++
++    def test_template_and_handoff_flow_overview(self) -> None:
++        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
++        self.assertIn("质量属性", tpl)
++        self.assertIn("流程总览", tpl)
++        self.assertIn("流程总览原文快照写入 driver 的 `proposal.md`", self.handoff)
+ 
+ 
+ class TestExternalPrecedentThinReference(unittest.TestCase):

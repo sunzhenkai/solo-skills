@@ -92,5 +92,13 @@ class ContractTest(unittest.TestCase):
         self.assertIn("凡经 taskrail 的交付均必需，含 simple", self.skill)
 
 
+    def test_flow_overview_anchor_and_quality_attrs(self) -> None:
+        self.assertIn("## 质量属性", self.wizard)
+        self.assertIn("## 流程总览", self.wizard)
+        self.assertIn("流程总览映射", self.contract)
+        self.assertIn("流程总览快照随交接进 driver", self.contract)
+        self.assertIn("human 含强制走查", self.contract)
+
+
 if __name__ == "__main__":
     unittest.main()

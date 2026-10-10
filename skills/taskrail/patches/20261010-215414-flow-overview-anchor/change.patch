@@ -1,0 +1,59 @@
+diff --git a/skills/taskrail/references/phase-wizard.md b/skills/taskrail/references/phase-wizard.md
+index f0a50a6..c9f86d8 100644
+--- a/skills/taskrail/references/phase-wizard.md
++++ b/skills/taskrail/references/phase-wizard.md
+@@ -9,7 +9,9 @@
+ - **完成判据**：单独成节、一条可检查的话；下游按原文采用。
+ - **交付标准**：只取与本任务相关的交付面；无则写「无」。
+ - **阻塞点与坑必须显式列出**，没有写「无」。
+-- **简洁**：半屏内；判据、步骤、阻塞点、建议路由不可省。
++- **简洁**：半屏内；判据、流程总览、阻塞点、建议路由不可省。
++- **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
++- **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。
+ 
+ ## 决策收敛
+ 
+@@ -47,8 +49,11 @@
+ - 事实：…
+ - 假设：…
+ 
+-## 步骤
+-1. <动作> — 要点：…；验证：…
++## 质量属性
++- <与本任务相关的质量目标：观感 / 性能 / 可靠性 / 可维护性…；不可确定性度量的写验收方式或参照；不适用写「不适用」+ 原因>
++
++## 流程总览
++1. <动作> — 要点：…；验证：…；从现状探索得出，末步走得到判据，全程无断点>
+ 
+ ## 阻塞点
+ - <…；无则写「无」>
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index 10383ad..ee73577 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -96,9 +96,10 @@ updated: YYYY-MM-DD
+ 
+ | 进入阶段 | 必须已有 |
+ |----------|----------|
+-| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文） |
++| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节） |
++| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对 |
+ | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」 |
+-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；`status: handed-off` 与 `driver` 已写入 |
++| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；`status: handed-off` 与 `driver` 已写入 |
+ | apply | driver `tasks.md` 已由 propose 产出 |
+ | archive（探索侧） | 用户确认关闭；子任务均已结 |
+ 
+@@ -108,10 +109,10 @@ updated: YYYY-MM-DD
+ 
+ | 闸口 | 说明 |
+ |------|------|
+-| wizard 定稿 | 方案落盘前 |
++| wizard 定稿 | 方案落盘前；human 含强制走查（判据可检查 / 流程总览可达判据 / 交付标准无漏越界，细则见 task-confirm），可点名派审 |
+ | explore 关键 | 探索方向/范围收敛（含仅 grill） |
+ | design 定稿 | 方案稿可审前 |
+-| approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量） |
++| approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量）；human 结构门含流程总览对齐核对，可点名名册评审 |
+ | expand 创建 | 拆子任务前 |
+ | 危险类退出点 | 线上 / 泄密 / 未点名危险操作等 |
+ 

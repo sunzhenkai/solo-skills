@@ -1,0 +1,16 @@
+diff --git a/skills/task-confirm/tests/test_task_confirm_contract.py b/skills/task-confirm/tests/test_task_confirm_contract.py
+index cf2a386..4e1e6b7 100644
+--- a/skills/task-confirm/tests/test_task_confirm_contract.py
++++ b/skills/task-confirm/tests/test_task_confirm_contract.py
+@@ -82,5 +82,11 @@ class ContractTest(unittest.TestCase):
+         self.assertNotIn("](references/state-machine.md)", self.skill)
+ 
+ 
++    def test_human_walkcheck_and_named_review(self) -> None:
++        self.assertIn("human 强制走查（wizard 定稿 / approve）", self.skill)
++        self.assertIn("human 点名派审", self.skill)
++        self.assertIn("wizard 定稿与 approve 时的流程总览", self.skill)
++
++
+ if __name__ == "__main__":
+     unittest.main()
