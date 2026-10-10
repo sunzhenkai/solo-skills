@@ -51,3 +51,15 @@ cases:
         - 无 driver 直接改业务代码
         - 把 grill 或 handoff 写入 TASK.md.phase
 
+  - id: optional-worker-seat
+    kind: core
+    judge: deterministic
+    description: Worker 派出推荐非强制；宿主 subagent 为抽象通道
+    given: medium/complex 进入 explore/design/apply，或宿主无 subagent
+    expect:
+      must:
+        - 可派出时优先宿主 subagent；grill 提问与闸口留主会话
+        - 主会话只收 Digest，不回灌工具轨迹
+        - 无派出能力时主会话自做，不退出轨道
+      must_not:
+        - 因缺少 subagent 停下或改道

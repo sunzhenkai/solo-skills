@@ -45,7 +45,7 @@ taskrail list
 
 ## 主循环
 
-每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
+每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 推荐派出的单位可交宿主 subagent（否则主会话自做；见契约「执行座位」）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
 
 | phase | 动作 |
 |-------|------|
@@ -87,3 +87,4 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 - 危险与线上退出点以 `task-confirm` 为准。
 - 不复制 task-confirm 的审阅规则；不复制 taskflow 的 Driver 协议。
 - 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
+- Worker 派出为推荐选项，非强制；无宿主 subagent 时主会话自做，不因此退出轨道。

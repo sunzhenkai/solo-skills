@@ -100,5 +100,14 @@ class ContractTest(unittest.TestCase):
         self.assertIn("human 含强制走查", self.contract)
 
 
+    def test_optional_worker_seat(self) -> None:
+        self.assertIn("## 执行座位", self.contract)
+        self.assertIn("派出是推荐，不是强制", self.contract)
+        self.assertIn("宿主 subagent", self.contract)
+        self.assertIn("不回灌工具轨迹", self.contract)
+        self.assertIn("Worker 派出为推荐选项", self.skill)
+
+
+
 if __name__ == "__main__":
     unittest.main()

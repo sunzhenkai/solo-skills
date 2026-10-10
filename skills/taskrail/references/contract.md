@@ -103,6 +103,22 @@ updated: YYYY-MM-DD
 | apply | driver `tasks.md` 已由 propose 产出 |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 
+## 执行座位
+
+高噪声 legwork **可**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。其余单位默认主会话（orchestrator）。
+
+**派出是推荐，不是强制。** 宿主无 subagent、未派出、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道。
+
+| 单位 | simple | medium / complex |
+|------|--------|------------------|
+| explore | 主会话 | **推荐** worker（调研 / 起草；grill 提问与闸口留主会话） |
+| design | （跳过） | **推荐** worker |
+| apply | **推荐** worker | **推荐** worker（并行与实现者输入见 taskflow） |
+
+闸口（`task-confirm`）、危险退出、面向用户的提问与选项：**永不**派出。
+
+派出时交代单位、输入路径、写入范围（apply 含 change 范围内业务代码）；apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。Worker 回 **Digest**（结论 / 落盘路径 / 未决）；主会话只收 Digest，不回灌工具轨迹；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
+
 ## 确认闸口（封闭）
 
 一律委托 `task-confirm`，不在各 skill 复制第二份规则：
