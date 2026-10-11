@@ -56,6 +56,7 @@ tasks/
 - 凡经 `taskrail` 推进的任务一律建 `tasks/ongoing/{slug}/`（含简单档）。
 - 无 `tasks/` 时须先获确认再建（沿用 task-explore 纪律）。
 - 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
+- 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
 - 单任务产物只写当前任务目录；禁止写仓库根 `CONTEXT.md`、`docs/adr/`、`docs/design/`。
 
 ## TASK.md 元信息（封闭字段）
@@ -96,10 +97,10 @@ updated: YYYY-MM-DD
 
 | 进入阶段 | 必须已有 |
 |----------|----------|
-| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节） |
-| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对 |
-| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」 |
-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；`status: handed-off` 与 `driver` 已写入 |
+| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节） |
+| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划 |
+| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物 |
+| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入 |
 | apply | driver `tasks.md` 已由 propose 产出 |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 

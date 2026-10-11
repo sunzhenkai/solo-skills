@@ -49,7 +49,7 @@ taskrail list
 
 | phase | 动作 |
 |-------|------|
-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`；闸口定稿 |
+| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包）；闸口定稿 |
 | `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
 | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
@@ -78,6 +78,10 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 2. 交付标准全过（方案写「无」则只看判据）。
 3. 相关 checkbox 全勾（含 simple 单切片）。
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+5. 命中交付类别门包时（[../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记。
+6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+
+完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 
 `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
 
