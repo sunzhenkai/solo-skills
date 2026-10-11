@@ -1,0 +1,109 @@
+---
+id: role-based-reviewer
+name: role-based-reviewer
+description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、skill。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
+---
+
+# 角色化评审
+
+面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
+
+角色化只读编排与评审入口。选择角色、加载该角色所需上下文、保留职责边界，并给出可执行结论。
+
+`mode=ask`：按岗位回答问题、标明证据与下游建议。  
+`mode=review`：真正做多视角审查，输出分级发现；默认目标为当前工作区变更。
+
+本身不改代码、不落盘、不替代实现类 skill。用户要求修复时再动手。
+
+## 三道门禁（防误触、防角色膨胀、防吹毛求疵）
+
+未过门禁不得进入本 skill 的预加载与分角色审查。
+
+1. **门 1 · 收窄触发**：仅下列情况使用；否则当普通问答/常规审查处理，不加载本 skill。
+   - 用户点名本 skill，或发出 `{{slash:role-based-reviewer}}`
+   - 用户写出 `roles=` / 岗位短名（如「用 algo 看」「engineer+sre review」）
+   - 用户明确要求按岗位、多角色、跨职能视角看问题
+   **不算触发**：单独的「看看这段」「帮我 review」「有没有 bug」「审查一下 diff」——没有岗位意图时不要自动进来。
+   - 上游编排型工作流以结构化参数调用，且 `mode=review` 与完整合法的角色集 `roles=` 齐备；审阅边界输入（完成判据、质量画像 / 角色底线、显式降级清单、命中交付类别门包时的门包与运行态证据、本环节「审」与「不审」的范围）应尽量齐备——边界缺项（含门包缺失、运行态证据缺失）不构成拒审理由，但须按已有边界审查、报告开头写明缺哪一块、对受影响条目标注未验证，不得把缺项当通过。满足上述条件时承认其为正当调用方，按传入角色执行；角色集由调用方按任务适用面给定，数量随任务变，不算角色膨胀。
+2. **门 2 · 角色确认**：未指定 `roles` 时默认只开 **engineer**。其它角色必须有**强信号**才加（见下节）；一次推断将超过 2 个角色时，先列出候选问用户，禁止静默堆视角。文件名/目录沾边（有 CSS、有 Dockerfile、有 `model` 字样）不够。
+   - 调用方传入完整 `roles=` 属「已指定」而非推断：照单执行，不列候选、不反问，即使角色数超过 2 个。用户当轮显式点名的 `roles` 优先于传入值；两者都不增删。
+3. **门 3 · 发现克制**：`mode=review` 默认只报 **Blocker** 与 **Major**。Minor / Suggestion 仅在用户要求「仔细 / 全面 / 含风格」时输出。不确定的不当 Blocker；没有问题就说没有，不为每个角色凑一条。
+
+## 输入
+
+- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
+- `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
+- `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
+- `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。质量目标含审美 / 体验等无法用确定性度量完备验收的项时，角色底线里还须带天花板参照集（把「卓越」落成可数构成件或外部参照）。命中交付类别门包时还须附门包（见 task-confirm 门包表）与运行态证据（起服务 + 截图 / 录屏 / 断言输出）。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
+- `产物状态`：`mode=review` 时由调用方给出所审产物的状态标识（提交号，或未提交时的 dirty 摘要）；未给时评审自行取自工作区并在报告「依据状态」注明取得方式。报告与 findings 只对该状态有效。
+- `model=<模型名>`：可选。subagent 派发时显式指定评审所用模型（异源评审用）；不指定则模型继承调用方。
+- `endpoint=<agent-roster 端点>`：可选。经 agent-roster 委派该端点的 agent 执行评审，Handoff / 回收按 agent-roster 契约；与 `model` 同给时，`model` 作建议、端点自行解析时以其为准。
+
+示例：
+
+- `{{slash:role-based-reviewer}} roles=algo 排序分为何掉量`
+- `{{slash:role-based-reviewer}} roles=engineer,sre mode=review 服务与部署变更`
+- `{{slash:role-based-reviewer}} mode=review`：未指定 `roles` 时默认 engineer（受门 2）
+
+- 工作流调用：`roles=product,design,engineer mode=review` 并随附完成判据 / 质量画像 / 显式降级 / 审与不审范围（不增删角色、不反问）
+- 异源评审调用：`roles=design mode=review model=<与实现不同的模型>`；跨端点：`roles=product,design,engineer mode=review endpoint=<host>/<kind>`
+
+## MUST 先读取
+
+[constraints](references/constraints.md) + [preload-protocol](references/preload-protocol.md) + [brief-protocol](references/brief-protocol.md) + [role-vocabulary](references/role-vocabulary.md)。
+
+## 视角推断（受门 2 约束）
+
+用户显式指定的 `roles` 优先，不再增删；调用方按自身规则传入的固定 `roles` 等同显式指定，同样不增删。下列推断只在既无用户点名、也无调用方传入时进行：
+
+- **默认只 engineer**。不要默认带 qa / product / design。
+- 额外角色要有问题或 diff **主体**上的强信号，不是「文件列表里出现过」：
+  - 审查目标就是测试/可测性 → + **qa**
+  - 目标就是 UI 视觉/交互/无障碍（不是顺便改了样式）→ + **design**（即 uiux）
+  - 目标就是需求/方案文档 → + **product**
+  - 目标就是部署/CI/集群/密钥（不是应用代码里读了环境变量）→ + **sre**
+  - 目标就是模型/策略/实验效果 → + **algo**
+  - 目标就是管道/数仓/口径 → + **data**
+  - 目标就是 Agent Skill 的质量诊断（description 触发面、门禁、协议一致性、契约测试）→ + **skill**
+  - 目标就是运营配置/灰度节奏 → + **ops**
+  - 目标就是对外协议/多租户对接 → + **biz**
+- 推断结果将超过 2 个角色：停下来问，不猜。已传入的 `roles` 属指定而非推断，不在「先问」之列。
+- 项目里没有对应域（无模型、无数仓、无对外对接）时，对应角色直接不加。
+
+推断结果写在报告开头（启用了哪些、为什么）；用户纠正后以用户为准。
+
+## 耗时优化（大目标必读）
+
+- **先摸规模**：`git status --short`、`git diff --stat` 或目录文件清单，再决定读多少
+- 大目标 **按模块分组** 理解意图，只对核心文件抽样精读；lockfile / 生成物 / vendor / 大资源不读内容
+- 每个角色只盯本职高价值问题，不要逐行复述代码，不要为求全打开几十个文件
+- 支持 subagent 时，可按角色并行派发（模型默认继承调用方，显式 `model=` 时从其值；跨端点用 `endpoint=` 走 agent-roster），各自返回分级结论后汇总去重；派发策略见「流程」第 4 步
+
+## 流程
+
+1. 过三道门禁。未过门 1 则不要按本 skill 执行。解析 `mode`、`roles` 与可选的 `model` / `endpoint`；未指定角色时按上节推断，受门 2 约束。
+2. 对每个生效角色，按 [preload-protocol](references/preload-protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计默认 ≤6 个文件；超出时说明原因。`mode=review` 另遵循耗时优化。
+3. `mode=ask`：按角色输出独立结论、证据、边界与下游建议。
+4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 brief-protocol 汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审。
+5. 合并时只去重「同一证据支持的同一风险」；不得把不同角色的结论混写成无归属意见。
+6. 下一步默认只推荐一个主责动作；确需并行时写明独立任务与先后关系。
+
+## 严重级别（`mode=review`）
+
+- **Blocker**：必须修复（正确性错误、安全漏洞、数据丢失、无法发布）
+- **Major**：应当修复（明显缺陷、架构问题、关键场景缺失）
+- **Minor** / **Suggestion**：默认不报（门 3）；用户要求仔细审查时再给可读性、一致性、风格类问题
+
+## 输出
+
+骨架见 [brief-protocol](references/brief-protocol.md)。多角色 review 至少包含：
+
+- 依据状态：所审产物的状态标识（提交号 / dirty 摘要）与审阅边界齐备性（缺项逐条写明）
+- 生效角色及选择依据
+- 每个角色独立的 findings / 证据 / 下游建议；Blocker / Major 带稳定编号（供调用方处置台账引用）
+- 共享风险的主责与协作角色
+- 未覆盖项与降级建议（含未覆盖原因、建议处置与工具不可用时的替代方法与能力边界）
+- 未知项、角色间分歧（如有）
+- 统一的下一步与总结置信度
+
+报告只对「依据状态」所标识的产物有效；产物变更后受影响的 findings 作废重审。findings 的处置（`fixed` / `accepted-recorded`）由调用方记录，本 skill 不代替调用方判收敛。
