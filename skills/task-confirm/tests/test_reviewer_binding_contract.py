@@ -82,6 +82,22 @@ class TestGatePacksSingleSource(unittest.TestCase):
         self.assertIn("role-based-reviewer roles=design", self.packs)
         self.assertIn("role-based-reviewer roles=engineer", self.packs)
 
+    def test_web_ui_binds_active_instance(self) -> None:
+        self.assertIn("design-system/v1", self.packs)
+        self.assertIn("status: frozen", self.packs)
+        self.assertIn("contract / binding / projection", self.packs)
+        self.assertIn("ui-template-design", self.packs)
+        self.assertIn("ui-template-apply", self.packs)
+
+    def test_web_ui_tier_gate(self) -> None:
+        self.assertIn("**Active Instance 档位门**", self.packs)
+        self.assertIn("medium / complex", self.packs)
+        self.assertIn("adopt published package", self.packs)
+
+    def test_web_ui_automations_hook_ds_runtime(self) -> None:
+        self.assertIn("check_active_instance.py validate", self.packs)
+        self.assertIn("scan_design_constraints.py", self.packs)
+
     def test_entry_taxonomy(self) -> None:
         self.assertIn("门包条目三分", self.packs)
         self.assertIn("未覆盖即降级", self.packs)

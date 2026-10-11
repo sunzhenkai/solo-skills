@@ -103,7 +103,7 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 ## 2. 实施
 - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
-- [ ] 2.2 完成子 change `{task}-ui`：同上
+- [ ] 2.2 完成子 change `{task}-ui`：Web UI 切片委托 `ui-template-apply`（bootstrap/increment）消费 frozen Active Instance；无 Active Instance 且无已确认 adopt-only 降级时禁止直接铺业务页；其余同 2.1
 
 ## 3. 收尾
 - [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录
@@ -200,9 +200,18 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 交付面命中 [../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md) 的类别时，实现者输入除上述外 MUST 再携带三件，缺任一件不得派发：
 
-- **契约文件**：共享面（接口、类型、primitive、目录与命名、样板切片）已冻结的产物指针；并行派发前必须已存在，冻结后漂移走「并行执行」的共享面广播纪律。
+- **契约文件**：共享面（接口、类型、primitive、目录与命名、样板切片）已冻结的产物指针；并行派发前必须已存在，冻结后漂移走「并行执行」的共享面广播纪律。Web UI：指针 = Active Instance 根路径 + contract / binding / projection 三条 digest（与 handoff 载荷一致）。
 - **门包**：适用交付类别的门包条目（可自动化门 / 运行态证据 / 主观项）+ 本切片负责产出的证据清单。
-- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 task-confirm「未覆盖即降级」登记。
+- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 task-confirm「未覆盖即降级」登记。Web UI：优先 `ui-template-apply` Phase 8 current-build 证据与 Gallery。
+
+### Web UI 实现委托
+
+交付类别为 Web UI 时：
+
+- UI 切片（含旗舰切片）的页面实现 MUST 委托仓外 **`ui-template-apply`**（`bootstrap | increment`），消费 driver 所记 frozen Active Instance（或已确认的 adopt-only pin）。
+- **禁止**无 Active Instance（且无已确认 adopt-only 降级）直接生成业务页；`ui-skills-root` / 零散 craft skill 不替代本委托。
+- 发现须改 token / pattern / page-type / binding 语义：停并行，移交 `ui-template-design` `iterate`（Apply 的 binding handoff 归 design 轨），刷新 digest 与 `design/contract.md` / driver 指针后再派发；不得在 apply 内改 core。
+- 并行派发前契约 = 三条 digest；漂移走共享面广播，且须与 Active Instance freeze 再对齐。
 
 只有任务显式标记 benchmark / regression 时才盲测复跑：实现者只拿同一份样例/需求原文与运行约束，不拿画像、rubric、期望清单或审阅意见；复跑不追加事后提示。
 

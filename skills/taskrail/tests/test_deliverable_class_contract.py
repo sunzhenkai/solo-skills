@@ -16,7 +16,7 @@ class TestWizardDeliverableClass(unittest.TestCase):
         cls.wizard = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
 
     def test_phase_action_carries_gate_pack(self) -> None:
-        self.assertIn("落 `wizard/plan.md`（含交付类别与适用门包）", self.skill)
+        self.assertIn("落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）", self.skill)
 
     def test_principle_present(self) -> None:
         self.assertIn("**交付类别必判**", self.wizard)
@@ -29,6 +29,13 @@ class TestWizardDeliverableClass(unittest.TestCase):
         self.assertIn("## 交付类别与门包", self.wizard)
         for field in ("- 交付类别：", "- 适用门包：", "- 基准物：", "- 未覆盖即降级："):
             self.assertIn(field, self.wizard)
+
+    def test_active_instance_section(self) -> None:
+        self.assertIn("**Web UI → Active Instance 前置**", self.wizard)
+        self.assertIn("## Active Instance（仅 Web UI；其它类别写「不适用」）", self.wizard)
+        for field in ("- 状态：", "- 根路径：", "- contract digest：", "- binding digest：", "- projection digest：", "- 前置动作："):
+            self.assertIn(field, self.wizard)
+        self.assertIn("ui-template-design", self.wizard)
 
     def test_template_keeps_existing_sections(self) -> None:
         for kept in ("## 完成判据", "## 交付标准", "## 质量属性", "## 流程总览", "## 建议路由"):
@@ -49,6 +56,10 @@ class TestCompletionGateMechanical(unittest.TestCase):
     def test_disposition_item(self) -> None:
         self.assertIn("6. 各轮评审的 Blocker / Major 全有 disposition", self.skill)
         self.assertIn("`accepted-recorded` 含理由", self.skill)
+
+    def test_web_ui_digest_done_gate(self) -> None:
+        self.assertIn("7. Web UI：driver / `design/contract.md` 所记三条 digest", self.skill)
+        self.assertIn("与交付仓 Active Instance 当前 freeze 一致", self.skill)
 
     def test_mechanical_wording(self) -> None:
         self.assertIn("完成门**逐条机械核对**", self.skill)
@@ -78,6 +89,13 @@ class TestContractPayload(unittest.TestCase):
 
     def test_design_carries_contract_file(self) -> None:
         self.assertIn("**契约文件指针**（仓库内已冻结的共享面契约）与证据计划", self.contract)
+
+    def test_web_ui_active_instance_in_contract(self) -> None:
+        self.assertIn("**Web UI**：共享面契约 = 交付项目根 `design-system/v1`", self.contract)
+        self.assertIn("Web UI 指针必须含 Active Instance 根路径与三条 digest", self.contract)
+        self.assertIn("simple 无 freeze 仅当 adopt-only + 已确认显式降级", self.contract)
+        self.assertIn("ui-template-design", self.contract)
+        self.assertIn("ui-template-apply", self.contract)
 
     def test_approve_and_propose_carry_gate_pack(self) -> None:
         self.assertIn("命中门包时另附交付类别、适用门包与基准物", self.contract)

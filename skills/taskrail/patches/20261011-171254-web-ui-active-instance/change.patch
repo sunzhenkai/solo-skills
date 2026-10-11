@@ -1,0 +1,167 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index a81e7a3..73c1e0e 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -34,6 +34,7 @@ taskrail list
+ - `taskflow`（凡经 taskrail 的交付均必需，含 simple）
+ - `grilling`（有任务目录时的拷问）
+ - stock `openspec-*`（propose/apply/archive；经 taskflow）
++- Web UI 交付另需：`ui-template-design`（无 freeze 时前置）、`ui-template-apply`（实现页）；可选 `ui-template-author`（从源做 package）
+ 
+ ## 绑定与目录
+ 
+@@ -49,7 +50,7 @@ taskrail list
+ 
+ | phase | 动作 |
+ |-------|------|
+-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包）；闸口定稿 |
++| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）；闸口定稿 |
+ | `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
+ | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
+ | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
+@@ -80,6 +81,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**
+ 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+ 5. 命中交付类别门包时（[../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记。
+ 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
++7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。
+ 
+ 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
+ 
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index dba994e..172563f 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -63,3 +63,16 @@ cases:
+         - 无派出能力时主会话自做，不退出轨道
+       must_not:
+         - 因缺少 subagent 停下或改道
++
++  - id: web-ui-active-instance-wizard
++    kind: core
++    judge: deterministic
++    description: Web UI 在 wizard 记录 Active Instance 状态；完成门核对 digest 未漂
++    given: 交付类别为 Web UI
++    expect:
++      must:
++        - wizard/plan.md 含 Active Instance 状态与三条 digest 或缺失与前置动作
++        - medium/complex 无 freeze 时不得 approve 冻结
++        - done 前核对 digest 与交付仓 freeze 一致
++      must_not:
++        - 把 tokens/primitive 精确值写入 tasks/
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index e0bf641..0fb8a83 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -57,6 +57,7 @@ tasks/
+ - 无 `tasks/` 时须先获确认再建（沿用 task-explore 纪律）。
+ - 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
+ - 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
++- **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体与 `.ui-template-design/` 落交付项目根，由 `ui-template-design` 维护。
+ - 单任务产物只写当前任务目录；禁止写仓库根 `CONTEXT.md`、`docs/adr/`、`docs/design/`。
+ 
+ ## TASK.md 元信息（封闭字段）
+@@ -97,10 +98,10 @@ updated: YYYY-MM-DD
+ 
+ | 进入阶段 | 必须已有 |
+ |----------|----------|
+-| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节） |
+-| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划 |
+-| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物 |
+-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入 |
++| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
++| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
++| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：medium/complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
++| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver（Web UI 含三条 digest）；`status: handed-off` 与 `driver` 已写入 |
+ | apply | driver `tasks.md` 已由 propose 产出 |
+ | archive（探索侧） | 用户确认关闭；子任务均已结 |
+ 
+@@ -147,4 +148,6 @@ updated: YYYY-MM-DD
+ | `task-explore` | 台账与 explore/design/expand/approve/handoff/archive 等**命令** |
+ | `taskflow` | driver + propose/apply/archive；交付 checkbox |
+ 
++仓外（Web UI）：`ui-template-design`（冻结 Active Instance）、`ui-template-apply`（实现业务页）、`ui-template-author`（可选，从源做 package）。task* 只门禁与移交，不复制其 0–9。
++
+ 已删除的旧 id（`task-wizard` / `task-goal` / `task-delivery`）勿再引用；统一用上表四 skill。
+diff --git a/skills/taskrail/references/phase-wizard.md b/skills/taskrail/references/phase-wizard.md
+index 8fcb967..98213b0 100644
+--- a/skills/taskrail/references/phase-wizard.md
++++ b/skills/taskrail/references/phase-wizard.md
+@@ -13,6 +13,7 @@
+ - **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
+ - **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。
+ - **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [../../task-confirm/references/gate-packs.md](../../task-confirm/references/gate-packs.md) 写入适用门包与**基准物**；验收方式禁止写「对照外部产品或参考实现」——外部参照只是一次性输入。
++- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：跑 `ui-template-design` 至 freeze（有参照源可先 `ui-template-author`）；medium/complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
+ 
+ ## 决策收敛
+ 
+@@ -49,9 +50,17 @@
+ ## 交付类别与门包
+ - 交付类别：<Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill / 不适用>
+ - 适用门包：<引用 task-confirm/references/gate-packs.md 对应类别条目；不适用写「无」>
+-- 基准物：<标准 / 契约定稿 / 冻结基线——禁止外部产品或参考实现>
++- 基准物：<标准 / 契约定稿 / 冻结基线——禁止外部产品或参考实现；Web UI 须含 Active Instance 路径与 digest>
+ - 未覆盖即降级：<按显式降级登记，含 A/B 定级与证据要求>
+ 
++## Active Instance（仅 Web UI；其它类别写「不适用」）
++- 状态：<frozen / 缺失 / adopt-only 候选>
++- 根路径：<交付项目根下 Active Instance 目录；缺失写「无」>
++- contract digest：<…或无>
++- binding digest：<…或无>
++- projection digest：<…或无>
++- 前置动作：<已就绪 / 移交 ui-template-design … / simple 拟 adopt-only + 显式降级>
++
+ ## 前提
+ - 事实：…
+ - 假设：…
+diff --git a/skills/taskrail/tests/test_deliverable_class_contract.py b/skills/taskrail/tests/test_deliverable_class_contract.py
+index 5ec4c45..87ae2c9 100644
+--- a/skills/taskrail/tests/test_deliverable_class_contract.py
++++ b/skills/taskrail/tests/test_deliverable_class_contract.py
+@@ -16,7 +16,7 @@ class TestWizardDeliverableClass(unittest.TestCase):
+         cls.wizard = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
+ 
+     def test_phase_action_carries_gate_pack(self) -> None:
+-        self.assertIn("落 `wizard/plan.md`（含交付类别与适用门包）", self.skill)
++        self.assertIn("落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）", self.skill)
+ 
+     def test_principle_present(self) -> None:
+         self.assertIn("**交付类别必判**", self.wizard)
+@@ -30,6 +30,13 @@ class TestWizardDeliverableClass(unittest.TestCase):
+         for field in ("- 交付类别：", "- 适用门包：", "- 基准物：", "- 未覆盖即降级："):
+             self.assertIn(field, self.wizard)
+ 
++    def test_active_instance_section(self) -> None:
++        self.assertIn("**Web UI → Active Instance 前置**", self.wizard)
++        self.assertIn("## Active Instance（仅 Web UI；其它类别写「不适用」）", self.wizard)
++        for field in ("- 状态：", "- 根路径：", "- contract digest：", "- binding digest：", "- projection digest：", "- 前置动作："):
++            self.assertIn(field, self.wizard)
++        self.assertIn("ui-template-design", self.wizard)
++
+     def test_template_keeps_existing_sections(self) -> None:
+         for kept in ("## 完成判据", "## 交付标准", "## 质量属性", "## 流程总览", "## 建议路由"):
+             self.assertIn(kept, self.wizard)
+@@ -50,6 +57,10 @@ class TestCompletionGateMechanical(unittest.TestCase):
+         self.assertIn("6. 各轮评审的 Blocker / Major 全有 disposition", self.skill)
+         self.assertIn("`accepted-recorded` 含理由", self.skill)
+ 
++    def test_web_ui_digest_done_gate(self) -> None:
++        self.assertIn("7. Web UI：driver / `design/contract.md` 所记三条 digest", self.skill)
++        self.assertIn("与交付仓 Active Instance 当前 freeze 一致", self.skill)
++
+     def test_mechanical_wording(self) -> None:
+         self.assertIn("完成门**逐条机械核对**", self.skill)
+         self.assertIn("任一条缺证据即不标 `done`", self.skill)
+@@ -79,6 +90,13 @@ class TestContractPayload(unittest.TestCase):
+     def test_design_carries_contract_file(self) -> None:
+         self.assertIn("**契约文件指针**（仓库内已冻结的共享面契约）与证据计划", self.contract)
+ 
++    def test_web_ui_active_instance_in_contract(self) -> None:
++        self.assertIn("**Web UI**：共享面契约 = 交付项目根 `design-system/v1`", self.contract)
++        self.assertIn("Web UI 指针必须含 Active Instance 根路径与三条 digest", self.contract)
++        self.assertIn("simple 无 freeze 仅当 adopt-only + 已确认显式降级", self.contract)
++        self.assertIn("ui-template-design", self.contract)
++        self.assertIn("ui-template-apply", self.contract)
++
+     def test_approve_and_propose_carry_gate_pack(self) -> None:
+         self.assertIn("命中门包时另附交付类别、适用门包与基准物", self.contract)
+         self.assertIn("命中门包时门包与契约文件指针一并进 driver", self.contract)

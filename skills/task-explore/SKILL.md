@@ -164,11 +164,11 @@ tasks/
 
 ## `design`
 
-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 task-confirm）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 task-confirm 门包表）。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 task-confirm）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 task-confirm 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
 
 ## `approve`
 
-**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/phase-approve.md](references/phase-approve.md)。没有可批准的方案就打断。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 task-confirm 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
+**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/phase-approve.md](references/phase-approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 task-confirm 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
 
 同一任务可多次 `approve`：新决策追加编号写入决策节，被取代的旧决策标注「被 D-n 取代」。父任务的 `approve` 仅限范围、非目标与拆分原则，具体方案属各子任务。
 
@@ -184,7 +184,7 @@ tasks/
 
 ## `handoff`
 
-把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。成功后调用方（taskrail）置 `phase: propose`（本命令不把 `handoff` 写入 `phase`）。进入本阶段后 **先读** [references/phase-handoff.md](references/phase-handoff.md)。交接门禁含：命中交付类别门包时，契约文件指针与证据计划已就绪且契约本体已在交付仓（细则见阶段详情）。交接目标按绑定自动推断，无需用户逐项指定：
+把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。成功后调用方（taskrail）置 `phase: propose`（本命令不把 `handoff` 写入 `phase`）。进入本阶段后 **先读** [references/phase-handoff.md](references/phase-handoff.md)。交接门禁含：命中交付类别门包时，契约文件指针与证据计划已就绪且契约本体已在交付仓；Web UI 另须三条 digest 进 driver（细则见阶段详情）。交接目标按绑定自动推断，无需用户逐项指定：
 
 - 绑定子任务 → 交接该子任务，建 `{sub}-driver`。
 - 绑定父任务 → 父是纯伞不可交接，自动批量交接所有「已 `approve`（或兼容 `decide`）未交接」的子任务，无需逐项确认；就绪为零则打断并报告各子任务所缺条件；未批准的子任务跳过且不阻塞其余。批量中任一失败即停，已交接的不回滚。

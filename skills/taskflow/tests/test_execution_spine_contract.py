@@ -25,6 +25,15 @@ class TestImplementerInputCarriesSpine(unittest.TestCase):
     def test_evidence_binding(self) -> None:
         self.assertIn("绑定产物状态（提交号或 dirty 摘要）", self.text)
 
+    def test_web_ui_apply_delegation(self) -> None:
+        self.assertIn("### Web UI 实现委托", self.text)
+        self.assertIn("ui-template-apply", self.text)
+        self.assertIn("**禁止**无 Active Instance（且无已确认 adopt-only 降级）直接生成业务页", self.text)
+        self.assertIn("移交 `ui-template-design` `iterate`", self.text)
+
+    def test_ui_slice_skeleton_mentions_apply(self) -> None:
+        self.assertIn("`{task}-ui`：Web UI 切片委托 `ui-template-apply`", self.text)
+
 
 class TestParallelPreconditions(unittest.TestCase):
 
@@ -82,10 +91,13 @@ class TestQualityLoopSpine(unittest.TestCase):
     def test_contract_first(self) -> None:
         self.assertIn("**契约前置**", self.loop)
         self.assertIn("并行派发只允许发生在契约冻结之后", self.loop)
+        self.assertIn("design-system/v1", self.loop)
+        self.assertIn("ui-template-apply", self.loop)
 
     def test_flagship_slice(self) -> None:
         self.assertIn("**旗舰切片**", self.loop)
         self.assertIn("../../task-confirm/references/gate-packs.md", self.loop)
+        self.assertIn("Phase 8 + Gallery", self.loop)
 
     def test_gate_pack_overlay(self) -> None:
         self.assertIn("**门包叠加**", self.loop)
@@ -119,6 +131,11 @@ class TestRubricExecutorBinding(unittest.TestCase):
 
     def test_gate_failure_caps_score(self) -> None:
         self.assertIn("**可自动化门**任一失败 → 对应维度不得 ≥2.5", self.rubric)
+
+    def test_web_ui_evidence_binding(self) -> None:
+        self.assertIn("scan_design_constraints", self.rubric)
+        self.assertIn("Phase 8 current-build", self.rubric)
+        self.assertIn("Gallery", self.rubric)
 
     def test_uncovered_counts_as_downgrade(self) -> None:
         self.assertIn("**未覆盖条目**按显式降级计", self.rubric)

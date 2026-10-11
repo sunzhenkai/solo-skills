@@ -34,6 +34,7 @@ taskrail list
 - `taskflow`（凡经 taskrail 的交付均必需，含 simple）
 - `grilling`（有任务目录时的拷问）
 - stock `openspec-*`（propose/apply/archive；经 taskflow）
+- Web UI 交付另需：`ui-template-design`（无 freeze 时前置）、`ui-template-apply`（实现页）；可选 `ui-template-author`（从源做 package）
 
 ## 绑定与目录
 
@@ -49,7 +50,7 @@ taskrail list
 
 | phase | 动作 |
 |-------|------|
-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包）；闸口定稿 |
+| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）；闸口定稿 |
 | `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
 | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
@@ -80,6 +81,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
 5. 命中交付类别门包时（[../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记。
 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。
 
 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 

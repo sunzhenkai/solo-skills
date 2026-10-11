@@ -60,3 +60,16 @@ cases:
       must_not:
         - 把外部产品或参考实现当作验收基准
         - 未写明不可用原因就退普通 subagent
+  - id: web-ui-active-instance-baseline
+    kind: core
+    judge: deterministic
+    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现走 ui-template-apply
+    given: 交付类别为 Web UI，medium/complex 进入 approve，或 simple 无 freeze 仅 adopt-only
+    expect:
+      must:
+        - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
+        - medium/complex 无 freeze 时停下移交 ui-template-design，不批准
+        - simple adopt-only 须已确认显式降级；实现委托 ui-template-apply
+      must_not:
+        - 用散文组件约定或 ui-skills-root 替代 Active Instance
+        - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页

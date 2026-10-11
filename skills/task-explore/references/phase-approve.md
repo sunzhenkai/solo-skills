@@ -18,12 +18,19 @@
 
 核对：判据可检查；非目标清晰；推荐方案的架构/接口/技术栈选择按 [phase-design.md](phase-design.md)「设计依据」写齐（不适用须声明）；上游有流程总览时，设计步骤与总览逐条对齐、偏离处带显式决策。写不出依据的选择列入未决，不算可批准。
 
+**Web UI 附加**：
+
+- 读 `design/contract.md`（或简单档 plan 等价节）中的 Active Instance 根路径与三条 digest。
+- **medium / complex**：仓库内 Active Instance 须为 `status: frozen`，且 digest 与指针一致（可跑 `check_active_instance.py validate <active-root> --kind active` 或项目约定等价）；不一致或缺失 → 停，回 `design` 或移交 `ui-template-design`，**不得冻结**。
+- **simple**：无 freeze 仅当 adopt-only 路径已写明且质量画像显式降级已确认；否则不得冻结。
+
 ## 2. 评审门
 
 委托 `task-confirm`（闸口名 `approve`）。本闸口**只派一次**审阅循环，禁止嵌套再开 approve。
 
 - **human**：可列选项；需要名册评审时按下方「名册评审」执行，或用户/同事已评审也算完成（结论写入 `approve/` 或 `design/review-*.md`）。
 - **goal**：推荐默认 = design 里已写出的默认（含「冻结并允许 handoff」）；按 task-confirm 审阅；收敛即视为确认。无设计稿且无推荐方案时不编造，停下。
+- **Web UI**：审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针；必载 `roles=design`（见 gate-packs）。
 
 ### 名册评审（可选增强；goal 默认走 task-confirm 派审，不强制名册）
 

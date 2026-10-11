@@ -26,12 +26,20 @@ class TestDesignContractArtifact(unittest.TestCase):
     def test_output_table_has_contract_row(self) -> None:
         self.assertIn("| `design/contract.md` |", self.design)
         self.assertIn("命中交付类别门包时必需；只存指针，契约本体落交付仓", self.design)
+        self.assertIn("Web UI 另含 Active Instance 根路径与三条 digest", self.design)
+
+    def test_web_ui_active_instance_gate(self) -> None:
+        self.assertIn("**Web UI Active Instance 门**", self.design)
+        self.assertIn("移交 `ui-template-design`", self.design)
+        self.assertIn("不写空心 UI 方案", self.design)
+        self.assertIn("禁止在 `{taskRoot}/design/` 重写 `core/tokens.yaml`", self.design)
 
     def test_boundary_no_body_copy(self) -> None:
         self.assertIn("本 skill 只留指针，契约本体落交付仓并由交付仓维护", self.design)
 
     def test_command_mentions_artifact(self) -> None:
         self.assertIn("本阶段另落 `design/contract.md`", self.skill)
+        self.assertIn("Web UI：medium/complex 无 frozen Active Instance", self.skill)
 
     def test_existing_design_gates_intact(self) -> None:
         for kept in (
@@ -55,12 +63,18 @@ class TestHandoffContractGate(unittest.TestCase):
         self.assertIn("5. 命中交付类别门包时：`design/contract.md` 的契约文件指针与证据计划已就绪", self.handoff)
         self.assertIn("先回 `design` 补，不创建 driver", self.handoff)
 
+    def test_gate_six_web_ui_digests(self) -> None:
+        self.assertIn("6. **Web UI**：`design/contract.md` 含 Active Instance 根路径", self.handoff)
+        self.assertIn("三条 digest 写入 driver `proposal.md`", self.handoff)
+
     def test_payload_carries_gate_pack_and_pointer(self) -> None:
         self.assertIn("`--goal` 再附交付类别、适用门包与基准物", self.handoff)
         self.assertIn("不把契约本体复制进 `tasks/`", self.handoff)
+        self.assertIn("Web UI 时再附 Active Instance 根路径与三条 digest", self.handoff)
 
     def test_command_mentions_gate(self) -> None:
         self.assertIn("交接门禁含：命中交付类别门包时", self.skill)
+        self.assertIn("Web UI 另须三条 digest 进 driver", self.skill)
 
     def test_existing_gates_intact(self) -> None:
         for kept in (
@@ -71,6 +85,26 @@ class TestHandoffContractGate(unittest.TestCase):
             "**不要写 `tasks.md`。**",
         ):
             self.assertIn(kept, self.handoff)
+
+
+class TestApproveActiveInstanceGate(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.approve = (ROOT / "references" / "phase-approve.md").read_text(encoding="utf-8")
+        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    def test_structure_gate_web_ui(self) -> None:
+        self.assertIn("**Web UI 附加**", self.approve)
+        self.assertIn("medium / complex", self.approve)
+        self.assertIn("check_active_instance.py validate", self.approve)
+        self.assertIn("不得冻结", self.approve)
+
+    def test_review_boundary_requires_digests(self) -> None:
+        self.assertIn("审阅边界 MUST 附 Active Instance 根路径、三条 digest", self.approve)
+
+    def test_command_mentions_gate(self) -> None:
+        self.assertIn("Web UI 结构门另核 Active Instance freeze / digest", self.skill)
 
 
 if __name__ == "__main__":
