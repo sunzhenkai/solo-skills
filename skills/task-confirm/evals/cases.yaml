@@ -46,3 +46,17 @@ cases:
         - 收口可「按推荐」放行
       must_not:
         - 只列问题、不写推荐
+
+  - id: reviewer-binding-and-gate-packs
+    kind: core
+    judge: deterministic
+    description: 命中门包必载专家能力时必须结构化调用 role-based-reviewer；基准物禁外部产品；未覆盖即降级
+    given: 交付面命中交付类别门包（如 Web UI），进入 approve 或收尾验收
+    expect:
+      must:
+        - 按 references/gate-packs.md 选定交付类别门包
+        - 以 mode=review + 完整 roles= + 审阅边界结构化调用 role-based-reviewer，并先提供运行态证据
+        - 门包 / 运行态 / 判据未验证的条目按 quality-profile 定级登记为显式降级
+      must_not:
+        - 把外部产品或参考实现当作验收基准
+        - 未写明不可用原因就退普通 subagent

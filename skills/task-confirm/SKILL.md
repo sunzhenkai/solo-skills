@@ -80,13 +80,22 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 
 | 方式 | 何时 |
 |------|------|
-| role-based-reviewer | 复杂档 approve / 点名角色审 |
+| role-based-reviewer | 复杂档 approve / 交付面命中门包中的「必载专家能力」（[references/gate-packs.md](references/gate-packs.md)）/ 点名角色审 |
 | agent-roster | 点名名册或 Endpoint |
-| subagent | 默认回退；起不来换模型最多两次 |
+| subagent | 仅在无对应角色、无可用端点且 role-based-reviewer 不可用时；起不来换模型最多两次 |
+
+**执行器绑定**（防静默降级）：
+
+- 命中 role-based-reviewer 的环节 MUST 以结构化参数调用：`mode=review` + 完整 `roles=` + 审阅边界（完成判据、质量画像 / 角色底线、显式降级原文、审与不审、门包）；角色按调用方给定，不增删。
+- 降级必须显式：写明不可用的具体原因（无对应角色 / 端点不可达 / 工具缺失）并记入评审意见路径；**不得以图快为由退普通 subagent**——静默降级等同审阅未做。
+- 交付验收（收尾 rubric）SHOULD 异源：`model=` 与实现者不同，或 `endpoint=` 走名册；同源时报告开头写明。
+- role-based-reviewer 的 `[运行态]` 条目要求调用方**先给运行证据**（起服务 + 截图 / 录屏 / 断言输出）；未提供时该角色只能对这些条目给「⚠ 需运行态验证」提示——该提示即覆盖缺口，按下方「未覆盖即降级」处理。
 
 只看完成程度是否为高判定通过。只有程度无意见也无诚实结论：再派一次；第二次仍无 →「审阅没有结论」。
 
 **核对**（有 P0/P1 时）：写入判据或步骤后逐条标已消失/仍在/新增。全部消失且无新增 → 收敛。同一条连续两轮仍在，或单轮新增条数 ≥ 上轮已消失数 →「审阅不通过」。approve 闸口内只派一次审阅循环，禁止嵌套再开 approve。
+
+**未覆盖即降级**：门包条目、`[运行态]` 条目或判据的任何一项未被验证 / 未提供证据，等于生产性降级——按 [references/quality-profile.md](references/quality-profile.md) 定级并写入显式降级表：A 类走「降级未确认」退出点，B 类可经审阅记 `provisional`。「未测但看起来没问题」不构成通过，未登记不得放行。
 
 ## 退出点
 
@@ -94,6 +103,7 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 
 - **理解不够**：写不出可检查判据，或缺推荐默认，或步骤靠会改方案的猜测。
 - **审阅不通过** / **审阅派不出** / **审阅没有结论** / **评审者未定**。
+- **评审降级未记录**：本轮命中 role-based-reviewer（或门包要求的其它专家能力）却退了普通 subagent，且未写明不可用原因——按「审阅派不出」处理，不放行。
 - **降级未确认**：A 类仍 `pending`——仅用户点名接受该项、或明确说按降级表全部确认可放行；审阅收敛与单独的「继续」都不算确认。B 类可经审阅记 `provisional`，到用户在场点追认。
 - **阻塞解不开**。
 - **未点名的危险操作** / **线上动作** / **泄密**。
@@ -114,6 +124,7 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 ## 相关资产
 
 - 质量画像：[references/quality-profile.md](references/quality-profile.md)
+- 交付类别门包（**唯一真源**）：[references/gate-packs.md](references/gate-packs.md)——哪类交付用哪套门、必载专家能力、基准物；taskrail / taskflow / task-explore 只引用本表
 - 挂起五元组：[references/suspension.md](references/suspension.md)
 - **legacy（勿作进度真源）**：[references/legacy/state-machine.md](references/legacy/state-machine.md)、[references/legacy/state-file.md](references/legacy/state-file.md)、`scripts/goal_transition.py`——仅旧 goal 计数器可选；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
 
