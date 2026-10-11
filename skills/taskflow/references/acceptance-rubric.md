@@ -5,7 +5,10 @@
 ## 评分主体与顺序
 
 - 先交证据，再由对应岗位打分；实现者自评只作输入，不算通过线。
-- 功能闭环与画像一致性由 product 评；UI/UX 由 design 评；工程质量由 engineer 评。
+- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 task-confirm 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审）。退普通 subagent 须写明不可用原因，否则按 task-confirm 退出点「评审降级未记录」不放行。
+- 角色由交付类别门包（[../../task-confirm/references/gate-packs.md](../../task-confirm/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
+- 评分先套门包：**可自动化门**任一失败 → 对应维度不得 ≥2.5（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
+- 复杂档交付验收 SHOULD 异源（`model=` 与实现者不同，或 `endpoint=` 走名册）。
 - 三方结论不一致时保留各自意见，按影响面决定优先级，不取平均掩盖分歧。
 
 ## 五维评分
