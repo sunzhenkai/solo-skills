@@ -13,9 +13,15 @@ def read(rel: str) -> str:
     return (SKILL_ROOT / rel).read_text(encoding="utf-8")
 
 
+def skill_corpus() -> str:
+    """SKILL.md + references/*.md：瘦身后细则可在 references 中。"""
+    files = [SKILL_ROOT / "SKILL.md", *sorted((SKILL_ROOT / "references").glob("*.md"))]
+    return "\n".join(f.read_text(encoding="utf-8") for f in files)
+
+
 class FrontmatterContract(unittest.TestCase):
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus()
 
     def test_frontmatter_trio(self) -> None:
         self.assertRegex(
@@ -28,7 +34,7 @@ class InvariantContract(unittest.TestCase):
     """正文声明「最容易被绕过的五条」——文本契约逐条钉住。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus()
 
     def test_five_invariants_present(self) -> None:
         for needle in (
@@ -64,7 +70,7 @@ class InvariantContract(unittest.TestCase):
 class RolesReferenceContract(unittest.TestCase):
     def setUp(self) -> None:
         self.roles = read("references/roles.md")
-        self.skill = read("SKILL.md")
+        self.skill = skill_corpus()
 
     def test_five_roles_inlined_with_semantics(self) -> None:
         for line in (

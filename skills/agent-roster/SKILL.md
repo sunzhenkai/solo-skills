@@ -29,66 +29,15 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 ## 角色：点了名就用默认 Endpoint
 
-调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
-
-约定名字是 developer、planner、reviewer、code-reviewer、designer，一句话语义见 [references/roles.md](./references/roles.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。本 skill 引用的仓级文档（CONTEXT.md、docs/adr/）只在源仓存在，安装副本不随分发。
-
-```bash
-python3 <skill-dir>/scripts/resolve_role.py <role-id>
-```
-
-exit 1 是 `verdict: ask`，要问人，不是脚本故障。exit 2 才是对照表或参数坏了，先停下说明，不要当成 ask。
-
-- `verdict: use`：这个 Endpoint 就是使用者已经指定的唯一 Endpoint，走快速路径。解析时已经确认画像在、且最近一条探测状态可用，不要再因「画像不可用就回到完整路由」去枚举候选。`decision.md` 的指定来源写这个 Role，「为什么选它」写成「使用者把这个 Role 的默认 Endpoint 设成了它」。
-- `verdict: ask`：问这次用哪个 Endpoint，同一句里问要不要记成这个 Role 的默认。回答里的 Endpoint 用于这次，并走快速路径。回答明确同意记成默认时才 `--write`。只给出 Endpoint、沉默、追问或换话题，对照表保持原样，委派照样继续。
-- 调用方同时写了 Role 和 Endpoint：用写明的 Endpoint，不跑上面的脚本。
-
-模型不在对照表里。调用方没给 model 就省略，用该 Endpoint 自己的默认。
-
-```bash
-python3 <skill-dir>/scripts/resolve_role.py --write <role-id> <host>/<kind>
-```
-
-`--write` 只在明确同意之后执行，并且只接受名册里已有的 Endpoint。这次 Endpoint 来自 Role、委派发出后受派方没起来：问这次换谁，同一句问要不要改默认，不回到完整路由另选。
-
+点了 Role 且未写 Endpoint、或要按数据选人时，先读 [references/selection.md](references/selection.md)（角色默认 Endpoint、数据位置、路由规则）。
 
 ## 数据在哪
 
-本仓库只有机制，一条真实记录都没有：名册、案例、路由规则、运行痕迹一律不进本仓库。数据位置由 `~/.config/agent-roster/config.yaml` 的 `data_root` 指出（缺省时先问使用者，不要猜）。
-
-| 内容 | 位置 | 谁写 |
-| --- | --- | --- |
-| Roster（Endpoint 画像） | `<data_root>/agents/<host>/<kind>.md` | 客观段由 Probe 回填，Disposition 由人或 agent 维护 |
-| Routing Rule | `<data_root>/agents/routing.md` | Orchestrator 提案、使用者确认后写入，初始为空 |
-| Role 默认 Endpoint | `<data_root>/agents/roles.yaml` | 使用者明确同意后由 Orchestrator 写入 |
-| Trace（案例） | `<data_root>/agents/traces/<YYYYMMDD>-<slug>.md` | Orchestrator，仅在有教训时 |
-| Run（运行痕迹） | `~/.cache/agent-roster/runs/<run-id>/` | 委派时自动落盘，可随时删 |
-| Handoff（交接物） | 调用方在发起委派时指定的项目内路径 | 见「回收」 |
-| Pattern（通用规律） | 本仓库 `experience/patterns/`，**不随安装分发** | 只在源仓库维护 |
-| Example（优秀案例） | 本仓库 `examples/`，随安装分发 | 只在源仓库维护，没有真实案例就保持为空 |
-
-运行位置只有 `SKILL.md`、`references/`、`scripts/`、`examples/` 的字节副本，写进去的东西会在下次同步时消失；`experience/`、`evals/`、`patches/` 连复制都不会发生。所以一条规律要真正生效，必须固化进本文件正文或 `routing.md`——`patterns/` 只是素材，`evals/` 只在源仓库改正文时用来验收。
-
-格式见 [references/endpoint-schema.md](./references/endpoint-schema.md) 与 [references/trace-format.md](./references/trace-format.md)。
-
-references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`，解析 Role 时读 `roles.md`。
+名册、画像、Trace、Run 目录的位置见 [references/selection.md](references/selection.md)。
 
 ## 路由：选谁
 
-只有需要自行选人时才执行以下完整路由。点了 Role 时不是自行选人：`verdict: use` 走快速路径，`verdict: ask` 停下来问这次用谁。
-
-1. 读 `routing.md`。为空就跳过——规则只能从累积案例中固化，凭想象写满会让它退化成硬编码分支。
-2. 读候选 Endpoint 的画像，只读与当前任务相关的那几个。
-3. 检索相关 Trace（按 Agent Kind 与任务关键词），重点看失败与返工的那些。
-4. **在执行之前**先建 Run 目录，`<run-id>` 取 `<YYYYMMDD-HHMMSS>-<slug>`，`<slug>` 用几个词概括任务：
-
-   ```bash
-   run_id="$(date +%Y%m%d-%H%M%S)-<slug>"
-   mkdir -p ~/.cache/agent-roster/runs/"$run_id"
-   ```
-
-   再把决策写进该目录下的 `decision.md`，四件事缺一不可：**候选有谁**、**选了谁**、**为什么选它**、**依据是什么**（读过哪些画像与哪几条 Trace）。「为什么选它」将来要原样搬进 Trace 再固化成规则，所以要写成脱离本次任务也成立的一句话——「它在长上下文重构上翻车少」可以固化，「这次是重构」不行。事后补写的理由会让后续学习学到编造的故事，等于没写。
-5. 证据不足或没有合适候选时直接问使用者。名册里没有的 Endpoint 就是不存在，不要因为某个 CLI 出名就假设它可用。
+完整路由（读 routing.md、画像、Trace，选谁与为什么）见 [references/selection.md](references/selection.md)。
 
 ## 委派：怎么派
 
@@ -131,51 +80,15 @@ references 按当前步骤按需加载，不要预先全读：委派前读 `dele
 
 ## 留痕：什么时候写 Trace
 
-只在以下情形写，例行成功不写——否则有用的教训会被「派给 X，成功」淹没：
-
-- 委派失败、超时，或结果需要返工
-- 使用者纠正了选人决定
-- 编排者自己绕过了流程：自任受派方，或越过门禁的等待继续推进
-- 结果明显超出预期
-- 用了新的委派方式或新的 Endpoint
-
-字段见 [references/trace-format.md](./references/trace-format.md)。其中「为什么选它」是唯一能在将来固化成 Routing Rule 的东西，必须从 `decision.md` 原样搬过来，不要重写。
+第 5 步写 Trace 的条件与格式见 [references/maintenance.md](references/maintenance.md)。
 
 ## 固化：什么时候把案例变成规则
 
-攒着不用的 Trace 只是历史。固化（Promotion）是唯一能让选人变准的动作，而它不会自动发生——必须有人在固定时刻检查。
-
-**时机**：写完一条 Trace 之后立即检查，其他时候不查。尤其不要在路由途中插入这个判断，那时候使用者在等结果。
-
-检查用 `scripts/promotion_check.py`（同一句「为什么选它」跨 Trace 精确计数，达门槛打印提案草稿）；脚本只负责把「没人去数」补上，提案与写入仍走下面的确认门禁。
-
-**门槛**：同一个「为什么选它」的理由，在**不同任务**的 Trace 里复现两次以上。不是「同类任务攒够几条」——Trace 只在有教训时才写，按任务分类计数永远凑不齐。这个 2 和 `experience/patterns/` 的准入门槛是同一个数，不用记两套。
-
-**动作**：攒够了就停下来向使用者提案，说清是哪几条 Trace、复现的是哪句理由、建议写成什么规则。使用者确认后按去向分两条路：
-
-- 规则带 Host 名、只对当前使用者成立 → 直接写进 `routing.md`。
-- 结论已脱敏、换台机器换个项目仍然成立 → 走 `$skill-upgrader` 的 `patches/` 审计，进本文件正文或 `patterns/`。
-
-分野的理由（源仓 ADR 0003）：带 Host 名的规则随名册走私有数据，脱敏结论才进公开仓。攒够了却不提案，和凭空编规则一样有害：前者让系统永远停在现读现判，后者让它学到假的东西。
+第 6 步固化门槛与提案流程见 [references/maintenance.md](references/maintenance.md)。
 
 ## 名册维护
 
-```bash
-python3 <skill-dir>/scripts/probe_endpoints.py            # L1：装没装、什么版本
-python3 <skill-dir>/scripts/probe_endpoints.py --level 2  # L2：ACP 适配器能不能握手
-python3 <skill-dir>/scripts/probe_endpoints.py --render   # 输出可粘贴的 Markdown 状态块
-python3 <skill-dir>/scripts/probe_endpoints.py --write    # 直接回填画像「探测状态」段（L3 记录永不被挤掉）
-```
-
-探测分三层，失败时要能区分三种完全不同的处置：
-
-1. **L1 存在性** — CLI 在不在 PATH、什么版本。零成本，随时可跑。
-2. **L2 握手** — 起 ACP 适配器走完 `initialize` 就断开。零 token，能确认适配器真的拉得起来。
-3. **L3 冒烟** — 真发一句 prompt，确认登录态、额度与模型可用。花钱花时间，手动触发，脚本不做。
-
-探测只回填 Endpoint 文件的客观状态段，**Disposition 归人维护**，格式见 [references/endpoint-schema.md](./references/endpoint-schema.md)。
-
-第一版只探测本机。远端 Host 的 Endpoint 可以手工登记，但跨机执行不在范围内。
+登记、探测、更新名册时读 [references/maintenance.md](references/maintenance.md)。
 
 ## 不变量
 
