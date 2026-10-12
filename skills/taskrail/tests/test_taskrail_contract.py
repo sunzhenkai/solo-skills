@@ -43,7 +43,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("criterion:", self.contract)
 
     def test_depends_on_confirm_explore_taskflow(self) -> None:
-        self.assertIn("task-confirm", self.skill)
+        self.assertIn("references/confirm-protocol.md", self.skill)
         self.assertIn("task-explore", self.skill)
         self.assertIn("taskflow", self.skill)
 

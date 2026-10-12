@@ -40,7 +40,7 @@ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
 
 它核对 `tasks/ongoing/<slug>/TASK.md`：`status: handed-off`、`phase` ∈ propose / apply / archive / done，且「## 交接」节带「交付类别」「适用门包」（Web UI 另带 Active Instance 根路径与三条 digest）。exit 非 0 → **拒绝建 driver**，回复用户改走 `taskrail`（approve → handoff），不自行补写 TASK.md 绕过。
 
-- **逃生口**：仅当用户明确说「不走 taskrail 直接建 driver」时，把 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 写入该任务 TASK.md 元信息再跑（脚本以 BYPASS 放行并警告）；无 TASK.md 时先建最小 TASK.md 承载这一行。agent 不得自写或推断该确认；BYPASS 下门包视为未覆盖，按 task-confirm「未覆盖即降级」登记。
+- **逃生口**：仅当用户明确说「不走 taskrail 直接建 driver」时，把 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 写入该任务 TASK.md 元信息再跑（脚本以 BYPASS 放行并警告）；无 TASK.md 时先建最小 TASK.md 承载这一行。agent 不得自写或推断该确认；BYPASS 下门包视为未覆盖，按 taskrail 确认协议「未覆盖即降级」登记。
 - **派给编码 agent 的提示词**：必须由交接载荷生成——判据原文、交付类别、适用门包条目、证据要求、契约指针（Web UI 含三条 digest 与 `ui_evidence_check` manifest / report 要求）逐项带上；禁止手写省略 UI / 验收的自由提示词。缺载荷 = 入口门不过。
 
 ## 脚手架
@@ -154,8 +154,8 @@ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
 ### 质量画像与降级确认
 
 - 质量画像与显式降级原文快照由上游任务描述带入 driver proposal，实施阶段不改写、不删减，只按下面规则补新发现的降级。
-- 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../task-confirm/references/quality-profile.md](../task-confirm/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
-- 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../task-confirm/SKILL.md](../task-confirm/SKILL.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
+- 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../taskrail/references/quality-profile.md](../taskrail/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
+- 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../taskrail/references/confirm-protocol.md](../taskrail/references/confirm-protocol.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
 - driver 的最终验收必须按 [references/acceptance-rubric.md](references/acceptance-rubric.md) 给出五维分数与证据，并满足五维均 ≥2、UI/UX 均值 ≥2.5；缺分不得勾验收标准 checkbox。
 
 ### 收尾机械校核
@@ -175,7 +175,7 @@ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
 
 模板之外的增量：不因一项卡住就整轮停下；不把未完成项勾成完成；不用「某 change 还剩 3 项」这类按 change 汇总的数量代替逐条说明。
 
-「需要用户决策」结束一轮时，按 [../task-confirm/references/suspension.md](../task-confirm/references/suspension.md) 的挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）：依赖该决策的 checkbox 停，不依赖的继续按「一轮结束」推进，不整轮停摆。用户输入到达先比对授权形状——逐字点名或意图命中（复述生效）都算，命中即恢复对应条目，未命中重申仍停，不写成选项列表。
+「需要用户决策」结束一轮时，按 [../taskrail/references/suspension.md](../taskrail/references/suspension.md) 的挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）：依赖该决策的 checkbox 停，不依赖的继续按「一轮结束」推进，不整轮停摆。用户输入到达先比对授权形状——逐字点名或意图命中（复述生效）都算，命中即恢复对应条目，未命中重申仍停，不写成选项列表。
 
 ### 并行执行
 
@@ -211,11 +211,11 @@ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
 
 默认正常交付：按 [references/implementer-isolation.md](references/implementer-isolation.md)，实现者必须拿到质量画像或保留语义的子范围裁剪、相关验收要求与运行约束；完整 rubric 和跨范围审阅意见仍由审阅者持有。普通任务不得盲派。
 
-交付面命中 [../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md) 的类别时，实现者输入除上述外 MUST 再携带三件，缺任一件不得派发：
+交付面命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 的类别时，实现者输入除上述外 MUST 再携带三件，缺任一件不得派发：
 
 - **契约文件**：共享面（接口、类型、primitive、目录与命名、样板切片）已冻结的产物指针；并行派发前必须已存在，冻结后漂移走「并行执行」的共享面广播纪律。Web UI：指针 = Active Instance 根路径 + contract / binding / projection 三条 digest（与 handoff 载荷一致）。
 - **门包**：适用交付类别的门包条目（可自动化门 / 运行态证据 / 主观项）+ 本切片负责产出的证据清单。
-- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 task-confirm「未覆盖即降级」登记。Web UI：优先 `ui-template-apply` Phase 8 current-build 证据与 Gallery。
+- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 taskrail 确认协议「未覆盖即降级」登记。Web UI：优先 `ui-template-apply` Phase 8 current-build 证据与 Gallery。
 
 ### Web UI 实现委托
 

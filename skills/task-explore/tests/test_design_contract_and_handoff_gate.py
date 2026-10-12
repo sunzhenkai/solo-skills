@@ -21,7 +21,7 @@ class TestDesignContractArtifact(unittest.TestCase):
         self.assertIn("缺任一项按缺口停下，不写空心方案", self.design)
 
     def test_gate_references_gate_packs(self) -> None:
-        self.assertIn("../../task-confirm/references/gate-packs.md", self.design)
+        self.assertIn("../../taskrail/references/gate-packs.md", self.design)
 
     def test_output_table_has_contract_row(self) -> None:
         self.assertIn("| `design/contract.md` |", self.design)

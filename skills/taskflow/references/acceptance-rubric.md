@@ -5,8 +5,8 @@
 ## 评分主体与顺序
 
 - 先交证据，再由对应岗位打分；实现者自评只作输入，不算通过线。
-- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 task-confirm 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审）。退普通 subagent 须写明不可用原因，否则按 task-confirm 退出点「评审降级未记录」不放行。
-- 角色由交付类别门包（[../../task-confirm/references/gate-packs.md](../../task-confirm/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
+- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 taskrail 确认协议 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审）。退普通 subagent 须写明不可用原因，否则按 taskrail 确认协议 退出点「评审降级未记录」不放行。
+- 角色由交付类别门包（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
 - 评分先套门包：**可自动化门**任一失败 → 对应维度不得 ≥2.5（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
 - Web UI：可自动化门对齐 Active Instance validate / `scan_design_constraints`（或等价）与门包 token/无障碍/状态/结构断言；运行态优先 `ui-template-apply` Phase 8 current-build 证据；主观项（视觉层级等）MUST 指到 Gallery 或 `core/tokens.yaml` 可指认件，否则只记 Suggestion。
 - 复杂档交付验收 SHOULD 异源（`model=` 与实现者不同，或 `endpoint=` 走名册）。
@@ -41,7 +41,7 @@ UI/UX 得分是六个子项的平均分，任一子项为 0 则不通过，即�
 
 交付类别为 Web UI 时，UI/UX 维度评分前必须已有（任一缺失 UI/UX 记 0，不通过）：
 
-- 最新代码上的 `task-confirm/scripts/ui_evidence_check.py` `report.json`，exit 0（多视口截图、axe WCAG 2.2 AA、焦点走查、四态）；
+- 最新代码上的 `taskrail/scripts/ui_evidence_check.py` `report.json`，exit 0（多视口截图、axe WCAG 2.2 AA、焦点走查、四态）；
 - design 评审文件：`roles: design`、reviewer ≠ implementer、指向该 report，`--validate-review` exit 0。
 
 六子项打分由评审文件给出并引用 report 中的截图 / 违规条目；实现者自评与「源码已修订」不计分。

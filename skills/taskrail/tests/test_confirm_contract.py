@@ -1,4 +1,4 @@
-"""task-confirm 契约：双模式确认、审阅与退出点。"""
+"""确认协议（taskrail/references/confirm-protocol.md，原 task-confirm）契约：双模式确认、审阅与退出点。"""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ ROOT = Path(__file__).resolve().parents[1]
 class ContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
         cls.profile = (ROOT / "references" / "quality-profile.md").read_text(
             encoding="utf-8"
         )
 
     def test_frontmatter(self) -> None:
-        self.assertIn("id: task-confirm", self.skill)
-        self.assertIn("name: task-confirm", self.skill)
-        self.assertEqual(ROOT.name, "task-confirm")
+        self.assertEqual(ROOT.name, "taskrail")
+        self.assertTrue(self.skill.startswith("# 确认协议（taskrail）"))
+        self.assertFalse((ROOT.parent / "task-confirm").exists())
 
     def test_dual_mode(self) -> None:
         self.assertIn("| human |", self.skill)

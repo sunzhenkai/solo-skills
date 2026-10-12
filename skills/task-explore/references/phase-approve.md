@@ -26,13 +26,13 @@
 
 ## 2. 评审门
 
-委托 `task-confirm`（闸口名 `approve`）。本闸口**只派一次**审阅循环，禁止嵌套再开 approve。
+委托 taskrail 确认协议（闸口名 `approve`）。本闸口**只派一次**审阅循环，禁止嵌套再开 approve。
 
 - **human**：可列选项；需要名册评审时按下方「名册评审」执行，或用户/同事已评审也算完成（结论写入 `approve/` 或 `design/review-*.md`）。
-- **goal**：推荐默认 = design 里已写出的默认（含「冻结并允许 handoff」）；按 task-confirm 审阅；收敛即视为确认。无设计稿且无推荐方案时不编造，停下。
+- **goal**：推荐默认 = design 里已写出的默认（含「冻结并允许 handoff」）；按 taskrail 确认协议 审阅；收敛即视为确认。无设计稿且无推荐方案时不编造，停下。
 - **Web UI**：审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针；必载 `roles=design`（见 gate-packs）。
 
-### 名册评审（可选增强；goal 默认走 task-confirm 派审，不强制名册）
+### 名册评审（可选增强；goal 默认走 taskrail 确认协议 派审，不强制名册）
 
 用户点名要名册评审，或 human 选择名册时：
 
@@ -74,4 +74,4 @@
 
 ## 驳回
 
-评审不通过或结构门失败：`phase` 回 `design`（或 wizard），连败 +1；同闸口连败 2 次交 task-confirm / taskrail 升级 human 或 `blocked`。
+评审不通过或结构门失败：`phase` 回 `design`（或 wizard），连败 +1；同闸口连败 2 次交 taskrail 确认协议 / taskrail 升级 human 或 `blocked`。

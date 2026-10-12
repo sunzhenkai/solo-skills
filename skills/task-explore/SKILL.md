@@ -21,11 +21,11 @@ description: "探索台账与命令能力：在 tasks/ 维护 ongoing/archive，
 
 ## Goal 里的确认
 
-处在 goal 里时（判据以 **task-confirm** 的「触发」节为单一真源，本 skill 不另写一份）,下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 task-confirm 的「审阅」：派审规则、核对循环、收敛与停止条件以 task-confirm 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
+处在 goal 里时（判据以 taskrail 确认协议（[../taskrail/references/confirm-protocol.md](../taskrail/references/confirm-protocol.md)）的「触发」节为单一真源，本 skill 不另写一份）,下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 taskrail 确认协议 的「审阅」：派审规则、核对循环、收敛与停止条件以 taskrail 确认协议 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
 
 推荐默认是该处已经写出的默认建议。没有写出默认时，取能让完成判据成立、且不覆盖已有目录、不泄密、不做未点名危险操作的那一条，只审这一条。
 
-审阅收敛则采纳推荐默认并同一轮继续。冻结未决并交接时，审阅收敛即「按推荐冻结并交接」：本轮 `approve` 完立刻 `handoff`。审阅不通过、派不出或没有结论：停，不列选项。task-confirm 读不到：停并给出安装选项，不改回问用户。
+审阅收敛则采纳推荐默认并同一轮继续。冻结未决并交接时，审阅收敛即「按推荐冻结并交接」：本轮 `approve` 完立刻 `handoff`。审阅不通过、派不出或没有结论：停，不列选项。taskrail 确认协议 读不到：停并给出安装选项，不改回问用户。
 
 不在 goal 里时，下面的确认规则不变。目标已存在则仍禁止覆盖，不交给审阅放行。
 
@@ -164,11 +164,11 @@ tasks/
 
 ## `design`
 
-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 task-confirm）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 task-confirm 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
 
 ## `approve`
 
-**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/phase-approve.md](references/phase-approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 task-confirm 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
+**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/phase-approve.md](references/phase-approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 taskrail 确认协议 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
 
 同一任务可多次 `approve`：新决策追加编号写入决策节，被取代的旧决策标注「被 D-n 取代」。父任务的 `approve` 仅限范围、非目标与拆分原则，具体方案属各子任务。
 
@@ -221,7 +221,7 @@ tasks/
 
 ## `expand` / `split`
 
-从当前绑定的探索任务拆出子任务，承接一个可独立推进的方向。`split` 是 `expand` 的别名。子任务是完整探索任务，只是目录嵌套、`TASK.md` 带 `parent:`。闸口「expand 创建」走 task-confirm。
+从当前绑定的探索任务拆出子任务，承接一个可独立推进的方向。`split` 是 `expand` 的别名。子任务是完整探索任务，只是目录嵌套、`TASK.md` 带 `parent:`。闸口「expand 创建」走 taskrail 确认协议。
 
 触发强化：`design` 发现 ≥2 独立方向，或 `approve` 驳回「范围过大」时，**必须评估一次**（提示并等人/goal 确认），不静默跳过。
 

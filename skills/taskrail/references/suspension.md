@@ -2,7 +2,7 @@
 
 凡「需要用户产生的输入才能继续」的点——退出点已列的授权、复杂档降级确认、
 危险操作点名、详细设计裁决——停下时按本协议呈现与等待。本文件是族内通用
-定义：`task-confirm` 直接使用；taskflow、taskrail 等引用本文件，
+定义：确认协议（[confirm-protocol.md](confirm-protocol.md)）直接使用；taskflow、taskrail 等引用本文件，
 不各自发明「停下」形态。
 
 ## 挂起五元组

@@ -8,7 +8,7 @@ description: "任务轨道：唯一编排入口。绑定 tasks/ 台账，按 wiz
 
 面向用户默认简体中文；命令名、路径、状态值与既成术语保持原文。
 
-把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认委托 `task-confirm`；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
+把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)（原 task-confirm，已并入）；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
 
 契约真源：[references/contract.md](references/contract.md)。
 
@@ -29,7 +29,6 @@ taskrail list
 
 执行前确认可读；缺任一项停下报告安装选项：
 
-- `task-confirm`
 - `task-explore`（simple/medium 的 explore 仅为 grill；复杂档完整 explore；medium 可轻 design）
 - `taskflow`（凡经 taskrail 的交付均必需，含 simple；入口门 `taskflow/scripts/check_handoff.py`）
 - `grilling`（有任务目录时的拷问）
@@ -81,7 +80,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 
 ### 复杂档自动推进
 
-`confirm_mode: goal` 且 `tier: complex` 时：闸口一律走 task-confirm 审阅，收敛后同轮续下一阶段；不列选项。证据根落仓外并写入 `evidence_root`。apply 后可选质量环（角色化评审 / 增量复验）沿用 taskflow references 中的交付质量约定，不另开编排入口。
+`confirm_mode: goal` 且 `tier: complex` 时：闸口一律走确认协议审阅，收敛后同轮续下一阶段；不列选项。证据根落仓外并写入 `evidence_root`。apply 后可选质量环（角色化评审 / 增量复验）沿用 taskflow references 中的交付质量约定，不另开编排入口。
 
 ## 完成门
 
@@ -91,7 +90,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 2. 交付标准全过（方案写「无」则只看判据）。
 3. 相关 checkbox 全勾（含 simple 单切片）。
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
-5. 命中交付类别门包时（[../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记。
+5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
 7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。另须（全档位，含 simple）：最新代码上 `ui_evidence_check.py` 的 `report.json` exit 0（`--validate-report` 复核），且 design 评审文件经 `--validate-review` 通过（`roles: design`、reviewer ≠ implementer）。代表页源码修订记录只是过程记录，不单独构成证据；digest 与 Gallery 只证明系统未漂。
 
@@ -102,7 +101,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 ## 硬边界
 
 - 不自动 commit / push / 部署 / 改线上数据。
-- 危险与线上退出点以 `task-confirm` 为准。
-- 不复制 task-confirm 的审阅规则；不复制 taskflow 的 Driver 协议。
+- 危险与线上退出点以确认协议为准。
+- 不在正文复制确认协议的审阅规则；不复制 taskflow 的 Driver 协议。
 - 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
 - Worker 派出为推荐选项，非强制；无宿主 subagent 时主会话自做，不因此退出轨道。

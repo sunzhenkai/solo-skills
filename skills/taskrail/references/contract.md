@@ -1,6 +1,6 @@
 # taskrail 契约（阶段 / 载荷 / 闸口 / 目录）
 
-本文件是 task* 族重组后的**唯一真源**。`taskrail` / `task-confirm` / `task-explore` / `taskflow` 与本文有出入时，以本文为准；各 skill 正文只写执行细则，不另造阶段枚举。
+本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准；各 skill 正文只写执行细则，不另造阶段枚举。
 
 ## 流程
 
@@ -121,17 +121,17 @@ updated: YYYY-MM-DD
 | design | （跳过） | **推荐** worker |
 | apply | **推荐** worker | **推荐** worker（并行与实现者输入见 taskflow） |
 
-闸口（`task-confirm`）、危险退出、面向用户的提问与选项：**永不**派出。
+闸口（确认协议）、危险退出、面向用户的提问与选项：**永不**派出。
 
 派出时交代单位、输入路径、写入范围（apply 含 change 范围内业务代码）；apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。Worker 回 **Digest**（结论 / 落盘路径 / 未决）；主会话只收 Digest，不回灌工具轨迹；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
 
 ## 确认闸口（封闭）
 
-一律委托 `task-confirm`，不在各 skill 复制第二份规则：
+一律按确认协议（[confirm-protocol.md](confirm-protocol.md)），不在各 skill 复制第二份规则：
 
 | 闸口 | 说明 |
 |------|------|
-| wizard 定稿 | 方案落盘前；human 含强制走查（判据可检查 / 流程总览可达判据 / 交付标准无漏越界，细则见 task-confirm），可点名派审 |
+| wizard 定稿 | 方案落盘前；human 含强制走查（判据可检查 / 流程总览可达判据 / 交付标准无漏越界，细则见确认协议），可点名派审 |
 | explore 关键 | 探索方向/范围收敛（含仅 grill） |
 | design 定稿 | 方案稿可审前 |
 | approve | 结构门 + 评审门 + 冻结（必经；简单档可轻量）；human 结构门含流程总览对齐核对，可点名名册评审 |
@@ -148,7 +148,7 @@ updated: YYYY-MM-DD
 | Skill | 职责 |
 |-------|------|
 | `taskrail` | 唯一编排入口；绑定任务；推进阶段；完成门 |
-| `task-confirm` | human/goal 确认与审阅；退出点；质量画像字段规范 |
+| `taskrail` 确认协议（`references/confirm-protocol.md`） | human/goal 确认与审阅；退出点；质量画像字段规范 |
 | `task-explore` | 台账与 explore/design/expand/approve/handoff/archive 等**命令** |
 | `taskflow` | driver + propose/apply/archive；交付 checkbox |
 

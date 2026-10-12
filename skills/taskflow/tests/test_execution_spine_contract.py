@@ -15,7 +15,7 @@ class TestImplementerInputCarriesSpine(unittest.TestCase):
         cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
 
     def test_gate_pack_reference(self) -> None:
-        self.assertIn("../task-confirm/references/gate-packs.md", self.text)
+        self.assertIn("../taskrail/references/gate-packs.md", self.text)
 
     def test_three_items_required(self) -> None:
         self.assertIn("MUST 再携带三件，缺任一件不得派发", self.text)
@@ -98,7 +98,7 @@ class TestQualityLoopSpine(unittest.TestCase):
 
     def test_flagship_slice(self) -> None:
         self.assertIn("**旗舰切片**", self.loop)
-        self.assertIn("../../task-confirm/references/gate-packs.md", self.loop)
+        self.assertIn("../../taskrail/references/gate-packs.md", self.loop)
         self.assertIn("Phase 8 + Gallery", self.loop)
 
     def test_gate_pack_overlay(self) -> None:
@@ -128,7 +128,7 @@ class TestRubricExecutorBinding(unittest.TestCase):
         self.assertIn("评审降级未记录", self.rubric)
 
     def test_roles_from_gate_packs(self) -> None:
-        self.assertIn("../../task-confirm/references/gate-packs.md", self.rubric)
+        self.assertIn("../../taskrail/references/gate-packs.md", self.rubric)
         self.assertIn("不得少于该表「必载评审」", self.rubric)
 
     def test_gate_failure_caps_score(self) -> None:

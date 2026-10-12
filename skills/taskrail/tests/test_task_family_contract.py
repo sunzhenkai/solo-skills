@@ -9,7 +9,6 @@ from pathlib import Path
 SKILLS_ROOT = Path(__file__).resolve().parents[2]
 TASK_SKILLS = (
     "taskrail",
-    "task-confirm",
     "task-explore",
     "taskflow",
 )
@@ -37,8 +36,8 @@ class TestPayloadOwners(unittest.TestCase):
         self.assertIn("## 完成判据", read("taskrail", "references/phase-wizard.md"))
 
     def test_confirm_owns_profile(self) -> None:
-        self.assertIn("质量画像", read("task-confirm", "SKILL.md"))
-        self.assertIn("角色底线", read("task-confirm", "references/quality-profile.md"))
+        self.assertIn("质量画像", read("taskrail", "references/confirm-protocol.md"))
+        self.assertIn("角色底线", read("taskrail", "references/quality-profile.md"))
 
     def test_no_stale_wizard_profile_attribution(self) -> None:
         stale = ("由 task-wizard 复杂档产出", "上游 task-wizard 复杂档")
@@ -49,7 +48,7 @@ class TestPayloadOwners(unittest.TestCase):
 
 class TestFailureCountingSingleSource(unittest.TestCase):
     def test_confirm_defines_thresholds(self) -> None:
-        confirm = read("task-confirm", "SKILL.md")
+        confirm = read("taskrail", "references/confirm-protocol.md")
         self.assertIn("同一验证连败两次", confirm)
         self.assertIn("累计假设达 3", confirm)
 
@@ -98,9 +97,9 @@ class TestFamilyComplete(unittest.TestCase):
 
     def test_spine_and_confirm(self) -> None:
         self.assertIn("唯一编排入口", read("taskrail", "SKILL.md"))
-        self.assertIn("| human |", read("task-confirm", "SKILL.md"))
+        self.assertIn("| human |", read("taskrail", "references/confirm-protocol.md"))
         self.assertTrue(
-            (SKILLS_ROOT / "task-confirm" / "references" / "suspension.md").is_file()
+            (SKILLS_ROOT / "taskrail" / "references" / "suspension.md").is_file()
         )
 
 

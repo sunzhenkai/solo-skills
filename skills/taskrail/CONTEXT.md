@@ -1,11 +1,11 @@
 # Taskrail
 
-任务轨道：绑定 tasks/ 台账，按阶段推进任务。wizard 阶段产出步骤级方案；确认委托 task-confirm；探索/审批委托 task-explore；交付委托 taskflow。
+任务轨道：绑定 tasks/ 台账，按阶段推进任务。wizard 阶段产出步骤级方案；确认按 references/confirm-protocol.md；探索/审批委托 task-explore；交付委托 taskflow。
 
 ## Language
 
 **任务方案**:
-写给人或下游执行方的步骤级纲要。wizard 阶段产出后经确认闸口继续；处在 goal 里时由 task-confirm 接管确认与审阅。
+写给人或下游执行方的步骤级纲要。wizard 阶段产出后经确认闸口继续；处在 goal 里时由确认协议接管确认与审阅。
 _Avoid_: Goal 方案, Plan, objective
 
 **完成判据**:
@@ -35,3 +35,29 @@ _Avoid_: 参考, 参考步骤, 建议, 参考意见
 **闭门造车**:
 复杂档里会改步骤的做法，定稿前没有尝试外部参照。
 _Avoid_: 没调研, 调研不足
+
+## Language（确认协议，原 task-confirm）
+
+**完成判据**:
+一条可检查的话，用来判断任务是否做完。
+_Avoid_: 目标, objective, 交付标准
+
+**交付标准**:
+完成判据之外、本任务应有的交付面要求，每条可检查。
+_Avoid_: 完成判据, 详细设计, 质量目标
+
+**审阅者**:
+每次审阅给出完成程度与 P0/P1/P2：role-based-reviewer、agent-roster、subagent 三选一。
+_Avoid_: 审计者
+
+**完成程度**:
+高 / 中 / 低；评审通过只看是否为高。
+_Avoid_: 复杂度, 方案置信度（旧名）
+
+**退出点**:
+必须停下来、把决定交回人的条件。
+_Avoid_: 暂停, 阻塞点
+
+**授权**:
+用户明确接受某条退出点已点名的动作。单独「继续」不算。
+_Avoid_: 点头, 路由确认

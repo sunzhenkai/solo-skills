@@ -7,7 +7,7 @@
 #   - ui-template-design / ui-template-apply / ui-template-author
 #       来自 sunzhenkai/ui-templates-skill（Web UI Active Instance / 实现 / 可选 package）
 #       frontend-design：不单独安装，随 ui-template-apply 以 vendor 形式提供（references/vendor/frontend-design）
-#   - playwright + axe-core（task-confirm/scripts/ui_evidence_check.py 的运行时，非 skill）：
+#   - playwright + axe-core（taskrail/scripts/ui_evidence_check.py 的运行时，非 skill）：
 #       pip install playwright && playwright install chromium；在交付仓 npm i -D axe-core
 #   - acpx（二进制，非 skill）                        agent-roster 的委派执行，https://acpx.sh
 #

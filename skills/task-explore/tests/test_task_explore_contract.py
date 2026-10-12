@@ -337,7 +337,7 @@ class ContractTest(unittest.TestCase):
 
     def test_goal_confirmations_go_to_review(self) -> None:
         section = self._section(self.skill, "## Goal 里的确认")
-        self.assertIn("走 task-confirm 的「审阅」", section)
+        self.assertIn("走 taskrail 确认协议 的「审阅」", section)
         self.assertIn("不列选项", section)
         self.assertIn("不在 goal 里时，下面的确认规则不变", section)
         self.assertIn("不交给审阅放行", section)

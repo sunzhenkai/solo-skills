@@ -8,8 +8,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple/medium 的 explore 仅为 grill；凡经本入口均 handoff+OpenSpec（simple 单切片）；human/goal 确认；`tasks/` 可恢复 |
-| `task-confirm` | human/goal 确认与审阅协议（闸口放行、派审、退出点；质量画像；挂起五元组） |
+| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple/medium 的 explore 仅为 grill；凡经本入口均 handoff+OpenSpec（simple 单切片）；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
 | `task-explore` | 探索台账与命令能力（explore/design/approve/expand/handoff 等命令；`TASK.md.phase` 只许契约枚举） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |

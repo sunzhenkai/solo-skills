@@ -1,14 +1,8 @@
----
-id: task-confirm
-name: task-confirm
-description: "确认与审阅协议：human 模式列选项（含推荐）等人确认；goal 模式推荐默认→派审→收敛即放行。不编排档位、不执行步骤。在消息含 /goal、被 taskrail/task-explore 以 goal 模式委派、或任一确认闸口需要本协议时使用。只要步骤级方案给人看用 taskrail wizard；不要用本 skill 代替编排。"
----
+# 确认协议（taskrail）
 
-# task-confirm：确认与审阅
+写给处在确认闸口的执行者。本协议（原 task-confirm skill，已并入 taskrail）**只**回答「是否放行 / 如何改后放行」；阶段推进与完成门归 `taskrail`。
 
-写给处在确认闸口的执行者。本协议**只**回答「是否放行 / 如何改后放行」；阶段推进与完成门归 `taskrail`。
-
-契约闸口表见 [../taskrail/references/contract.md](../taskrail/references/contract.md)。质量画像字段见 [references/quality-profile.md](references/quality-profile.md)。
+契约闸口表见 [contract.md](contract.md)。质量画像字段见 [quality-profile.md](quality-profile.md)。
 
 ## 触发（「在 goal 里」的单一真源）
 
@@ -80,7 +74,7 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 
 | 方式 | 何时 |
 |------|------|
-| role-based-reviewer | 复杂档 approve / 交付面命中门包中的「必载专家能力」（[references/gate-packs.md](references/gate-packs.md)）/ 点名角色审 |
+| role-based-reviewer | 复杂档 approve / 交付面命中门包中的「必载专家能力」（[gate-packs.md](gate-packs.md)）/ 点名角色审 |
 | agent-roster | 点名名册或 Endpoint |
 | subagent | 仅在无对应角色、无可用端点且 role-based-reviewer 不可用时；起不来换模型最多两次 |
 
@@ -95,7 +89,7 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 
 **核对**（有 P0/P1 时）：写入判据或步骤后逐条标已消失/仍在/新增。全部消失且无新增 → 收敛。同一条连续两轮仍在，或单轮新增条数 ≥ 上轮已消失数 →「审阅不通过」。approve 闸口内只派一次审阅循环，禁止嵌套再开 approve。
 
-**未覆盖即降级**：门包条目、`[运行态]` 条目或判据的任何一项未被验证 / 未提供证据，等于生产性降级——按 [references/quality-profile.md](references/quality-profile.md) 定级并写入显式降级表：A 类走「降级未确认」退出点，B 类可经审阅记 `provisional`。「未测但看起来没问题」不构成通过，未登记不得放行。
+**未覆盖即降级**：门包条目、`[运行态]` 条目或判据的任何一项未被验证 / 未提供证据，等于生产性降级——按 [quality-profile.md](quality-profile.md) 定级并写入显式降级表：A 类走「降级未确认」退出点，B 类可经审阅记 `provisional`。「未测但看起来没问题」不构成通过，未登记不得放行。
 
 ## 退出点
 
@@ -123,27 +117,6 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 
 ## 相关资产
 
-- 质量画像：[references/quality-profile.md](references/quality-profile.md)
-- 交付类别门包（**唯一真源**）：[references/gate-packs.md](references/gate-packs.md)——哪类交付用哪套门、必载专家能力、基准物；taskrail / taskflow / task-explore 只引用本表
-- 挂起五元组：[references/suspension.md](references/suspension.md)
-
----
-
-## Self-evolution
-
-本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
-
-```text
-skills/task-confirm/
-├── SKILL.md
-├── examples/      # 经过验证的优秀执行案例
-├── evals/         # 可验证成功标准（cases.yaml）
-└── experience/    # 真实失败 / 成功 / 规律
-```
-
-自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
-
-- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
-- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
-- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
-- 改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+- 质量画像：[quality-profile.md](quality-profile.md)
+- 交付类别门包（**唯一真源**）：[gate-packs.md](gate-packs.md)——哪类交付用哪套门、必载专家能力、基准物；taskrail / taskflow / task-explore 只引用本表
+- 挂起五元组：[suspension.md](suspension.md)

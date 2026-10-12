@@ -95,7 +95,7 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
     """
 
     def test_task_confirm_declares_user_only_confirmation(self) -> None:
-        text = (REPO_ROOT / "skills/task-confirm/SKILL.md").read_text(encoding="utf-8")
+        text = (REPO_ROOT / "skills/taskrail/references/confirm-protocol.md").read_text(encoding="utf-8")
         self.assertIn("审阅收敛与单独的「继续」都不算确认", text)
 
     def test_task_explore_approve_declares_user_only_confirmation(self) -> None:
@@ -125,9 +125,9 @@ class TestSuspendIntegration(unittest.TestCase):
         self.text = read("SKILL.md")
 
     def test_suspension_reference(self) -> None:
-        self.assertIn("task-confirm/references/suspension.md", self.text)
+        self.assertIn("taskrail/references/suspension.md", self.text)
         self.assertTrue(
-            (REPO_ROOT / "skills/task-confirm/references/suspension.md").is_file(),
+            (REPO_ROOT / "skills/taskrail/references/suspension.md").is_file(),
             "cross-ref target missing",
         )
 
@@ -154,7 +154,7 @@ class TestDowngradeABSync(unittest.TestCase):
     def test_ab_classification_in_skill(self) -> None:
         self.assertIn("**A 类**（缩完成判据或交付面；拿不准归 A）", self.text)
         self.assertIn("**B 类**（判据与交付面都不缩）", self.text)
-        self.assertIn("task-confirm/references/quality-profile.md", self.text)
+        self.assertIn("taskrail/references/quality-profile.md", self.text)
 
     def test_provisional_exception_narrow(self) -> None:
         self.assertIn("B 类 `provisional` 是唯一例外", self.text)
@@ -178,7 +178,7 @@ class TestSelfEvolutionSingleSource(unittest.TestCase):
     writing-for-agents 优化：原 84 行样板压成一段指针式短块，常驻 context 只付一次。
     """
 
-    DIRS = ("taskflow", "task-confirm", "repo-manager", "skills-store")
+    DIRS = ("taskflow", "repo-manager", "skills-store")
 
     def _block(self, skill: str) -> str:
         text = (REPO_ROOT / f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")

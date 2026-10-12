@@ -56,7 +56,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `ui-template-author`（可选） | `sunzhenkai/ui-templates-skill` | Web UI 从源做 package |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-- 任务编排入口是 **`taskrail`**；确认协议是 **`task-confirm`**（含质量画像与挂起五元组）。已删除：`task-wizard` / `task-goal` / `task-delivery`。
+- 任务编排入口是 **`taskrail`**；确认协议并入 taskrail（`skills/taskrail/references/confirm-protocol.md`，含质量画像、门包与挂起五元组）。已删除：`task-confirm` / `task-wizard` / `task-goal` / `task-delivery`。
 - 有 `tasks/` 任务目录时**禁止**委托 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
@@ -65,7 +65,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 - 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位可跳过；simple/medium 的 explore 仅为 grill；handoff 是动作不是 phase；凡经 taskrail 均走 OpenSpec，simple 为单切片）。
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
 - 契约真源：`skills/taskrail/references/contract.md`。
-- 四件套：`taskrail` + `task-confirm` + `task-explore` + `taskflow`。
+- 三件套：`taskrail` + `task-explore` + `taskflow`。
 
 ## Skill 设计原则
 

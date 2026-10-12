@@ -20,7 +20,7 @@ class TestWizardDeliverableClass(unittest.TestCase):
 
     def test_principle_present(self) -> None:
         self.assertIn("**交付类别必判**", self.wizard)
-        self.assertIn("../../task-confirm/references/gate-packs.md", self.wizard)
+        self.assertIn("](gate-packs.md)", self.wizard)
 
     def test_external_reference_forbidden_as_acceptance(self) -> None:
         self.assertIn("验收方式禁止写「对照外部产品或参考实现」", self.wizard)
@@ -50,8 +50,8 @@ class TestCompletionGateMechanical(unittest.TestCase):
 
     def test_gate_pack_item(self) -> None:
         self.assertIn("5. 命中交付类别门包时", self.skill)
-        self.assertIn("../task-confirm/references/gate-packs.md", self.skill)
-        self.assertIn("未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记", self.skill)
+        self.assertIn("](references/gate-packs.md)", self.skill)
+        self.assertIn("未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记", self.skill)
 
     def test_disposition_item(self) -> None:
         self.assertIn("6. 各轮评审的 Blocker / Major 全有 disposition", self.skill)

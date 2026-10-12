@@ -17,7 +17,7 @@
 - `wizard/plan.md` 有「流程总览」时，设计步骤逐条对齐总览；新增 / 删改 / 改序写显式决策（与 taskrail 契约阶段载荷表同一要求）
 - 能形成至少两个可行方案；否则说明还缺哪些信息
 - 架构 / 接口 / 技术栈的选择都写得出依据（设计模式或软件工程原则）；写不出就列入未决，不算设计完成。本任务不涉及这三类选择时写「不适用」并说明，不为凑数贴模式名
-- 命中交付类别门包时（[../../task-confirm/references/gate-packs.md](../../task-confirm/references/gate-packs.md) 判定见 taskrail wizard 的「交付类别与门包」节）：设计稿必须含**契约文件指针**（共享面冻结产物：接口 / 类型 / primitive / 目录与命名 / 样板切片）与**证据计划**（该交付类别的证据形式、产物状态绑定方式与覆盖边界）。缺任一项按缺口停下，不写空心方案
+- 命中交付类别门包时（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md) 判定见 taskrail wizard 的「交付类别与门包」节）：设计稿必须含**契约文件指针**（共享面冻结产物：接口 / 类型 / primitive / 目录与命名 / 样板切片）与**证据计划**（该交付类别的证据形式、产物状态绑定方式与覆盖边界）。缺任一项按缺口停下，不写空心方案
 - **Web UI Active Instance 门**：交付类别为 Web UI 时，先核对交付项目根 Active Instance。**medium / complex**：无 `status: frozen` 则停下，移交 `ui-template-design`（必要时先 `ui-template-author`），**不写空心 UI 方案**、不在 design 稿重定义 token / primitive 精确值。**simple**：无 freeze 仅可走 adopt published package，并在质量画像登记显式降级（未确认不得进入可批准定稿）。已 freeze 时 `design/contract.md` MUST 含：Active Instance 根路径、contract / binding / projection 三条 digest、（如有）package pin；任务 design 只做业务 IA、页面清单 ↔ Page Type、数据与验收。
 
 推荐若依赖未决项，把未决单独列出，不要写成已定。
