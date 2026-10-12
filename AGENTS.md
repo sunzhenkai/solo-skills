@@ -66,13 +66,17 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
 - 契约真源：`skills/taskrail/references/contract.md`。
 - 三件套：`taskrail` + `task-explore` + `taskflow`。
+- 术语表：`skills/taskrail/references/glossary.md`；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 
 ## Skill 设计原则
 
 - **通用性优先**：skill 面向一类问题而非一个具体场景。通过机制（协议、阶段门禁、契约）解决问题，避免为单一案例特例化；遇到具体需求时先问「这类问题的一般解是什么」。
+- **SKILL.md 体量（指导线，不设测试）**：单个 `SKILL.md` 宜控制在约 8KB 以内——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
 - **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-evolver（正文演进）与 skill-upgrader（结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
 
 ## 公开仓纪律
+
+- 提交前跑 `make check-names`（`.project-denylist` 列具体项目名；确需保留的行加 `project-name-allow`）与 `~/.local/bin/pytest skills tests`（或环境中的 pytest）。
 
 - **这是开源仓库**：任何提交都可能被公开检索，应避免提交隐私信息（密钥、内部 URL、主机名、内网地址、公司/项目名、真实任务描述）。写任何文件前自查一次。
 - **只放机制，不放数据**：名册、案例、路由规则、运行痕迹存使用者私有位置。
