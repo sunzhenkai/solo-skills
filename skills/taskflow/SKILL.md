@@ -1,7 +1,7 @@
 ---
 id: taskflow
 name: taskflow
-description: "把一个任务拆成多个 OpenSpec change 并推进到底：`taskflow-new` 建 `{task}-driver`，四个阶段委托 stock `openspec-*`，进度只认 OpenSpec checkbox。在用户点名 taskflow、执行 `taskflow-new`、跟进 `{task}-driver`、要把一个任务拆成多个 OpenSpec change 时使用。"
+description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成多个 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。仅在用户点名 taskflow / taskflow-new / 某个 `{task}-driver`、或被 taskrail 委派时使用；泛指的推进、resume、/goal 一律走 taskrail。"
 ---
 
 # taskflow

@@ -1,7 +1,7 @@
 ---
 id: taskrail
 name: taskrail
-description: "任务轨道：唯一编排入口。绑定 tasks/ 台账，按 wizard → explore(+grill) → design → approve → propose → apply → archive 推进；支持 human 确认与 goal 自动确认。在用户点名 taskrail、要求端到端任务推进、/goal 任务编排、或 resume 已有任务时使用。只要探索台账可点名 task-explore；只要 OpenSpec driver 可点名 taskflow。"
+description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，按 wizard → explore(+grill) → design → approve → handoff → propose → apply → archive 推进；内含 human/goal 确认协议、门包与完成门。在用户点名 taskrail、要求端到端推进任务、消息含 /goal、resume 或继续已有任务时使用。"
 ---
 
 # taskrail：任务轨道

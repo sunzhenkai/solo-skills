@@ -1,7 +1,7 @@
 ---
 id: task-explore
 name: task-explore
-description: "探索台账与命令能力：在 tasks/ 维护 ongoing/archive，按 explore → design → approve → handoff 推进；支持 expand 拆子任务。编排入口优先 taskrail；本 skill 在点名 task-explore、长周期探索、复杂排查、恢复/交接/归档时使用。交付用 handoff，不要另起无关 driver。"
+description: "探索台账命令集（explore / design / approve / expand / handoff / archive），由 taskrail 委派；出口固定为 handoff。仅在用户点名 task-explore 或被 taskrail 委派时使用；泛指的推进、resume、/goal 一律走 taskrail。"
 ---
 
 # 任务探索

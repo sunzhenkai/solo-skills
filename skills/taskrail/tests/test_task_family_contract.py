@@ -96,7 +96,7 @@ class TestFamilyComplete(unittest.TestCase):
             )
 
     def test_spine_and_confirm(self) -> None:
-        self.assertIn("唯一编排入口", read("taskrail", "SKILL.md"))
+        self.assertIn("唯一对外编排入口", read("taskrail", "SKILL.md"))
         self.assertIn("| human |", read("taskrail", "references/confirm-protocol.md"))
         self.assertTrue(
             (SKILLS_ROOT / "taskrail" / "references" / "suspension.md").is_file()
@@ -129,6 +129,33 @@ class TestPhaseEnumClosed(unittest.TestCase):
         contract = read("taskrail", "references/contract.md")
         self.assertIn("## 非 phase 动作", contract)
         self.assertIn("status × phase 合法组合", contract)
+
+
+
+
+class TestTriggerOwnership(unittest.TestCase):
+    """P1-4：只有 taskrail 对外响应泛指推进 / resume / /goal；另两个只在点名或被委派时触发。"""
+
+    @staticmethod
+    def desc(skill: str) -> str:
+        m = re.search(r"^description: (.*)$", read(skill, "SKILL.md"), re.M)
+        assert m, skill
+        return m.group(1)
+
+    def test_taskrail_owns_generic_triggers(self) -> None:
+        d = self.desc("taskrail")
+        for t in ("/goal", "resume", "唯一对外编排入口"):
+            self.assertIn(t, d)
+
+    def test_others_only_by_name_or_delegation(self) -> None:
+        for skill in ("task-explore", "taskflow"):
+            d = self.desc(skill)
+            self.assertIn("仅在用户点名", d, skill)
+            self.assertIn("被 taskrail 委派", d, skill)
+            self.assertIn("一律走 taskrail", d, skill)
+            head = d.split("泛指")[0]
+            for t in ("/goal", "resume", "恢复"):
+                self.assertNotIn(t, head, f"{skill} 仍抢 {t}")
 
 
 if __name__ == "__main__":
