@@ -19,13 +19,13 @@
 - **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
   - Active Instance：`check_active_instance.py validate <active-root> --kind active`（或项目约定等价）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
   - 设计约束扫描：`scan_design_constraints.py <output-root>`（或项目约定等价）通过；
-  - token 纪律：diff 中不得新增硬编码色值 / 字号 / 字重 / 圆角 / 间距（须映射到 `core/tokens.yaml`）；
+  - token 纪律：完成时共享色、字、间距在 `core/tokens.yaml`。代表页实现过程中的暂存值在回写前保留在该页；完成时仍留在页面里的共享值视为未完成。
   - 无障碍：键盘可达、`:focus-visible` 存在、icon-only 有 `aria-label`、异步反馈走 `aria-live`、表单控件有关联 label；
   - 状态覆盖：数据区四态（loading / empty / error / success）、交互元素态（hover / focus / active / disabled）；
   - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
 - **运行态证据**：真实浏览器交互走查（关键流程）+ 关键面截图；UI 切片经 `ui-template-apply` 时优先用其 Phase 8 current-build 证据与 Gallery。工具不可用时写明替代方法与能力边界、重估覆盖度，缺口按「未覆盖即降级」登记。
-- **主观项**：视觉层次 / 密度 / 排版节奏——须指到 Active Instance Gallery、tokens 或项目标准的可指认件，否则只记 Suggestion，不得据此判不通过。
-- **实现委托**：业务页实现走仓外 `ui-template-apply`（消费 frozen Active Instance 或已确认的 adopt-only）；禁止无 Active Instance（且无已确认 adopt-only 降级）直接铺业务页。改 token / pattern / page-type → `ui-template-design` `iterate`，刷新 digest 后再继续 apply。
+- **主观项**：视觉层次 / 密度 / 排版节奏的完成证据是代表页源码及其修订（design thesis、signature、初稿之后改过的页面）。截图在实现过程中用来对照并改这页。Gallery 与 digest 证明系统未漂。缺代表页实现记录即该条未完成。
+- **实现委托**：业务页实现走仓外 `ui-template-apply`（消费 frozen Active Instance 或已确认的 adopt-only）。先按 frontend-design 实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。改已经共享的 token / pattern / page-type → `ui-template-design` `iterate`，刷新 digest 后再继续 apply。
 
 ## 服务 / 后端
 

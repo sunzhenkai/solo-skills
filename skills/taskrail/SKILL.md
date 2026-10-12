@@ -55,7 +55,7 @@ taskrail list
 | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
 | `propose` | **先** handoff（若 `status` 尚未 `handed-off`），再委托 taskflow / `openspec-propose`；simple 为单切片 |
-| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox |
+| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现走 `ui-template-apply`，先按 frontend-design 实现并修订一条主流程代表页，再铺其余表面 |
 | `archive` | 交付侧归档 driver；探索侧关闭走 task-explore `archive` |
 | `done` | 完成门已过；停止新增工作 |
 
@@ -81,7 +81,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
 5. 命中交付类别门包时（[../task-confirm/references/gate-packs.md](../task-confirm/references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[../task-confirm/SKILL.md](../task-confirm/SKILL.md) 未覆盖即降级」登记。
 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
-7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。
+7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。另须有代表页实现记录（thesis、signature、初稿之后改过的页面源码）。digest 与 Gallery 只证明系统未漂。
 
 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 

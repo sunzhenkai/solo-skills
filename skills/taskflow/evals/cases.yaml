@@ -282,6 +282,7 @@ cases:
     expect:
       must:
         - UI 切片委托 ui-template-apply 消费 frozen Active Instance 或已确认 adopt-only
+        - 先按 frontend-design 实现并修订一条主流程代表页，其余表面从其壳层与字阶长出
         - 实现者输入携带三条 digest；证据优先 Phase 8 与 Gallery
         - 改 DS 本体移交 ui-template-design iterate 后刷新 digest
       must_not:

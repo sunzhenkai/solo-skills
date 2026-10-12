@@ -70,6 +70,8 @@ cases:
         - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
         - medium/complex 无 freeze 时停下移交 ui-template-design，不批准
         - simple adopt-only 须已确认显式降级；实现委托 ui-template-apply
+        - 视觉完成证据含代表页源码及其初稿之后的修订；Gallery 与 digest 只证明系统未漂
       must_not:
         - 用散文组件约定或 ui-skills-root 替代 Active Instance
         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
+        - 仅用 Gallery 指针或 digest 作为视觉完成
