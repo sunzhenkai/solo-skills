@@ -109,7 +109,7 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
         self.assertIn("审阅收敛与单独的「继续」都不算确认", text)
 
     def test_task_explore_approve_declares_user_only_confirmation(self) -> None:
-        text = (REPO_ROOT / "skills/task-explore/references/phase-approve.md").read_text(
+        text = (REPO_ROOT / "skills/task-explore/references/approve.md").read_text(
             encoding="utf-8"
         )
         self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", text)

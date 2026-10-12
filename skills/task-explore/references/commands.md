@@ -4,12 +4,20 @@
 
 ## `new`
 
-立项。细则见 [references/cmd-new.md](cmd-new.md)。
+立项。细则见 [references/commands.md](commands.md)。
 
 1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
 2. 推断 `{task-name}`；冲突则 resume 或换名。创建 `TASK.md`（模板）与 INDEX 行；绑定任务。
 3. 输入含现成方案时登记进「方案」小节，不丢上游产物；无完成判据不编造。
 4. 报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
+
+### 细则（原 commands.md）
+
+1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
+2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
+3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
+4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
+5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
 
 ## `explore`
 
@@ -20,19 +28,39 @@
 
 ## `chat`（默认）
 
-对任务问答。细则见 [references/cmd-chat.md](cmd-chat.md)。
+对任务问答。细则见 [references/commands.md](commands.md)。
 
 - 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
 - 不要把 `chat` 默认为 `explore`（不自动 grill）或 `design`（不写方案稿）。
 - 路径已清、要交付 → `approve` 然后 `handoff`。有进展则提示是否更新任务文档。
 
+### 细则（原 commands.md）
+
+对任务进行问答：解释、排查、对照代码与已有笔记。先读任务文档再答。
+
+- 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
+- 不要把 `chat` 默认为 `explore`（不自动 grill）或 `design`（不写方案稿）。
+- 用户要把方案写下来 → 转 `design`。目标仍糊 → 建议 `explore`。路径已清、要交付 → `approve` 然后 `handoff`，不要直接开一个无关名字的 driver。
+- 发现任务含多个可独立推进的方向 → 提示一次可 `expand`（别名 `split`）拆子任务，不阻断，用户确认才建。
+- 用户要看有哪些任务 → 打印 INDEX，不进入 `new`。
+- 有进展则提示是否更新任务文档。
+
 ## `resume`
 
-恢复进行中的探索任务。细则见 [references/cmd-resume.md](cmd-resume.md)。
+恢复进行中的探索任务。细则见 [references/commands.md](commands.md)。
 
 - **任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`（INDEX 漂移可重建），不要改 `TASK.md` / `glossary.md` / `design/`。
 - 未指定名字：用 INDEX 列出请用户选。已归档不要自动恢复，走 `reopen`。
 - 短摘要：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**，然后等用户。
+
+### 细则（原 commands.md）
+
+恢复进行中的探索任务。**任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`，不要改 `TASK.md` / `glossary.md` / `design/`。
+
+1. 未指定名字：用 INDEX 的 Ongoing 表列出请用户选。指定了则用该名字。
+2. 任务不在 `ongoing/`：先查 INDEX 的 Archived 表，再扫 `tasks/archive/`。告知已归档路径；**不要自动恢复**，拉回走 `reopen`。找不到则说明，改走 `new`。
+3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标/决策节防方向漂移，再读子任务全套；父文档不被修改。
+4. 用短摘要恢复：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**（`explore` / `chat` / `design` / `approve` / `save` / `handoff` / `archive`）。然后等用户。
 
 ## `design`
 
@@ -40,7 +68,7 @@
 
 ## `approve`
 
-**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/phase-approve.md](phase-approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 taskrail 确认协议 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
+**必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/approve.md](approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 taskrail 确认协议 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
 
 同一任务可多次 `approve`：新决策追加编号写入决策节，被取代的旧决策标注「被 D-n 取代」。父任务的 `approve` 仅限范围、非目标与拆分原则，具体方案属各子任务。
 
@@ -48,11 +76,21 @@
 
 ## `save`
 
-保存任务最新进展。细则见 [references/cmd-save.md](cmd-save.md)。
+保存任务最新进展。细则见 [references/commands.md](commands.md)。
 
 1. 必须已绑定。合并本轮进展，不抹掉仍有效的旧内容。
 2. 更新 `updated` 与相关章节；同步 INDEX（不要把进展日志抄进索引）。
 3. 不要贴聊天记录。无新进展则说明无需写入。
+
+### 细则（原 commands.md）
+
+保存任务最新进展到任务文档。
+
+1. 必须已绑定。读现有 `TASK.md`，合并本轮进展，不抹掉仍有效的旧内容。
+2. 更新 `updated`、目标/非目标、现状、进展、决策、交接、未决、下一步。有设计结论则链到 `design/`。
+3. 同步更新 `INDEX.md` 中该任务的标题、日期、一句话目标；不要把进展日志抄进索引。
+4. 不要贴聊天记录。无新进展则说明无需写入。
+5. 报告改了哪些文件。
 
 ## `handoff`
 
@@ -66,7 +104,7 @@
 
 ## `archive`
 
-对确认关闭的探索任务归档（不交接而结束、或 `handed-off` 后确认无需回溯），整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`，不要用本阶段代替交接。经 taskrail、方案已冻结且方案含实施动作、尚未 `handed-off` 时，不进入本命令，改走 handoff。「方案已写完」「还有未决」不是关闭原因。进入本阶段后 **先读** [references/phase-archive.md](phase-archive.md)，未读完不得搬目录。
+对确认关闭的探索任务归档（不交接而结束、或 `handed-off` 后确认无需回溯），整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`，不要用本阶段代替交接。经 taskrail、方案已冻结且方案含实施动作、尚未 `handed-off` 时，不进入本命令，改走 handoff。「方案已写完」「还有未决」不是关闭原因。进入本阶段后 **先读** [references/archive-reopen.md](archive-reopen.md)，未读完不得搬目录。
 
 门禁按序执行、任一不过即停；步骤与细则在 reference，下列五条不可跳过：
 
@@ -80,7 +118,7 @@
 
 ## `reopen`
 
-把已 `archive` 的探索任务搬回 `tasks/ongoing/{task-name}`；或对 `handed-off` 任务撤回交接（目录不动，只改状态）。进入本阶段后 **先读** [references/phase-reopen.md](phase-reopen.md)，未读完不得搬目录。
+把已 `archive` 的探索任务搬回 `tasks/ongoing/{task-name}`；或对 `handed-off` 任务撤回交接（目录不动，只改状态）。进入本阶段后 **先读** [references/archive-reopen.md](archive-reopen.md)，未读完不得搬目录。
 
 定位分支与步骤在 reference，下列四条门禁不可跳过：
 

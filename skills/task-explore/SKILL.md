@@ -57,14 +57,14 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 |------|------------|
 | `explore` | [references/phase-explore.md](references/phase-explore.md) |
 | `design` | [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md) |
-| `approve` | [references/phase-approve.md](references/phase-approve.md) |
-| `decide` / `plan-review` | 兼容：改读 phase-approve；薄引用见 [phase-decide.md](references/phase-decide.md) / [phase-plan-review.md](references/phase-plan-review.md) |
+| `approve` | [references/approve.md](references/approve.md) |
+| `decide` / `plan-review` | 兼容：改读 phase-approve；薄引用见 [approve.md](references/approve.md) / [approve.md](references/approve.md) |
 | `handoff` | [references/phase-handoff.md](references/phase-handoff.md)；委托时再读 `taskflow` |
-| `archive` | [references/phase-archive.md](references/phase-archive.md) |
-| `reopen` | [references/phase-reopen.md](references/phase-reopen.md) |
-| `new` / `save` | [references/cmd-new.md](references/cmd-new.md) / [references/cmd-save.md](references/cmd-save.md)；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
+| `archive` | [references/archive-reopen.md](references/archive-reopen.md) |
+| `reopen` | [references/archive-reopen.md](references/archive-reopen.md) |
+| `new` / `save` | [references/commands.md](references/commands.md) / [references/commands.md](references/commands.md)；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
 | `expand` / `split` | 本文件步骤；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
-| `chat` / `resume` | [references/cmd-chat.md](references/cmd-chat.md) / [references/cmd-resume.md](references/cmd-resume.md) |
+| `chat` / `resume` | [references/commands.md](references/commands.md) / [references/commands.md](references/commands.md) |
 
 写台账（`INDEX.md` / `TASK.md`）时，除该命令详情外再读 [references/ledger-write-discipline.md](references/ledger-write-discipline.md)；不写台账的命令不读。
 

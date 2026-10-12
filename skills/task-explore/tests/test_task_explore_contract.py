@@ -25,26 +25,26 @@ class ContractTest(unittest.TestCase):
         cls.design = (ROOT / "references" / "phase-design.md").read_text(
             encoding="utf-8"
         )
-        cls.decide = (ROOT / "references" / "phase-decide.md").read_text(
+        cls.decide = (ROOT / "references" / "approve.md").read_text(
             encoding="utf-8"
         )
-        cls.approve = (ROOT / "references" / "phase-approve.md").read_text(
+        cls.approve = (ROOT / "references" / "approve.md").read_text(
             encoding="utf-8"
         )
         cls.handoff = (ROOT / "references" / "phase-handoff.md").read_text(
             encoding="utf-8"
         )
-        cls.archive = (ROOT / "references" / "phase-archive.md").read_text(
+        cls.archive = (ROOT / "references" / "archive-reopen.md").read_text(
             encoding="utf-8"
         )
-        cls.reopen = (ROOT / "references" / "phase-reopen.md").read_text(
+        cls.reopen = (ROOT / "references" / "archive-reopen.md").read_text(
             encoding="utf-8"
         )
         cls.ledger = (
             ROOT / "references" / "ledger-write-discipline.md"
         ).read_text(encoding="utf-8")
         cls.plan_review = (
-            ROOT / "references" / "phase-plan-review.md"
+            ROOT / "references" / "approve.md"
         ).read_text(encoding="utf-8")
         cls.design_template = (
             ROOT / "references" / "design-template.md"
@@ -62,12 +62,12 @@ class ContractTest(unittest.TestCase):
         for rel in (
             "references/phase-explore.md",
             "references/phase-design.md",
-            "references/phase-decide.md",
-            "references/phase-approve.md",
+            "references/approve.md",
+            "references/approve.md",
             "references/phase-handoff.md",
-            "references/phase-archive.md",
-            "references/phase-reopen.md",
-            "references/phase-plan-review.md",
+            "references/archive-reopen.md",
+            "references/archive-reopen.md",
+            "references/approve.md",
             "references/design-template.md",
             "references/task-template.md",
             "references/index-template.md",
@@ -166,7 +166,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("逐个跑完整门禁", self.archive)
         self.assertIn("合并成一次确认", self.archive)
         self.assertIn("已搬的不回滚", self.archive)
-        self.assertNotIn("不在本阶段范围", self.archive)
+        self.assertNotIn("不在本阶段范围", self.archive.split("<!-- 原 phase-reopen.md -->")[0])
 
     def test_archive_single_confirmation_for_multiple_gates(self) -> None:
         self.assertIn("合并成一次确认", self.archive)
@@ -195,11 +195,11 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不要预加载其它 phase", self.skill)
         self.assertIn("references/phase-explore.md", self.skill)
         self.assertIn("references/phase-design.md", self.skill)
-        self.assertIn("references/phase-approve.md", self.skill)
-        self.assertIn("references/phase-decide.md", self.skill)
+        self.assertIn("references/approve.md", self.skill)
+        self.assertIn("references/approve.md", self.skill)
         self.assertIn("references/phase-handoff.md", self.skill)
-        self.assertIn("references/phase-archive.md", self.skill)
-        self.assertIn("references/phase-reopen.md", self.skill)
+        self.assertIn("references/archive-reopen.md", self.skill)
+        self.assertIn("references/archive-reopen.md", self.skill)
         self.assertNotIn("| 方案 | 成本 |", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
 
     def test_explore_does_not_write_repo_glossary(self) -> None:
@@ -338,8 +338,8 @@ class ContractTest(unittest.TestCase):
 
     def test_ledger_discipline_carves_out_batch_path_update(self) -> None:
         self.assertIn("父路径前缀", self.ledger)
-        self.assertIn("phase-archive.md", self.ledger)
-        self.assertIn("phase-reopen.md", self.ledger)
+        self.assertIn("archive-reopen.md", self.ledger)
+        self.assertIn("archive-reopen.md", self.ledger)
 
     def test_goal_confirmations_go_to_review(self) -> None:
         section = self._section(self.skill, "## Goal 里的确认")
@@ -402,10 +402,10 @@ class ContractTest(unittest.TestCase):
 
     def test_cmd_refs_exist(self) -> None:
         for rel in (
-            "references/cmd-new.md",
-            "references/cmd-chat.md",
-            "references/cmd-resume.md",
-            "references/cmd-save.md",
+            "references/commands.md",
+            "references/commands.md",
+            "references/commands.md",
+            "references/commands.md",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
 

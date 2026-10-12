@@ -98,7 +98,7 @@ class TestApproveActiveInstanceGate(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.approve = (ROOT / "references" / "phase-approve.md").read_text(encoding="utf-8")
+        cls.approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
         cls.skill = skill_corpus(ROOT)
 
     def test_structure_gate_web_ui(self) -> None:
