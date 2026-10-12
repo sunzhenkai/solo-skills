@@ -10,7 +10,7 @@
 - 结果明显超出预期
 - 用了新的委派方式或新的 Endpoint
 
-字段见 [references/trace-format.md](./references/trace-format.md)。其中「为什么选它」是唯一能在将来固化成 Routing Rule 的东西，必须从 `decision.md` 原样搬过来，不要重写。
+字段见 [references/trace-format.md](trace-format.md)。其中「为什么选它」是唯一能在将来固化成 Routing Rule 的东西，必须从 `decision.md` 原样搬过来，不要重写。
 
 ## 固化：什么时候把案例变成规则
 
@@ -44,6 +44,6 @@ python3 <skill-dir>/scripts/probe_endpoints.py --write    # 直接回填画像�
 2. **L2 握手** — 起 ACP 适配器走完 `initialize` 就断开。零 token，能确认适配器真的拉得起来。
 3. **L3 冒烟** — 真发一句 prompt，确认登录态、额度与模型可用。花钱花时间，手动触发，脚本不做。
 
-探测只回填 Endpoint 文件的客观状态段，**Disposition 归人维护**，格式见 [references/endpoint-schema.md](./references/endpoint-schema.md)。
+探测只回填 Endpoint 文件的客观状态段，**Disposition 归人维护**，格式见 [references/endpoint-schema.md](endpoint-schema.md)。
 
 第一版只探测本机。远端 Host 的 Endpoint 可以手工登记，但跨机执行不在范围内。
