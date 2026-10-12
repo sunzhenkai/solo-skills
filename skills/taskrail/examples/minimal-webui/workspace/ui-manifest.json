@@ -1,0 +1,25 @@
+{
+  "base_url": "http://127.0.0.1:8765",
+  "routes": [
+    {
+      "name": "list",
+      "path": "/",
+      "states": {
+        "loading": {
+          "path": "/?state=loading"
+        },
+        "empty": {
+          "path": "/?state=empty"
+        },
+        "error": {
+          "path": "/?state=error"
+        },
+        "success": {
+          "path": "/?state=success"
+        }
+      },
+      "not_applicable": {},
+      "tab_steps": 5
+    }
+  ]
+}

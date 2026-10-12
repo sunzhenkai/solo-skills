@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>列表</title><style>:focus-visible{outline:3px solid #1a56db;outline-offset:2px}body{font:16px/1.5 system-ui;margin:2rem;color:#111}</style></head>
+<body><main><h1>列表</h1><a id="skip" href="#items">跳到列表</a> <button id="refresh" type="button">刷新</button>
+<section id="items" aria-live="polite"></section></main>
+<script>const s=new URLSearchParams(location.search).get("state")||"success";const el=document.getElementById("items");
+el.innerHTML={loading:"<p>加载中…</p>",empty:"<p>暂无数据</p>",error:"<p role=\"alert\">加载失败，请重试</p>",success:"<ul><li><a href=\"#1\">第 1 项</a></li><li><a href=\"#2\">第 2 项</a></li></ul>"}[s]||"";</script>
+</body></html>

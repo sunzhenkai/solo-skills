@@ -1,0 +1,109 @@
+{
+  "schema": "ui-evidence/v1",
+  "run_id": "sample",
+  "base_url": "http://127.0.0.1:8765",
+  "started_at": "2026-10-12T18:00:00+08:00",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 812
+    }
+  ],
+  "routes": [
+    {
+      "name": "list",
+      "path": "/",
+      "not_applicable": {},
+      "states": {
+        "loading": {
+          "desktop": {
+            "screenshot": "list-loading-desktop.png",
+            "axe": {
+              "violations": []
+            }
+          },
+          "mobile": {
+            "screenshot": "list-loading-mobile.png",
+            "axe": {
+              "violations": []
+            }
+          }
+        },
+        "empty": {
+          "desktop": {
+            "screenshot": "list-empty-desktop.png",
+            "axe": {
+              "violations": []
+            }
+          },
+          "mobile": {
+            "screenshot": "list-empty-mobile.png",
+            "axe": {
+              "violations": []
+            }
+          }
+        },
+        "error": {
+          "desktop": {
+            "screenshot": "list-error-desktop.png",
+            "axe": {
+              "violations": []
+            }
+          },
+          "mobile": {
+            "screenshot": "list-error-mobile.png",
+            "axe": {
+              "violations": []
+            }
+          }
+        },
+        "success": {
+          "desktop": {
+            "screenshot": "list-success-desktop.png",
+            "axe": {
+              "violations": []
+            }
+          },
+          "mobile": {
+            "screenshot": "list-success-mobile.png",
+            "axe": {
+              "violations": []
+            }
+          }
+        }
+      },
+      "focus_walk": {
+        "desktop": {
+          "order": [
+            "a#skip \"跳到列表\"",
+            "button#refresh \"刷新\"",
+            "a \"第 1 项\""
+          ],
+          "invisible": []
+        },
+        "mobile": {
+          "order": [
+            "a#skip \"跳到列表\"",
+            "button#refresh \"刷新\"",
+            "a \"第 1 项\""
+          ],
+          "invisible": []
+        }
+      }
+    }
+  ],
+  "summary": {
+    "axe_blocking": 0,
+    "missing_states": 0,
+    "missing_viewports": [],
+    "focus_invisible": 0,
+    "failures": [],
+    "ok": true
+  }
+}
