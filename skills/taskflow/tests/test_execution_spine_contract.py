@@ -7,12 +7,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def skill_corpus(root: Path) -> str:
+    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+    return "\n".join(parts)
+
+
 
 class TestImplementerInputCarriesSpine(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.text = skill_corpus(ROOT)
 
     def test_gate_pack_reference(self) -> None:
         self.assertIn("../taskrail/references/gate-packs.md", self.text)
@@ -26,7 +33,7 @@ class TestImplementerInputCarriesSpine(unittest.TestCase):
         self.assertIn("绑定产物状态（提交号或 dirty 摘要）", self.text)
 
     def test_web_ui_apply_delegation(self) -> None:
-        self.assertIn("### Web UI 实现委托", self.text)
+        self.assertIn("## Web UI 实现委托", self.text)
         self.assertIn("ui-template-apply", self.text)
         self.assertIn("无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面", self.text)
         self.assertIn("先按 `ui-template-apply` 内置的 frontend-design 方法", self.text)
@@ -41,7 +48,7 @@ class TestParallelPreconditions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.text = skill_corpus(ROOT)
 
     def test_flagship_first(self) -> None:
         self.assertIn("**旗舰先行**", self.text)
@@ -58,10 +65,10 @@ class TestClosingReconciliation(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.text = skill_corpus(ROOT)
 
     def test_section_present(self) -> None:
-        self.assertIn("### 收尾机械校核", self.text)
+        self.assertIn("## 收尾机械校核", self.text)
 
     def test_checks_present(self) -> None:
         for check in (

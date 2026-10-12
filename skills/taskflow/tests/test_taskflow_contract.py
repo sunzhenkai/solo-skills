@@ -6,6 +6,13 @@ import unittest
 from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+
+def skill_corpus(root: Path) -> str:
+    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+    return "\n".join(parts)
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -15,7 +22,7 @@ def read(rel: str) -> str:
 
 class TestFrontmatter(unittest.TestCase):
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
 
     def test_frontmatter_fields_present(self) -> None:
         self.assertIn("id: taskflow", self.text)
@@ -38,7 +45,7 @@ class TestDriverProtocol(unittest.TestCase):
     """Driver 协议是固定文本，逐字写入 proposal；skip_specs 必须显式写入。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
 
     def test_protocol_verbatim_gate(self) -> None:
         self.assertIn("`Driver 协议` 小节是固定文本，逐字写入，不要改写或精简", self.text)
@@ -51,23 +58,26 @@ class TestDriverProtocol(unittest.TestCase):
         self.assertIn("不得 stash / reset / 强制切换", self.text)
 
     def test_branch_rule_single_source(self) -> None:
-        self.assertIn("切分支规则的唯一真相是上方 Driver 协议模板（逐字写入每个 driver proposal）", self.text)
+        # P2-11：切分支规则只在 driver-template.md 的 Driver 协议块写一次，纪律只留指针
+        self.assertIn("切分支规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准，此处不复述", self.text)
+        self.assertEqual(self.text.count("不得 stash / reset / 强制切换"), 1)
 
     def test_profile_snapshot_verbatim(self) -> None:
         self.assertIn("`Why` 逐字保留该快照，不摘要、不改写、不用小节指针或路径替代", self.text)
 
 
 class TestRoundEndConditions(unittest.TestCase):
-    """一轮结束三条件是固定门禁，模板与纪律节双写同文。"""
+    """一轮结束三条件是固定门禁：只在 Driver 协议块写一次，纪律节只留指针（P2-11）。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
 
     def test_three_conditions_in_template(self) -> None:
         self.assertIn("只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮", self.text)
 
     def test_three_conditions_restated_in_discipline(self) -> None:
-        self.assertIn("规则的唯一真相是上方 Driver 协议模板：只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮", self.text)
+        self.assertIn("「一轮结束」三条件与逐条列未勾项的规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准", self.text)
+        self.assertEqual(self.text.count("三种情况允许结束一轮"), 1)
 
     def test_itemized_unfinished_list(self) -> None:
         self.assertIn("结束时逐条列出未勾项与原因", self.text)
@@ -84,7 +94,7 @@ class TestAcceptanceRubric(unittest.TestCase):
         self.assertIn("任一子项为 0 则不通过，即使均值达标", self.text)
 
     def test_skill_body_restates_thresholds(self) -> None:
-        text = read("SKILL.md")
+        text = skill_corpus(SKILL_ROOT)
         self.assertIn("五维均 ≥2、UI/UX 均值 ≥2.5", text)
 
 
@@ -110,11 +120,11 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
         self.assertIn("不创建 driver", text)
 
     def test_taskflow_declares_user_only_confirmation(self) -> None:
-        text = read("SKILL.md")
+        text = skill_corpus(SKILL_ROOT)
         self.assertIn("执行者、子代理与审阅收敛都不算用户确认", text)
 
     def test_new_downgrade_needs_user_decision(self) -> None:
-        text = read("SKILL.md")
+        text = skill_corpus(SKILL_ROOT)
         self.assertIn("不静默接受、不自行确认", text)
 
 
@@ -122,7 +132,7 @@ class TestSuspendIntegration(unittest.TestCase):
     """「需要用户决策」挂起五元组 + 只停依赖面 + 恢复触发。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
 
     def test_suspension_reference(self) -> None:
         self.assertIn("taskrail/references/suspension.md", self.text)
@@ -147,7 +157,7 @@ class TestDowngradeABSync(unittest.TestCase):
     """新降级 A/B 定级与 provisional 追认；收尾门按类拆分。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
         self.loop = read("references/delivery-quality-loop.md")
         self.rubric = read("references/acceptance-rubric.md")
 
@@ -213,7 +223,7 @@ class TestDescriptionTriggerBranches(unittest.TestCase):
     """description 是常驻 context 的顶层 context pointer：只留触发分支，不复述正文。"""
 
     def setUp(self) -> None:
-        self.text = read("SKILL.md")
+        self.text = skill_corpus(SKILL_ROOT)
 
     def test_trigger_branches_kept(self) -> None:
         for branch in ("taskflow-new", "{task}-driver", "OpenSpec change"):
@@ -228,7 +238,7 @@ class TestDescriptionTriggerBranches(unittest.TestCase):
 
 class TestSimpleSingleSlice(unittest.TestCase):
     def test_simple_single_slice_section(self) -> None:
-        text = read("SKILL.md")
+        text = skill_corpus(SKILL_ROOT)
         self.assertIn("### simple 单切片", text)
         self.assertIn("实施段默认**仅 1 个子 change**", text)
         self.assertIn("进度仍只认 checkbox", text)

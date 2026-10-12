@@ -9,6 +9,13 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+def skill_corpus(root: Path) -> str:
+    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+    return "\n".join(parts)
+
 SCRIPT = ROOT / "scripts" / "check_handoff.py"
 
 GOOD_META = """---
@@ -121,7 +128,7 @@ class TestEntryGateWiring(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.skill = skill_corpus(ROOT)
         cls.rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
         cls.handoff = (ROOT.parent / "task-explore" / "references" / "phase-handoff.md").read_text(encoding="utf-8")
 
