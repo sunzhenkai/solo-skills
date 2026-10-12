@@ -10,7 +10,7 @@ description: "把一个任务拆成多个 OpenSpec change 并推进到底：`tas
 
 一个任务 = 一个 driver change `{task}-driver`。实现拆成若干子 change `{task}-<slice>`，与 driver 同一 planning root；跨 root 时在 driver 涉及面表里显式记录 root 或 store id。共享 `{task}` 前缀让 `openspec list` 直接看出归属，不需要额外元数据。
 
-**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系、不带脚本。
+**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。
 
 ## 阶段路由
 
@@ -30,9 +30,22 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 可用时，委托必须同时具备两项绑定：**在 driver 的 planning root 下执行**，并**显式给出 change name `{task}-driver`**。缺任一项不得委托——openspec CLI 只认 cwd 最近的 `openspec/`，无绑定会写错位置或反问用户选 change。无法确定时停下报告。
 
+## 入口门（强制）
+
+`taskflow-new`、以及任何创建 `{task}-driver` 或子 change 的动作，**第一步**必须在工作区根跑：
+
+```bash
+python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
+```
+
+它核对 `tasks/ongoing/<slug>/TASK.md`：`status: handed-off`、`phase` ∈ propose / apply / archive / done，且「## 交接」节带「交付类别」「适用门包」（Web UI 另带 Active Instance 根路径与三条 digest）。exit 非 0 → **拒绝建 driver**，回复用户改走 `taskrail`（approve → handoff），不自行补写 TASK.md 绕过。
+
+- **逃生口**：仅当用户明确说「不走 taskrail 直接建 driver」时，把 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 写入该任务 TASK.md 元信息再跑（脚本以 BYPASS 放行并警告）；无 TASK.md 时先建最小 TASK.md 承载这一行。agent 不得自写或推断该确认；BYPASS 下门包视为未覆盖，按 task-confirm「未覆盖即降级」登记。
+- **派给编码 agent 的提示词**：必须由交接载荷生成——判据原文、交付类别、适用门包条目、证据要求、契约指针（Web UI 含三条 digest 与 `ui_evidence_check` manifest / report 要求）逐项带上；禁止手写省略 UI / 验收的自由提示词。缺载荷 = 入口门不过。
+
 ## 脚手架
 
-`taskflow-new {任务描述}` 固定三步，不多做：
+`taskflow-new {任务描述}` 在入口门通过后固定三步，不多做：
 
 1. 由任务描述归纳 kebab-case 的 `{task}`（Agent 自己归纳，不追问用户；描述确实为空时才问「要做什么？」）。
 2. `openspec new change {task}-driver --goal "<任务描述原文>"`。
@@ -208,8 +221,9 @@ taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stoc
 
 交付类别为 Web UI 时：
 
-- UI 切片（含旗舰切片）的页面实现 MUST 委托仓外 **`ui-template-apply`**（`bootstrap | increment`），消费 driver 所记 frozen Active Instance（或已确认的 adopt-only pin）。先按 frontend-design 实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。功能切片不代替这次修订。
-- 无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。`ui-skills-root` 与零散 craft skill 不替代 `ui-template-apply` 这次实现。
+- UI 切片（含旗舰切片）的页面实现 MUST 委托仓外 **`ui-template-apply`**（`bootstrap | increment`），消费 driver 所记 frozen Active Instance（或已确认的 adopt-only pin）。先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。功能切片不代替这次修订。
+- 无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。
+- UI 切片完成 = `ui_evidence_check.py` report exit 0 + design 评审文件 `--validate-review` exit 0（见 gate-packs「Web UI」）；`ui-template-apply` 不可用（含其 vendor frontend-design 缺失）时**停下**报告安装选项（`make check-deps`），不得改由裸写页面顶替。`ui-skills-root` 与零散 craft skill 不替代 `ui-template-apply` 这次实现。
 - 发现须改 token / pattern / page-type / binding 语义：停并行，移交 `ui-template-design` `iterate`（Apply 的 binding handoff 归 design 轨），刷新 digest 与 `design/contract.md` / driver 指针后再派发；不得在 apply 内改 core。
 - 并行派发前契约 = 三条 digest；漂移走共享面广播，且须与 Active Instance freeze 再对齐。
 

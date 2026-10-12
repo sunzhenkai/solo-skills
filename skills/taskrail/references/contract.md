@@ -101,7 +101,7 @@ updated: YYYY-MM-DD
 | explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
 | design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
 | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：medium/complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver（Web UI 含三条 digest）；`status: handed-off` 与 `driver` 已写入 |
+| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver（Web UI 含三条 digest）；`status: handed-off` 与 `driver` 已写入；`TASK.md`「## 交接」含「交付类别」「适用门包」行，`taskflow/scripts/check_handoff.py` exit 0 |
 | apply | driver `tasks.md` 已由 propose 产出 |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 

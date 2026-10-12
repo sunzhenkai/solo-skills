@@ -29,7 +29,8 @@ class TestImplementerInputCarriesSpine(unittest.TestCase):
         self.assertIn("### Web UI 实现委托", self.text)
         self.assertIn("ui-template-apply", self.text)
         self.assertIn("无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面", self.text)
-        self.assertIn("先按 frontend-design 实现并修订一条主流程代表页", self.text)
+        self.assertIn("先按 `ui-template-apply` 内置的 frontend-design 方法", self.text)
+        self.assertIn("实现并修订一条主流程代表页", self.text)
         self.assertIn("移交 `ui-template-design` `iterate`", self.text)
 
     def test_ui_slice_skeleton_mentions_apply(self) -> None:

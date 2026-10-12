@@ -14,7 +14,7 @@
 - **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由仓外 `ui-template-design` 产出（有参照源时可先 `ui-template-author` 再领养）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
 - **Active Instance 档位门**（硬门，与基准物同级）：
   - **medium / complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，移交 `ui-template-design`（0–9 至 freeze），不得用散文式「组件约定」顶替。
-  - **simple**：优先 frozen Active Instance；否则仅当「`ui-template-apply` adopt published package」且质量画像已登记并**确认**显式降级时方可放行；无降级登记不得放行。
+  - **simple**：优先 frozen Active Instance；否则仅当「`ui-template-apply` adopt published package」且质量画像已登记并**确认**显式降级时方可放行；无降级登记不得放行。adopt-only 只豁免 Active Instance，**不豁免**下方 `ui_evidence_check` 运行态证据门与 design 评审文件——simple 同样必须通过。
 - **必载专家能力**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
 - **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
   - Active Instance：`check_active_instance.py validate <active-root> --kind active`（或项目约定等价）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
@@ -23,9 +23,10 @@
   - 无障碍：键盘可达、`:focus-visible` 存在、icon-only 有 `aria-label`、异步反馈走 `aria-live`、表单控件有关联 label；
   - 状态覆盖：数据区四态（loading / empty / error / success）、交互元素态（hover / focus / active / disabled）；
   - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
-- **运行态证据**：真实浏览器交互走查（关键流程）+ 关键面截图；UI 切片经 `ui-template-apply` 时优先用其 Phase 8 current-build 证据与 Gallery。工具不可用时写明替代方法与能力边界、重估覆盖度，缺口按「未覆盖即降级」登记。
-- **主观项**：视觉层次 / 密度 / 排版节奏的完成证据是代表页源码及其修订（design thesis、signature、初稿之后改过的页面）。截图在实现过程中用来对照并改这页。Gallery 与 digest 证明系统未漂。缺代表页实现记录即该条未完成。
-- **实现委托**：业务页实现走仓外 `ui-template-apply`（消费 frozen Active Instance 或已确认的 adopt-only）。先按 frontend-design 实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。改已经共享的 token / pattern / page-type → `ui-template-design` `iterate`，刷新 digest 后再继续 apply。
+- **运行态证据（硬门，全档位）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py) 对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）截图、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。`ui-template-apply` 的 Phase 8 current-build 证据与 Gallery 是补充，不替代本 report。playwright / axe-core 缺失时脚本 exit 2 阻断：不得静默跳过，只能装齐后重跑，或经用户确认按「未覆盖即降级」登记 A 类降级。
+- **design 评审文件（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+- **主观项**：视觉层次 / 密度 / 排版节奏由 design 评审文件基于 report 截图逐条判定（指到参照集或项目标准的可指认件）。代表页源码修订记录（design thesis、signature、初稿之后改过的页面）是实现过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+- **实现委托**：业务页实现走仓外 `ui-template-apply`（消费 frozen Active Instance 或已确认的 adopt-only）。先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。改已经共享的 token / pattern / page-type → `ui-template-design` `iterate`，刷新 digest 后再继续 apply。
 
 ## 服务 / 后端
 

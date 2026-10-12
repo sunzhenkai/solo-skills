@@ -37,6 +37,15 @@
 
 UI/UX 得分是六个子项的平均分，任一子项为 0 则不通过，即使均值达标。
 
+## Web UI 证据前置
+
+交付类别为 Web UI 时，UI/UX 维度评分前必须已有（任一缺失 UI/UX 记 0，不通过）：
+
+- 最新代码上的 `task-confirm/scripts/ui_evidence_check.py` `report.json`，exit 0（多视口截图、axe WCAG 2.2 AA、焦点走查、四态）；
+- design 评审文件：`roles: design`、reviewer ≠ implementer、指向该 report，`--validate-review` exit 0。
+
+六子项打分由评审文件给出并引用 report 中的截图 / 违规条目；实现者自评与「源码已修订」不计分。
+
 ## 目标为「优秀 UI/UX」时
 
 - 设计底线逐条通过。

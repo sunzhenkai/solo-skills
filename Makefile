@@ -6,6 +6,9 @@
 #   - grilling / grill-with-docs / domain-modeling   来自 mattpocock/skills
 #   - ui-template-design / ui-template-apply / ui-template-author
 #       来自 sunzhenkai/ui-templates-skill（Web UI Active Instance / 实现 / 可选 package）
+#       frontend-design：不单独安装，随 ui-template-apply 以 vendor 形式提供（references/vendor/frontend-design）
+#   - playwright + axe-core（task-confirm/scripts/ui_evidence_check.py 的运行时，非 skill）：
+#       pip install playwright && playwright install chromium；在交付仓 npm i -D axe-core
 #   - acpx（二进制，非 skill）                        agent-roster 的委派执行，https://acpx.sh
 #
 # 若你已用 dotfiles 编目（`dotf agents -c`），无需本 Makefile——它已覆盖上述全部来源。
@@ -71,6 +74,9 @@ check-deps:
 		if [ -f "$(SKILLS_DIR)/$$s/SKILL.md" ]; then echo "ok    $$s"; \
 		else echo "WARN  $$s 未安装（Web UI 从源做 package 时需要，见 make install-ui-templates）"; fi; \
 	done; \
+	fd="$(SKILLS_DIR)/ui-template-apply/references/vendor/frontend-design/SKILL.md"; \
+	if [ -f "$$fd" ]; then echo "ok    frontend-design（ui-template-apply vendor）"; \
+	else echo "MISS  frontend-design：ui-template-apply 内置 vendor 缺失（Web UI 代表页实现依赖，make install-ui-templates 重装）"; miss=1; fi; \
 	if command -v acpx >/dev/null; then echo "ok    acpx"; \
 	else echo "WARN  acpx 未安装（仅 agent-roster 委派执行需要，见 make install-acpx）"; fi; \
 	exit $$miss
