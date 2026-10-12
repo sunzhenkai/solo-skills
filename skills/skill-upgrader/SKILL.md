@@ -83,6 +83,7 @@ description: "以可审计 patch 更新任意已有 Skill，或将其升级为�
 
 - `<slug>`：小写英文、数字和连字符，概括单一改动目的。
 - 目录必须全新；不得覆盖、改写或删除历史 patch 目录。
+- `<skill-dir>/patches/` 不存在（如历史已按仓库维护决定清理，改由 Git 追溯）时按需创建（`mkdir -p`），不得因缺目录中止。
 - `change.patch` 为 unified diff；路径相对**包含该 Skill 的 Git 仓库根**，且只触及该 `<skill-dir>/` 下生产内容。
 - patch 可增删改 `SKILL.md`、`references/`、`scripts/`、`assets/`、测试及 `self-upgrade` 所需的 `examples/` `evals/` `experience/`，但**不得**修改任何已有 `patches/` 历史记录。
 - 字段与模板见 [patch-protocol.md](references/patch-protocol.md)。

@@ -152,6 +152,8 @@ risk:
   tests/test_<name>.py.candidate
 ```
 
+`<skill-dir>/evolutions/` 不存在（如历史已按仓库维护决定清理，改由 Git 追溯）时按需创建（`mkdir -p`），不得因缺目录中止。
+
 规则：
 
 1. 以生产 `SKILL.md` 为底稿复制，只改 `proposed_change` 对应的局部。
