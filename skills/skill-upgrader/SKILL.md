@@ -1,7 +1,7 @@
 ---
 id: skill-upgrader
 name: skill-upgrader
-description: "以可审计 patch 更新任意已有 Skill，或将其升级为自进化（examples/evals/experience）。用户点名 skill-upgrader、要求改 Skill 正文、或升级为自更新时使用；入口先做模式门禁。不要在从零写 Skill时自动套用。也承接原 skill-evolver：用户点名 skill-evolver、要求根据执行经验进化/改进已有 Skill 时走 evolve 模式（仅显式触发，不要在每次任务结束后自动改 Skill）。"
+description: "以可审计 patch 更新任意已有 Skill，或将其升级为自进化（examples/evals/experience）。用户点名 skill-upgrader、要求改 Skill 正文、或升级为自更新时使用；入口先做模式门禁。不要在从零写 Skill 时自动套用。也承接原 skill-evolver：用户点名 skill-evolver、要求根据执行经验进化/改进已有 Skill 时走 evolve 模式（仅显式触发，不要在每次任务结束后自动改 Skill）。"
 ---
 
 # Skill Upgrader
