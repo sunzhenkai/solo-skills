@@ -1,0 +1,35 @@
+skill: taskrail
+
+problem: |
+  approve 冻结后，执行者把方案落盘叙述成完成，把未决查证当成交接门槛，
+  并把同一方案里的实施说成另一个任务，于是把探索侧 archive 列成推荐下一步。
+  档位表的下一格虽是 handoff，正文没有禁止把 archive 列成并列项；
+  archive 又把「不交接而结束」和「带着未决关闭」写成合法出口。
+
+evidence:
+  - 2026-10-12 一次 taskrail 真实执行：方案已冻结、台账已同步后，
+    推荐项是收尾归档，理由是方案稿已交付、实施另起任务、未决会卡住 handoff。
+    用户当场纠正：这是同一件事，实施应留在本任务里闭环。
+
+pattern: |
+  approve 出口缺少唯一推荐。human 闸口要列选项时，执行者用
+  「方案稿 = 交付」改写判据，并借 archive 的不交接关闭把实施推出本任务。
+  实施拆分的名字（taskflow 子 change）与探索拆分（expand 子任务）分开写，
+  却没写 approve 之后多条实施线必须进同一 driver 的子 change。
+
+proposed_change: |
+  1) taskrail SKILL.md 与 references/contract.md 增加「approve 出口」：
+     未 handed-off 时唯一推荐是 handoff；未决不阻断交接；
+     同一方案的多条实施线建成该 driver 的 taskflow 子 change；
+     禁止用当轮叙事改写 criterion；方案含实施且未交接时拒绝进入 archive。
+  2) task-explore 同步阶段细则（同一模式，避免「只加载该阶段细则」时仍走旧出口）：
+     phase-approve 的下一步只写 handoff，此出口不列三选一；
+     phase-archive 增加拒绝进入；SKILL.md 的 archive 命令摘要同步一句。
+  3) 两侧契约测试各加一条，锁定上述句子。
+  不改档位、不改父任务纯伞、不改子任务只一层、不删除「带着未决关闭」。
+
+expected_improvement: |
+  approve 完成后默认进入 handoff，查证进 driver 未决，实施拆成同一 driver
+  的子 change。只有用户明确放弃或不实施才 archive。
+
+risk: low

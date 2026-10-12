@@ -50,7 +50,11 @@
 - 可带进实现的未决：已逐条确认；未确认的不收录
 - 回退：选错了怎么撤
 
-写 `{taskRoot}/approve/APPROVED.md`（一句话结论、方案指针、评审意见路径、未决、下一步 handoff/propose）。`TASK.md` 元信息 `phase: approve` 完成后改为调用方约定的下一阶段（通常由 taskrail 写成 `propose`，或提示 `handoff`）。
+写 `{taskRoot}/approve/APPROVED.md`（一句话结论、方案指针、评审意见路径、未决、下一步只写 handoff）。`TASK.md` 元信息 `phase: approve` 完成后改为调用方约定的下一阶段（通常由 taskrail 写成 `propose`）。
+
+## 出口
+
+冻结写入之后，`status` 仍为 `ongoing` 且尚未 `handed-off` 时：`APPROVED.md` 的下一步只写 handoff。此出口不列 archive、另起任务、继续探索。查证项与外部依赖写入「可带进实现的未决」，不构成停在 approve 或改推 archive 的理由。禁止用当轮叙事改写 `criterion`。方案落盘不是完成门。同一已冻结方案里的多条实施线，在随后的 handoff 中建成该任务 driver 的 taskflow 子 change。
 
 同步 `INDEX.md` 对应行一句话（可改成「已批：…」）。有独立难逆权衡时另写 `{taskRoot}/design/adr-<slug>.md`。
 

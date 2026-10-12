@@ -100,6 +100,18 @@ class ContractTest(unittest.TestCase):
         self.assertIn("human 含强制走查", self.contract)
 
 
+    def test_approve_exit_is_handoff(self) -> None:
+        self.assertIn("### approve 出口", self.skill)
+        self.assertIn("唯一推荐下一步是 `handoff`", self.skill)
+        self.assertIn("未决不把推荐改成 archive", self.skill)
+        self.assertIn("禁止用当轮叙事改写 `criterion`", self.skill)
+        self.assertIn("拒绝进入 archive", self.skill)
+        self.assertIn("taskflow 子 change", self.skill)
+        self.assertIn("### approve 出口", self.contract)
+        self.assertIn("未决不阻断交接", self.contract)
+        self.assertIn("taskflow 子 change", self.contract)
+        self.assertIn("拒绝进入 archive", self.contract)
+
     def test_optional_worker_seat(self) -> None:
         self.assertIn("## 执行座位", self.contract)
         self.assertIn("派出是推荐，不是强制", self.contract)

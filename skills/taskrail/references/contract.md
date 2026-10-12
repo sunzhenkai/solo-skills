@@ -36,6 +36,10 @@ wizard → explore(+grill) → design → approve → [handoff] → propose → 
 | `handoff` | approve 已冻结后、进入 `propose` 前；委托 task-explore `handoff` | `status:=handed-off`，`phase:=propose`，写入 `driver` |
 | `expand` | explore / design 后按需 | 建子任务目录；父 `phase` 不变 |
 
+### approve 出口
+
+`status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`。查证项与外部依赖写入「可带进实现的未决」，未决不阻断交接。同一已冻结方案的多条实施线建成该 `{slug}-driver` 的 taskflow 子 change。禁止用当轮叙事改写 `criterion`。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive。
+
 ## 目录
 
 ```text

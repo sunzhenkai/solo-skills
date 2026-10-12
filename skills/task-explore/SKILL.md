@@ -194,7 +194,7 @@ tasks/
 
 ## `archive`
 
-对确认关闭的探索任务归档（不交接而结束、或 `handed-off` 后确认无需回溯），整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`，不要用本阶段代替交接。进入本阶段后 **先读** [references/phase-archive.md](references/phase-archive.md)，未读完不得搬目录。
+对确认关闭的探索任务归档（不交接而结束、或 `handed-off` 后确认无需回溯），整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`，不要用本阶段代替交接。经 taskrail、方案已冻结且方案含实施动作、尚未 `handed-off` 时，不进入本命令，改走 handoff。「方案已写完」「还有未决」不是关闭原因。进入本阶段后 **先读** [references/phase-archive.md](references/phase-archive.md)，未读完不得搬目录。
 
 门禁按序执行、任一不过即停；步骤与细则在 reference，下列五条不可跳过：
 

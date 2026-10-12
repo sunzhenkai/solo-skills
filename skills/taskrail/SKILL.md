@@ -67,6 +67,18 @@ wizard 定稿后写 `tier`，按契约表跳过未列出的阶段（simple 跳�
 
 design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**必须评估一次** expand（task-explore）。父纯伞、子一层；父禁止 handoff。
 
+### approve 出口
+
+`status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`：叶子任务交接自己；父伞只批量交接已批准子任务。此出口不列 archive、另起任务、继续探索。
+
+查证项与外部依赖写入「可带进实现的未决」，进入 driver 准备段或对应切片前置。未决不把推荐改成 archive，也不另开任务。
+
+同一已冻结方案里的多条实施线，建成该任务 `{slug}-driver` 的 taskflow 子 change。不为实施再 `expand`，不另起无关 driver。
+
+禁止用当轮叙事改写 `criterion`。方案落盘不是完成门。
+
+仅当用户明确说放弃、不实施、或确认关闭且不做实施时，才进入探索侧 archive。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive，改走 handoff。与 task-explore archive「不交接而结束」冲突时，以本节为准。
+
 ### 复杂档自动推进
 
 `confirm_mode: goal` 且 `tier: complex` 时：闸口一律走 task-confirm 审阅，收敛后同轮续下一阶段；不列选项。证据根落仓外并写入 `evidence_root`。apply 后可选质量环（角色化评审 / 增量复验）沿用 taskflow references 中的交付质量约定，不另开编排入口。

@@ -105,6 +105,17 @@ class ContractTest(unittest.TestCase):
         self.assertIn("本次结论", tpl)
         self.assertIn("SUMMARY.md", tpl)
 
+    def test_approve_exit_handoff_not_archive(self) -> None:
+        self.assertIn("下一步只写 handoff", self.approve)
+        self.assertIn("不列 archive", self.approve)
+        self.assertIn("禁止用当轮叙事改写 `criterion`", self.approve)
+        self.assertIn("taskflow 子 change", self.approve)
+        self.assertIn("拒绝进入本阶段，改走 handoff", self.archive)
+        self.assertIn("「方案已写完」「还有未决」不是关闭原因", self.archive)
+        section = self._section(self.skill, "## `archive`")
+        self.assertIn("改走 handoff", section)
+        self.assertIn("「方案已写完」「还有未决」不是关闭原因", section)
+
     def test_archive_counts_open_items_without_forcing_clearance(self) -> None:
         section = self._section(self.skill, "## `archive`")
         self.assertIn("未决问题", section)
