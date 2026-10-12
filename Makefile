@@ -24,7 +24,7 @@ UI_TEMPLATE_OPTIONAL := ui-template-author
 
 EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS) $(UI_TEMPLATE_SKILLS)
 
-.PHONY: help install-deps install-matt install-openspec install-ui-templates install-acpx check-deps
+.PHONY: help install-deps install-matt install-openspec install-ui-templates install-acpx check-deps check-names
 
 help:
 	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling + ui-template-*）并跑 check"
@@ -33,6 +33,7 @@ help:
 	@echo "make install-ui-templates  安装 ui-template-design / apply / author"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
 	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出；author 缺失仅 WARN）"
+	@echo "make check-names           扫描 skills/docs/根文档里的具体项目名（.project-denylist；命中非零退出）"
 
 install-deps: install-matt install-openspec install-ui-templates
 	@$(MAKE) --no-print-directory check-deps
@@ -80,3 +81,6 @@ check-deps:
 	if command -v acpx >/dev/null; then echo "ok    acpx"; \
 	else echo "WARN  acpx 未安装（仅 agent-roster 委派执行需要，见 make install-acpx）"; fi; \
 	exit $$miss
+
+check-names:
+	python3 scripts/check_no_project_names.py
