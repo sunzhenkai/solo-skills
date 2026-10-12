@@ -14,67 +14,7 @@ description: 通过 `grepom`（首选，跨平台批量操作工作区多仓）�
 
 ## 台账（`.repo-manager.md`）
 
-在**当前工作目录**维护 `.repo-manager.md`，记录本工作区的仓库台账与操作手帐，供人与后续 agent 复用。
-
-### 创建门禁（强制）
-
-| 情况 | 行为 |
-|------|------|
-| `./.repo-manager.md` **不存在** | **禁止自动创建**。向用户提示：「当前目录没有 `.repo-manager.md`，是否创建台账？」仅当用户明确同意（如「创建」「写台账」「初始化 .repo-manager.md」）后再按下方模板新建。 |
-| `./.repo-manager.md` **已存在** | **自动更新**：会话开始先读；有实质操作或新踩坑后立刻写回，无需再问。 |
-| 用户明确要求创建/初始化台账 | 即使原先不存在，也按模板创建并写入本次信息。 |
-
-路径始终是 **cwd 下的** `./.repo-manager.md`（不要写到 home、cache 或父目录，除非用户另行指定）。
-
-### 何时读写
-
-1. **任何 repo-manager 操作开始时**：若文件存在，先读一遍——优先采用其中的 resource/group 约定、exclude、鉴权环境变量名、已知坑。
-2. **文件存在且完成实质操作后**：自动追加/更新手帐与稳定信息（见下）。只读查询（如单纯 `status` / `list` 且无发现）可不写。
-3. **遇到坑时立刻写入**：鉴权失败、sync/clone 异常、prune 误伤、secret scan 命中策略、host/protocol 踩坑等——确认原因或绕过后马上记入「踩坑」，同一问题更新已有条目，不重复堆砌。
-4. **文件不存在时**：照常执行 grepom/glab；仅提示一次可建台账，**不**因提示未答复而阻断操作。
-
-### 应记录的内容
-
-- **概览**：工作区用途、`.grepom.yml` 位置（相对 cwd）、主要 resource / group / vgroup、本地 base 路径约定。
-- **约定**：常用 filter（`--group` / `--resource` / `--vgroup`）、exclude 策略、token 环境变量**名**（不写值）、SSH/HTTP 协议偏好。
-- **手帐**：有状态变化的操作——`sync` / `clone` / `pull` / `prune` / `push` / `mr` / `tag` / 批量 discovery 等；一行一条，含日期与结果摘要。
-- **踩坑**：本工作区特有问题与绕过方式。
-
-### 文件模板
-
-新建时使用（按实际删减，保持简洁）：
-
-```markdown
-# 仓库管理 — <工作区目录名>
-
-## 概览
-
-- 一句话说明本工作区管理哪些仓库
-- 配置：`.grepom.yml`（或相对路径）
-- base / 主要 group、resource
-
-## 约定
-
-- 常用命令或 filter
-- 鉴权：环境变量名（如 `${GITLAB_TOKEN}`），禁止写明文
-- exclude / prune 注意点
-
-## 手帐
-
-- YYYY-MM-DD：操作 → 范围 → 结果（如 sync 新增 N 仓；clone 失败的 repo）
-
-## 踩坑
-
-- YYYY-MM-DD：现象 → 原因 → 解决/绕过
-```
-
-### 写入原则
-
-- 只写与**多仓管理 / 同步 / 鉴权 / 扫描 / MR·流水线**相关的信息；不写业务代码细节。
-- **禁止**写入 token、密码、私钥、内部未公开 URL 中的凭据部分。
-- 手帐要可回溯：后人能看出「何时对哪些 group 做了什么」。
-- 稳定约定放「概览/约定」，一次性操作放「手帐」；不要把整份 `grepom status` 原文贴进文件。
-- 用户若明确要求不提交该文件，提醒可加入 `.gitignore`，但仍在本地维护。
+**创建门禁（强制）** 与模板：读写 `.repo-manager.md` 前先读 [references/ledger.md](references/ledger.md)。
 
 ## 工具选择
 
@@ -149,49 +89,7 @@ grepom prune --apply            # 真正删除
 
 ## 安全 push 与 secret scan
 
-```bash
-grepom push                     # gitleaks scan → git push；命中则中止
-grepom push -f                  # force（会警告）
-grepom push -- origin main      # 透传给 git push
-grepom scan                     # 扫工作区文件（gitleaks 规则）
-grepom scan --history           # 含 git 历史（含已删 commit）
-grepom scan --format json -o report.json
-grepom scan -p /path/to/repo    # 临时路径，不需要配置
-grepom scan --gitleaks-config rules.toml   # 项目级 allowlist
-```
-
-`grepom push` **不需要**配置文件，任意 git 仓库都能用。默认：先 scan，干净才 push。
-
-## MR / PR / Pipeline
-
-```bash
-# MR/PR — 从 HEAD 自动推断 branch、target、title
-grepom mr
-grepom mr --from feat-x --to main --title "Add X" --draft
-grepom mr --body-file desc.md --web    # 用浏览器打开，不用 CLI
-grepom pr                              # `mr` 的别名
-
-# Pipeline
-grepom pipeline list                   # 最近的 pipeline
-grepom pipeline watch                  # 等待当前 pipeline
-grepom watch                           # 从 cwd 自动识别仓
-grepom watch web-app --id 1234         # 指定仓 + pipeline
-```
-
-`grepom mr` 从 HEAD commit 读 title 和 body。先写好 Conventional Commit 主题。
-
-需要 `--squash-before-merge`、`--label`、`--assignee`、`--reviewer`、`--remove-source-branch`、`--milestone` 时，回退到 `glab mr create`。
-
-## Release tag
-
-```bash
-grepom tag                       # v0.1.5 → v0.1.6（lightweight）
-grepom tag -m "release notes"    # annotated
-grepom tag -p                    # push 到全部 remote
-grepom tag -t -p                 # t-prefix（测试 release）
-grepom tag -w                    # tag 后 watch pipeline
-grepom tag --dry-run             # 只预览
-```
+push 前必须按 [references/git-ops.md](references/git-ops.md)「安全 push 与 secret scan」执行；MR / PR / Pipeline、Release tag 同见该文件。
 
 ## 跳转
 
@@ -211,59 +109,7 @@ grepom dir web-app               # 可脚本化：cd "$(grepom dir web-app)"
 
 ## glab：GitLab 专用回退
 
-单仓范围。`grepom` 覆盖不到时再用。
-
-```bash
-glab auth login --hostname gitlab.example.com
-glab repo clone gitlab.example.com/group/repo
-glab mr create --title "..." --description "..." --target-branch main \
-  --squash-before-merge --remove-source-branch --label ~"feature" --reviewer alice
-glab mr list
-glab issue list --assignee @me
-glab ci status
-glab ci trace                    # 实时 job 日志
-glab variable list               # CI/CD variables
-glab api projects/:id/variables  # raw API
-```
-
-## 多实例鉴权
-
-`glab` 按 hostname 存凭据，没有 `switch` 命令。每个实例登录一次，再按命令或当前 shell 选 host：
-
-```bash
-# --stdin 避免 token 进 shell history
-glab auth login --hostname gitlab.example.com --stdin
-glab auth login --hostname gitlab.other.com --stdin
-glab auth status --all
-
-GITLAB_HOST=gitlab.other.com glab mr list   # 单条命令
-export GITLAB_HOST=gitlab.example.com       # 当前 shell
-glab auth logout --hostname gitlab.other.com
-```
-
-host 解析顺序：`GITLAB_HOST` → 当前仓库 Git remote → `~/.config/glab-cli/config.yml`。无图形界面登录用 `--device`（GitLab 17.9+）。凭据默认走 OS keyring；仅必要时才用 `--insecure-storage`。
-
-对 `grepom`：每个 GitLab 实例建模成命名 `resource`，再把 group 绑上去：
-
-```yaml
-resources:
-  corp:
-    provider: gitlab
-    url: https://gitlab.example.com
-    token: ${CORP_GITLAB_TOKEN}
-  oss:
-    provider: gitlab
-    url: https://gitlab.com
-    token: ${OSS_GITLAB_TOKEN}
-
-groups:
-  - name: backend
-    resource: corp
-    path: my-org/backend
-    recursive: true
-```
-
-按需用 `grepom clone --resource corp`、`grepom status --resource corp` 或 `grepom pull --resource corp`；每个 resource 可覆盖自己的 `token`/`ssh_key`。token 放环境变量，用最小权限 PAT；泄露则立刻 revoke/rotate。
+glab 回退与多实例鉴权见 [references/git-ops.md](references/git-ops.md)。
 
 ## 维护
 
