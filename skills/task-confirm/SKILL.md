@@ -126,7 +126,6 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
 - 质量画像：[references/quality-profile.md](references/quality-profile.md)
 - 交付类别门包（**唯一真源**）：[references/gate-packs.md](references/gate-packs.md)——哪类交付用哪套门、必载专家能力、基准物；taskrail / taskflow / task-explore 只引用本表
 - 挂起五元组：[references/suspension.md](references/suspension.md)
-- **legacy（勿作进度真源）**：[references/legacy/state-machine.md](references/legacy/state-machine.md)、[references/legacy/state-file.md](references/legacy/state-file.md)、`scripts/goal_transition.py`——仅旧 goal 计数器可选；**新编排进度真相是 `TASK.md.phase` / OpenSpec checkbox**，不得以状态机网格替代 taskrail 阶段推进。
 
 ---
 
