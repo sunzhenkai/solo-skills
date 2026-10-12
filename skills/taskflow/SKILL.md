@@ -10,7 +10,7 @@ description: "交接后的执行：check_handoff 入口门通过后用 `taskflow
 
 一个任务 = 一个 driver change `{task}-driver`。实现拆成若干子 change `{task}-<slice>`，与 driver 同一 planning root；跨 root 时在 driver 涉及面表里显式记录 root 或 store id。共享 `{task}` 前缀让 `openspec list` 直接看出归属，不需要额外元数据。
 
-**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。
+**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。术语见 [../taskrail/references/glossary.md](../taskrail/references/glossary.md)。
 
 ## 阶段路由
 

@@ -1,6 +1,6 @@
 # taskrail 契约（阶段 / 载荷 / 闸口 / 目录）
 
-本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准；各 skill 正文只写执行细则，不另造阶段枚举。
+本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准（术语定义见 [glossary.md](glossary.md)）；各 skill 正文只写执行细则，不另造阶段枚举。
 
 ## 流程
 

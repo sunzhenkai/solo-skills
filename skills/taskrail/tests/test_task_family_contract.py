@@ -158,5 +158,20 @@ class TestTriggerOwnership(unittest.TestCase):
                 self.assertNotIn(t, head, f"{skill} 仍抢 {t}")
 
 
+class TestGlossary(unittest.TestCase):
+    """P2-12：术语表唯一真源，三个 skill 正文都链到它。"""
+
+    def test_glossary_covers_terms(self) -> None:
+        g = read("taskrail", "references/glossary.md")
+        for term in ("Active Instance", "freeze", "digest", "Gallery", "代表页", "旗舰切片",
+                     "`pending`", "`provisional`", "`confirmed`", "accepted-recorded", "handed-off"):
+            self.assertIn(term, g)
+
+    def test_skills_link_glossary(self) -> None:
+        self.assertIn("](references/glossary.md)", read("taskrail", "SKILL.md"))
+        for skill in ("task-explore", "taskflow"):
+            self.assertIn("](../taskrail/references/glossary.md)", read(skill, "SKILL.md"), skill)
+
+
 if __name__ == "__main__":
     unittest.main()

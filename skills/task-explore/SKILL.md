@@ -10,7 +10,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
 
-**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。两套账；唯一桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)。
+**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。两套账；唯一桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)；术语见 [../taskrail/references/glossary.md](../taskrail/references/glossary.md)。
 
 ### 命令与 `TASK.md.phase`（强制）
 

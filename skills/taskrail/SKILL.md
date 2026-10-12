@@ -10,7 +10,7 @@ description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，�
 
 把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)（原 task-confirm，已并入）；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
 
-契约真源：[references/contract.md](references/contract.md)。
+契约真源：[references/contract.md](references/contract.md)；术语表：[references/glossary.md](references/glossary.md)。
 
 ## 输入
 
