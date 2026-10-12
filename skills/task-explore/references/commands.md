@@ -4,15 +4,6 @@
 
 ## `new`
 
-立项。细则见 [references/commands.md](commands.md)。
-
-1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
-2. 推断 `{task-name}`；冲突则 resume 或换名。创建 `TASK.md`（模板）与 INDEX 行；绑定任务。
-3. 输入含现成方案时登记进「方案」小节，不丢上游产物；无完成判据不编造。
-4. 报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
-
-### 细则（原 commands.md）
-
 1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
 2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
 3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
@@ -28,14 +19,6 @@
 
 ## `chat`（默认）
 
-对任务问答。细则见 [references/commands.md](commands.md)。
-
-- 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
-- 不要把 `chat` 默认为 `explore`（不自动 grill）或 `design`（不写方案稿）。
-- 路径已清、要交付 → `approve` 然后 `handoff`。有进展则提示是否更新任务文档。
-
-### 细则（原 commands.md）
-
 对任务进行问答：解释、排查、对照代码与已有笔记。先读任务文档再答。
 
 - 只读本仓代码与任务里已有笔记，不做外部参照；不要开始实现。
@@ -46,14 +29,6 @@
 - 有进展则提示是否更新任务文档。
 
 ## `resume`
-
-恢复进行中的探索任务。细则见 [references/commands.md](commands.md)。
-
-- **任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`（INDEX 漂移可重建），不要改 `TASK.md` / `glossary.md` / `design/`。
-- 未指定名字：用 INDEX 列出请用户选。已归档不要自动恢复，走 `reopen`。
-- 短摘要：**目标 / 当前 phase / 进展 / 未决 / 建议下一步**，然后等用户。
-
-### 细则（原 commands.md）
 
 恢复进行中的探索任务。**任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`，不要改 `TASK.md` / `glossary.md` / `design/`。
 
@@ -75,14 +50,6 @@
 兼容：点名 `decide` / `plan-review` 时改走本阶段（处在 goal 里时不逐条问用户）。
 
 ## `save`
-
-保存任务最新进展。细则见 [references/commands.md](commands.md)。
-
-1. 必须已绑定。合并本轮进展，不抹掉仍有效的旧内容。
-2. 更新 `updated` 与相关章节；同步 INDEX（不要把进展日志抄进索引）。
-3. 不要贴聊天记录。无新进展则说明无需写入。
-
-### 细则（原 commands.md）
 
 保存任务最新进展到任务文档。
 
