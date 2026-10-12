@@ -1,24 +1,24 @@
 ---
 id: skill-upgrader
 name: skill-upgrader
-description: "以可审计 patch 更新任意已有 Skill，或将其升级为自进化（examples/evals/experience）。用户点名 skill-upgrader、要求改 Skill 正文、或升级为自更新时使用；入口先做模式门禁。不要在从零写 Skill、或用 skill-evolver 按经验进化时自动套用。"
+description: "以可审计 patch 更新任意已有 Skill，或将其升级为自进化（examples/evals/experience）。用户点名 skill-upgrader、要求改 Skill 正文、或升级为自更新时使用；入口先做模式门禁。不要在从零写 Skill时自动套用。也承接原 skill-evolver：用户点名 skill-evolver、要求根据执行经验进化/改进已有 Skill 时走 evolve 模式（仅显式触发，不要在每次任务结束后自动改 Skill）。"
 ---
 
 # Skill Upgrader
 
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
 
-本 Skill 是**公用**工具：可对任意含 `SKILL.md` 的目录做可审计更新，或做一次性自进化结构升级。所有生产改动必须先写入目标 Skill 的 `patches/`，禁止先改生产文件、事后补 patch。
+本 Skill 是**公用**工具：可对任意含 `SKILL.md` 的目录做可审计更新，或做一次性自进化结构升级。所有生产改动必须先写入目标 Skill 的 `patches/`（`evolve` 模式写 `evolutions/`），禁止先改生产文件、事后补 patch。
 
 ## 与相关 Skill 的关系
 
 | Skill | 职责 |
 |-------|------|
 | **本 skill** | 任意 Skill：模式门禁后，`update`（改正文/配套）或 `self-upgrade`（加 examples/evals/experience）；二者都走 `<skill-dir>/patches/` |
-| `skill-evolver` | 基于多次真实执行：提案 → `evolutions/` 候选 → eval → 晋升生产稿 |
+| `evolve` 模式（原 `skill-evolver`） | 基于多次真实执行：提案 → `evolutions/` 候选 → eval → 晋升生产稿；进入时读 [references/evolve.md](references/evolve.md) |
 
-- 用户明确选择 `skill-evolver` 或要求按**执行经验**进化时：停止本流程，交给 `skill-evolver`（用 `evolutions/`，不写本 skill 的 `patches/`）。
-- 本 skill **不**根据经验改目标 Skill 的核心行为（那是 `skill-evolver`）。目标尚未具备自进化目录且用户要自更新时，走 `self-upgrade`。
+- 用户点名 `skill-evolver` 或要求按**执行经验**进化时：选 `evolve` 模式，按 [references/evolve.md](references/evolve.md) 执行（用 `evolutions/`，不写 `patches/`）；下文工作流/patch 协议只适用于 `update` / `self-upgrade`。
+- `update` / `self-upgrade` **不**根据经验改目标 Skill 的核心行为（那是 `evolve`）。目标尚未具备自进化目录且用户要自更新时，走 `self-upgrade`。
 
 ## 模式门禁（强制）
 
@@ -29,6 +29,7 @@ description: "以可审计 patch 更新任意已有 Skill，或将其升级为�
 | 模式 | 何时选用 | 做什么 |
 |------|----------|--------|
 | `update` | 修改已有行为、流程、门禁、references/scripts、修 bug、澄清规则等，**不**以「变成自进化」为目的 | 对生产内容做最小可审计 patch |
+| `evolve` | 点名 `skill-evolver`，或要求基于多次真实执行经验进化正文（仅显式触发） | 读 [references/evolve.md](references/evolve.md)，提案 → `evolutions/` 候选 → eval → 晋升 |
 | `self-upgrade` | 明确要把已有 Skill **切换/升级为自更新**（加 examples / evals / experience，并注入自进化指令） | 按布局模板补目录与注入段落；改动仍打包进 patch 再应用 |
 
 判定规则：
@@ -36,7 +37,7 @@ description: "以可审计 patch 更新任意已有 Skill，或将其升级为�
 1. **只说「改 / 修 / 更新 / 重构 Skill」**且未提自进化 → `update`。
 2. **点名自进化 / 自更新 / 加 examples·evals·experience / 升级为可进化** → `self-upgrade`。
 3. **两者都像或都不像**：先问一句二选一，不猜。笼统的「优化一下这个 Skill」不算已选定模式。
-4. **按真实执行经验进化正文** → 不是本 skill；导向 `skill-evolver`。
+4. **按真实执行经验进化正文**（含点名 `skill-evolver`）→ `evolve`。
 5. **从零创建 Skill** → 停止；走写作/安装类流程。
 
 一次会话只处理 **一个** 目标 Skill、**一种** 模式、**一轮** patch。
@@ -100,7 +101,7 @@ description: "以可审计 patch 更新任意已有 Skill，或将其升级为�
 
 ```text
 Progress:
-- [ ] 模式门禁（update | self-upgrade | abort→evolver/create）
+- [ ] 模式门禁（update | self-upgrade | evolve→evolve.md | abort→create）
 - [ ] 定位并完整读取现有 SKILL.md
 - [ ] 前置判断（意图 / 冲突 / 合理性）
 - [ ] 写 proposal.md（尚未改生产文件）
@@ -231,7 +232,7 @@ my-skill/
 
 Experience 进入 Skill 正文前须：可复用、有证据、能改善结果、不破坏已有能力、可通过 Eval。一次性特例只留 Experience。
 
-实际改生产正文：若环境有 `skill-evolver`，**委托它**；否则可用本 skill 的 `update` 模式走 `patches/`。禁止单次失败直接改 `SKILL.md`。
+实际改生产正文：经验驱动走本 skill 的 `evolve` 模式（`evolutions/`）；显式修订走 `update` 模式（`patches/`）。禁止单次失败直接改 `SKILL.md`。
 
 ---
 
@@ -274,5 +275,5 @@ risk: low | medium | high
 status: proposed | applied | failed | already-upgraded | aborted
 change: <一句话>
 validation: <通过项或失败原因>
-next: <需要确认、sync 提醒、转 skill-evolver，或无>
+next: <需要确认、sync 提醒、转 evolve 模式，或无>
 ```

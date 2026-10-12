@@ -25,4 +25,4 @@ start / restart 开发/测试原生服务时，**默认不改监听配置**（�
 不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。没有真实案例时不要编造 `examples/` 条目。
 仅当 Experience 暴露可复用稳定模式时才改本 Skill。禁止单次失败直接改 `SKILL.md`。
 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
-若改动来自**真实执行经验**：优先委托 `skill-evolver`（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
+若改动来自**真实执行经验**：优先委托 `skill-upgrader` 的 `evolve` 模式（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。

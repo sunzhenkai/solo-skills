@@ -31,7 +31,7 @@
 6. 🟡 职责越界：内嵌了其他 skill 的职责且缺 redirect。
    命中判据：指出一段指令与某既有 skill 的 description 重叠，且文中未 redirect。
 7. ⚪ 公开仓纪律：正文 / 示例含个人、凭据、内部 URL 痕迹；运行产物约定写进 skill 目录。
-8. ⚪ 自进化纪律：正文诱导自动进化（如「失败后自动更新本文件」），绕过 skill-evolver 的显式触发。
+8. ⚪ 自进化纪律：正文诱导自动进化（如「失败后自动更新本文件」），绕过 skill-upgrader evolve 模式的显式触发。
 
 ## 不算问题
 
@@ -42,7 +42,7 @@
 
 ## 下游建议
 
-`skill-creator` → 新建或大改 skill；`skill-upgrader` → 可审计 patch 更新正文 / 结构；`skill-evolver` → 按真实执行经验进化（仅显式触发）。
+`skill-creator` → 新建或大改 skill；`skill-upgrader` → 可审计 patch 更新正文 / 结构，或 `evolve` 模式按真实执行经验进化（仅显式触发）。
 
 ## 跨角色 redirect
 

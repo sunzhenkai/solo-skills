@@ -205,7 +205,7 @@ class TestSelfEvolutionSingleSource(unittest.TestCase):
     def test_compact_form_kept(self) -> None:
         block = self._block("taskflow")
         self.assertLess(len(block.splitlines()), 30, "样板块过长，应保持指针式短块")
-        for kept in ("examples/", "evals/cases.yaml", "experience/", "skill-evolver", "patches/"):
+        for kept in ("examples/", "evals/cases.yaml", "experience/", "evolve", "patches/"):
             self.assertIn(kept, block)
 
     def test_injection_template_matches_blocks(self) -> None:

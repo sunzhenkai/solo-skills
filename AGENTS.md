@@ -40,7 +40,7 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 ## 改 skill 正文的流程
 
 - 结构缺失（无 `examples/` / `evals/` / `experience/`）先走 **skill-upgrader** 一次性升级结构。
-- 基于真实执行经验改正文走 **skill-evolver**：仅显式触发，**禁止自动进化**（一次失败 / 一次用户纠正都不足以改 skill）；先展示 Evolution Proposal，用户确认后才写 `evolutions/<date-slug>/`（proposal.yaml + decision.md + eval.md + 候选稿）。
+- 基于真实执行经验改正文走 **skill-upgrader 的 `evolve` 模式**（原 skill-evolver）：仅显式触发，**禁止自动进化**（一次失败 / 一次用户纠正都不足以改 skill）；先展示 Evolution Proposal，用户确认后才写 `evolutions/<date-slug>/`（proposal.yaml + decision.md + eval.md + 候选稿）。
 - 变更留审计痕迹：`patches/`（proposal + change.patch + result）或 `evolutions/`，不要直接编辑正文绕过。
 
 ## 外部依赖（不在本仓）
@@ -72,7 +72,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 - **通用性优先**：skill 面向一类问题而非一个具体场景。通过机制（协议、阶段门禁、契约）解决问题，避免为单一案例特例化；遇到具体需求时先问「这类问题的一般解是什么」。
 - **SKILL.md 体量（指导线，不设测试）**：单个 `SKILL.md` 宜控制在约 8KB 以内——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
-- **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-evolver（正文演进）与 skill-upgrader（结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
+- **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-upgrader 的 `evolve`（正文演进）与 `update` / `self-upgrade`（修订 / 结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
 
 ## 公开仓纪律
 

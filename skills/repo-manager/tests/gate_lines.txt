@@ -9,7 +9,7 @@ token 值用 `${ENV_VAR}` 替换。密钥放在 shell 环境（1Password CLI / d
 **未经用户确认，禁止 `--force` push**。
 **台账**：遵守 `.repo-manager.md` 创建门禁——禁止自动创建；仅文件已存在时自动更新（见「台账」节）。
 优先跑真实 `--help`，不要猜参数——两个工具迭代快，flag 会变。
-改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+改生产正文：先出提案并经用户确认，再走 `skill-upgrader` 的 `evolve` 模式（`evolutions/`）或 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
 **HTTP-only 实例必须显式 `--api-protocol http`**：默认走 https，遇到 TLS 错误优先怀疑这个 flag 没带。
 **keyring 不可用时 fallback 到 plaintext**（常见于 Linux server / 无 desktop env）：token 落到 `~/.config/glab-cli/config.yml`（权限 0600）。可手动 `chmod 600` 加固；启用 desktop 后再 `glab auth login` 一次会搬回 keyring。
 **搜 namespace 不要只查一处**：自托管 group/user 命名易混，三个 API 并行查：

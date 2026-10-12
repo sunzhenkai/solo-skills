@@ -87,7 +87,7 @@ class RuntimeReadonlyCompliance(unittest.TestCase):
             self.assertNotIn(forbidden, SKILL, f"不应出现：{forbidden}")
 
     def test_evolution_via_source_repo_explicit_flow(self) -> None:
-        self.assertIn("`skill-evolver`", SKILL)
+        self.assertIn("`evolve`", SKILL)
         self.assertIn("`skill-upgrader`", SKILL)
         self.assertIn("未展示 Proposal 并获用户确认前，不改生产正文。", SKILL)
         self.assertIn("单次失败或单次用户纠正不足以改 skill", SKILL)

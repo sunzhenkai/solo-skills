@@ -310,5 +310,5 @@ related_knowledge: []
 安装到各 agent 目录的 skill 是字节复制镜像：往 skill 目录内写的内容会在下次同步时丢失，运行时只读是仓库纪律。因此：
 
 - 探索产物与可复用教训一律落**工作区**（用户指定的知识库、任务台账），不落本 skill 目录。
-- 需要改进本 skill 正文时，在**源仓**走显式流程：来自真实执行经验的改动委托 `skill-evolver`（先提案、经用户确认再写 `evolutions/`）；结构或规则的显式修订走 `skill-upgrader` 的 update 模式（`patches/` 审计）。未展示 Proposal 并获用户确认前，不改生产正文。
+- 需要改进本 skill 正文时，在**源仓**走显式流程：来自真实执行经验的改动委托 `skill-upgrader` 的 `evolve` 模式（先提案、经用户确认再写 `evolutions/`）；结构或规则的显式修订走 `skill-upgrader` 的 update 模式（`patches/` 审计）。未展示 Proposal 并获用户确认前，不改生产正文。
 - 单次失败或单次用户纠正不足以改 skill；可复用、跨任务稳定出现的规律才够门槛。

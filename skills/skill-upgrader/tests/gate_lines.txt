@@ -1,5 +1,5 @@
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
-本 Skill 是**公用**工具：可对任意含 `SKILL.md` 的目录做可审计更新，或做一次性自进化结构升级。所有生产改动必须先写入目标 Skill 的 `patches/`，禁止先改生产文件、事后补 patch。
+本 Skill 是**公用**工具：可对任意含 `SKILL.md` 的目录做可审计更新，或做一次性自进化结构升级。所有生产改动必须先写入目标 Skill 的 `patches/`（`evolve` 模式写 `evolutions/`），禁止先改生产文件、事后补 patch。
 模式门禁（强制）
 未判定模式前，不得写 patch、不得改生产文件。
 **必须有目标**：给出 skill 名、id 或含 `SKILL.md` 的目录。未指定先问，不猜。
@@ -30,7 +30,7 @@ patch 必须：只含 proposal 声明的改动；上下文足以精确应用；�
 完整读取现有 `SKILL.md`（及其声明要读的 `references/` / `scripts/`）。不要为了自进化破坏原有行为；不要重写无关段落。
 幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有同等「Self-evolution」段落则不要再贴一份。
 **SKILL.md** — 末尾追加与 [link] 一致的正文（只替换 `<skill-dir>`）；不改写语气或删减门禁。
-实际改生产正文：若环境有 `skill-evolver`，**委托它**；否则可用本 skill 的 `update` 模式走 `patches/`。禁止单次失败直接改 `SKILL.md`。
+实际改生产正文：经验驱动走本 skill 的 `evolve` 模式（`evolutions/`）；显式修订走 `update` 模式（`patches/`）。禁止单次失败直接改 `SKILL.md`。
 修改 Skill 时不要直接覆盖原意而不留记录。本 skill 以 `patches/<id>/` 作为审计与版本线索；有 Git 时同时依赖 Git 历史。
 不删除仍在生效的安全/门禁规则（除非 `update` 且用户确认该规则本身有害）
 任一项未完成则补齐或 `failed`，不要声称已升级。
@@ -52,4 +52,24 @@ patch 必须：只含 proposal 声明的改动；上下文足以精确应用；�
 日后写案例用 `example-case.md` / `experience-entry.md` 的字段，不要在升级时生成假条目。
 `status` 在 proposal 中保持 `proposed`，最终状态写入 `result.md`，不要回写历史提案。
 找不到 Git 仓库根时不得伪造 apply；停止并交由用户处理。
-改生产正文：先出提案并经用户确认，再走 `skill-evolver`（`evolutions/`）或 `skill-upgrader` 的 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+改生产正文：先出提案并经用户确认，再走 `skill-upgrader` 的 `evolve` 模式（`evolutions/`）或 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
+未过门禁不得进入本 skill 的分析、patch、晋升。
+**禁止自动进化**：普通任务完成、一次失败、一次用户纠正，都不足以自行改 Skill。
+不要直接修改生产 Skill。
+不要因为一次特殊 Case 就修改 Skill。
+证据不足时输出 `no-evolve`，说明缺什么，然后停止。不要硬编 Proposal。
+`risk: high`（改变触发条件、删除既有硬规则、扩大权限、改脚本副作用）必须等用户明确同意；沉默不等于同意。
+**禁止**直接改生产稿。先在候选目录做最小 patch：
+`<skill-dir>/evolutions/` 不存在（如历史已按仓库维护决定清理，改由 Git 追溯）时按需创建（`mkdir -p`），不得因缺目录中止。
+一次进化只修一个稳定模式。不要顺手重构、改写无关段落、扩 scope。
+保留现有正确行为；新增规则要可执行（步骤、检查、例子），不要写「注意」「尽量」。
+过拟合禁止：不要把一次任务的路径、文件名、密钥、机器专属环境、内部项目代号、私有 trace/日志文件名写进 Skill，也不要写进本轮任何产物（proposal.yaml / eval.md / decision.md）及关联 commit message。证据先抽象后落盘：一律用「时间 + 次数 + 事件类型」的通用描述（如「2026-09-23 两次真实委派」），把特例细节提取为可复用的特性或功能描述，而不是照抄原始任务细节。
+候选目录与生产稿同处一棵被仓库工具扫描的树，不是沙箱：除 `SKILL.md` 外的候选文件一律以「相对路径 + 原名 + `.candidate`」落盘，不得与生产文件同名同扩展名。`test_*.py` 原样复制会让宿主测试在 collection 阶段就报 import mismatch 并中断整个 suite。晋升时去掉 `.candidate` 写回对应生产路径；本轮之前的历史条目不追溯改名。
+若目标 Skill 在本仓库：生产稿是 `skills/<id>/`，**不要**改 sync 生成的 `~/.agents/skills/` 镜像。
+**契约**：两级都跑。第一级：目标 Skill 自带测试（没有则做指令级对照，不编造分数）。第二级：宿主仓库文档（`AGENTS.md` / `README` / `Makefile`）声明的全量门禁；全量门禁不过，本节结论只能写 `fail`，不得进入第 6 步 promote。宿主未声明全量门禁时记 `skipped` 并注明依据。
+任一项失败 → 修候选稿再评，或 `reject`。不要带着失败结果晋升。
+晋升前必须同时满足：
+拒绝同样是成功结局。不要为了「有产出」而晋升。
+不删除仍在生效的安全/门禁规则，除非证据表明该规则本身在制造系统性失败，且用户确认
+每轮结束用简短结构汇报，不要贴整份 Skill：
