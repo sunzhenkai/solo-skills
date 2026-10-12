@@ -24,7 +24,7 @@ handoff 不再归档：交接后任务转入 `handed-off`（留在 `tasks/ongoin
 
 ## Rationale
 
-真实事故（sage agent-web-rebuild）：handoff 归档后 INDEX Ongoing 清空，用户与后续会话误判任务死亡；归档后的 plan-review 发现 P0 只能越界写 `tasks/reviews/`。状态机把「换账本」与「生命周期终止」耦合是根因；用户已逐条裁决（grill Q1-A、Q2-C、Q3/Q4/Q5/Q6 按推荐）。
+真实事故（某 Web 前端重建任务）：handoff 归档后 INDEX Ongoing 清空，用户与后续会话误判任务死亡；归档后的 plan-review 发现 P0 只能越界写 `tasks/reviews/`。状态机把「换账本」与「生命周期终止」耦合是根因；用户已逐条裁决（grill Q1-A、Q2-C、Q3/Q4/Q5/Q6 按推荐）。
 
 ## Files
 
