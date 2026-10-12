@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def norm(line: str) -> str:
     line = line.strip()
     line = re.sub(r"^(?:[-*>]\s+|\d+\.\s+|#+\s+)", "", line)
+    line = re.sub(r"\[[^\]]*\]\([^)]*\)", "[link]", line)  # 链接目标/文字随文件搬家而变，不算语义变化
     return line.strip()
 
 

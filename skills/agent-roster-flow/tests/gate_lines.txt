@@ -1,4 +1,4 @@
-先读本文件。确认 Track 之后读 [references/tracks.md](references/tracks.md)。进入某个 Stage 再读 [references/stages.md](references/stages.md) 对应节，不要预加载其它 Stage。新建或恢复 Flow 时读 [references/spine.md](references/spine.md)。
+先读本文件。确认 Track 之后读 [link]。进入某个 Stage 再读 [link] 对应节，不要预加载其它 Stage。新建或恢复 Flow 时读 [link]。
 **执行才派出**：理解不派出。实现与代码评审一旦进入就必须派出。编排者不得自任执行。
 **先确认后派出**：每个 Stage 开始前确认 Assignment 并写入 spine。派出前还要按 `$agent-roster` 写 `decision.md`（必须早于执行）。
 **model 进契约**：委托 `$agent-roster` 时带上已确认的 Endpoint 与 Model。契约没有 `model` 字段就停下报告，不要把模型只写进 prompt 指望受派方遵守。

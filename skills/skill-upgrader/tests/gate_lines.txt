@@ -29,7 +29,7 @@ patch 必须：只含 proposal 声明的改动；上下文足以精确应用；�
 最终目标：把静态 `SKILL.md` 升级成能从真实执行积累经验、并以 Eval 驱动改进的 Skill。**升级本身的文件写入也必须经 patch 应用**，不要直接 `mkdir`/写生产文件。
 完整读取现有 `SKILL.md`（及其声明要读的 `references/` / `scripts/`）。不要为了自进化破坏原有行为；不要重写无关段落。
 幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有同等「Self-evolution」段落则不要再贴一份。
-**SKILL.md** — 末尾追加与 [skill-injection.md](references/skill-injection.md) 一致的正文（只替换 `<skill-dir>`）；不改写语气或删减门禁。
+**SKILL.md** — 末尾追加与 [link] 一致的正文（只替换 `<skill-dir>`）；不改写语气或删减门禁。
 实际改生产正文：若环境有 `skill-evolver`，**委托它**；否则可用本 skill 的 `update` 模式走 `patches/`。禁止单次失败直接改 `SKILL.md`。
 修改 Skill 时不要直接覆盖原意而不留记录。本 skill 以 `patches/<id>/` 作为审计与版本线索；有 Git 时同时依赖 Git 历史。
 不删除仍在生效的安全/门禁规则（除非 `update` 且用户确认该规则本身有害）

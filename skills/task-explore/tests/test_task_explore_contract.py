@@ -68,7 +68,6 @@ class ContractTest(unittest.TestCase):
             "references/phase-archive.md",
             "references/phase-reopen.md",
             "references/phase-plan-review.md",
-            "references/external-precedent.md",
             "references/design-template.md",
             "references/task-template.md",
             "references/index-template.md",
@@ -428,10 +427,10 @@ class ContractTest(unittest.TestCase):
 
 
 class TestExternalPrecedentThinReference(unittest.TestCase):
-    """external-precedent.md 薄引用：细则唯一真源在 taskrail。"""
+    """外部参照钩子（原 external-precedent.md，已删）：细则唯一真源在 taskrail。"""
 
     def setUp(self) -> None:
-        self.precedent = (ROOT / "references" / "external-precedent.md").read_text(
+        self.precedent = (ROOT / "references" / "phase-explore.md").read_text(
             encoding="utf-8"
         )
 
