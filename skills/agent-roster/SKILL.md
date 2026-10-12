@@ -1,10 +1,14 @@
 ---
 id: agent-roster
 name: agent-roster
-description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。不实现被委派 agent 自身的能力。
+description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。也承接原 agent-roster-flow：按 Stage 编排跨 agent 任务（理解、定方案、方案评审、实现、可选代码评审、收尾），用于多 agent 工作流、跨 agent 分步选人、每步选 Endpoint 和模型时走 flow 模式。普通单次修复不要加载 flow。不实现被委派 agent 自身的能力。
 ---
 
 # Agent Roster
+
+## flow 模式（原 agent-roster-flow）
+
+使用者要按 Stage 串起多 agent 工作流（每段确认 Endpoint + Model 或 human，执行才委派）时，读 [references/flow.md](references/flow.md)；否则不加载。
 
 ## 一次委派的完整顺序
 

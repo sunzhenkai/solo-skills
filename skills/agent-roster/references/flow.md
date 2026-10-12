@@ -1,18 +1,12 @@
----
-id: agent-roster-flow
-name: agent-roster-flow
-description: 按 Stage 编排跨 agent 任务：理解、定方案、方案评审、实现、可选代码评审、收尾。每段在本会话确认 Assignment（Endpoint+Model 或 human），执行才委托 $agent-roster。用于多 agent 工作流、跨 agent 分步选人、每步选 Endpoint 和模型。普通单次修复不要加载。
----
+# flow 模式（原 agent-roster-flow）
 
-# Agent Roster Flow
+面向用户默认简体中文。命令名、路径、代码、状态值与既成术语保持原文。术语见 [flow-context.md](flow-context.md)。
 
-面向用户默认简体中文。命令名、路径、代码、状态值与既成术语保持原文。术语见 [CONTEXT.md](CONTEXT.md)。
-
-依赖 `$agent-roster`。本 skill 不直接调用 `acpx`。
+依赖 `$agent-roster` 主流程（委派 / 契约 / Trace）。flow 模式不直接调用 `acpx`。
 
 ## 加载
 
-先读本文件。确认 Track 之后读 [references/tracks.md](references/tracks.md)。进入某个 Stage 再读 [references/stages.md](references/stages.md) 对应节，不要预加载其它 Stage。新建或恢复 Flow 时读 [references/spine.md](references/spine.md)。
+先读本文件。确认 Track 之后读 [flow-tracks.md](flow-tracks.md)。进入某个 Stage 再读 [flow-stages.md](flow-stages.md) 对应节，不要预加载其它 Stage。新建或恢复 Flow 时读 [flow-spine.md](flow-spine.md)。
 
 ## 一次 Flow
 
@@ -38,7 +32,7 @@ Stage 串行。Complex 实现里子 change 的并行由 `$taskflow` 负责。
 
 `flow_id` = `<YYYYMMDD-HHMMSS>-<slug>`。spine 在 `~/.cache/agent-roster/flows/<flow_id>/`。
 
-- 使用者要继续上次：读 cache 下列出进行中的 spine，选一个再恢复。格式见 [references/spine.md](references/spine.md)。
+- 使用者要继续上次：读 cache 下列出进行中的 spine，选一个再恢复。格式见 [flow-spine.md](flow-spine.md)。
 - 否则新建 spine，记下任务一句话与工作目录。
 - 未写入 spine 不得进入理解之后的 Stage。
 
@@ -54,7 +48,7 @@ python3 <skill-dir>/scripts/list_assignments.py --stage <stage-id> [--probe]
 
 把 JSON 收成编号表，标出推荐行（读 `$agent-roster` 的 `routing.md`、相关画像与 Trace；规则为空就跳过，证据不足就说「无推荐」）。等人回复编号、`沿用` 或 `endpoint + model`。未收到选择不得发出 Delegation。
 
-`--stage` 取值：`understand` · `plan` · `plan-review` · `implement` · `code-review` · `wrap-up`。脚本决定该 Stage 是否提供 `human`。模型清单格式在需要写 `<data_root>/agents/models.yaml` 时再读 [references/models-yaml.md](references/models-yaml.md)。
+`--stage` 取值：`understand` · `plan` · `plan-review` · `implement` · `code-review` · `wrap-up`。脚本决定该 Stage 是否提供 `human`。模型清单格式在需要写 `<data_root>/agents/models.yaml` 时再读 [flow-models-yaml.md](flow-models-yaml.md)。
 
 Resident Stage（理解）不派出：仍在 spine 记录当前 Orchestrator 的 Agent Kind 与 Model，并向使用者亮出来。
 
@@ -71,7 +65,7 @@ Resident Stage（理解）不派出：仍在 spine 记录当前 Orchestrator 的
 
 ## Track
 
-理解结束时建议 Simple / Medium / Complex，等人确认后写入 spine。之后才读 [references/tracks.md](references/tracks.md) 按该 Track 绑定 skill。
+理解结束时建议 Simple / Medium / Complex，等人确认后写入 spine。之后才读 [flow-tracks.md](flow-tracks.md) 按该 Track 绑定 skill。
 
 允许升级。已经有 OpenSpec change 或 `{task}-driver` 时不得悄悄降级；要降级必须使用者明确同意并处理已有产物。
 

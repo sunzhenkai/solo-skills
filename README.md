@@ -17,8 +17,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `agent-roster` | 名册化委派：Endpoint 探测、选人、契约执行、Handoff 回收 |
-| `agent-roster-flow` | 按 Stage 编排跨 agent 任务，逐段选 Endpoint 与模型委派执行 |
+| `agent-roster` | 名册化委派：Endpoint 探测、选人、契约执行、Handoff 回收；flow 模式按 Stage 编排跨 agent 任务（原 agent-roster-flow） |
 
 ### 代码与仓库工具
 
@@ -66,13 +65,13 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 
 ## 外部依赖
 
-上表的 skill 之间互引（如 `taskflow` 委托 `openspec-*`、`agent-roster-flow` 委托 `agent-roster`）都已在仓内解决；仍依赖下列**不在本仓库**的 skill / 工具（skill 目标目录同为 `~/.agents/skills`）：
+上表的 skill 之间互引（如 `taskflow` 委托 `openspec-*`、`task-explore` 引用 `taskrail` 的参照库）都已在仓内解决；仍依赖下列**不在本仓库**的 skill / 工具（skill 目标目录同为 `~/.agents/skills`）：
 
 | 外部依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster-flow |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
 | `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster-flow；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
+| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `ui-template-design` / `ui-template-apply` | `sunzhenkai/ui-templates-skill` | taskrail / task-explore / taskflow（Web UI：冻结 Active Instance / 实现页） |
 | `ui-template-author`（可选） | `sunzhenkai/ui-templates-skill` | Web UI 从参照源做 portable package 时 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |

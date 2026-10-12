@@ -1,4 +1,4 @@
-"""agent-roster-flow：脊柱、Decision Surface 与按需加载的文本契约。"""
+"""agent-roster flow 模式（原 agent-roster-flow）：脊柱、Decision Surface 与按需加载的文本契约。"""
 
 from __future__ import annotations
 
@@ -11,22 +11,26 @@ ROOT = Path(__file__).resolve().parents[1]
 class ContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        cls.tracks = (ROOT / "references" / "tracks.md").read_text(encoding="utf-8")
-        cls.stages = (ROOT / "references" / "stages.md").read_text(encoding="utf-8")
-        cls.spine = (ROOT / "references" / "spine.md").read_text(encoding="utf-8")
+        cls.skill = (ROOT / "references" / "flow.md").read_text(encoding="utf-8")
+        cls.main = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        cls.tracks = (ROOT / "references" / "flow-tracks.md").read_text(encoding="utf-8")
+        cls.stages = (ROOT / "references" / "flow-stages.md").read_text(encoding="utf-8")
+        cls.spine = (ROOT / "references" / "flow-spine.md").read_text(encoding="utf-8")
 
-    def test_frontmatter_name_matches_directory(self) -> None:
-        self.assertIn("name: agent-roster-flow", self.skill)
-        self.assertEqual(ROOT.name, "agent-roster-flow")
+    def test_main_skill_routes_to_flow(self) -> None:
+        self.assertIn("references/flow.md", self.main)
+        head = self.main.split("---", 2)[1]
+        for trig in ("agent-roster-flow", "Stage", "多 agent 工作流"):
+            self.assertIn(trig, head)
 
     def test_reference_files_exist(self) -> None:
         for rel in (
-            "CONTEXT.md",
-            "references/tracks.md",
-            "references/stages.md",
-            "references/spine.md",
-            "references/models-yaml.md",
+            "references/flow-context.md",
+            "references/flow.md",
+            "references/flow-tracks.md",
+            "references/flow-stages.md",
+            "references/flow-spine.md",
+            "references/flow-models-yaml.md",
             "scripts/list_assignments.py",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)

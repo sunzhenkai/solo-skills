@@ -49,9 +49,9 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 | 依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster-flow |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
 | `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster-flow；无台账一次性拷问 |
+| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
 | `ui-template-design` / `ui-template-apply` | `sunzhenkai/ui-templates-skill` | taskrail / task-explore / taskflow（Web UI Active Instance / 实现） |
 | `ui-template-author`（可选） | `sunzhenkai/ui-templates-skill` | Web UI 从源做 package |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |

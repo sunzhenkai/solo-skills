@@ -47,3 +47,15 @@ acpx 仍处于 alpha，命令表面会变。执行前若不确定，以 `acpx --
 **探测状态失败时必须写清卡在哪一层。** 「没装」「装了但适配器起不来」「起得来但没登录」是三种完全不同的处置。
 同一条结论累积到**两次以上独立证据**，才有资格提案写进 `routing.md`，且必须由使用者确认——走 `$skill-upgrader` 的 `patches/` 审计。单次教训留在 Trace 里就够了。
 注意进了 `patterns/` 还不等于生效——那个目录不会被分发到运行位置，规律要影响选人必须固化进 `SKILL.md` 正文或 `routing.md`。
+先读本文件。确认 Track 之后读 [link]。进入某个 Stage 再读 [link] 对应节，不要预加载其它 Stage。新建或恢复 Flow 时读 [link]。
+**执行才派出**：理解不派出。实现与代码评审一旦进入就必须派出。编排者不得自任执行。
+**先确认后派出**：每个 Stage 开始前确认 Assignment 并写入 spine。派出前还要按 `$agent-roster` 写 `decision.md`（必须早于执行）。
+**model 进契约**：委托 `$agent-roster` 时带上已确认的 Endpoint 与 Model。契约没有 `model` 字段就停下报告，不要把模型只写进 prompt 指望受派方遵守。
+未写入 spine 不得进入理解之后的 Stage。
+把 JSON 收成编号表，标出推荐行（读 `$agent-roster` 的 `routing.md`、相关画像与 Trace；规则为空就跳过，证据不足就说「无推荐」）。等人回复编号、`沿用` 或 `endpoint + model`。未收到选择不得发出 Delegation。
+允许升级。已经有 OpenSpec change 或 `{task}-driver` 时不得悄悄降级；要降级必须使用者明确同意并处理已有产物。
+不得把完整对话或 Run NDJSON 抄进 spine。
+进入某个 Stage 后只读对应节。Frozen Input 必须在本会话敲死后再写入委派 prompt。
+派出时 Frozen Input 含：方案路径、评审范围、通过标准。受派方不得问「方案是什么」。不过本 Stage 不得 apply、不得改代码。
+必须派出。不允许 `human`。
+选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
