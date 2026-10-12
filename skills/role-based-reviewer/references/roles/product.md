@@ -38,5 +38,4 @@
 
 ## 跨角色 redirect
 
-- biz ↔ product（需求/spec）：消费 spec 做对接 → biz；产出 spec 做提案 → product
-- design ↔ product（体验）：视觉/交互/无障碍 → design；价值/范围/文案 → product
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `product` 的行（唯一真源，本文件不复述）。

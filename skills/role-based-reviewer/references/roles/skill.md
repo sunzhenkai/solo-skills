@@ -46,6 +46,4 @@
 
 ## 跨角色 redirect
 
-- skill ↔ engineer（`scripts/`）：SKILL.md / references 的触发、协议与契约质量 → skill；scripts/ 代码缺陷与质量 → engineer
-- skill ↔ qa（契约测试）：正文承诺与 tests/ 断言的对应缺口 → skill；通用可测性与回归策略 → qa
-- skill ↔ product（存在价值）：skill 该不该存在、合并还是拆分 → product；已存在 skill 的质量诊断 → skill
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `skill` 的行（唯一真源，本文件不复述）。

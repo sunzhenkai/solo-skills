@@ -46,10 +46,4 @@
 
 ## 跨角色 redirect
 
-- engineer ↔ sre（重启/OOM/稳定性）：集群·部署·调度·探针 → sre；代码缺陷·GC·调用链 → engineer
-- ops ↔ engineer（服务内业务开关、规则）：配置/灰度/运营异常 → ops；代码缺陷 → engineer
-- biz ↔ engineer（外部协议 vs 内部实现）：合作方/多租户对接 → biz；内部服务实现 → engineer
-- design ↔ engineer（UI 落地）：视觉与交互规格 → design；实现与性能 → engineer
-- qa ↔ engineer（测试）：覆盖/回归/可测性 → qa；实现正确性 → engineer
-- engineer ↔ algo（推理/排序服务）：可用性·性能·发版 → engineer；模型效果·策略·实验 → algo
-- engineer ↔ data（事件/追踪管道）：在线可用性 → engineer；数据流与口径 → data
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `engineer` 的行（唯一真源，本文件不复述）。

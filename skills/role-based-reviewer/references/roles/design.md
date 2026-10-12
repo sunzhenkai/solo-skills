@@ -127,5 +127,4 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ## 跨角色 redirect
 
-- design ↔ product（体验）：视觉/交互/无障碍 → design；价值/范围/文案 → product
-- design ↔ engineer（UI 落地）：视觉与交互规格 → design；实现与性能 → engineer
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `design` 的行（唯一真源，本文件不复述）。

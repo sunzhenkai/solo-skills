@@ -37,5 +37,4 @@
 
 ## 跨角色 redirect
 
-- sre ↔ ops（灰度、配置）：基础设施（集群/部署/配置下发/告警）→ sre；业务侧（功能开关/运营规则/渠道配置）→ ops
-- ops ↔ engineer（服务内业务开关、规则）：配置/灰度/运营异常 → ops；代码缺陷 → engineer
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `ops` 的行（唯一真源，本文件不复述）。

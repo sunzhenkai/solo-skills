@@ -78,5 +78,18 @@ class TestRoleFilesStructure(unittest.TestCase):
         self.assertIn("模式命名", text)
 
 
+class TestRedirectSingleSource(unittest.TestCase):
+    """角色文件的「跨角色 redirect」只留指针，边界表唯一真源在 constraints.md。"""
+
+    def test_roles_point_to_constraints(self) -> None:
+        table = read("references/constraints.md")
+        for f in sorted((ROOT / "references" / "roles").glob("*.md")):
+            text = f.read_text(encoding="utf-8")
+            sec = text.split("## 跨角色 redirect", 1)[1].split("\n## ", 1)[0]
+            self.assertNotIn("↔", sec, f.name)
+            self.assertIn("](../constraints.md)", sec, f.name)
+            self.assertRegex(table, rf"\| (\w+ ↔ {f.stem}|{f.stem} ↔ \w+) \|", f.name)
+
+
 if __name__ == "__main__":
     unittest.main()

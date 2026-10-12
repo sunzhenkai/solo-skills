@@ -49,6 +49,7 @@
 | qa ↔ engineer | 测试 | 覆盖/回归/可测性 → qa；实现正确性 → engineer | 互引 |
 | skill ↔ engineer | skill 内 `scripts/` | SKILL.md/references 的触发、协议与契约质量 → skill；scripts/ 代码缺陷 → engineer | 互引 |
 | skill ↔ qa | 契约测试 | 正文承诺与 tests/ 断言的对应缺口 → skill；通用可测性与回归策略 → qa | 互引 |
+| skill ↔ product | 存在价值 | skill 该不该存在、合并还是拆分 → product；已存在 skill 的质量诊断 → skill | 互引 |
 
 ## 结尾巴块
 

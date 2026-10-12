@@ -42,5 +42,4 @@ ETL/数仓/特征样本/口径文档与作业定义。
 
 ## 跨角色 redirect
 
-- algo ↔ data（特征/样本/模型分发）：在线推理与效果 → algo；离线管道·样本质量·数仓分层 → data
-- engineer ↔ data（事件/追踪管道）：在线可用性 → engineer；数据流与口径 → data
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `data` 的行（唯一真源，本文件不复述）。

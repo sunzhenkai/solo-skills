@@ -36,5 +36,4 @@
 
 ## 跨角色 redirect
 
-- biz ↔ product（需求/spec）：消费 spec 做对接 → biz；产出 spec 做提案 → product
-- biz ↔ engineer（外部协议 vs 内部实现）：合作方/多租户对接 → biz；内部服务实现 → engineer
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `biz` 的行（唯一真源，本文件不复述）。

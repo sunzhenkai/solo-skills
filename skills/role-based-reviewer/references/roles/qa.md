@@ -41,4 +41,4 @@
 
 ## 跨角色 redirect
 
-- qa ↔ engineer（测试）：覆盖/回归/可测性 → qa；实现正确性 → engineer
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `qa` 的行（唯一真源，本文件不复述）。

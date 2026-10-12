@@ -44,5 +44,4 @@
 
 ## 跨角色 redirect
 
-- engineer ↔ algo（推理/排序服务）：可用性·性能·发版 → engineer；模型效果·策略·实验 → algo
-- algo ↔ data（特征/样本/模型分发）：在线推理与效果 → algo；离线管道·样本质量·数仓分层 → data
+见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `algo` 的行（唯一真源，本文件不复述）。
