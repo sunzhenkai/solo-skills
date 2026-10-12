@@ -289,3 +289,52 @@ cases:
         - 无 Active Instance 且无已确认 adopt-only 降级时直接生成业务页
         - 在 apply 内改 core tokens/pattern
 
+
+  - id: entry-gate-handoff-pass
+    kind: core
+    judge: deterministic
+    description: taskflow-new 前先跑 scripts/check_handoff.py；handoff 成立才建 driver
+    given: tasks/ongoing/<slug>/TASK.md 元信息 status handed-off、phase ∈ propose/apply/archive/done，「## 交接」含交付类别与适用门包（Web UI 另含 Active Instance 根路径与 contract/binding/projection 三条 digest）
+    expect:
+      must:
+        - 建 driver / 派实现前执行 check_handoff.py <workspace-root> <slug>，exit 0（PASS）后才继续
+        - 交接载荷里的交付类别与适用门包随 driver 带入实施
+      must_not:
+        - 不跑入口门就直接 openspec new change {task}-driver
+
+  - id: entry-gate-handoff-block
+    kind: failure
+    judge: deterministic
+    description: 入口门 exit 1 时拒绝建 driver 并回 taskrail
+    given: TASK.md 缺失，或 status 非 handed-off / phase 仍在 approve 之前，或缺「## 交接」节、交付类别、适用门包，或 Web UI 缺任一 digest / Active Instance 根路径
+    expect:
+      must:
+        - 拒绝建 driver，逐条报告 FAIL 项，引导回 taskrail 走完 approve → handoff
+      must_not:
+        - 手写省略 UI / 验收的自由提示词绕过入口门派实现
+        - 自行补写 status / 交接载荷让门变绿
+
+  - id: entry-gate-bypass-user-only
+    kind: boundary
+    judge: deterministic
+    description: gate_bypass 只有含 user-confirmed 与理由才以 BYPASS 放行
+    given: TASK.md 元信息带 gate_bypass
+    expect:
+      must:
+        - "值含 user-confirmed 且写明理由时 BYPASS 放行（exit 0、醒目警告），验收按未覆盖即降级"
+        - 缺 user-confirmed 或缺理由时 exit 1
+      must_not:
+        - agent 自行写入 gate_bypass
+
+  - id: frontend-design-via-ui-template-apply-vendor
+    kind: regression
+    judge: deterministic
+    description: frontend-design 依赖指向 ui-template-apply 内置 vendor，不单独安装
+    given: Web UI 切片需要按 frontend-design 实现代表页
+    expect:
+      must:
+        - 读取 ui-template-apply/references/vendor/frontend-design/SKILL.md
+        - vendor 缺失时 make check-deps 报 MISS 并非零退出，提示 make install-ui-templates 重装
+      must_not:
+        - 另装独立 frontend-design skill 或引用 pretty-view-html 的副本代替
+        - vendor 缺失仍继续铺页

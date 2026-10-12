@@ -75,3 +75,30 @@ cases:
         - 用散文组件约定或 ui-skills-root 替代 Active Instance
         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
         - 仅用 Gallery 指针或 digest 作为视觉完成
+
+  - id: ui-evidence-gate-pass
+    kind: core
+    judge: deterministic
+    description: Web UI 完成须 ui_evidence_check.py report exit 0 且 design 评审 --validate-review exit 0
+    given: Web UI 切片收尾验收（含 simple），manifest 声明各 route 的 loading/empty/error/success 态
+    expect:
+      must:
+        - 跑 scripts/ui_evidence_check.py 产出 report.json，含 desktop 1280x800 与 mobile 375x812 截图、axe WCAG 2.2 AA、键盘 Tab 走查与四个数据态截图
+        - report exit 0，且 design 评审文件 roles 含 design、reviewer ≠ implementer、report 指向通过的 report.json
+        - 不适用的态写进 not_applicable 并附理由
+      must_not:
+        - 用自述、Gallery 指针或 digest 代替运行态证据
+
+  - id: ui-evidence-gate-fail
+    kind: failure
+    judge: deterministic
+    description: 证据门 exit 1 / 2 都是阻断，不得放行
+    given: axe 有 serious/critical、缺态、缺必需视口、焦点不可见、页面打不开（exit 1），或 manifest 不合法、playwright/axe-core 缺失（exit 2）
+    expect:
+      must:
+        - 不批准完成，逐条列 FAIL 项并回实施修复后重跑
+        - 依赖缺失按阻断处理，给出安装入口
+      must_not:
+        - 把缺依赖当作跳过
+        - 实现者自评作为 design 评审（reviewer = implementer）
+        - not_applicable 不写理由就省略某态
