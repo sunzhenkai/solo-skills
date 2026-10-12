@@ -20,7 +20,7 @@ class TestDesignContractArtifact(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.skill = skill_corpus(ROOT)
-        cls.design = (ROOT / "references" / "phase-design.md").read_text(encoding="utf-8")
+        cls.design = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
 
     def test_gate_requires_contract_and_evidence_plan(self) -> None:
         self.assertIn("**契约文件指针**", self.design)
@@ -64,7 +64,7 @@ class TestHandoffContractGate(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.skill = skill_corpus(ROOT)
-        cls.handoff = (ROOT / "references" / "phase-handoff.md").read_text(encoding="utf-8")
+        cls.handoff = (ROOT / "references" / "handoff.md").read_text(encoding="utf-8")
 
     def test_gate_five_present(self) -> None:
         self.assertIn("5. 命中交付类别门包时：`design/contract.md` 的契约文件指针与证据计划已就绪", self.handoff)

@@ -130,7 +130,7 @@ class TestEntryGateWiring(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.skill = skill_corpus(ROOT)
         cls.rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
-        cls.handoff = (ROOT.parent / "task-explore" / "references" / "phase-handoff.md").read_text(encoding="utf-8")
+        cls.handoff = (ROOT.parent / "task-explore" / "references" / "handoff.md").read_text(encoding="utf-8")
 
     def test_skill_wires_gate(self) -> None:
         self.assertIn("## 入口门（强制）", self.skill)

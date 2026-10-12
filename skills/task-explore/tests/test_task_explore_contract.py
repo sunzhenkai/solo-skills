@@ -19,10 +19,10 @@ class ContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.skill = skill_corpus(ROOT)
-        cls.explore = (ROOT / "references" / "phase-explore.md").read_text(
+        cls.explore = (ROOT / "references" / "explore-design.md").read_text(
             encoding="utf-8"
         )
-        cls.design = (ROOT / "references" / "phase-design.md").read_text(
+        cls.design = (ROOT / "references" / "explore-design.md").read_text(
             encoding="utf-8"
         )
         cls.decide = (ROOT / "references" / "approve.md").read_text(
@@ -31,7 +31,7 @@ class ContractTest(unittest.TestCase):
         cls.approve = (ROOT / "references" / "approve.md").read_text(
             encoding="utf-8"
         )
-        cls.handoff = (ROOT / "references" / "phase-handoff.md").read_text(
+        cls.handoff = (ROOT / "references" / "handoff.md").read_text(
             encoding="utf-8"
         )
         cls.archive = (ROOT / "references" / "archive-reopen.md").read_text(
@@ -41,13 +41,13 @@ class ContractTest(unittest.TestCase):
             encoding="utf-8"
         )
         cls.ledger = (
-            ROOT / "references" / "ledger-write-discipline.md"
+            ROOT / "references" / "ledger.md"
         ).read_text(encoding="utf-8")
         cls.plan_review = (
             ROOT / "references" / "approve.md"
         ).read_text(encoding="utf-8")
         cls.design_template = (
-            ROOT / "references" / "design-template.md"
+            ROOT / "references" / "templates.md"
         ).read_text(encoding="utf-8")
 
     @staticmethod
@@ -60,18 +60,18 @@ class ContractTest(unittest.TestCase):
 
     def test_reference_files_exist(self) -> None:
         for rel in (
-            "references/phase-explore.md",
-            "references/phase-design.md",
+            "references/explore-design.md",
+            "references/explore-design.md",
             "references/approve.md",
             "references/approve.md",
-            "references/phase-handoff.md",
+            "references/handoff.md",
             "references/archive-reopen.md",
             "references/archive-reopen.md",
             "references/approve.md",
-            "references/design-template.md",
-            "references/task-template.md",
-            "references/index-template.md",
-            "references/ledger-write-discipline.md",
+            "references/templates.md",
+            "references/templates.md",
+            "references/templates.md",
+            "references/ledger.md",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
@@ -106,7 +106,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("关闭原因", self.archive)
         self.assertIn("本次结论", self.archive)
         self.assertIn("取自用户回答", self.archive)
-        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
+        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
         self.assertIn("**归档** 小节", tpl)
         self.assertIn("本次结论", tpl)
         self.assertIn("SUMMARY.md", tpl)
@@ -193,11 +193,11 @@ class ContractTest(unittest.TestCase):
     def test_phase_loaded_on_demand(self) -> None:
         self.assertIn("只读该命令详情", self.skill)
         self.assertIn("不要预加载其它 phase", self.skill)
-        self.assertIn("references/phase-explore.md", self.skill)
-        self.assertIn("references/phase-design.md", self.skill)
+        self.assertIn("references/explore-design.md", self.skill)
+        self.assertIn("references/explore-design.md", self.skill)
         self.assertIn("references/approve.md", self.skill)
         self.assertIn("references/approve.md", self.skill)
-        self.assertIn("references/phase-handoff.md", self.skill)
+        self.assertIn("references/handoff.md", self.skill)
         self.assertIn("references/archive-reopen.md", self.skill)
         self.assertIn("references/archive-reopen.md", self.skill)
         self.assertNotIn("| 方案 | 成本 |", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
@@ -278,7 +278,7 @@ class ContractTest(unittest.TestCase):
     def test_reopen_keeps_summary_as_history(self) -> None:
         self.assertIn("`SUMMARY.md` 随树搬回", self.reopen)
         self.assertIn("不改写", self.reopen)
-        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
+        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
         self.assertIn("reopened: YYYY-MM-DD", tpl)
 
     def test_split_phase_is_routed_and_gated(self) -> None:
@@ -311,9 +311,9 @@ class ContractTest(unittest.TestCase):
 
     def test_nested_layout_and_index_rows(self) -> None:
         self.assertIn("`{parent}/{sub}`", self.skill)
-        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
+        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
         self.assertIn("parent:", tpl)
-        index = (ROOT / "references" / "index-template.md").read_text(
+        index = (ROOT / "references" / "templates.md").read_text(
             encoding="utf-8"
         )
         self.assertIn("{parent}/{sub}", index)
@@ -323,7 +323,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("`split`", self.explore)
 
     def test_ledger_write_discipline_is_gated(self) -> None:
-        self.assertIn("references/ledger-write-discipline.md", self.skill)
+        self.assertIn("references/ledger.md", self.skill)
         self.assertIn("写台账", self.skill)
         for phrase in (
             "锚点串",
@@ -420,7 +420,7 @@ class ContractTest(unittest.TestCase):
         )
 
     def test_template_and_handoff_flow_overview(self) -> None:
-        tpl = (ROOT / "references" / "task-template.md").read_text(encoding="utf-8")
+        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
         self.assertIn("质量属性", tpl)
         self.assertIn("流程总览", tpl)
         self.assertIn("流程总览原文快照写入 driver 的 `proposal.md`", self.handoff)
@@ -430,7 +430,7 @@ class TestExternalPrecedentThinReference(unittest.TestCase):
     """外部参照钩子（原 external-precedent.md，已删）：细则唯一真源在 taskrail。"""
 
     def setUp(self) -> None:
-        self.precedent = (ROOT / "references" / "phase-explore.md").read_text(
+        self.precedent = (ROOT / "references" / "explore-design.md").read_text(
             encoding="utf-8"
         )
 

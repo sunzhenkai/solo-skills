@@ -21,7 +21,7 @@
 
 ## `explore`
 
-不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/phase-explore.md](phase-explore.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
+不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
 
 - **仅 grill**（simple / medium，经 taskrail）：只做 grilling 澄清，不强制写 glossary/ADR 全套。
 - **完整 explore**（complex）：按 phase-explore 全文（含外部参照、术语/ADR 落盘）。
@@ -64,7 +64,7 @@
 
 ## `design`
 
-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/phase-design.md](phase-design.md)；落盘时再读 [references/design-template.md](design-template.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
 
 ## `approve`
 
@@ -94,7 +94,7 @@
 
 ## `handoff`
 
-把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。成功后调用方（taskrail）置 `phase: propose`（本命令不把 `handoff` 写入 `phase`）。进入本阶段后 **先读** [references/phase-handoff.md](phase-handoff.md)。交接门禁含：命中交付类别门包时，契约文件指针与证据计划已就绪且契约本体已在交付仓；Web UI 另须三条 digest 进 driver（细则见阶段详情）。交接目标按绑定自动推断，无需用户逐项指定：
+把探索任务交给 taskflow（`{task-name}-driver`），任务转入 `handed-off`；**不归档、不搬目录、不清绑定**。成功后调用方（taskrail）置 `phase: propose`（本命令不把 `handoff` 写入 `phase`）。进入本阶段后 **先读** [references/handoff.md](handoff.md)。交接门禁含：命中交付类别门包时，契约文件指针与证据计划已就绪且契约本体已在交付仓；Web UI 另须三条 digest 进 driver（细则见阶段详情）。交接目标按绑定自动推断，无需用户逐项指定：
 
 - 绑定子任务 → 交接该子任务，建 `{sub}-driver`。
 - 绑定父任务 → 父是纯伞不可交接，自动批量交接所有「已 `approve`（或兼容 `decide`）未交接」的子任务，无需逐项确认；就绪为零则打断并报告各子任务所缺条件；未批准的子任务跳过且不阻塞其余。批量中任一失败即停，已交接的不回滚。

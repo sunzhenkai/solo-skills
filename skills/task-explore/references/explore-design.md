@@ -1,6 +1,48 @@
+# explore 与 design 阶段
+
+<!-- 原 phase-explore.md -->
+# explore 命令
+
+进入本命令后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。
+
+## 仅 grill 与完整 explore
+
+| 形态 | 何时 | 做什么 |
+|------|------|--------|
+| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 澄清目标/判据/范围；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
+| **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
+
+针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
+
+1. 必须已绑定任务；否则先走绑定。
+2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
+3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
+5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
+6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
+7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
+8. 结束本轮时列出已澄清目标与仍开放的 frontier，并提示是否 `save`。
+
+术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件提示是否更新任务文档。
+
+## 外部参照钩子（原 external-precedent.md）
+
+细则唯一真源：[taskrail/references/external-precedent.md](../../taskrail/references/external-precedent.md)。先搜后读、来源分级、一次尝试、事实/假设二分写入，一律按该文件执行，本文件不复制第二份。
+
+本 skill 只保留阶段钩子：
+
+- `design`：写对比表之前做一次。
+- `explore`：只有这个未知会改方案走向时做。其余问题照常问。
+- 同一问题、已记下的出处仍对得上：沿用已有条目。
+- 问题变了、出处对不上、或当时记的是未找到：再做一次。
+
+落盘：写入设计稿的「外部参照」一节。更新 `TASK.md` 方案时，事实和假设分列，假设保持为假设。笔记里写明这一轮追的是哪一个做法，以及结果是事实、假设，还是两条相反的事实，然后继续本阶段原来的下一步。
+
+
+<!-- 原 phase-design.md -->
 # design 阶段
 
-进入本阶段后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。落盘时再读 [design-template.md](design-template.md)。
+进入本阶段后执行。未绑定任务则先回到 `SKILL.md` 的绑定规则。落盘时再读 [templates.md](templates.md)。
 
 针对任务方案进行设计。从原 `task-design` 移植：**写入 `{taskRoot}/design/`，不是 `docs/design/`，也不是 OpenSpec driver。**
 
@@ -47,7 +89,7 @@
 停在实现边界。只写入 `{taskRoot}/design/`。
 
 1. **探索（对话，可不落盘）**：干系人与成功标准；现状（读代码与已有文档）；约束；未知与风险（写明「还不知道 X」）。写对比表之前读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)。问题仍模糊时给 2–3 种问题框架让用户选。
-2. **设计**：至少两个可行方案再推荐。选项 + 对比表（成本、风险、复杂度、可逆性、工期）。产物见 [design-template.md](design-template.md)。推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出。多用 ASCII / Mermaid。
+2. **设计**：至少两个可行方案再推荐。选项 + 对比表（成本、风险、复杂度、可逆性、工期）。产物见 [templates.md](templates.md)。推荐方案的架构 / 接口 / 技术栈选择按「设计依据」逐条给出。多用 ASCII / Mermaid。
 3. **写入当前任务**（不晋升到仓库文档）：
 
 | 文件 | 作用 |

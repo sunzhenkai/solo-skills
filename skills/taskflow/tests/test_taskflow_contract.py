@@ -115,7 +115,7 @@ class TestPendingConfirmationSyncLock(unittest.TestCase):
         self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", text)
 
     def test_task_explore_handoff_blocks_driver_on_pending(self) -> None:
-        text = (REPO_ROOT / "skills/task-explore/references/phase-handoff.md").read_text(encoding="utf-8")
+        text = (REPO_ROOT / "skills/task-explore/references/handoff.md").read_text(encoding="utf-8")
         self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认后才继续", text)
         self.assertIn("不创建 driver", text)
 

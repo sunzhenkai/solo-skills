@@ -43,7 +43,7 @@
 
 ## 与上游的关系
 
-上游 `task-explore` 侧改动（`phase-design.md` 门禁 + 「设计依据」小节 + `design-template.md` 字段 + `plan-review` 委派要求）见 `skills/task-explore/patches/20261008-design-rationale/`。两侧同批，本 patch 只做评审承接。
+上游 `task-explore` 侧改动（`explore-design.md` 门禁 + 「设计依据」小节 + `templates.md` 字段 + `plan-review` 委派要求）见 `skills/task-explore/patches/20261008-design-rationale/`。两侧同批，本 patch 只做评审承接。
 
 ## Validation
 

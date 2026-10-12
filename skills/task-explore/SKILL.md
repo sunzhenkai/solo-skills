@@ -14,7 +14,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 ### 命令与 `TASK.md.phase`（强制）
 
-本 skill 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，不是 `TASK.md.phase` 取值。`phase` 只允许契约封闭枚举：`wizard | explore | design | approve | propose | apply | archive | done`。禁止把命令名写入 `phase`。`handoff` 成功后：`status:=handed-off`，`phase:=propose`，并写入 `driver`（见 [references/phase-handoff.md](references/phase-handoff.md)）。
+本 skill 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，不是 `TASK.md.phase` 取值。`phase` 只允许契约封闭枚举：`wizard | explore | design | approve | propose | apply | archive | done`。禁止把命令名写入 `phase`。`handoff` 成功后：`status:=handed-off`，`phase:=propose`，并写入 `driver`（见 [references/handoff.md](references/handoff.md)）。
 
 
 **子任务** = 探索期从父任务拆出的完整探索任务，承接一个可独立推进的方向：目录嵌套为 `ongoing/{parent}/{sub}/`，`TASK.md` 带 `parent:`，生命周期（explore / approve / handoff 等）与顶层任务相同。**父任务** = 拥有 ≥1 个子任务的探索任务；纯伞，只聚合与登记，`status` 恒 `ongoing`，**禁止 `handoff`、不建 driver**，`approve` 仅限范围/非目标/拆分原则。**handed-off** = 已交接 taskflow 的状态：任务留在 `ongoing/`，INDEX 可见、可 `resume`，不是归档。子任务与交付期的 taskflow 子 change 互不隶属。
@@ -55,18 +55,18 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 | 命令 | 进入时读取 |
 |------|------------|
-| `explore` | [references/phase-explore.md](references/phase-explore.md) |
-| `design` | [references/phase-design.md](references/phase-design.md)；落盘时再读 [references/design-template.md](references/design-template.md) |
+| `explore` | [references/explore-design.md](references/explore-design.md) |
+| `design` | [references/explore-design.md](references/explore-design.md)；落盘时再读 [references/templates.md](references/templates.md) |
 | `approve` | [references/approve.md](references/approve.md) |
 | `decide` / `plan-review` | 兼容：改读 phase-approve；薄引用见 [approve.md](references/approve.md) / [approve.md](references/approve.md) |
-| `handoff` | [references/phase-handoff.md](references/phase-handoff.md)；委托时再读 `taskflow` |
+| `handoff` | [references/handoff.md](references/handoff.md)；委托时再读 `taskflow` |
 | `archive` | [references/archive-reopen.md](references/archive-reopen.md) |
 | `reopen` | [references/archive-reopen.md](references/archive-reopen.md) |
-| `new` / `save` | [references/commands.md](references/commands.md) / [references/commands.md](references/commands.md)；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
-| `expand` / `split` | 本文件步骤；写文件时再读 [references/task-template.md](references/task-template.md)、[references/index-template.md](references/index-template.md) |
+| `new` / `save` | [references/commands.md](references/commands.md) / [references/commands.md](references/commands.md)；写文件时再读 [references/templates.md](references/templates.md)、[references/templates.md](references/templates.md) |
+| `expand` / `split` | 本文件步骤；写文件时再读 [references/templates.md](references/templates.md)、[references/templates.md](references/templates.md) |
 | `chat` / `resume` | [references/commands.md](references/commands.md) / [references/commands.md](references/commands.md) |
 
-写台账（`INDEX.md` / `TASK.md`）时，除该命令详情外再读 [references/ledger-write-discipline.md](references/ledger-write-discipline.md)；不写台账的命令不读。
+写台账（`INDEX.md` / `TASK.md`）时，除该命令详情外再读 [references/ledger.md](references/ledger.md)；不写台账的命令不读。
 
 ## 台账与绑定
 
