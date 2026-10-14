@@ -35,6 +35,12 @@ class EvolveContract(unittest.TestCase):
         self.assertIn("eval.md", evolve)
         self.assertIn("decision.md", evolve)
 
+    def test_candidate_body_is_not_named_skill_md(self) -> None:
+        evolve = (ROOT / "references" / "evolve.md").read_text(encoding="utf-8")
+        self.assertIn("SKILL.md.candidate  # 候选正文", evolve)
+        self.assertNotIn("  SKILL.md          # 候选正文", evolve)
+        self.assertIn("用候选 `SKILL.md.candidate` 覆盖生产稿", evolve)
+
     def test_no_auto_evolution(self) -> None:
         self.assertIn("禁止自动进化", CORPUS)
         self.assertIn("禁止单次失败直接改 `SKILL.md`", CORPUS)

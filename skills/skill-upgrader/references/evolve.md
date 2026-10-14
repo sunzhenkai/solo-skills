@@ -138,7 +138,7 @@ risk:
 ```text
 <skill-dir>/evolutions/<YYYYMMDD>-<slug>/
   proposal.yaml
-  SKILL.md          # 候选正文
+  SKILL.md.candidate  # 候选正文
   eval.md           # 验证记录（下一步写）
   decision.md       # promote | reject
 
@@ -157,7 +157,7 @@ risk:
 3. 保留现有正确行为；新增规则要可执行（步骤、检查、例子），不要写「注意」「尽量」。
 4. 过拟合禁止：不要把一次任务的路径、文件名、密钥、机器专属环境、内部项目代号、私有 trace/日志文件名写进 Skill，也不要写进本轮任何产物（proposal.yaml / eval.md / decision.md）及关联 commit message。证据先抽象后落盘：一律用「时间 + 次数 + 事件类型」的通用描述（如「2026-09-23 两次真实委派」），把特例细节提取为可复用的特性或功能描述，而不是照抄原始任务细节。
 5. 正文保持精简。细节放 `references/`，确定性操作放 `scripts/`。脚本只做确定性事，不解析自然语言意图。
-6. 候选目录与生产稿同处一棵被仓库工具扫描的树，不是沙箱：除 `SKILL.md` 外的候选文件一律以「相对路径 + 原名 + `.candidate`」落盘，不得与生产文件同名同扩展名。`test_*.py` 原样复制会让宿主测试在 collection 阶段就报 import mismatch 并中断整个 suite。晋升时去掉 `.candidate` 写回对应生产路径；本轮之前的历史条目不追溯改名。
+6. 候选目录与生产稿同处一棵被仓库工具和 Skill 加载器扫描的树，不是沙箱：所有候选文件（含候选正文 `SKILL.md.candidate`）一律以「相对路径 + 原名 + `.candidate`」落盘，不得与生产文件同名同扩展名。候选正文若仍叫 `SKILL.md`，递归扫描的加载器会把它当成同名 Skill 重复注册；`test_*.py` 原样复制会让宿主测试在 collection 阶段就报 import mismatch 并中断整个 suite。晋升时去掉 `.candidate` 写回对应生产路径；历史条目里名为 `SKILL.md` 的旧快照改名为 `SKILL.md.candidate`，其余历史条目不追溯改名。
 
 若目标 Skill 在本仓库：生产稿是 `skills/<id>/`，**不要**改 sync 生成的 `~/.agents/skills/` 镜像。
 
@@ -183,7 +183,7 @@ risk:
 
 | 结论 | 动作 |
 |------|------|
-| `promote` | 用户确认后，用候选 `SKILL.md` 覆盖生产稿；`decision.md` 写 `promote` 与原因。本仓库晋升后提醒用户经安装通道（如 `dotf agents -c`）同步，**不要擅自 sync 或 commit** |
+| `promote` | 用户确认后，用候选 `SKILL.md.candidate` 覆盖生产稿 `SKILL.md`；`decision.md` 写 `promote` 与原因。本仓库晋升后提醒用户经安装通道（如 `dotf agents -c`）同步，**不要擅自 sync 或 commit** |
 | `reject` | 不改生产稿。`decision.md` 写 `reject` 与原因。保留 `evolutions/` 作为否决记录 |
 
 晋升前必须同时满足：
