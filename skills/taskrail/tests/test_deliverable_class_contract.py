@@ -60,7 +60,7 @@ class TestCompletionGateMechanical(unittest.TestCase):
 
     def test_web_ui_digest_done_gate(self) -> None:
         self.assertIn("7. Web UI（按档", self.skill)
-        self.assertIn("**medium / complex** 须 digest 与仓库 freeze 一致", self.skill)
+        self.assertIn("**complex** 须 digest 与仓库 freeze 一致", self.skill)
         self.assertIn("未跑须登记 B 类显式降级", self.skill)
 
     def test_mechanical_wording(self) -> None:
@@ -71,7 +71,7 @@ class TestCompletionGateMechanical(unittest.TestCase):
         for kept in (
             "1. 完成判据成立（`criterion` 原文）。",
             "2. 交付标准全过（方案写「无」则只看判据）。",
-            "3. 相关 checkbox 全勾（含 simple 单切片）。",
+            "3. medium / complex：相关 checkbox 全勾；simple：`TASK.md`「验证」节有验证命令与结果。",
             "4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。",
         ):
             self.assertIn(kept, self.skill)
@@ -108,7 +108,7 @@ class TestContractPayload(unittest.TestCase):
 
     def test_existing_payload_rows_intact(self) -> None:
         for kept in (
-            "| apply | driver `tasks.md` 已由 propose 产出 |",
+            "| apply | driver `tasks.md` 已由 propose 产出",
             "| archive（探索侧） | 用户确认关闭；子任务均已结 |",
             "`status: handed-off` 与 `driver` 已写入",
         ):

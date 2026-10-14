@@ -8,8 +8,8 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple/medium 的 explore 仅为 grill；凡经本入口均 handoff+OpenSpec（simple 单切片）；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
-| `task-intent` | **开工前意图确认**：并行只读摸底 → ≤8 行大白话意图复述 → 纠偏循环（goal 由异源强模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
+| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple 直接实现 + 验证（不建 driver）；medium 的 explore 仅为 grill；medium / complex 经 handoff 走 OpenSpec；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
+| `task-intent` | **开工前意图确认**：详细探索上下文 → 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步；字段清单只进 intent.md）→ 纠偏到确认（goal 由异源模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
 | `task-explore` | 探索台账与命令能力（explore/design/approve/expand/handoff 等命令；`TASK.md.phase` 只许契约枚举） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |

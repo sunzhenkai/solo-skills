@@ -128,7 +128,7 @@ class TestPhaseEnumClosed(unittest.TestCase):
     def test_non_phase_section_present(self) -> None:
         contract = read("taskrail", "references/contract.md")
         self.assertIn("## 非 phase 动作", contract)
-        self.assertIn("status × phase 合法组合", contract)
+        self.assertIn("`status` 随 `phase` 走", contract)
 
 
 
@@ -162,15 +162,16 @@ class TestGlossary(unittest.TestCase):
     """P2-12：术语表唯一真源，三个 skill 正文都链到它。"""
 
     def test_glossary_covers_terms(self) -> None:
-        g = read("taskrail", "references/glossary.md")
+        g = read("taskrail", "references/contract.md")
         for term in ("Active Instance", "freeze", "digest", "Gallery", "代表页", "旗舰切片",
                      "`pending`", "`provisional`", "`confirmed`", "accepted-recorded", "handed-off"):
             self.assertIn(term, g)
 
     def test_skills_link_glossary(self) -> None:
-        self.assertIn("](references/glossary.md)", read("taskrail", "SKILL.md"))
+        self.assertIn("## 术语", read("taskrail", "references/contract.md"))
+        self.assertFalse((SKILLS_ROOT / "taskrail" / "references" / "glossary.md").exists())
         for skill in ("task-explore", "taskflow"):
-            self.assertIn("](../taskrail/references/glossary.md)", read(skill, "SKILL.md"), skill)
+            self.assertNotIn("glossary.md", read(skill, "SKILL.md"), skill)
 
 
 if __name__ == "__main__":

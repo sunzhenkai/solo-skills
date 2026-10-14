@@ -1,6 +1,6 @@
 # UI/UX（`design`，别名 `uiux`）
 
-角色文件：仅在本角色生效时加载（见 [preload-protocol](../preload-protocol.md)）；职责边界以 [role-vocabulary](../role-vocabulary.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。
+角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。
 
 来源：参考 vercel-labs/web-interface-guidelines（可静态判定规则）、anthropics/frontend-design（微文案与 anti-slop）与 Nielsen/WCAG 启发式改写。
 
@@ -16,7 +16,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ## 调用范围与速度
 
-- **何时全量扫**：taskrail 门包对 **medium / complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
+- **何时全量扫**：taskrail 门包对 **complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
 - **何时只扫 floor（保速度）**：审阅边界写明 `tier=simple` / adopt-only / 「非主表面 / 文案微调 / 单控件修复」时，**只报 quality floor 的 🔴 条**（破坏性确认、键盘可达、focus 可见）与直接相关的 🔴；其余 🟡 / ⚪ 默认不扫，最多作 Suggestion。不为此启动服务、截图或跑 `ui_evidence_check`。
 - **非 Web UI 交付**：调用方未点名 design 时不要主动扩权；点名了同样按边界裁剪范围。
 
@@ -133,4 +133,4 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ## 跨角色 redirect
 
-见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `design` 的行（唯一真源，本文件不复述）。
+见 [protocol.md](../protocol.md)「角色间 redirect」表中含 `design` 的行（唯一真源，本文件不复述）。

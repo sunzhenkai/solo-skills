@@ -6,11 +6,11 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 # 任务探索
 
-命令名、路径、代码、状态值与既成术语保持原文。
+命令名、路径、代码、状态值与既成术语在文件里保持原文；对用户提问与汇报按 taskrail 契约「对用户说话」用口语。
 
 在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
 
-**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。两套账；唯一桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)；术语见 [../taskrail/references/glossary.md](../taskrail/references/glossary.md)。
+**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。任务账只有 `TASK.md` 一本，driver 是 OpenSpec 执行记录；桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)；术语见 [taskrail 契约「术语」节](../taskrail/references/contract.md)。
 
 ### 命令与 `TASK.md.phase`（强制）
 
@@ -20,13 +20,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 ## Goal 里的确认
 
-处在 goal 里时（判据以 taskrail 确认协议（[../taskrail/references/confirm-protocol.md](../taskrail/references/confirm-protocol.md)）的「触发」节为单一真源，本 skill 不另写一份）,下文和 `references/` 里每一处要向用户确认、选择或询问的决定，都改为走 taskrail 确认协议 的「审阅」：派审规则、核对循环、收敛与停止条件以 taskrail 确认协议 为准，本 skill 不复制第二份。不列选项，不用向用户提问的选择界面。
-
-推荐默认是该处已经写出的默认建议。没有写出默认时，取能让完成判据成立、且不覆盖已有目录、不泄密、不做未点名危险操作的那一条，只审这一条。
-
-审阅收敛则采纳推荐默认并同一轮继续。冻结未决并交接时，审阅收敛即「按推荐冻结并交接」：本轮 `approve` 完立刻 `handoff`。审阅不通过、派不出或没有结论：停，不列选项。taskrail 确认协议 读不到：停并给出安装选项，不改回问用户。
-
-不在 goal 里时，下面的确认规则不变。目标已存在则仍禁止覆盖，不交给审阅放行。
+处在 goal 里时（判据以 taskrail 确认协议（[../taskrail/references/confirm-protocol.md](../taskrail/references/confirm-protocol.md)）的「触发」节为单一真源），本 skill 每一处要向用户确认的决定都改走该协议的「审阅」，不列选项、不另写一份规则。审阅收敛则采纳推荐默认并同轮继续（冻结未决时即「按推荐冻结并交接」：本轮 `approve` 完立刻 `handoff`）；审阅不通过或派不出：停。目标已存在仍禁止覆盖，不交给审阅放行。
 
 ## 命令
 
@@ -77,7 +71,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 ## 命令门禁
 
-各命令的步骤与不可跳过门禁在 [references/commands.md](references/commands.md)（含 `handoff` 交接目标推断、`archive` 五条门禁、`reopen` 四条门禁、`expand` 步骤）；进入命令时读对应小节，再读上表的 phase 详情。approve 后的唯一出口是 `handoff`：方案已冻结且含实施动作、尚未 `handed-off` 时，不进入 `archive`。
+各命令的步骤与不可跳过门禁在 [references/commands.md](references/commands.md)（含 `handoff` 交接目标推断、`expand` 步骤；archive / reopen 见 archive-reopen.md）；进入命令时读对应小节，再读上表的 phase 详情。approve 后的唯一出口是 `handoff`：方案已冻结且含实施动作、尚未 `handed-off` 时，不进入 `archive`。
 
 ## 何时不用
 

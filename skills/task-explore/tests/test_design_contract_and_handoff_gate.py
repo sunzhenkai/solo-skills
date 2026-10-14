@@ -47,7 +47,7 @@ class TestDesignContractArtifact(unittest.TestCase):
 
     def test_command_mentions_artifact(self) -> None:
         self.assertIn("本阶段另落 `design/contract.md`", self.skill)
-        self.assertIn("Web UI：medium/complex 无 frozen Active Instance", self.skill)
+        self.assertIn("Web UI：complex 无 frozen Active Instance", self.skill)
 
     def test_existing_design_gates_intact(self) -> None:
         for kept in (
@@ -104,7 +104,7 @@ class TestApproveActiveInstanceGate(unittest.TestCase):
 
     def test_structure_gate_web_ui(self) -> None:
         self.assertIn("**Web UI 附加**", self.approve)
-        self.assertIn("medium / complex", self.approve)
+        self.assertIn("**complex**：仓库内 Active Instance 须为 `status: frozen`", self.approve)
         self.assertIn("项目约定的 Active Instance 校验", self.approve)
         self.assertIn("不得冻结", self.approve)
 

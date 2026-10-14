@@ -13,10 +13,12 @@
 
 - **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由 task* 的 design 阶段在交付仓内建立并 freeze（有参照源时先从参照源提炼 tokens / primitive）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
 - **Active Instance 档位门**（与基准物同级；按档调度，保任务速度）：
-  - **medium / complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
+  - **complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
+  - **medium**：SHOULD 使用 frozen Active Instance；缺失时可走 adopt-only（沿用交付仓已有组件库 / 样式体系）并登记 **B 类**显式降级放行。
   - **simple**：优先 frozen Active Instance；否则「adopt-only：沿用交付仓已有组件库 / 样式体系」且质量画像已登记并**确认**显式降级即可放行；无降级登记不得放行。adopt-only **豁免** Active Instance，并按下方「档位调度」豁免重型证据门。
 - **必载专家能力**（按档）：
-  - **medium / complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
+  - **complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
+  - **medium**：SHOULD 点名 `roles=design`；未点名时同 simple 自检 quality floor 并写入验证记录。
   - **simple**：不强制 `roles=design`；实现者自检 quality floor（破坏性确认、键盘可达、focus 可见）即可。需要时再点名 design 角色，且该角色只扫 floor（见 `role-based-reviewer` design 角色「调用范围与速度」）。
 - **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
   - Active Instance：项目约定的 Active Instance 校验（`design-system.yaml` 为 `status: frozen`、三条 digest 可复算）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
@@ -27,15 +29,15 @@
   - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
 - **运行态证据（按档调度）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)
   - **complex（硬门）**：对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。playwright / axe-core 缺失时脚本 exit 2 阻断，或经用户确认登记 A 类降级。
-  - **medium（硬门，可精简）**：同脚本 exit 0，但允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
+  - **medium（SHOULD，可精简）**：宜跑同脚本并 exit 0（未跑登记 B 类显式降级），允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
   - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
 - **design 评审文件（按档）**：
-  - **medium / complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
-  - **simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
-- **主观项**：视觉层次 / 密度 / 排版节奏——medium/complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+  - **complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
+- **主观项**：视觉层次 / 密度 / 排版节奏——complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
 - **实现方法（按档）**：
-  - **medium / complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
-  - **simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+  - **complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
+  - **medium / simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
 
 ## 服务 / 后端
 

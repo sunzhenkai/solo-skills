@@ -2,7 +2,7 @@
 slug: demo-list
 status: handed-off
 phase: propose
-tier: simple
+tier: medium
 confirm_mode: human
 criterion: "列表页在 1280x800 与 375x812 下四态可用，axe 无 serious/critical，焦点全程可见"
 driver: "demo-list-driver"
@@ -14,7 +14,7 @@ driver: "demo-list-driver"
 - 单页列表：加载中 / 空 / 出错 / 有数据 四态；复用已 frozen 的 Active Instance。
 
 ## 决策
-- D-1：采纳单切片方案（simple）。
+- D-1：采纳单切片方案（medium）。
 
 ## 交接
 - 交付类别：Web UI

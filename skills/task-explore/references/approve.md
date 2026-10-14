@@ -24,7 +24,7 @@
 **Web UI 附加**：
 
 - 读 `design/contract.md`（或简单档 plan 等价节）中的 Active Instance 根路径与三条 digest。
-- **medium / complex**：仓库内 Active Instance 须为 `status: frozen`，且 digest 与指针一致（按项目约定的 Active Instance 校验复核）；不一致或缺失 → 停，回 `design` 建立 / 修订 Active Instance，**不得冻结**。
+- **complex**：仓库内 Active Instance 须为 `status: frozen`，且 digest 与指针一致（按项目约定的 Active Instance 校验复核）；不一致或缺失 → 停，回 `design` 建立 / 修订 Active Instance，**不得冻结**。
 - **simple**：无 freeze 仅当 adopt-only 路径已写明且质量画像显式降级已确认；否则不得冻结。
 
 ## 2. 评审门

@@ -1,117 +1,38 @@
 # archive 与 reopen
 
-<!-- 原 phase-archive.md -->
-# archive 阶段
+通用原则：**不覆盖、不搬未确认的、先列未结项**。多条检查结果合并成一次确认，不逐条往返。
 
-进入本阶段后执行；未读完不得搬动任何目录。未绑定且用户没给任务名时，先回到 `SKILL.md` 的绑定规则。
+## archive
 
-把确认关闭的探索任务整树移入 `tasks/archive/{yyyy-mm-dd}/{task-name}`。归档是生命周期终点：`handoff` 不归档，`archive` 不交付。父任务归档即关闭整棵子任务树，子任务随父一起搬，不单独处理。
+把确认关闭的探索任务整树（含子任务树）移入 `tasks/archive/{yyyy-mm-dd}/{task-name}`。`handoff` 不归档，`archive` 不交付；父任务归档即关闭整棵子任务树。
 
-## 拒绝进入
+**拒绝进入**：经 taskrail、方案已冻结且含实施动作、尚未 `handed-off` → 拒绝进入本阶段，改走 handoff。「方案已写完」「还有未决」不是关闭原因；用户明确放弃或确认不实施时不拦。
 
-经 taskrail 推进、方案已冻结且方案含实施动作、尚未 `handed-off` 时，拒绝进入本阶段，改走 handoff。「方案已写完」「还有未决」不是关闭原因。用户明确说放弃、不实施、或确认关闭且不做实施时，本条不拦截。
+**搬之前列清楚**（一次确认）：
 
-## 门禁（按序；任一不过即停）
+- 未结子任务（`status` 不是 `handed-off` / `archived`）→ 打断并列出。
+- 未决条数：不要求清零，可随归档关闭，但要写明。
+- 曾 `handed-off`：driver 进度（已完成 X/Y、是否已归档）；读不到写「进度未知」，不当作已完成；只报告，**不回写**。
+- 指向旧路径的链接：列出，问是否改指新路径。
+- 目标路径：**目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
 
-1. **子任务结清**：存在子任务目录时，所有子任务 `status` ∈ {`handed-off`, `archived`}。否则打断，列出每个未结子任务的 `{sub}`、状态与建议下一步。父任务自身恒 `ongoing`，不参与本条判定。
-2. **未决清点**：读 `TASK.md` 的未决问题与下一步。有未勾项就报告条数与首条，问用户「随任务关闭」还是「先补结论」。选关闭则原样带走，并在归档记录写「N 条未决随归档关闭」。**不要求清零** —— 带着未决关闭是合法结局，静默关闭才是问题。
-3. **交付侧核对**（仅曾 `handed-off`）：读 `{task-name}-driver` 在 openspec 侧的进度（`tasks.md` checkbox 与 change 归档状态），报告「已完成 X/Y、driver 是否已归档」。读不到就报「进度未知」，不得当作已完成。仍有未完成项时明确警告并等确认。进度只报告，**不回写**进 `TASK.md`，也不勾 taskflow 的框。
-4. **入链检查**：在 `tasks/` 全树搜索指向 `{taskRoot}` 旧路径的链接（父↔子互链、`design/` 与评审稿互链）。命中就列出，问是否一并改指新归档路径；拒绝则保留断链并在归档记录写一句。
-5. **目标路径**：计算 `tasks/archive/{yyyy-mm-dd}/{task-name}`。**目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
-6. **进展落盘**：目标路径确认无冲突后，`TASK.md` 有未写回的进展或结论就先按 `save` 写回。曾 `handed-off` 的任务**必须按 `save` 写回**，不接受按现状归档 —— 两份账要能对上。纯 `ongoing` 任务用户坚持可跳过，并在归档记录注明。
+拿到用户「确认关闭」的明确答复才搬；只给任务名不算确认。
 
-多条门禁同时命中时，合并成一次确认列给用户，不逐条往返。清点完仍要拿到用户「确认关闭」的明确答复才搬；只给任务名不算确认。
+**步骤**：先按 `save` 写回进展（曾 `handed-off` 的必须写回）→ `TASK.md` 置 `status: archived` + `archived` 日期，写一节归档记录（结论、关闭原因〔取自用户回答〕、未决与 driver 现状）→ 写 `{taskRoot}/SUMMARY.md`（给人读的时间线总结，一屏内；读不到的写「未记录」，不编造；先给用户过一眼）→ 移动整树 → 更新 INDEX（日期与目录名一致）→ 自证新路径可读、旧路径已不存在 → 清除绑定。
 
-## 步骤
-
-1. `TASK.md` 元信息：`status` 改为 `archived`，加 `archived: YYYY-MM-DD`。三处日期必须同一个 `{yyyy-mm-dd}`：元信息、归档目录名、INDEX 归档日。
-2. 在 `TASK.md` 写 **归档** 小节（无则新建），五项齐全：
-   - 本次结论：一句话写清探索得出了什么；确实没结论就写 `未得出结论`，不留空；详述见同目录 `SUMMARY.md`。
-   - 关闭原因：`已交付` / `放弃` / `被 {task-name} 取代` / `其它` + 一句话。原因取自用户回答，不替他猜。
-   - 未决清点结果：`N 条未决随归档关闭` 或 `已全部补结论`。
-   - 交付侧现状：driver 进度与是否已归档；未曾交接则写 `无`。
-   - 入链处理结果：`已改指新路径` 或 `保留断链`。
-3. 按下方「任务总结」写 `{taskRoot}/SUMMARY.md`，给用户过眼后继续。
-4. `mkdir -p tasks/archive/{yyyy-mm-dd}`，把整个 `{taskRoot}`（含子任务树）**移动**过去。
-5. 更新 INDEX：该任务行从 Ongoing 移入 Archived（归档日 + 新路径）；子任务行路径批量更新为 `archive/{yyyy-mm-dd}/{parent}/{sub}/`。一句话沿用原描述：曾 `handed-off` 的行（含子任务）保留 `→ {task-name}-driver` 结尾；父任务行把聚合描述改成闭合态（如「2 子任务：均已交接」），不留「设计中」这类进行时。无 INDEX 则按目录重建。
-6. 搬完自证：旧路径已不存在、新路径下 `TASK.md` 与 `SUMMARY.md` 可读、INDEX 每条归档路径都实际存在。不一致即报告漂移，按 `SKILL.md` 索引规则重建 INDEX，不要静默放过。
-7. 清除会话绑定，报告新路径与归档记录。曾 `handed-off` 的重申 `{task-name}-driver` 可能仍在运行，等用户确认后再决定是否关闭 driver。
-
-## 任务总结（`{taskRoot}/SUMMARY.md`）
-
-归档时在任务目录写一份**给人读**的总结，随整树一起进档案。档案里的叙述只有一份：`TASK.md` 留台账字段与结论指针，过程看 `SUMMARY.md`。
-
-- 篇幅：一屏内，不超过约 40 行。串脉络，不抄 `TASK.md` 小节原文，不贴聊天记录。
-- 主干是时间线：一条一行 `YYYY-MM-DD — 做了什么 → 得到什么结论`，同类合并，一天多事折成一条。
-- 素材：`TASK.md` 的进展 / 决策 / 交接、`design/` 各稿与评审意见、driver 侧进度。读不到的写「未记录」，**不编造**。
-- 曾 `handed-off` 必写「交付」段：driver 名、子 change 或 checkbox 进度、主要落地位置（模块或文件路径）。进度读不到就写「交付进度未记录」。
-- 父任务只写整体脉络与各子任务指针，不复述子任务内容。
-- 写完先给用户过一眼再搬目录；要改就改，改完才进步骤 4。
-- `SUMMARY.md` 已存在（`reopen` 后再归档）则续写新增时间线并更新结局，不整篇重写。
-
-骨架：
-
-```markdown
-# <task-name> 总结
-
-**一句话**：[要解决什么问题]　**结局**：[已交付 / 放弃 / 被 X 取代 / 未得出结论]
-
-## 时间线
-
-- YYYY-MM-DD — 明确目标是 X，排除 Y → 范围冻结
-- YYYY-MM-DD — 定位到瓶颈在 Z → 采纳方案 B
-
-## 关键决策
-
-- 采纳 B（主因…）；放弃 A（…）。
-
-## 交付
-
-- driver：`{task-name}-driver`，进度 X/Y
-- 落地：`<模块或文件路径>`
-
-## 遗留
-
-- [随归档关闭的未决，或「无」]
-```
-
-## 批量归档
-
-一次点名多个任务时，逐个跑完整门禁，但门禁结果先全部列完再**合并成一次确认**：每个任务一行，含未结子任务、未决条数、driver 进度、目标路径冲突。答复后依次搬。
-
-- 目标路径冲突或子任务未结的任务先剔除并单独报告，不阻塞其余。
-- 搬运中途失败即停：已搬的不回滚，报告已归档与未归档清单，剩下的点名重跑。
+批量归档：逐个检查，合并成一次确认；有冲突的剔除单独报告；中途失败即停，已搬的不回滚。
 
 不要把任务内容晋升到 `docs/design/` 或其它项目文档，除非用户另说。
 
+## reopen
 
-<!-- 原 phase-reopen.md -->
-# reopen 阶段
+把已归档任务搬回 `tasks/ongoing/{task-name}`，或对 `handed-off` 任务撤回交接（目录不动，只改状态）。状态以 `TASK.md` 的 `status` 为准，不按目录位置猜；找不到就报告，不猜路径。
 
-进入本阶段后执行；未读完不得搬动任何目录。
+**动之前**：
 
-把已归档的探索任务搬回 `tasks/ongoing/{task-name}`，或对 `handed-off` 任务撤回交接。两种形态动作不同：前者搬整树，后者只改状态，目录不动。
+- 目标路径已存在 → 停止并询问，禁止覆盖（同 archive）。
+- 子任务名与 `ongoing/` 下其它子任务重名（`{sub}-driver` 会撞）→ 列出，未定不搬。
+- 曾 `handed-off`：报告 driver 现状，读不到写「进度未知」；driver 及其 change 不删。
+- 拿到用户「确认 reopen」的明确答复才动。
 
-## 定位
-
-1. 未指定名字：`archived` 任务用 INDEX 的 Archived 表列出请用户选；`handed-off` 任务在 Ongoing 表中点名。指定了则用该名字。
-2. `status: archived` → 在 `tasks/archive/` 下按任务名定位，含 `archive/{yyyy-mm-dd}/{parent}/{sub}` 的嵌套位置；`status: handed-off` → 在 `ongoing/` 定位。找不到就报告并停止，不猜路径。
-3. 状态以 `TASK.md` 的 `status` 为准，不按目录位置猜。INDEX 与目录不一致时先按 `SKILL.md` 索引规则重建 INDEX，再定位。
-
-## 门禁（按序；任一不过即停）
-
-1. **目标路径**（仅 `archived`）：计算 `tasks/ongoing/{task-name}`。**目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。** 冲突时由用户定夺改走 `resume` 还是换名。
-2. **子任务名撞车**：整树搬回前扫 `ongoing/` 全树，若某个 `{sub}` 与别的父任务的子任务重名（driver 名 `{sub}-driver` 会撞），列出冲突双方，问用户改子任务名还是换父任务名；未定不搬。
-3. **driver 现状**：曾 `handed-off` 的任务先报告 `{task-name}-driver` 是否仍在、openspec 侧进度或已归档状态，读不到写「进度未知」，不得当作已完成。撤回交接时提醒：driver 已产出的 change 不自动删除，保留或走 openspec 归档由用户定。
-4. **确认**：拿到用户「确认 reopen」的明确答复才动，只给任务名不算确认。多条门禁同时命中时合并成一次确认，不逐条往返。
-
-## 步骤
-
-1. `archived` 任务：`status` 改回 `ongoing`，保留 `archived: YYYY-MM-DD` 作为历史，加 `reopened: YYYY-MM-DD`，更新 `updated`。已有决策、交接、归档记录一律不删不改写。
-2. `archived` 任务：`mkdir -p tasks/ongoing`，把整个 `{taskRoot}`（含子任务树）**移动**回 `tasks/ongoing/{task-name}`。树内已 `handed-off` 或已 `archived` 的子任务保持原状态，不自动复活。
-3. `handed-off` 任务：**不搬目录**，只把 `status` 改回 `ongoing`，加 `reopened: YYYY-MM-DD`，并在交接小节追加「撤回交接：[原因]（YYYY-MM-DD）」。driver 及其 change 不删。
-4. 更新 INDEX：`archived` 任务把该行从 Archived 移回 Ongoing（更新日取 reopen 日，路径改回 `ongoing/{task-name}/`，子任务行批量改回 `ongoing/{parent}/{sub}/`）；`handed-off` 任务的行留在 Ongoing，但**去掉 `→ {task-name}-driver` 尾注** —— 它已不是 handed-off，留着会让索引谎报。父行聚合描述改回与子任务当前状态一致。无 INDEX 则按目录重建。
-5. 搬完自证：旧路径已不存在、`tasks/ongoing/{task-name}/TASK.md` 可读、INDEX 该行路径实际存在。不一致即报告漂移，按 `SKILL.md` 索引规则重建。
-6. 绑定该探索任务（`reopen` 完成前 `{taskRoot}` 仍在 archive），用短摘要恢复上下文：**目标 / 当时结论 / 归档原因 / 撤回交接原因 / 建议下一步**，然后等用户。
-
-`SUMMARY.md` 随树搬回，作为历史叙述原样保留、不改写；下次归档按 `references/archive-reopen.md` 续写新增时间线。批量 reopen 不在本阶段范围：逐个走完整门禁。
+**步骤**：`status` 改回 `ongoing`，加 `reopened` 日期，已有决策 / 交接 / 归档记录一律不删不改写 → `archived` 任务整树搬回（子任务保持原状态，不自动复活）；`handed-off` 任务不搬，只在交接节追加撤回原因 → INDEX 改回 Ongoing，去掉 `→ {task-name}-driver` 尾注 → 绑定并给短摘要（目标 / 当时结论 / 归档或撤回原因 / 建议下一步）。`SUMMARY.md` 随树搬回，原样保留，下次归档续写。

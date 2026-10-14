@@ -69,7 +69,6 @@ class ContractTest(unittest.TestCase):
 
     def test_tier_paths_aligned(self) -> None:
         self.assertIn("explore(仅 grill)", self.contract)
-        self.assertIn("propose(单切片)", self.contract)
         self.assertIn("handoff → propose", self.contract)
         self.assertNotIn("可单 change", self.contract)
         self.assertIn("explore(仅 grill)", self.wizard)
@@ -81,15 +80,15 @@ class ContractTest(unittest.TestCase):
         self.assertIn("| `handoff`", self.contract)
         self.assertIn("| `expand`", self.contract)
 
-    def test_status_phase_matrix(self) -> None:
-        self.assertIn("status × phase 合法组合", self.contract)
-        self.assertIn("handed-off | propose, apply, archive", self.contract)
+    def test_single_ledger(self) -> None:
+        self.assertIn("**一本账**", self.contract)
+        self.assertNotIn("status × phase 合法组合", self.contract)
 
-    def test_simple_requires_taskflow(self) -> None:
+    def test_simple_direct_implement(self) -> None:
         self.assertIn("### simple 专条", self.contract)
-        self.assertIn("必须 `handoff` + taskflow", self.contract)
-        self.assertIn("禁止**在 taskrail 路径下无 driver", self.contract)
-        self.assertIn("凡经 taskrail 的交付均必需，含 simple", self.skill)
+        self.assertIn("simple **不建 driver、不走 OpenSpec**", self.contract)
+        self.assertIn("升档为 medium", self.contract)
+        self.assertIn("「验证」节", self.skill)
 
 
     def test_flow_overview_anchor_and_quality_attrs(self) -> None:
@@ -114,13 +113,11 @@ class ContractTest(unittest.TestCase):
 
     def test_optional_worker_seat(self) -> None:
         self.assertIn("## 执行座位", self.contract)
-        self.assertIn("默认派出，能力缺失可自做", self.contract)
-        self.assertIn("交接契约（5 项，缺一不派）", self.contract)
-        self.assertIn("Digest（≤10 行）", self.contract)
-        self.assertIn("**不派**", self.contract)
+        self.assertIn("**永不派出**", self.contract)
+        self.assertIn("只回简短摘要", self.contract)
         self.assertIn("宿主 subagent", self.contract)
         self.assertIn("不回灌工具轨迹", self.contract)
-        self.assertIn("Worker 默认派出", self.skill)
+        self.assertIn("Worker 派出为建议", self.skill)
 
     def test_wizard_delegates_task_intent(self) -> None:
         self.assertIn("委托 `task-intent`", self.wizard)

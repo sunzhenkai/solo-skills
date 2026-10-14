@@ -1,6 +1,6 @@
 # 算法（`algo`）
 
-角色文件：仅在本角色生效时加载（见 [preload-protocol](../preload-protocol.md)）；职责边界以 [role-vocabulary](../role-vocabulary.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。`[运行态]` 条目纯 diff 评审降级为「⚠ 需运行态验证」。
+角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。`[运行态]` 条目纯 diff 评审降级为「⚠ 需运行态验证」。
 
 ## 优先锚点
 
@@ -44,4 +44,4 @@
 
 ## 跨角色 redirect
 
-见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `algo` 的行（唯一真源，本文件不复述）。
+见 [protocol.md](../protocol.md)「角色间 redirect」表中含 `algo` 的行（唯一真源，本文件不复述）。

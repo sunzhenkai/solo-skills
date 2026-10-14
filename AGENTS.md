@@ -19,7 +19,7 @@ sunzhenkai 的第一方 Agent Skills 集合（公开仓，MIT）：任务流编�
 python3 -m pytest skills -q               # 全部测试（秒级）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
 
-make check-style    # 输出风格门禁（task 族 SKILL.md ≤8KB、意图复述 ≤8 行、Digest ≤10 行）
+make check-style    # 输出风格检查（意图复述字段齐全；SKILL.md >8KB 等只告警）
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
 make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
@@ -61,17 +61,17 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 ### task* 要点
 
-- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位可跳过；simple/medium 的 explore 仅为 grill；handoff 是动作不是 phase；凡经 taskrail 均走 OpenSpec，simple 为单切片）。
+- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位可跳过；simple 直接实现 + 验证、不建 driver；medium 的 explore 仅为 grill；handoff 是动作不是 phase；medium / complex 经 handoff 走 OpenSpec）。
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
 - 契约真源：`skills/taskrail/references/contract.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
 - 三件套：`taskrail` + `task-explore` + `taskflow`。
 - 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由 `role-based-reviewer roles=intent` 异源代审）；explore 的 grill 在其后，只追细节不重问意图。
-- 术语表：`skills/taskrail/references/glossary.md`；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
+- 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 
 ## Skill 设计原则
 
 - **通用性优先**：skill 面向一类问题而非一个具体场景。通过机制（协议、阶段门禁、契约）解决问题，避免为单一案例特例化；遇到具体需求时先问「这类问题的一般解是什么」。
-- **SKILL.md 体量**：单个 `SKILL.md` 宜控制在约 8KB 以内（task 族与 role-based-reviewer 由 `make check-style` 强制，其余仅告警）——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
+- **SKILL.md 体量**：单个 `SKILL.md` 宜控制在约 8KB 以内（`make check-style` 超限告警，不阻断）——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
 - **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-upgrader 的 `evolve`（正文演进）与 `update` / `self-upgrade`（修订 / 结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
 
 ## 公开仓纪律

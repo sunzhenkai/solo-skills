@@ -1,0 +1,446 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskrail/SKILL.md skills/taskrail/SKILL.md
+--- a/skills/taskrail/SKILL.md	2026-10-15 01:15:34.557829429 +0800
++++ b/skills/taskrail/SKILL.md	2026-10-15 01:16:00.398148040 +0800
+@@ -48,7 +48,7 @@
+ 
+ ## 主循环
+ 
+-每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 按契约「执行座位」默认派宿主 subagent（交接 5 项、回 Digest ≤10 行；无能力则主会话自做）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
++每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 高噪声 legwork 宜派宿主 subagent（见契约「执行座位」；无能力则主会话自做）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
+ 
+ | phase | 动作 |
+ |-------|------|
+@@ -109,4 +109,4 @@
+ - 危险与线上退出点以确认协议为准。
+ - 不在正文复制确认协议的审阅规则；不复制 taskflow 的 Driver 协议。
+ - 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
+-- Worker 默认派出；无宿主 subagent 时主会话自做，不因此退出轨道。
++- Worker 派出为建议；无宿主 subagent 时主会话自做，不因此退出轨道。
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskrail/references/confirm-protocol.md skills/taskrail/references/confirm-protocol.md
+--- a/skills/taskrail/references/confirm-protocol.md	2026-10-15 01:15:34.557061425 +0800
++++ b/skills/taskrail/references/confirm-protocol.md	2026-10-15 01:16:00.398185717 +0800
+@@ -19,7 +19,7 @@
+ | 模式 | 行为 |
+ |------|------|
+ | human | 闸口列选项（含推荐），等人确认或改值后放行 |
+-| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `goal-review.md`（≥0.8 且无 P0/P1） |
++| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `references/intent.md`（无 P0/P1） |
+ 
+ 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskrail/references/contract.md skills/taskrail/references/contract.md
+--- a/skills/taskrail/references/contract.md	2026-10-15 01:15:34.557179792 +0800
++++ b/skills/taskrail/references/contract.md	2026-10-15 01:16:20.031121004 +0800
+@@ -114,23 +114,13 @@
+ 
+ ## 执行座位
+ 
+-高噪声 legwork **默认**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。目的：并行提速、主会话上下文不被工具轨迹污染。
++高噪声 legwork（大范围摸底、调研、起草、实现切片、评审、验证复跑）**宜**交给 worker（宿主 subagent；点名 Endpoint 时走 `agent-roster`），以并行提速、保持主会话上下文干净。不新增 `phase`，不改变闸口与完成门。宿主无 subagent 或派出失败 → 主会话按同一落点与完成标准自做，**不得**因此停下或改道。
+ 
+-**默认派出，能力缺失可自做。** 宿主无 subagent、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道；有能力却不派时，在 `TASK.md` 进展里写一句理由。
+-
+-| 单位 | simple | medium / complex |
+-|------|--------|------------------|
+-| wizard 意图摸底（task-intent） | 1 个（跳过条件见 task-intent「何时跳过」） | 2–3 / 3–4 个并行 |
+-| explore | worker 摸底；grill 提问留主会话 | worker（调研 / 起草；grill 提问与闸口留主会话） |
+-| design | （跳过） | worker |
+-| apply | worker | worker（并行与实现者输入见 taskflow） |
+-| 评审 / 验证复跑 | worker | worker（按角色并行，见 role-based-reviewer） |
+-
+-**不派**：闸口（确认协议）、危险退出、面向用户的提问与选项；一句话能说清或预计改动 <30 行的活；强依赖主会话上下文、拆不开的步骤。同一批可并行的单位一次性发出；simple ≤1、medium ≤3、complex ≤5 个。
+-
+-**交接契约（5 项，缺一不派）**：① 目标（一句话要回答 / 完成什么）；② 输入路径；③ 写入范围（apply 含 change 范围内业务代码；其余默认只读 + 落盘路径）；④ 输出格式（Digest）；⑤ 停止条件。apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。
+-
+-**Digest（≤10 行）**：结论 / 落盘路径 / 未决 / 置信度。详情落盘，主会话只收 Digest，不回灌工具轨迹、不转贴全文；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
++- wizard 意图探索是否并行摸底：跳过条件见 task-intent「何时跳过」。
++- **永不派出**：闸口（确认协议）、危险退出、面向用户的提问与选项。
++- 派出时交代清楚目标、输入、写入范围与产出位置；apply 的实现者输入引用 taskflow `implementer-isolation`。
++- Worker 详情落盘，只回简短摘要（结论 / 落盘路径 / 未决）；主会话不回灌工具轨迹、不转贴全文。产物缺失则停在当前 `phase`。
++- `TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
+ 
+ ## 确认闸口（封闭）
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskrail/tests/test_intent_loop_contract.py skills/taskrail/tests/test_intent_loop_contract.py
+--- a/skills/taskrail/tests/test_intent_loop_contract.py	2026-10-15 01:15:34.557236825 +0800
++++ b/skills/taskrail/tests/test_intent_loop_contract.py	2026-10-15 01:16:00.398615068 +0800
+@@ -33,7 +33,7 @@
+         self.assertIn("`criterion` 与 `wizard/intent.md`「做完的样子」一致", r("taskrail/references/phase-wizard.md"))
+ 
+     def test_05_taskflow_points_to_seat(self) -> None:
+-        self.assertIn("交接 5 项、回 Digest ≤10 行", r("taskflow/SKILL.md"))
++        self.assertIn("执行座位", r("taskflow/SKILL.md"))
+ 
+     def test_06_layout_has_intent_dirs(self) -> None:
+         c = r("taskrail/references/contract.md")
+@@ -44,7 +44,7 @@
+         self.assertIn("`status: confirmed` 或 `assumed` 时不重做", r("task-intent/SKILL.md"))
+ 
+     def test_08_goal_threshold_single(self) -> None:
+-        self.assertIn("通过线按 task-intent `goal-review.md`", r("taskrail/references/confirm-protocol.md"))
++        self.assertIn("通过线按 task-intent `references/intent.md`", r("taskrail/references/confirm-protocol.md"))
+ 
+     def test_09_skip_rule_single_source(self) -> None:
+         self.assertIn("跳过条件见 task-intent「何时跳过」", r("taskrail/references/contract.md"))
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskrail/tests/test_taskrail_contract.py skills/taskrail/tests/test_taskrail_contract.py
+--- a/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 01:15:34.557739085 +0800
++++ b/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 01:16:00.398555390 +0800
+@@ -113,13 +113,11 @@
+ 
+     def test_optional_worker_seat(self) -> None:
+         self.assertIn("## 执行座位", self.contract)
+-        self.assertIn("默认派出，能力缺失可自做", self.contract)
+-        self.assertIn("交接契约（5 项，缺一不派）", self.contract)
+-        self.assertIn("Digest（≤10 行）", self.contract)
+-        self.assertIn("**不派**", self.contract)
++        self.assertIn("**永不派出**", self.contract)
++        self.assertIn("只回简短摘要", self.contract)
+         self.assertIn("宿主 subagent", self.contract)
+         self.assertIn("不回灌工具轨迹", self.contract)
+-        self.assertIn("Worker 默认派出", self.skill)
++        self.assertIn("Worker 派出为建议", self.skill)
+ 
+     def test_wizard_delegates_task_intent(self) -> None:
+         self.assertIn("委托 `task-intent`", self.wizard)
+diff -ruN -x __pycache__ -x patches /tmp/snap3/role-based-reviewer/SKILL.md skills/role-based-reviewer/SKILL.md
+--- a/skills/role-based-reviewer/SKILL.md	2026-10-15 01:15:34.558885619 +0800
++++ b/skills/role-based-reviewer/SKILL.md	2026-10-15 01:16:00.398271271 +0800
+@@ -52,7 +52,7 @@
+ ## 流程
+ 
+ 1. 过三道门禁。未过门 1 则不要按本 skill 执行。解析 `mode`、`roles` 与可选的 `model` / `endpoint`；未指定角色时按上节推断，受门 2 约束。
+-2. 对每个生效角色，按 [preload-protocol](references/preload-protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计默认 ≤6 个文件；超出时说明原因。`mode=review` 另遵循耗时优化。
++2. 对每个生效角色，按 [preload-protocol](references/preload-protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计宜控制在约 6 个文件（建议，非硬线）。`mode=review` 另遵循耗时优化。
+ 3. `mode=ask`：按角色输出独立结论、证据、边界与下游建议。
+ 4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 brief-protocol 汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审（例外：调用方已判定不可用、未调用本 skill 并自行登记降级，如 task-intent goal 自审）。
+ 5. 合并时只去重「同一证据支持的同一风险」；不得把不同角色的结论混写成无归属意见。
+diff -ruN -x __pycache__ -x patches /tmp/snap3/role-based-reviewer/references/roles/intent.md skills/role-based-reviewer/references/roles/intent.md
+--- a/skills/role-based-reviewer/references/roles/intent.md	2026-10-15 01:15:34.558955643 +0800
++++ b/skills/role-based-reviewer/references/roles/intent.md	2026-10-15 01:16:00.398227403 +0800
+@@ -4,25 +4,27 @@
+ 
+ ## 优先锚点
+ 
+-用户原话（最高真源）、意图复述（6 字段）、摸底 Digest。只读这三样；不读实现、不扩大到方案评审。
++用户原话（最高真源）、意图复述、探索摘要。只读这三样；不读实现、不扩大到方案评审。
+ 
+ ## 核心检查清单
+ 
+ 每条附命中判据；判据不满足则不报。
+ 
+ 1. 🔴 添加目标：复述出现用户原话与摸底都推不出的目标或范围。
+-   命中判据：指出复述中一句话，原话与 Digest 中均无来源。
++   命中判据：指出复述中一句话，原话与探索摘要中均无来源。
+ 2. 🔴 漏掉约束：用户原话里的限制 / 禁止 / 期限没进「不做」或「做完的样子」。
+    命中判据：引用原话片段，复述中无对应。
+ 3. 🟡 不可检查：「做完的样子」无法被检查（形容词收工、无参照）。
+    命中判据：两个独立执行者对是否完成会给出不同判断。
+-4. 🟡 假设失当：会改变做法或范围的假设未标「把握低」或未升级为「要你拍板的」。
++4. 🟡 上下文不支撑做法：「怎么干」与「上下文」里的现状 / 约束矛盾。
++   命中判据：指出一条约束或现状，按复述的做法会违反它。
++5. 🟡 假设失当：会改变做法或范围的假设未标「把握低」或未升级为「要你拍板的」。
+    命中判据：指出一条假设，换一种读法会导致不同的交付范围。
+-5. ⚪ 措辞：术语未释义、超过 8 行。
++6. ⚪ 措辞：术语未释义、复述冗长难扫读。
+ 
+ ## 输出
+ 
+-在 brief-protocol 骨架之外另给：`分数：0–1`、`结论：通过 / 不通过`（通过线：≥0.8 且无 🔴/🟡）、每条发现带「要改的行」。
++在 brief-protocol 骨架之外另给：`结论：通过 / 不通过`（无 🔴/🟡 即通过）、每条发现带「要改的地方」。
+ 
+ ## 不算问题
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/role-based-reviewer/tests/test_role_based_reviewer_contract.py skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-10-15 01:15:34.558824351 +0800
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-10-15 01:16:00.398648122 +0800
+@@ -101,7 +101,7 @@
+ class TestIntentRole(unittest.TestCase):
+     def test_intent_role_contract(self) -> None:
+         text = read("references/roles/intent.md")
+-        for s in ("用户原话", "分数：0–1", "≥0.8", "不参与视角推断"):
++        for s in ("用户原话", "无 🔴/🟡 即通过", "上下文不支撑做法", "不参与视角推断"):
+             self.assertIn(s, text)
+         self.assertIn("intent ↔ product", read("references/constraints.md"))
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskflow/SKILL.md skills/taskflow/SKILL.md
+--- a/skills/taskflow/SKILL.md	2026-10-15 01:15:34.559757075 +0800
++++ b/skills/taskflow/SKILL.md	2026-10-15 01:16:00.397995852 +0800
+@@ -61,7 +61,7 @@
+ - 一轮结束只有三种情况（以 Driver 协议块为准）；「需要用户决策」按 [../taskrail/references/suspension.md](../taskrail/references/suspension.md) 挂起五元组呈现，不依赖的条目继续。
+ - 新发现的降级按 [../taskrail/references/quality-profile.md](../taskrail/references/quality-profile.md) 定级：A 类 `pending` 停等用户；B 类 `provisional` 到用户在场点追认。
+ - 归档前逐条跑「收尾机械校核」；禁止 `--yes` 掩盖未勾。最终验收按 [references/acceptance-rubric.md](references/acceptance-rubric.md)，回归按 [references/delivery-quality-loop.md](references/delivery-quality-loop.md)。
+-- 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 按 taskrail 契约「执行座位」：交接 5 项、回 Digest ≤10 行。
++- 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 见 taskrail 契约「执行座位」。
+ - 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
+ - Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskflow/references/acceptance-rubric.md skills/taskflow/references/acceptance-rubric.md
+--- a/skills/taskflow/references/acceptance-rubric.md	2026-10-15 01:15:34.559785197 +0800
++++ b/skills/taskflow/references/acceptance-rubric.md	2026-10-15 01:16:00.397859183 +0800
+@@ -7,7 +7,7 @@
+ - 先交证据，再由对应岗位打分；实现者自评只作输入，不算通过线。
+ - 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 taskrail 确认协议 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审），另附 `wizard/intent.md`（若有）供核对「做完的样子」与「不做」。退普通 subagent 须写明不可用原因，否则按 taskrail 确认协议 退出点「评审降级未记录」不放行。
+ - 角色由交付类别门包（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
+-- 评分先套门包：**可自动化门**任一失败 → 对应维度不得 ≥2.5（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
++- 评分先套门包：**可自动化门**任一失败 → 对应维度不通过（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
+ - Web UI：可自动化门对齐 Active Instance validate / `scan_design_constraints`（或等价）与门包 token/无障碍/状态/结构断言；运行态优先 `ui_evidence_check` current-build 证据；主观项（视觉层级等）MUST 指到 Gallery 或 `core/tokens.yaml` 可指认件，否则只记 Suggestion。
+ - 复杂档交付验收 SHOULD 异源（`model=` 与实现者不同，或 `endpoint=` 走名册）。
+ - 三方结论不一致时保留各自意见，按影响面决定优先级，不取平均掩盖分歧。
+@@ -22,7 +22,7 @@
+ | 画像一致性 | 实现逐条对得上质量画像 | 只有已确认且记录的降级 | 无未确认偏差 |
+ | 证据 | 截图或导出日志 + 可复现命令 | 证据部分缺失 | 全部齐 |
+ 
+-全量通过线：五维均 ≥2，UI/UX 六子项均值 ≥2.5，任一子项为 0 不通过。
++通过条件：无未处置 Blocker / Major，判据与画像逐条有证据，任一维度或 UI/UX 子项明显缺失（0 分）不通过。五维分数是给结论用的参考（SHOULD 给出），不设均值硬线。
+ 
+ ## UI/UX 六子项
+ 
+@@ -35,7 +35,7 @@
+ | 无障碍 | 焦点管理、键盘可达、对比度、语义与替代文本 |
+ | 响应式 | 常见窄屏与桌面布局都能用，不靠压缩硬塞 |
+ 
+-UI/UX 得分是六个子项的平均分，任一子项为 0 则不通过，即使均值达标。
++UI/UX 六个子项逐项给结论；任一子项为 0 则不通过。
+ 
+ ## Web UI 证据前置
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskflow/references/execution-discipline.md skills/taskflow/references/execution-discipline.md
+--- a/skills/taskflow/references/execution-discipline.md	2026-10-15 01:15:34.559777271 +0800
++++ b/skills/taskflow/references/execution-discipline.md	2026-10-15 01:16:20.031021834 +0800
+@@ -20,7 +20,7 @@
+ - 质量画像与显式降级原文快照由上游任务描述带入 driver proposal，实施阶段不改写、不删减，只按下面规则补新发现的降级。
+ - 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../../taskrail/references/quality-profile.md](../../taskrail/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
+ - 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../../taskrail/references/confirm-protocol.md](../../taskrail/references/confirm-protocol.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
+-- driver 的最终验收必须按 [references/acceptance-rubric.md](acceptance-rubric.md) 给出五维分数与证据，并满足五维均 ≥2、UI/UX 均值 ≥2.5；缺分不得勾验收标准 checkbox。
++- driver 的最终验收必须按 [references/acceptance-rubric.md](acceptance-rubric.md) 给出五维分数与证据，并满足其通过条件（无未处置 Blocker / Major、判据逐条有证据）；缺结论不得勾验收标准 checkbox。
+ 
+ ## 收尾机械校核
+ 
+@@ -61,7 +61,7 @@
+ 
+ 主会话负责派发、汇总、处理冲突与未勾原因。子代理失败或超时不是整轮结束理由，按「一轮结束」继续其余独立项。
+ 
+-两条派发前置纪律：
++两条派发前置纪律（complex 档、多切片并行时适用；单切片或 medium 小范围可省）：
+ 
+ - **旗舰先行**：交付类别命中门包、且属首次实现或大改时，先只派一个**旗舰切片**——按契约文件把该类交付的代表面做到全量（含门包要求的可自动化门与运行态证据），经门包「必载专家能力」评审通过后才允许并行铺开；旗舰切片同时是其余切片的复制样板。无样板可循（新交付类别、新页面族）时不得直接并行。
+ - **同类失败升级**：**≥2 个单元报告同一类失败**（同一契约错误、同一类门失败、同一类返工）时，判定为**契约或计划缺陷**：停并行、回 `design` 修契约，再重新派发；不得按各自 bug 逐个修。
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskflow/tests/test_execution_spine_contract.py skills/taskflow/tests/test_execution_spine_contract.py
+--- a/skills/taskflow/tests/test_execution_spine_contract.py	2026-10-15 01:15:34.559910234 +0800
++++ b/skills/taskflow/tests/test_execution_spine_contract.py	2026-10-15 01:16:00.398481496 +0800
+@@ -139,7 +139,7 @@
+         self.assertIn("不得少于该表「必载评审」", self.rubric)
+ 
+     def test_gate_failure_caps_score(self) -> None:
+-        self.assertIn("**可自动化门**任一失败 → 对应维度不得 ≥2.5", self.rubric)
++        self.assertIn("**可自动化门**任一失败 → 对应维度不通过", self.rubric)
+ 
+     def test_web_ui_evidence_binding(self) -> None:
+         self.assertIn("scan_design_constraints", self.rubric)
+@@ -153,8 +153,7 @@
+         self.assertIn("SHOULD 异源", self.rubric)
+ 
+     def test_existing_pass_line_intact(self) -> None:
+-        self.assertIn("五维均 ≥2", self.rubric)
+-        self.assertIn("UI/UX 六子项均值 ≥2.5", self.rubric)
++        self.assertIn("不设均值硬线", self.rubric)
+ 
+ 
+ if __name__ == "__main__":
+diff -ruN -x __pycache__ -x patches /tmp/snap3/taskflow/tests/test_taskflow_contract.py skills/taskflow/tests/test_taskflow_contract.py
+--- a/skills/taskflow/tests/test_taskflow_contract.py	2026-10-15 01:15:34.559903341 +0800
++++ b/skills/taskflow/tests/test_taskflow_contract.py	2026-10-15 01:16:00.398408982 +0800
+@@ -88,14 +88,15 @@
+         self.text = read("references/acceptance-rubric.md")
+ 
+     def test_global_pass_line(self) -> None:
+-        self.assertIn("全量通过线：五维均 ≥2，UI/UX 六子项均值 ≥2.5，任一子项为 0 不通过。", self.text)
++        self.assertIn("无未处置 Blocker / Major", self.text)
++        self.assertIn("不设均值硬线", self.text)
+ 
+     def test_uiux_zero_subitem_blocks(self) -> None:
+-        self.assertIn("任一子项为 0 则不通过，即使均值达标", self.text)
++        self.assertIn("任一子项为 0 则不通过", self.text)
+ 
+     def test_skill_body_restates_thresholds(self) -> None:
+         text = skill_corpus(SKILL_ROOT)
+-        self.assertIn("五维均 ≥2、UI/UX 均值 ≥2.5", text)
++        self.assertIn("无未处置 Blocker / Major、判据逐条有证据", text)
+ 
+ 
+ class TestPendingConfirmationSyncLock(unittest.TestCase):
+--- a/AGENTS.md	2026-10-15 01:15:34.560839796 +0800
++++ b/AGENTS.md	2026-10-15 01:16:20.043013462 +0800
+@@ -19,7 +19,7 @@
+ python3 -m pytest skills -q               # 全部测试（秒级）
+ python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
+ 
+-make check-style    # 输出风格门禁（task 族 SKILL.md ≤8KB、意图复述 ≤8 行、Digest ≤10 行）
++make check-style    # 输出风格检查（意图复述字段齐全；SKILL.md >8KB 等只告警）
+ make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
+ make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
+ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
+@@ -71,7 +71,7 @@
+ ## Skill 设计原则
+ 
+ - **通用性优先**：skill 面向一类问题而非一个具体场景。通过机制（协议、阶段门禁、契约）解决问题，避免为单一案例特例化；遇到具体需求时先问「这类问题的一般解是什么」。
+-- **SKILL.md 体量**：单个 `SKILL.md` 宜控制在约 8KB 以内（task 族与 role-based-reviewer 由 `make check-style` 强制，其余仅告警）——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
++- **SKILL.md 体量**：单个 `SKILL.md` 宜控制在约 8KB 以内（`make check-style` 超限告警，不阻断）——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
+ - **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-upgrader 的 `evolve`（正文演进）与 `update` / `self-upgrade`（修订 / 结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
+ 
+ ## 公开仓纪律
+--- a/Makefile	2026-10-15 01:15:34.560890667 +0800
++++ b/Makefile	2026-10-15 01:16:20.042896444 +0800
+@@ -26,7 +26,7 @@
+ 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
+ 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
+ 	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出）"
+-	@echo "make check-style           输出风格门禁：task 族 SKILL.md ≤8KB、意图复述 ≤8 行、Digest ≤10 行"
++	@echo "make check-style           输出风格检查：意图复述字段齐全（错误）；SKILL.md >8KB、复述过长（告警）"
+ 	@echo "make check-names           扫描 skills/docs/根文档里的具体项目名（.project-denylist；命中非零退出）"
+ 
+ install-deps: install-matt install-openspec
+--- a/scripts/check_output_style.py	2026-10-15 01:15:34.561410787 +0800
++++ b/scripts/check_output_style.py	2026-10-15 01:16:20.033326964 +0800
+@@ -1,11 +1,9 @@
+ #!/usr/bin/env python3
+-"""面向人的输出风格门禁（只依赖标准库）。
++"""面向人的输出风格检查（只依赖标准库）。
+ 
+-规则：
+-1. task 族 SKILL.md（ENFORCED）≤ 8192 字节；其余 skill 超限只告警。
+-2. 意图复述模板（task-intent statement-template 的首个 markdown 代码块）≤ 8 行，且不含内部术语。
+-3. 任何以「Digest（≤10 行）」为标题的小节，其后首个代码块 ≤ 10 行。
+-命中 ERROR 打印 file:说明 并以 1 退出；WARN 只打印。
++1. SKILL.md 超过 8192 字节：告警（指导线，不阻断）。
++2. 意图复述模板（task-intent references/intent.md「意图复述模板」代码块）：
++   必备字段缺失 → ERROR（结构性约束）；超过 12 行 → 告警（宜简洁）。
+ """
+ from __future__ import annotations
+ 
+@@ -15,58 +13,36 @@
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ LIMIT = 8192
+-ENFORCED = {"taskrail", "task-explore", "taskflow", "task-intent", "role-based-reviewer"}
+-JARGON = re.compile(r"\b(phase|gate|Digest|worker|criterion|tier)\b", re.I)
+-FENCE = re.compile(r"```[a-z]*\n(.*?)```", re.S)
++FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "要你拍板的")
++BLOCK = re.compile(r"## 2\. 意图复述模板\n\n```markdown\n(.*?)```", re.S)
+ 
+ 
+-def nonblank(block: str) -> int:
+-    return len([l for l in block.splitlines() if l.strip()])
+-
+-
+-def check_sizes(skills: Path) -> tuple[list[str], list[str]]:
+-    errs, warns = [], []
++def check_sizes(skills: Path) -> list[str]:
++    warns = []
+     for f in sorted(skills.glob("*/SKILL.md")):
+         n = len(f.read_bytes())
+         if n > LIMIT:
+-            msg = f"{f.relative_to(skills.parent)}: SKILL.md {n} B > {LIMIT} B"
+-            (errs if f.parent.name in ENFORCED else warns).append(msg)
+-    return errs, warns
++            warns.append(f"{f.relative_to(skills.parent)}: SKILL.md {n} B > {LIMIT} B")
++    return warns
+ 
+ 
+-def check_intent_template(path: Path) -> list[str]:
++def check_intent_template(path: Path) -> tuple[list[str], list[str]]:
+     if not path.exists():
+-        return []
+-    m = FENCE.search(path.read_text(encoding="utf-8"))
++        return [], []
++    m = BLOCK.search(path.read_text(encoding="utf-8"))
+     if not m:
+-        return [f"{path}: 未找到复述模板代码块"]
+-    errs = []
+-    if nonblank(m.group(1)) > 8:
+-        errs.append(f"{path}: 复述模板超过 8 行")
+-    hit = JARGON.search(m.group(1))
+-    if hit:
+-        errs.append(f"{path}: 复述模板含内部术语「{hit.group(0)}」")
+-    return errs
+-
+-
+-def check_digest_blocks(skills: Path) -> list[str]:
+-    errs = []
+-    for f in sorted(skills.rglob("*.md")):
+-        if "patches" in f.parts or "evolutions" in f.parts:
+-            continue
+-        text = f.read_text(encoding="utf-8")
+-        for h in re.finditer(r"^#+ Digest（≤10 行）.*$", text, re.M):
+-            m = FENCE.search(text, h.end())
+-            if m and nonblank(m.group(1)) > 10:
+-                errs.append(f"{f.relative_to(skills.parent)}: Digest 模板超过 10 行")
+-    return errs
++        return [f"{path}: 未找到意图复述模板"], []
++    block = m.group(1)
++    errs = [f"{path}: 复述模板缺字段「{f}」" for f in FIELDS if f not in block]
++    lines = [l for l in block.splitlines() if l.strip()]
++    warns = [f"{path}: 复述模板 {len(lines)} 行，宜更短"] if len(lines) > 12 else []
++    return errs, warns
+ 
+ 
+ def run(skills: Path) -> tuple[list[str], list[str]]:
+-    errs, warns = check_sizes(skills)
+-    errs += check_intent_template(skills / "task-intent" / "references" / "statement-template.md")
+-    errs += check_digest_blocks(skills)
+-    return errs, warns
++    warns = check_sizes(skills)
++    errs, w2 = check_intent_template(skills / "task-intent" / "references" / "intent.md")
++    return errs, warns + w2
+ 
+ 
+ def main() -> int:
+@@ -77,7 +53,7 @@
+         print("ERROR", e)
+     if errs:
+         return 1
+-    print(f"OK: 输出风格门禁通过（{len(warns)} 条告警）")
++    print(f"OK: 输出风格检查通过（{len(warns)} 条告警）")
+     return 0
+ 
+ 
+--- a/tests/test_output_style.py	2026-10-15 01:15:34.561955675 +0800
++++ b/tests/test_output_style.py	2026-10-15 01:16:20.034228780 +0800
+@@ -18,30 +18,20 @@
+         )
+         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+ 
+-    def test_detects_violations(self) -> None:
++    def test_size_is_warning_and_missing_field_is_error(self) -> None:
+         with tempfile.TemporaryDirectory() as tmp:
+             s = Path(tmp) / "skills"
+             (s / "taskrail").mkdir(parents=True)
+             (s / "taskrail" / "SKILL.md").write_text("x" * 9000, encoding="utf-8")
+-            (s / "other").mkdir()
+-            (s / "other" / "SKILL.md").write_text("x" * 9000, encoding="utf-8")
+             ref = s / "task-intent" / "references"
+             ref.mkdir(parents=True)
+-            (ref / "statement-template.md").write_text(
+-                "```markdown\n" + "\n".join(f"- 行{i}" for i in range(9)) + "\n- 当前 phase\n```\n",
+-                encoding="utf-8",
+-            )
+-            (ref / "probe.md").write_text(
+-                "## Digest（≤10 行）\n\n```text\n" + "\n".join("a" for _ in range(11)) + "\n```\n",
+-                encoding="utf-8",
+-            )
++            body = "\n".join(f"- 行{i}" for i in range(13)) + "\n**要干嘛**：x\n"
++            (ref / "intent.md").write_text(f"## 2. 意图复述模板\n\n```markdown\n{body}```\n", encoding="utf-8")
+             errs, warns = chk.run(s)
+-        joined = "\n".join(errs)
+-        self.assertIn("taskrail/SKILL.md", joined)
+-        self.assertIn("超过 8 行", joined)
+-        self.assertIn("phase", joined)
+-        self.assertIn("Digest 模板超过 10 行", joined)
+-        self.assertEqual(len(warns), 1)
++        self.assertTrue(any("taskrail/SKILL.md" in w for w in warns))
++        self.assertTrue(any("宜更短" in w for w in warns))
++        self.assertTrue(any("怎么干" in e for e in errs))
++        self.assertFalse(any("要干嘛" in e for e in errs))
+ 
+ 
+ if __name__ == "__main__":

@@ -1,0 +1,61 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap2/taskrail/references/contract.md skills/taskrail/references/contract.md
+--- a/skills/taskrail/references/contract.md	2026-10-15 01:15:02.287151128 +0800
++++ b/skills/taskrail/references/contract.md	2026-10-15 01:15:09.131021085 +0800
+@@ -94,18 +94,10 @@
+ - `phase` 只允许上列封闭枚举。task-explore 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，禁止写入 `phase`。
+ - `phase` + 各阶段目录产物 = wizard→approve 区间的进度真相。
+ - propose 之后进度只认 OpenSpec checkbox（driver / 子 change）。
+-- `handed-off` 只表示账本已换到 taskflow，**不等于** `done`。
++- **一本账**：`TASK.md` 是唯一任务账（目标、判据、phase、决策）；driver 只是 OpenSpec 执行记录，propose 之后的进度看其 checkbox，不在 driver 另记任务状态。`handed-off` **不等于** `done`。
+ - `done` 仅当完成判据成立且交付标准全过（复杂档另要求质量画像齐全、降级无 `pending`/`provisional`）。
+ 
+-### status × phase 合法组合
+-
+-| status | 允许的 phase |
+-|--------|----------------|
+-| ongoing | wizard, explore, design, approve；simple 另含 apply |
+-| handed-off | propose, apply, archive |
+-| blocked | 停在进入 blocked 时的 phase（上表该 status 原允许集合内） |
+-| done | done |
+-| archived | archive 或 done（目录已迁 `tasks/archive/`） |
++`status` 随 `phase` 走，不另设矩阵：wizard–approve（及 simple 的 apply）为 `ongoing`；handoff 后为 `handed-off`；完成门过为 `done`；归档为 `archived`；`blocked` 停在原 `phase`。
+ 
+ ## 阶段载荷契约
+ 
+@@ -116,7 +108,7 @@
+ | explore / design | `wizard/intent.md`（`status: confirmed` 或 `assumed`；本规则生效前的旧任务缺失不回溯）+ `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
+ | design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
+ | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：medium/complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
+-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver（Web UI 含三条 digest）；`status: handed-off` 与 `driver` 已写入；`TASK.md`「## 交接」含「交付类别」「适用门包」行，`taskflow/scripts/check_handoff.py` exit 0 |
++| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入；`taskflow/scripts/check_handoff.py` exit 0 |
+ | apply | driver `tasks.md` 已由 propose 产出；simple：wizard 已定稿（`wizard/intent.md` + `criterion`） |
+ | archive（探索侧） | 用户确认关闭；子任务均已结 |
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap2/taskrail/tests/test_task_family_contract.py skills/taskrail/tests/test_task_family_contract.py
+--- a/skills/taskrail/tests/test_task_family_contract.py	2026-10-15 01:15:02.287242289 +0800
++++ b/skills/taskrail/tests/test_task_family_contract.py	2026-10-15 01:15:26.285802112 +0800
+@@ -128,7 +128,7 @@
+     def test_non_phase_section_present(self) -> None:
+         contract = read("taskrail", "references/contract.md")
+         self.assertIn("## 非 phase 动作", contract)
+-        self.assertIn("status × phase 合法组合", contract)
++        self.assertIn("`status` 随 `phase` 走", contract)
+ 
+ 
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap2/taskrail/tests/test_taskrail_contract.py skills/taskrail/tests/test_taskrail_contract.py
+--- a/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 01:15:02.287723198 +0800
++++ b/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 01:15:26.285874227 +0800
+@@ -80,9 +80,9 @@
+         self.assertIn("| `handoff`", self.contract)
+         self.assertIn("| `expand`", self.contract)
+ 
+-    def test_status_phase_matrix(self) -> None:
+-        self.assertIn("status × phase 合法组合", self.contract)
+-        self.assertIn("handed-off | propose, apply, archive", self.contract)
++    def test_single_ledger(self) -> None:
++        self.assertIn("**一本账**", self.contract)
++        self.assertNotIn("status × phase 合法组合", self.contract)
+ 
+     def test_simple_direct_implement(self) -> None:
+         self.assertIn("### simple 专条", self.contract)

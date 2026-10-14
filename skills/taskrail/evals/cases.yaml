@@ -37,29 +37,29 @@ cases:
       must_not:
         - 仅因 handed-off 或 propose 完标 done
 
-  - id: simple-via-openspec
+  - id: simple-direct-implement
     kind: core
     judge: deterministic
-    description: simple 档仍必须 handoff + taskflow 单切片
+    description: simple 档定稿后直接实现 + 验证，不建 driver
     given: wizard 定档 simple 且用户继续走 taskrail
     expect:
       must:
-        - explore 仅为 grill
-        - 轻量 approve 后 handoff 建 {slug}-driver
-        - propose 单切片 → apply → archive
+        - wizard 定稿（意图确认 + 含判据的简短 plan）后直接实现
+        - 验证命令与结果写入 TASK.md「验证」节，过完成门即 done
+        - 发现超出局部修改时停下升档为 medium
       must_not:
-        - 无 driver 直接改业务代码
-        - 把 grill 或 handoff 写入 TASK.md.phase
+        - 为 simple 建 {slug}-driver 或走 OpenSpec
+        - 跳过确认协议执行不可逆动作
 
   - id: optional-worker-seat
     kind: core
     judge: deterministic
-    description: Worker 派出推荐非强制；宿主 subagent 为抽象通道
-    given: medium/complex 进入 explore/design/apply，或宿主无 subagent
+    description: Worker 派出为建议；宿主 subagent 为抽象通道
+    given: 进入 explore/design/apply，或宿主无 subagent
     expect:
       must:
-        - 可派出时优先宿主 subagent；grill 提问与闸口留主会话
-        - 主会话只收 Digest，不回灌工具轨迹
+        - 高噪声 legwork 宜派宿主 subagent；闸口与面向用户的提问留主会话
+        - 主会话只收简短摘要，不回灌工具轨迹
         - 无派出能力时主会话自做，不退出轨道
       must_not:
         - 因缺少 subagent 停下或改道
@@ -141,13 +141,13 @@ cases:
     kind: core
     judge: deterministic
     description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
-    given: 交付类别为 Web UI，medium/complex 进入 approve，或 simple 无 freeze 仅 adopt-only
+    given: 交付类别为 Web UI，complex 进入 approve，或 medium/simple 无 freeze 走 adopt-only
     expect:
       must:
         - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
-        - medium/complex 无 freeze 时停下回 design 建立 Active Instance，不批准
-        - simple adopt-only 须已确认显式降级；不强制代表页 two-pass / Gallery
-        - medium/complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
+        - complex 无 freeze 时停下回 design 建立 Active Instance，不批准
+        - medium/simple adopt-only 须已登记显式降级；不强制代表页 two-pass / Gallery
+        - complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
       must_not:
         - 用散文组件约定或 ui-skills-root 替代 Active Instance
         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
@@ -156,16 +156,16 @@ cases:
   - id: web-ui-runtime-evidence-and-design-review
     kind: regression
     judge: deterministic
-    description: Web UI 运行态证据与 design 评审按档调度（complex/medium 硬门；simple SHOULD）
+    description: Web UI 运行态证据与 design 评审按档调度（complex 硬门；medium/simple SHOULD）
     given: 交付类别为 Web UI，进入完成门
     expect:
       must:
         - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
-        - medium：同脚本 exit 0，允许精简 manifest（单路由 / 单桌面视口 / 四态可批量 not_applicable）
+        - medium：宜跑同脚本（未跑登记 B 类降级），允许精简 manifest
         - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
       must_not:
         - simple 因未跑 ui_evidence_check 且未登记降级而标 done
-        - medium/complex 用 Gallery 指针或 digest 代替运行态证据
+        - complex 用 Gallery 指针或 digest 代替运行态证据
   - id: ui-evidence-gate-fail
     kind: failure
     judge: deterministic
@@ -187,23 +187,10 @@ cases:
     given: 新任务进入 wizard（human）
     expect:
       must:
-        - 委托 task-intent，给用户 ≤8 行意图复述并纠偏到确认
+        - 委托 task-intent，用 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步）并纠偏到确认；结构化覆盖清单只写进 wizard/intent.md
         - 落 wizard/intent.md 后再摸底写 plan
       must_not:
         - 未确认意图就写 wizard/plan.md
-
-  - id: default-dispatch-digest
-    kind: core
-    judge: llm
-    description: 执行座位默认派出、回 Digest
-    given: medium 任务进入 design，宿主支持 subagent
-    expect:
-      must:
-        - 派 worker 并给齐交接 5 项（目标 / 输入 / 写入范围 / 输出格式 / 停止条件）
-        - 主会话只收 ≤10 行 Digest
-      must_not:
-        - 主会话转贴 worker 全文或工具轨迹
-        - 把闸口或面向用户的提问派出
 
   - id: intent-closed-loop
     kind: core
@@ -226,9 +213,23 @@ cases:
     given: design 阶段用户说「改成只做后端」；另一任务已 handed-off 时用户改完成标准
     expect:
       must:
-        - 重跑 task-intent，intent.md version +1，旧版留在历史版本
+        - 重跑 task-intent，改写 intent.md 并追加纠偏记录
         - 判据变化走确认协议显式改 criterion 并记决策
         - 未 handed-off 回退 phase（改范围已 approve 须重新 approve）；已 handed-off 经 taskflow 修订子 change
       must_not:
         - 用当轮叙事直接改 criterion
         - 在 grill 或 apply 中静默改写意图
+
+  - id: plain-talk-to-user
+    kind: core
+    judge: llm
+    description: 面向用户的闸口 / 进度 / 评审摘要是口语，不是术语堆砌
+    given: medium 任务到 approve 闸口、apply 进度汇报、评审结束各一次
+    expect:
+      must:
+        - 第一人称完整句子，先说结论或要用户做什么
+        - 内部术语（driver / tier / criterion / gate / slice / OpenSpec）不裸露，或附一句白话
+        - 结尾说清接下来会发生什么；有问题只问一个并带推荐
+      must_not:
+        - 「字段：值」清单或「gate=approve；P1×1」式输出
+        - 直接贴 checkbox 计数、原始 ID 堆给用户

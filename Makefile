@@ -26,7 +26,7 @@ help:
 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
 	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出）"
-	@echo "make check-style           输出风格门禁：task 族 SKILL.md ≤8KB、意图复述 ≤8 行、Digest ≤10 行"
+	@echo "make check-style           输出风格检查：意图复述字段齐全（错误）；SKILL.md >8KB、复述过长（告警）"
 	@echo "make check-names           扫描 skills/docs/根文档里的具体项目名（.project-denylist；命中非零退出）"
 
 install-deps: install-matt install-openspec

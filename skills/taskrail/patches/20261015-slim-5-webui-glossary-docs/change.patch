@@ -1,0 +1,720 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/SKILL.md skills/taskrail/SKILL.md
+--- a/skills/taskrail/SKILL.md	2026-10-15 01:18:47.782412106 +0800
++++ b/skills/taskrail/SKILL.md	2026-10-15 01:19:50.837061587 +0800
+@@ -10,7 +10,7 @@
+ 
+ 把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)（原 task-confirm，已并入）；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
+ 
+-契约真源：[references/contract.md](references/contract.md)；术语表：[references/glossary.md](references/glossary.md)。
++契约真源：[references/contract.md](references/contract.md)（含「术语」节）。
+ 
+ ## 输入
+ 
+@@ -95,7 +95,7 @@
+ 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+ 5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
+ 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+-7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**medium / complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
++7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
+ 
+ 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/evals/cases.yaml skills/taskrail/evals/cases.yaml
+--- a/skills/taskrail/evals/cases.yaml	2026-10-15 01:18:47.782432530 +0800
++++ b/skills/taskrail/evals/cases.yaml	2026-10-15 01:20:41.342828145 +0800
+@@ -37,29 +37,29 @@
+       must_not:
+         - 仅因 handed-off 或 propose 完标 done
+ 
+-  - id: simple-via-openspec
++  - id: simple-direct-implement
+     kind: core
+     judge: deterministic
+-    description: simple 档仍必须 handoff + taskflow 单切片
++    description: simple 档定稿后直接实现 + 验证，不建 driver
+     given: wizard 定档 simple 且用户继续走 taskrail
+     expect:
+       must:
+-        - explore 仅为 grill
+-        - 轻量 approve 后 handoff 建 {slug}-driver
+-        - propose 单切片 → apply → archive
++        - wizard 定稿（意图确认 + 含判据的简短 plan）后直接实现
++        - 验证命令与结果写入 TASK.md「验证」节，过完成门即 done
++        - 发现超出局部修改时停下升档为 medium
+       must_not:
+-        - 无 driver 直接改业务代码
+-        - 把 grill 或 handoff 写入 TASK.md.phase
++        - 为 simple 建 {slug}-driver 或走 OpenSpec
++        - 跳过确认协议执行不可逆动作
+ 
+   - id: optional-worker-seat
+     kind: core
+     judge: deterministic
+-    description: Worker 派出推荐非强制；宿主 subagent 为抽象通道
+-    given: medium/complex 进入 explore/design/apply，或宿主无 subagent
++    description: Worker 派出为建议；宿主 subagent 为抽象通道
++    given: 进入 explore/design/apply，或宿主无 subagent
+     expect:
+       must:
+-        - 可派出时优先宿主 subagent；grill 提问与闸口留主会话
+-        - 主会话只收 Digest，不回灌工具轨迹
++        - 高噪声 legwork 宜派宿主 subagent；闸口与面向用户的提问留主会话
++        - 主会话只收简短摘要，不回灌工具轨迹
+         - 无派出能力时主会话自做，不退出轨道
+       must_not:
+         - 因缺少 subagent 停下或改道
+@@ -141,13 +141,13 @@
+     kind: core
+     judge: deterministic
+     description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
+-    given: 交付类别为 Web UI，medium/complex 进入 approve，或 simple 无 freeze 仅 adopt-only
++    given: 交付类别为 Web UI，complex 进入 approve，或 medium/simple 无 freeze 走 adopt-only
+     expect:
+       must:
+         - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
+-        - medium/complex 无 freeze 时停下回 design 建立 Active Instance，不批准
+-        - simple adopt-only 须已确认显式降级；不强制代表页 two-pass / Gallery
+-        - medium/complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
++        - complex 无 freeze 时停下回 design 建立 Active Instance，不批准
++        - medium/simple adopt-only 须已登记显式降级；不强制代表页 two-pass / Gallery
++        - complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
+       must_not:
+         - 用散文组件约定或 ui-skills-root 替代 Active Instance
+         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
+@@ -156,16 +156,16 @@
+   - id: web-ui-runtime-evidence-and-design-review
+     kind: regression
+     judge: deterministic
+-    description: Web UI 运行态证据与 design 评审按档调度（complex/medium 硬门；simple SHOULD）
++    description: Web UI 运行态证据与 design 评审按档调度（complex 硬门；medium/simple SHOULD）
+     given: 交付类别为 Web UI，进入完成门
+     expect:
+       must:
+         - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
+-        - medium：同脚本 exit 0，允许精简 manifest（单路由 / 单桌面视口 / 四态可批量 not_applicable）
++        - medium：宜跑同脚本（未跑登记 B 类降级），允许精简 manifest
+         - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
+       must_not:
+         - simple 因未跑 ui_evidence_check 且未登记降级而标 done
+-        - medium/complex 用 Gallery 指针或 digest 代替运行态证据
++        - complex 用 Gallery 指针或 digest 代替运行态证据
+   - id: ui-evidence-gate-fail
+     kind: failure
+     judge: deterministic
+@@ -187,24 +187,11 @@
+     given: 新任务进入 wizard（human）
+     expect:
+       must:
+-        - 委托 task-intent，给用户 ≤8 行意图复述并纠偏到确认
++        - 委托 task-intent，给用户简洁的意图复述（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做）并纠偏到确认
+         - 落 wizard/intent.md 后再摸底写 plan
+       must_not:
+         - 未确认意图就写 wizard/plan.md
+ 
+-  - id: default-dispatch-digest
+-    kind: core
+-    judge: llm
+-    description: 执行座位默认派出、回 Digest
+-    given: medium 任务进入 design，宿主支持 subagent
+-    expect:
+-      must:
+-        - 派 worker 并给齐交接 5 项（目标 / 输入 / 写入范围 / 输出格式 / 停止条件）
+-        - 主会话只收 ≤10 行 Digest
+-      must_not:
+-        - 主会话转贴 worker 全文或工具轨迹
+-        - 把闸口或面向用户的提问派出
+-
+   - id: intent-closed-loop
+     kind: core
+     judge: llm
+@@ -226,7 +213,7 @@
+     given: design 阶段用户说「改成只做后端」；另一任务已 handed-off 时用户改完成标准
+     expect:
+       must:
+-        - 重跑 task-intent，intent.md version +1，旧版留在历史版本
++        - 重跑 task-intent，改写 intent.md 并追加纠偏记录
+         - 判据变化走确认协议显式改 criterion 并记决策
+         - 未 handed-off 回退 phase（改范围已 approve 须重新 approve）；已 handed-off 经 taskflow 修订子 change
+       must_not:
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/examples/minimal-webui/README.md skills/taskrail/examples/minimal-webui/README.md
+--- a/skills/taskrail/examples/minimal-webui/README.md	2026-10-15 01:18:47.782701893 +0800
++++ b/skills/taskrail/examples/minimal-webui/README.md	2026-10-15 01:21:18.945588929 +0800
+@@ -1,6 +1,6 @@
+ # minimal-webui：handoff → check_handoff → ui_evidence 回归样例
+ 
+-最小 Web UI 任务（simple 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
++最小 Web UI 任务（medium 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
+ 
+ 1. `workspace/tasks/ongoing/demo-list/TASK.md`：已 `handed-off`，「## 交接」带交付类别、门包与三条 digest。
+ 2. `taskflow/scripts/check_handoff.py workspace demo-list` 应 exit 0；回退到 approve 态或删掉一条 digest 应 exit 1。
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md
+--- a/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md	2026-10-15 01:18:47.782601080 +0800
++++ b/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md	2026-10-15 01:21:18.945739099 +0800
+@@ -14,7 +14,7 @@
+ - 单页列表：加载中 / 空 / 出错 / 有数据 四态；复用已 frozen 的 Active Instance。
+ 
+ ## 决策
+-- D-1：采纳单切片方案（medium，单切片）。
++- D-1：采纳单切片方案（medium）。
+ 
+ ## 交接
+ - 交付类别：Web UI
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/references/contract.md skills/taskrail/references/contract.md
+--- a/skills/taskrail/references/contract.md	2026-10-15 01:18:47.781791761 +0800
++++ b/skills/taskrail/references/contract.md	2026-10-15 01:19:50.836885144 +0800
+@@ -1,6 +1,6 @@
+ # taskrail 契约（阶段 / 载荷 / 闸口 / 目录）
+ 
+-本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准（术语定义见 [glossary.md](glossary.md)）；各 skill 正文只写执行细则，不另造阶段枚举。
++本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准（术语定义见本文「术语」节）；各 skill 正文只写执行细则，不另造阶段枚举。
+ 
+ ## 流程
+ 
+@@ -107,7 +107,7 @@
+ |----------|----------|
+ | explore / design | `wizard/intent.md`（`status: confirmed` 或 `assumed`；本规则生效前的旧任务缺失不回溯）+ `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
+ | design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
+-| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：medium/complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
++| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
+ | propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入；`taskflow/scripts/check_handoff.py` exit 0 |
+ | apply | driver `tasks.md` 已由 propose 产出；simple：wizard 已定稿（`wizard/intent.md` + `criterion`） |
+ | archive（探索侧） | 用户确认关闭；子任务均已结 |
+@@ -152,3 +152,52 @@
+ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内建立并 freeze，业务页由 apply 阶段按代表页 two-pass 方法实现；task* 只认指针与 digest，不复制 DS 本体。
+ 
+ 已删除的旧 id（`task-wizard` / `task-goal` / `task-delivery`）勿再引用；统一用上表四 skill。
++
++## 术语（原 glossary.md）
++
++taskrail / task-explore / taskflow 共用；其他文件出现下列术语时按本节理解，只链接本节，不另写定义。
++
++### 任务与阶段
++
++| 术语 | 含义 | 不要写成 |
++|------|------|----------|
++| 完成判据（`criterion`） | 一条可检查的话，判断任务是否做完；原文逐字传递 | 目标、objective |
++| 交付标准 | 判据之外、本任务应有的交付面要求，每条可检查；没有写「无」 | 质量目标 |
++| 档位（`tier`） | simple / medium / complex，由 wizard 判定，下游不重判 | 完成程度 |
++| `phase` | 契约封闭枚举 `wizard \| explore \| design \| approve \| propose \| apply \| archive \| done`；命令名不得写入 | — |
++| `handed-off` | `TASK.md.status`：已交接 taskflow，任务仍在 `ongoing/`，之后进度只认 checkbox | 归档 |
++| 交接载荷 | `TASK.md`「## 交接」节：判据原文、交付类别、适用门包、契约指针（Web UI 含三条 digest）；`check_handoff.py` 只认它 | 口头交接 |
++| driver | OpenSpec change `{task}-driver`，只编排子 change；子 change 为 `{task}-<slice>` | 第二份任务账本 |
++
++### 确认与审阅
++
++| 术语 | 含义 |
++|------|------|
++| 完成程度 | 审阅返回的高 / 中 / 低；只有「高」且无未消 P0/P1 才收敛 |
++| 退出点 | 必须停下、把决定交回人的条件（见 [confirm-protocol.md](confirm-protocol.md)） |
++| 授权 | 用户明确接受某条退出点已点名的动作；单独「继续」不算 |
++| 门包 | 交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill）对应的可自动化门 + 运行态证据 + 主观项 + 必载专家能力，真源 [gate-packs.md](gate-packs.md) |
++| 未覆盖即降级 | 门包条目或判据任一项未验证 = 生产性降级，须登记，不得以「看起来没问题」放行 |
++
++### 质量画像与降级状态
++
++| 状态 | 谁能写 | 含义 |
++|------|--------|------|
++| `pending` | 执行者登记 | 未确认；A 类（缩判据或交付面）挂 `pending` 即停 |
++| `provisional` | 审阅收敛（仅 B 类） | 临时确认，须到用户在场点追认，完成门不认 |
++| `confirmed` | 只有用户 | 点名接受、全部确认或在场追认 |
++
++评审意见 disposition 只取两值：`fixed`（已修）/ `accepted-recorded`（接受并记录理由）。Blocker / Major 无 disposition 不得收敛。字段细则见 [quality-profile.md](quality-profile.md)。
++
++### Web UI
++
++| 术语 | 含义 | 不要混用 |
++|------|------|----------|
++| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 task* 的 design 阶段在交付仓内建立并 freeze | 组件约定、样式说明 |
++| freeze / frozen | Active Instance 的 `status: frozen`：契约已冻结，apply 只消费不改 core | 定稿 |
++| 三条 digest | contract / binding / projection 三个摘要；写入 `design/contract.md` 与 driver，用来判断是否漂移 | 版本号 |
++| adopt-only | simple 档无 Active Instance 时直接沿用交付仓已有组件库 / 样式体系；须登记并确认显式降级，豁免 Active Instance，并按 gate-packs 档位调度豁免重型证据门（`ui_evidence_check` / design 评审改为 SHOULD） | — |
++| 代表页 | 一条主流程的代表页面：按代表页 two-pass 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
++| 旗舰切片 | 命中门包时先单独派出的首个切片，做到全量并过评审后才并行 | — |
++| Gallery | 交付仓内的组件 / 页面展示页证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
++| `ui_evidence_check` | [`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)：多视口截图 + axe WCAG 2.2 AA + 焦点走查 + 四态，出 `report.json`；完成门只认它 exit 0 | 自评 |
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/references/gate-packs.md skills/taskrail/references/gate-packs.md
+--- a/skills/taskrail/references/gate-packs.md	2026-10-15 01:18:47.781756110 +0800
++++ b/skills/taskrail/references/gate-packs.md	2026-10-15 01:19:08.482554027 +0800
+@@ -13,10 +13,12 @@
+ 
+ - **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由 task* 的 design 阶段在交付仓内建立并 freeze（有参照源时先从参照源提炼 tokens / primitive）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
+ - **Active Instance 档位门**（与基准物同级；按档调度，保任务速度）：
+-  - **medium / complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
++  - **complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
++  - **medium**：SHOULD 使用 frozen Active Instance；缺失时可走 adopt-only（沿用交付仓已有组件库 / 样式体系）并登记 **B 类**显式降级放行。
+   - **simple**：优先 frozen Active Instance；否则「adopt-only：沿用交付仓已有组件库 / 样式体系」且质量画像已登记并**确认**显式降级即可放行；无降级登记不得放行。adopt-only **豁免** Active Instance，并按下方「档位调度」豁免重型证据门。
+ - **必载专家能力**（按档）：
+-  - **medium / complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
++  - **complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
++  - **medium**：SHOULD 点名 `roles=design`；未点名时同 simple 自检 quality floor 并写入验证记录。
+   - **simple**：不强制 `roles=design`；实现者自检 quality floor（破坏性确认、键盘可达、focus 可见）即可。需要时再点名 design 角色，且该角色只扫 floor（见 `role-based-reviewer` design 角色「调用范围与速度」）。
+ - **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
+   - Active Instance：项目约定的 Active Instance 校验（`design-system.yaml` 为 `status: frozen`、三条 digest 可复算）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
+@@ -27,15 +29,15 @@
+   - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
+ - **运行态证据（按档调度）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)
+   - **complex（硬门）**：对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。playwright / axe-core 缺失时脚本 exit 2 阻断，或经用户确认登记 A 类降级。
+-  - **medium（硬门，可精简）**：同脚本 exit 0，但允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
++  - **medium（SHOULD，可精简）**：宜跑同脚本并 exit 0（未跑登记 B 类显式降级），允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
+   - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
+ - **design 评审文件（按档）**：
+-  - **medium / complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+-  - **simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
+-- **主观项**：视觉层次 / 密度 / 排版节奏——medium/complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
++  - **complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
++  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
++- **主观项**：视觉层次 / 密度 / 排版节奏——complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+ - **实现方法（按档）**：
+-  - **medium / complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
+-  - **simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
++  - **complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
++  - **medium / simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+ 
+ ## 服务 / 后端
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/references/glossary.md skills/taskrail/references/glossary.md
+--- a/skills/taskrail/references/glossary.md	2026-10-15 01:18:47.781654126 +0800
++++ b/skills/taskrail/references/glossary.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,48 +0,0 @@
+-# task* 术语表（唯一真源）
+-
+-taskrail / task-explore / taskflow 共用。其他文件出现下列术语时按本表理解，只链接本表，不另写定义；与 [contract.md](contract.md) 冲突时以 contract.md 为准并回改本表。
+-
+-## 任务与阶段
+-
+-| 术语 | 含义 | 不要写成 |
+-|------|------|----------|
+-| 完成判据（`criterion`） | 一条可检查的话，判断任务是否做完；原文逐字传递 | 目标、objective |
+-| 交付标准 | 判据之外、本任务应有的交付面要求，每条可检查；没有写「无」 | 质量目标 |
+-| 档位（`tier`） | simple / medium / complex，由 wizard 判定，下游不重判 | 完成程度 |
+-| `phase` | 契约封闭枚举 `wizard \| explore \| design \| approve \| propose \| apply \| archive \| done`；命令名不得写入 | — |
+-| `handed-off` | `TASK.md.status`：已交接 taskflow，任务仍在 `ongoing/`，之后进度只认 checkbox | 归档 |
+-| 交接载荷 | `TASK.md`「## 交接」节：判据原文、交付类别、适用门包、契约指针（Web UI 含三条 digest）；`check_handoff.py` 只认它 | 口头交接 |
+-| driver | OpenSpec change `{task}-driver`，只编排子 change；子 change 为 `{task}-<slice>` | 第二份任务账本 |
+-
+-## 确认与审阅
+-
+-| 术语 | 含义 |
+-|------|------|
+-| 完成程度 | 审阅返回的高 / 中 / 低；只有「高」且无未消 P0/P1 才收敛 |
+-| 退出点 | 必须停下、把决定交回人的条件（见 [confirm-protocol.md](confirm-protocol.md)） |
+-| 授权 | 用户明确接受某条退出点已点名的动作；单独「继续」不算 |
+-| 门包 | 交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill）对应的可自动化门 + 运行态证据 + 主观项 + 必载专家能力，真源 [gate-packs.md](gate-packs.md) |
+-| 未覆盖即降级 | 门包条目或判据任一项未验证 = 生产性降级，须登记，不得以「看起来没问题」放行 |
+-
+-## 质量画像与降级状态
+-
+-| 状态 | 谁能写 | 含义 |
+-|------|--------|------|
+-| `pending` | 执行者登记 | 未确认；A 类（缩判据或交付面）挂 `pending` 即停 |
+-| `provisional` | 审阅收敛（仅 B 类） | 临时确认，须到用户在场点追认，完成门不认 |
+-| `confirmed` | 只有用户 | 点名接受、全部确认或在场追认 |
+-
+-评审意见 disposition 只取两值：`fixed`（已修）/ `accepted-recorded`（接受并记录理由）。Blocker / Major 无 disposition 不得收敛。字段细则见 [quality-profile.md](quality-profile.md)。
+-
+-## Web UI
+-
+-| 术语 | 含义 | 不要混用 |
+-|------|------|----------|
+-| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 task* 的 design 阶段在交付仓内建立并 freeze | 组件约定、样式说明 |
+-| freeze / frozen | Active Instance 的 `status: frozen`：契约已冻结，apply 只消费不改 core | 定稿 |
+-| 三条 digest | contract / binding / projection 三个摘要；写入 `design/contract.md` 与 driver，用来判断是否漂移 | 版本号 |
+-| adopt-only | simple 档无 Active Instance 时直接沿用交付仓已有组件库 / 样式体系；须登记并确认显式降级，豁免 Active Instance，并按 gate-packs 档位调度豁免重型证据门（`ui_evidence_check` / design 评审改为 SHOULD） | — |
+-| 代表页 | 一条主流程的代表页面：按代表页 two-pass 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
+-| 旗舰切片 | 命中门包时先单独派出的首个切片，做到全量并过评审后才并行 | — |
+-| Gallery | 交付仓内的组件 / 页面展示页证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
+-| `ui_evidence_check` | [`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)：多视口截图 + axe WCAG 2.2 AA + 焦点走查 + 四态，出 `report.json`；完成门只认它 exit 0 | 自评 |
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/references/phase-wizard.md skills/taskrail/references/phase-wizard.md
+--- a/skills/taskrail/references/phase-wizard.md	2026-10-15 01:18:47.781737966 +0800
++++ b/skills/taskrail/references/phase-wizard.md	2026-10-15 01:19:08.482026125 +0800
+@@ -13,7 +13,7 @@
+ - **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
+ - **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。
+ - **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [gate-packs.md](gate-packs.md) 写入适用门包与**基准物**；验收方式禁止写「对照外部产品或参考实现」——外部参照只是一次性输入。
+-- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；medium/complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
++- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
+ 
+ ## 决策收敛
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/tests/test_confirm_reviewer_binding_contract.py skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
+--- a/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py	2026-10-15 01:18:47.782363192 +0800
++++ b/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py	2026-10-15 01:19:25.516821432 +0800
+@@ -93,7 +93,8 @@
+     def test_web_ui_tier_gate(self) -> None:
+         self.assertIn("**Active Instance 档位门**", self.packs)
+         self.assertIn("按档调度，保任务速度", self.packs)
+-        self.assertIn("medium / complex", self.packs)
++        self.assertIn("**complex**：进入 `approve` 冻结前必须已有 frozen Active Instance", self.packs)
++        self.assertIn("**medium**：SHOULD 使用 frozen Active Instance", self.packs)
+         self.assertIn("adopt-only：沿用交付仓已有组件库", self.packs)
+         self.assertIn("simple（SHOULD，非硬门）", self.packs)
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/tests/test_deliverable_class_contract.py skills/taskrail/tests/test_deliverable_class_contract.py
+--- a/skills/taskrail/tests/test_deliverable_class_contract.py	2026-10-15 01:18:47.782380210 +0800
++++ b/skills/taskrail/tests/test_deliverable_class_contract.py	2026-10-15 01:19:25.516997951 +0800
+@@ -60,7 +60,7 @@
+ 
+     def test_web_ui_digest_done_gate(self) -> None:
+         self.assertIn("7. Web UI（按档", self.skill)
+-        self.assertIn("**medium / complex** 须 digest 与仓库 freeze 一致", self.skill)
++        self.assertIn("**complex** 须 digest 与仓库 freeze 一致", self.skill)
+         self.assertIn("未跑须登记 B 类显式降级", self.skill)
+ 
+     def test_mechanical_wording(self) -> None:
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskrail/tests/test_task_family_contract.py skills/taskrail/tests/test_task_family_contract.py
+--- a/skills/taskrail/tests/test_task_family_contract.py	2026-10-15 01:18:47.781881950 +0800
++++ b/skills/taskrail/tests/test_task_family_contract.py	2026-10-15 01:19:50.837215663 +0800
+@@ -162,15 +162,16 @@
+     """P2-12：术语表唯一真源，三个 skill 正文都链到它。"""
+ 
+     def test_glossary_covers_terms(self) -> None:
+-        g = read("taskrail", "references/glossary.md")
++        g = read("taskrail", "references/contract.md")
+         for term in ("Active Instance", "freeze", "digest", "Gallery", "代表页", "旗舰切片",
+                      "`pending`", "`provisional`", "`confirmed`", "accepted-recorded", "handed-off"):
+             self.assertIn(term, g)
+ 
+     def test_skills_link_glossary(self) -> None:
+-        self.assertIn("](references/glossary.md)", read("taskrail", "SKILL.md"))
++        self.assertIn("## 术语", read("taskrail", "references/contract.md"))
++        self.assertFalse((SKILLS_ROOT / "taskrail" / "references" / "glossary.md").exists())
+         for skill in ("task-explore", "taskflow"):
+-            self.assertIn("](../taskrail/references/glossary.md)", read(skill, "SKILL.md"), skill)
++            self.assertNotIn("glossary.md", read(skill, "SKILL.md"), skill)
+ 
+ 
+ if __name__ == "__main__":
+diff -ruN -x __pycache__ -x patches /tmp/snap5/role-based-reviewer/references/roles/design.md skills/role-based-reviewer/references/roles/design.md
+--- a/skills/role-based-reviewer/references/roles/design.md	2026-10-15 01:18:47.784036753 +0800
++++ b/skills/role-based-reviewer/references/roles/design.md	2026-10-15 01:19:08.482305417 +0800
+@@ -16,7 +16,7 @@
+ 
+ ## 调用范围与速度
+ 
+-- **何时全量扫**：taskrail 门包对 **medium / complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
++- **何时全量扫**：taskrail 门包对 **complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
+ - **何时只扫 floor（保速度）**：审阅边界写明 `tier=simple` / adopt-only / 「非主表面 / 文案微调 / 单控件修复」时，**只报 quality floor 的 🔴 条**（破坏性确认、键盘可达、focus 可见）与直接相关的 🔴；其余 🟡 / ⚪ 默认不扫，最多作 Suggestion。不为此启动服务、截图或跑 `ui_evidence_check`。
+ - **非 Web UI 交付**：调用方未点名 design 时不要主动扩权；点名了同样按边界裁剪范围。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/role-based-reviewer/references/roles/intent.md skills/role-based-reviewer/references/roles/intent.md
+--- a/skills/role-based-reviewer/references/roles/intent.md	2026-10-15 01:18:47.784054939 +0800
++++ b/skills/role-based-reviewer/references/roles/intent.md	2026-10-15 01:18:52.486523966 +0800
+@@ -24,7 +24,7 @@
+ 
+ ## 输出
+ 
+-在 brief-protocol 骨架之外另给：`结论：通过 / 不通过`（无 🔴/🟡 即通过）、每条发现带「要改的地方」。
++在 protocol 输出骨架之外另给：`结论：通过 / 不通过`（无 🔴/🟡 即通过）、每条发现带「要改的地方」。
+ 
+ ## 不算问题
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/task-explore/SKILL.md skills/task-explore/SKILL.md
+--- a/skills/task-explore/SKILL.md	2026-10-15 01:18:47.784958127 +0800
++++ b/skills/task-explore/SKILL.md	2026-10-15 01:20:15.634312322 +0800
+@@ -10,7 +10,7 @@
+ 
+ 在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
+ 
+-**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。两套账；唯一桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)；术语见 [../taskrail/references/glossary.md](../taskrail/references/glossary.md)。
++**探索任务** = `tasks/ongoing|archive/.../{task-name}/`。**taskflow 任务** = `{task-name}-driver`。任务账只有 `TASK.md` 一本，driver 是 OpenSpec 执行记录；桥是 `handoff`。交付进度只认 taskflow checkbox。目录与 `phase` 字段约定见 [../taskrail/references/contract.md](../taskrail/references/contract.md)；术语见 [taskrail 契约「术语」节](../taskrail/references/contract.md)。
+ 
+ ### 命令与 `TASK.md.phase`（强制）
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/task-explore/references/approve.md skills/task-explore/references/approve.md
+--- a/skills/task-explore/references/approve.md	2026-10-15 01:18:47.785177890 +0800
++++ b/skills/task-explore/references/approve.md	2026-10-15 01:19:08.482218942 +0800
+@@ -24,7 +24,7 @@
+ **Web UI 附加**：
+ 
+ - 读 `design/contract.md`（或简单档 plan 等价节）中的 Active Instance 根路径与三条 digest。
+-- **medium / complex**：仓库内 Active Instance 须为 `status: frozen`，且 digest 与指针一致（按项目约定的 Active Instance 校验复核）；不一致或缺失 → 停，回 `design` 建立 / 修订 Active Instance，**不得冻结**。
++- **complex**：仓库内 Active Instance 须为 `status: frozen`，且 digest 与指针一致（按项目约定的 Active Instance 校验复核）；不一致或缺失 → 停，回 `design` 建立 / 修订 Active Instance，**不得冻结**。
+ - **simple**：无 freeze 仅当 adopt-only 路径已写明且质量画像显式降级已确认；否则不得冻结。
+ 
+ ## 2. 评审门
+diff -ruN -x __pycache__ -x patches /tmp/snap5/task-explore/references/commands.md skills/task-explore/references/commands.md
+--- a/skills/task-explore/references/commands.md	2026-10-15 01:18:47.785149586 +0800
++++ b/skills/task-explore/references/commands.md	2026-10-15 01:19:08.482097011 +0800
+@@ -40,7 +40,7 @@
+ 
+ ## `design`
+ 
+-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下，先在交付项目根建立 Active Instance 至 freeze；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
++方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：complex 无 frozen Active Instance 则停下，先在交付项目根建立 Active Instance 至 freeze；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+ 
+ ## `approve`
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/task-explore/references/explore-design.md skills/task-explore/references/explore-design.md
+--- a/skills/task-explore/references/explore-design.md	2026-10-15 01:18:47.785159498 +0800
++++ b/skills/task-explore/references/explore-design.md	2026-10-15 01:19:08.482164666 +0800
+@@ -61,7 +61,7 @@
+ - 能形成至少两个可行方案；否则说明还缺哪些信息
+ - 架构 / 接口 / 技术栈的选择都写得出依据（设计模式或软件工程原则）；写不出就列入未决，不算设计完成。本任务不涉及这三类选择时写「不适用」并说明，不为凑数贴模式名
+ - 命中交付类别门包时（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md) 判定见 taskrail wizard 的「交付类别与门包」节）：设计稿必须含**契约文件指针**（共享面冻结产物：接口 / 类型 / primitive / 目录与命名 / 样板切片）与**证据计划**（该交付类别的证据形式、产物状态绑定方式与覆盖边界）。缺任一项按缺口停下，不写空心方案
+-- **Web UI Active Instance 门**：交付类别为 Web UI 时，先核对交付项目根 Active Instance。**medium / complex**：无 `status: frozen` 则停下，先在交付项目根建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive），**不写空心 UI 方案**、不在 design 稿重定义 token / primitive 精确值。**simple**：无 freeze 仅可走 adopt-only（沿用交付仓已有组件库），并在质量画像登记显式降级（未确认不得进入可批准定稿）。已 freeze 时 `design/contract.md` MUST 含：Active Instance 根路径、contract / binding / projection 三条 digest、（如有）package pin；任务 design 只做业务 IA、页面清单 ↔ Page Type、数据与验收。
++- **Web UI Active Instance 门**：交付类别为 Web UI 时，先核对交付项目根 Active Instance。**complex**：无 `status: frozen` 则停下，先在交付项目根建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive），**不写空心 UI 方案**、不在 design 稿重定义 token / primitive 精确值。**simple**：无 freeze 仅可走 adopt-only（沿用交付仓已有组件库），并在质量画像登记显式降级（未确认不得进入可批准定稿）。已 freeze 时 `design/contract.md` MUST 含：Active Instance 根路径、contract / binding / projection 三条 digest、（如有）package pin；任务 design 只做业务 IA、页面清单 ↔ Page Type、数据与验收。
+ 
+ 推荐若依赖未决项，把未决单独列出，不要写成已定。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/task-explore/tests/test_design_contract_and_handoff_gate.py skills/task-explore/tests/test_design_contract_and_handoff_gate.py
+--- a/skills/task-explore/tests/test_design_contract_and_handoff_gate.py	2026-10-15 01:18:47.785353082 +0800
++++ b/skills/task-explore/tests/test_design_contract_and_handoff_gate.py	2026-10-15 01:19:25.516957922 +0800
+@@ -47,7 +47,7 @@
+ 
+     def test_command_mentions_artifact(self) -> None:
+         self.assertIn("本阶段另落 `design/contract.md`", self.skill)
+-        self.assertIn("Web UI：medium/complex 无 frozen Active Instance", self.skill)
++        self.assertIn("Web UI：complex 无 frozen Active Instance", self.skill)
+ 
+     def test_existing_design_gates_intact(self) -> None:
+         for kept in (
+@@ -104,7 +104,7 @@
+ 
+     def test_structure_gate_web_ui(self) -> None:
+         self.assertIn("**Web UI 附加**", self.approve)
+-        self.assertIn("medium / complex", self.approve)
++        self.assertIn("**complex**：仓库内 Active Instance 须为 `status: frozen`", self.approve)
+         self.assertIn("项目约定的 Active Instance 校验", self.approve)
+         self.assertIn("不得冻结", self.approve)
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskflow/SKILL.md skills/taskflow/SKILL.md
+--- a/skills/taskflow/SKILL.md	2026-10-15 01:18:47.785389743 +0800
++++ b/skills/taskflow/SKILL.md	2026-10-15 01:20:15.634447898 +0800
+@@ -10,7 +10,7 @@
+ 
+ 一个任务 = 一个 driver change `{task}-driver`。实现拆成若干子 change `{task}-<slice>`，与 driver 同一 planning root；跨 root 时在 driver 涉及面表里显式记录 root 或 store id。共享 `{task}` 前缀让 `openspec list` 直接看出归属，不需要额外元数据。
+ 
+-**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。术语见 [../taskrail/references/glossary.md](../taskrail/references/glossary.md)。
++**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。术语见 [taskrail 契约「术语」节](../taskrail/references/contract.md)。
+ 
+ ## 阶段路由
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap5/taskflow/evals/cases.yaml skills/taskflow/evals/cases.yaml
+--- a/skills/taskflow/evals/cases.yaml	2026-10-15 01:18:47.785469674 +0800
++++ b/skills/taskflow/evals/cases.yaml	2026-10-15 01:20:41.342946675 +0800
+@@ -207,14 +207,13 @@
+   - id: acceptance-rubric-thresholds
+     kind: core
+     judge: deterministic
+-    description: 最终验收按五维 rubric 出分，UI/UX 六子项均值达标才通过
++    description: 最终验收按五维 rubric 给结论，无未处置 Blocker/Major 才通过
+     given: driver 收尾，准备回填验收标准
+     expect:
+       must:
+         - 五维为功能闭环、UI/UX、工程质量、画像一致性、证据
+         - UI/UX 拆信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项
+-        - 五维均 ≥2 且 UI/UX 均值 ≥2.5，UI/UX 任一子项为 0 不通过
+-        - UI/UX 得分是信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项的平均分
++        - 无未处置 Blocker / Major、判据逐条有证据；UI/UX 任一子项为 0 不通过
+         - 先证据后打分，评分主体按 product / design / engineer 分工
+       must_not:
+         - 缺分或缺证据仍勾验收标准 checkbox
+@@ -262,18 +261,6 @@
+         - 用五维分数或证据清单推断未勾 checkbox 已完成
+         - 另建完成度、暂缓或分支状态台账
+ 
+-  - id: simple-driver-one-slice
+-    kind: core
+-    judge: deterministic
+-    description: simple 档默认单切片实施
+-    given: 上游 taskrail tier 为 simple 且已 handoff 建 driver
+-    expect:
+-      must:
+-        - 实施段默认仅 1 个子 change（或等价单切片）
+-        - 进度只认 checkbox
+-      must_not:
+-        - 为 simple 默认拆多切片
+-
+   - id: web-ui-apply-consumes-active-instance
+     kind: core
+     judge: deterministic
+diff -ruN /tmp/snap5/docs/task-flow/README.md docs/task-flow/README.md
+--- a/docs/task-flow/README.md	2026-10-15 01:18:47.785968477 +0800
++++ b/docs/task-flow/README.md	2026-10-15 01:21:01.276380093 +0800
+@@ -1,16 +1,16 @@
+ # task 系列：流程与使用
+ 
+-一页说清 task 系列怎么串、怎么用。规则真源在各 skill 文件里（下文标「来源」）；本文与之冲突时以真源为准，契约总真源是 [skills/taskrail/references/contract.md](../../skills/taskrail/references/contract.md)。
++一页说清 task 系列怎么串、怎么用。规则真源在各 skill 文件里（下文标「来源」）；本文与之冲突时以真源为准，契约总真源（含术语）是 [skills/taskrail/references/contract.md](../../skills/taskrail/references/contract.md)。
+ 
+ ## 1. 各 skill 干什么
+ 
+ | skill | 一句话 | 来源 |
+ |---|---|---|
+ | `taskrail` | **唯一编排入口**：绑定 `tasks/` 台账，按阶段推进，持确认协议、门包、完成门 | `skills/taskrail/SKILL.md` |
+-| `task-intent` | 开工前确认「你要什么」：并行摸底 → ≤8 行复述 → 纠偏到确认 | `skills/task-intent/SKILL.md` |
++| `task-intent` | 开工前对齐「要干嘛 / 怎么干 / 输出什么」：详细探索上下文 → 简洁复述 → 纠偏到确认 | `skills/task-intent/SKILL.md` |
+ | `task-explore` | 探索台账命令：explore（grill）/ design / approve / handoff / archive 等 | `skills/task-explore/SKILL.md` |
+-| `taskflow` | 交接后执行：建 `{task}-driver`，拆 OpenSpec change，进度只认 checkbox | `skills/taskflow/SKILL.md` |
+-| `role-based-reviewer` | 按岗位只读评审；`roles=intent` 审意图复述，交付验收按门包角色打分 | `skills/role-based-reviewer/SKILL.md` |
++| `taskflow` | medium / complex 交接后执行：建 `{task}-driver`，拆 OpenSpec change，进度只认 checkbox | `skills/taskflow/SKILL.md` |
++| `role-based-reviewer` | 按岗位只读评审；`roles=intent` 审意图复述，交付验收按门包角色评审 | `skills/role-based-reviewer/SKILL.md` |
+ | `skill-upgrader` | 改 skill 本身：`update` 写 `patches/`，`evolve` 写 `evolutions/`（仅显式触发） | `skills/skill-upgrader/SKILL.md` |
+ 
+ ## 2. 流程图
+@@ -19,26 +19,26 @@
+ flowchart TD
+   subgraph TR[taskrail 编排：phase / 确认协议 / 完成门]
+     subgraph TI[task-intent · wizard 第 1 步]
+-      P[并行只读摸底<br/>evidence/intent/] --> S[≤8 行意图复述]
++      P[详细只读探索<br/>evidence/intent/] --> S[简洁意图复述<br/>要干嘛·怎么干·输出什么·上下文]
+       S -->|human| H{用户说对?}
+-      H -->|改 X，≤5 轮| S
+-      S -->|goal| G{roles=intent 评审<br/>≥0.8 且无 P0/P1?}
++      H -->|指正哪里| S
++      S -->|goal| G{roles=intent 异源审<br/>无 P0/P1?}
+       G -->|不过，≤2 轮| S
+       H -->|对| C[wizard/intent.md<br/>confirmed]
+       G -->|过| C
+-      G -->|2 轮仍不过| AS[assumed + 显式降级]
++      G -->|仍不过| AS[assumed + 显式降级]
+     end
+-    C --> W[wizard 2–6：摸底 → plan.md + criterion<br/>定稿：criterion 对齐「做完的样子」]
++    C --> W[wizard 2–6：plan.md + criterion<br/>定稿：criterion 对齐「做完的样子」]
+     AS --> W
+-    subgraph TE[task-explore]
+-      E[explore：grill 只追细节<br/>complex 完整 explore] --> D[design<br/>medium/complex]
++    W -->|simple| SI[直接实现 + 验证<br/>TASK.md「验证」节]
++    subgraph TE[task-explore · medium/complex]
++      E[explore：grill 只追细节<br/>complex 完整 explore] --> D[design]
+       D --> A[approve 冻结<br/>APPROVED.md]
+-      E -->|simple| A
+       A --> HO[handoff]
+     end
+-    W --> E
++    W -->|medium/complex| E
+     subgraph TF[taskflow]
+-      PR[propose：driver + change] --> AP[apply：worker 实现]
++      PR[propose：driver + change] --> AP[apply：实现]
+     end
+     HO --> PR
+     subgraph RB[role-based-reviewer]
+@@ -46,61 +46,61 @@
+     end
+     AP --> R
+     R --> DG{完成门 1–8<br/>第 8 条：对照 intent.md}
++    SI --> DG
+     DG -->|不过| AP
+     DG -->|过| DONE[done → archive]
+     E -. 冲突 / 改主意 .-> IC[意图变更]
+     AP -. 改主意 .-> IC
+-    IC -->|重跑 task-intent，version+1| S
++    IC -->|重跑 task-intent| S
+   end
+   DONE -. 人工显式触发 .-> SU[skill-upgrader<br/>patches/ · evolutions/]
+ ```
+ 
+-来源：`taskrail/references/phase-wizard.md`（步骤 1、6）、`task-intent/references/*`、`taskrail/SKILL.md`「完成门」、`taskrail/references/contract.md`「意图变更」。
++来源：`taskrail/references/phase-wizard.md`、`task-intent/references/intent.md`、`taskrail/SKILL.md`「完成门」、`taskrail/references/contract.md`「simple 专条」「意图变更」。
+ 
+ ## 3. human 与 goal
+ 
+ | | human（默认） | goal |
+ |---|---|---|
+ | 触发 | 未命中 goal | 消息含 `/goal` 或 `goal:` 前缀 |
+-| 意图确认 | 你看复述，说「对」或「哪里不对」；第 3 轮收成二选一；硬上限 5 轮 | 异源、高一档模型经 `roles=intent` 代审；最多 2 轮，不过则 `assumed` + 显式降级继续 |
++| 意图确认 | 你看复述，说「对」或指出哪里不对；多轮对不上就换个问法（如二选一） | 异源模型经 `roles=intent` 代审，无 P0/P1 即过；最多两轮，不过则 `assumed` + 显式降级继续；异源模型不可用则登记降级后自审 |
+ | 闸口 | 列选项（含推荐）等你确认 | 写推荐默认 → 派审 → 收敛即同轮继续 |
+ | 永远停下等人 | 线上、泄密、未点名危险操作、A 类 `pending` 降级、不可逆或对外发送 | 同左 |
+ 
+-来源：`taskrail/references/confirm-protocol.md`、`task-intent/references/correction-loop.md`、`goal-review.md`。
++来源：`taskrail/references/confirm-protocol.md`、`task-intent/references/intent.md`。
+ 
+ ## 4. 档位
+ 
+-| 档位 | 典型 | 路径（wizard 之后） | 意图摸底 |
+-|---|---|---|---|
+-| simple | 局部修改 | explore(仅 grill) → approve(轻) → handoff → propose(单切片) → apply → archive | 1 个；原话已清晰可跳过 |
+-| medium | 跨模块 / 仓库 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive | 2–3 个并行 |
+-| complex | 项目级重构、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive | 3–4 个并行 |
++| 档位 | 典型 | 路径（wizard 之后） |
++|---|---|---|
++| simple | 局部修改 | 直接实现 + 验证 → done（不建 driver、不走 OpenSpec；超出局部即升档 medium） |
++| medium | 跨模块 / 仓库 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
++| complex | 项目级重构、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive |
+ 
+-凡经 taskrail 都走 handoff + OpenSpec（simple 也是）。来源：`taskrail/references/contract.md`、`phase-wizard.md`「复杂度档位」。
++Web UI 的重型门（frozen Active Instance + 三条 digest、代表页 two-pass、`ui_evidence_check` 硬门、design 评审文件）只对 complex；medium 为 SHOULD，未做时登记 B 类显式降级。来源：`taskrail/references/contract.md`、`gate-packs.md`。
+ 
+ ## 5. subagent 派发
+ 
+-- **默认派出**；宿主没有 subagent 就主会话自做，不停下；有能力不派要写一句理由。
+-- **不派**：闸口、面向你的提问、危险退出；一句话能说清或 <30 行的活；拆不开的步骤。
+-- **上限**：simple 1、medium 3、complex 5；同批一次性并行。
+-- **交接 5 项**：目标、输入路径、写入范围、输出格式、停止条件。
+-- **Digest ≤10 行**：结论 / 落盘路径 / 未决 / 置信度；详情落盘，主会话不转贴全文。
++- 大范围摸底、调研、起草、实现切片、评审、验证复跑**宜**派宿主 subagent，并行提速、保持主会话干净。
++- 没有 subagent 能力就主会话自做，不停下。
++- **永不派出**：闸口、面向你的提问、危险退出。
++- 派出时交代目标、输入、写入范围与产出位置；worker 详情落盘，只回简短摘要，主会话不转贴全文。
+ 
+-来源：`taskrail/references/contract.md`「执行座位」、`task-intent/references/probe.md`。
++来源：`taskrail/references/contract.md`「执行座位」。
+ 
+ ## 6. 关键产物
+ 
+ | 路径（`tasks/ongoing/{slug}/` 下） | 谁写 | 用途 |
+ |---|---|---|
+-| `TASK.md` | taskrail | `phase` / `confirm_mode` / `tier` / `criterion`，单任务真相 |
+-| `wizard/intent.md` | task-intent | 确认版意图（`status` / `version` / 历史版本 / 纠偏记录） |
+-| `evidence/intent/` | 摸底 subagent | 摸底详情 |
++| `TASK.md` | taskrail | **唯一任务账**：`phase` / `confirm_mode` / `tier` / `criterion` / 决策；simple 另含「验证」节 |
++| `wizard/intent.md` | task-intent | 确认版意图（`status` / 纠偏记录） |
++| `evidence/intent/` | 探索 | 意图探索详情 |
+ | `wizard/plan.md` | wizard | 方案、完成判据、流程总览、交付类别与门包 |
+-| `explore/`、`design/` | task-explore | grill 纪要、设计稿（`design/contract.md` 命中门包时） |
++| `explore/`、`design/` | task-explore | grill 纪要、设计稿（命中门包时含 `design/contract.md`） |
+ | `approve/APPROVED.md` | task-explore | 冻结方案 |
+-| `{slug}-driver` | taskflow | OpenSpec driver 与子 change；进度只认 checkbox |
++| `{slug}-driver` | taskflow | OpenSpec 执行记录（medium / complex）；propose 之后进度看 checkbox |
+ 
+-`tasks/INDEX.md` 是派生索引，不是第二份真相。来源：`taskrail/references/contract.md`「目录」。
++`tasks/INDEX.md` 是派生索引。来源：`taskrail/references/contract.md`「目录」「TASK.md 元信息」。
+ 
+ ## 7. 怎么用
+ 
+@@ -119,7 +119,7 @@
+ 
+ ## 8. 中途改主意（意图变更）
+ 
+-1. 重跑 task-intent，`intent.md` 的 `version` +1，旧版留在「历史版本」。
++1. 重跑 task-intent，改写 `intent.md` 并追加纠偏记录（旧版靠 git 追溯）。
+ 2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion` 并记决策（唯一合法改写）。
+ 3. 未交接：只改细节留在当前 phase；改范围 / 判据回 `wizard` 或 `design`，已 approve 的须重新 approve。
+ 4. 已交接：经 taskflow 开修订子 change，未勾的按新判据重排。
+@@ -128,9 +128,9 @@
+ 
+ ## 9. FAQ
+ 
+-- **会不会问很多？** 只在歧义改变做法或范围时问，且每次最多 1 个、带推荐答案；能查到的不问（`task-intent/SKILL.md`）。
++- **会不会问很多？** 只在歧义改变做法或范围时问，一次最多一个、带推荐答案；能查到的不问（`task-intent/SKILL.md`）。
++- **复述会不会很长？** 探索要细，复述要短：每项一两句，细节在 `evidence/intent/`（`task-intent/references/intent.md`）。
+ - **grill 会重复问目标吗？** 不会；确认过的目标、做完的样子、不做 不重问（`task-explore/references/explore-design.md`）。
+-- **怎么算做完？** 完成门 8 条逐条机械核对，第 8 条回看 intent.md；checkbox 全勾但判据不成立不算 done（`taskrail/SKILL.md`）。
+-- **goal 评审模型用不了？** task-intent 先判断，不可用就登记显式降级后自审，假设全标「把握低」（`goal-review.md`）。
+-- **小改也要走全套？** 一句话能说清、范围清楚、马上实现的，不必经 taskrail，直接实现或用 taskflow（`task-explore/SKILL.md`「何时不用」）。
++- **怎么算做完？** 完成门逐条机械核对，第 8 条回看 intent.md；判据不成立不算 done（`taskrail/SKILL.md`）。
++- **小改也要走全套？** 不用：simple 档定稿后直接实现 + 验证；一句话就能做完、不需要台账的，不必经 taskrail（`taskrail/references/contract.md`、`task-explore/SKILL.md`「何时不用」）。
+ - **skill 自己会改自己吗？** 不会；只在你显式点名 skill-upgrader 时改（`skill-upgrader/SKILL.md`）。
+--- a/AGENTS.md	2026-10-15 01:18:47.786827374 +0800
++++ b/AGENTS.md	2026-10-15 01:19:54.967447509 +0800
+@@ -66,7 +66,7 @@
+ - 契约真源：`skills/taskrail/references/contract.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
+ - 三件套：`taskrail` + `task-explore` + `taskflow`。
+ - 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由 `role-based-reviewer roles=intent` 异源代审）；explore 的 grill 在其后，只追细节不重问意图。
+-- 术语表：`skills/taskrail/references/glossary.md`；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
++- 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
+ 
+ ## Skill 设计原则
+ 
+--- a/README.md	2026-10-15 01:18:47.786847400 +0800
++++ b/README.md	2026-10-15 01:21:18.945460231 +0800
+@@ -9,7 +9,7 @@
+ | Skill | 用途 |
+ | --- | --- |
+ | `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple 直接实现 + 验证（不建 driver）；medium 的 explore 仅为 grill；medium / complex 经 handoff 走 OpenSpec；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
+-| `task-intent` | **开工前意图确认**：并行只读摸底 → ≤8 行大白话意图复述 → 纠偏循环（goal 由异源强模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
++| `task-intent` | **开工前意图确认**：详细探索上下文 → 简洁意图复述（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做）→ 纠偏到确认（goal 由异源模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
+ | `task-explore` | 探索台账与命令能力（explore/design/approve/expand/handoff 等命令；`TASK.md.phase` 只许契约枚举） |
+ | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
+ | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |

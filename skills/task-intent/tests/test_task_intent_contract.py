@@ -1,4 +1,4 @@
-"""task-intent 文本契约测试。"""
+"""task-intent 行为契约（只测关键行为，不锁措辞）。"""
 
 from __future__ import annotations
 
@@ -13,53 +13,46 @@ def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-class TestTaskIntentContract(unittest.TestCase):
+class TestTaskIntent(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = read("SKILL.md")
-        self.tpl = read("references/statement-template.md")
-        self.loop = read("references/correction-loop.md")
-        self.goal = read("references/goal-review.md")
-        self.probe = read("references/probe.md")
+        self.ref = read("references/intent.md")
 
-    def test_frontmatter(self) -> None:
+    def test_frontmatter_and_single_reference(self) -> None:
         self.assertTrue(self.skill.startswith("---\nid: task-intent\nname: task-intent\n"))
-        self.assertIn("不要用", self.skill)
+        self.assertEqual([p.name for p in (ROOT / "references").glob("*.md")], ["intent.md"])
 
-    def test_size(self) -> None:
-        self.assertLess(len(self.skill.encode("utf-8")), 8192)
-
-    def test_template_six_fields_max_8_lines(self) -> None:
-        block = re.search(r"```markdown\n(.*?)```", self.tpl, re.S).group(1)
-        lines = [l for l in block.splitlines() if l.strip()]
-        self.assertLessEqual(len(lines), 8)
-        for f in ("你要的是", "为什么要", "做完的样子", "不做", "我的假设", "要你拍板的"):
+    def test_checklist_is_internal_and_in_intent_file(self) -> None:
+        self.assertIn("不照着打印", self.ref)
+        block = re.search(r"## 覆盖清单\n(.*?)\n\n", self.ref, re.S).group(1)
+        for f in ("要干嘛", "怎么干", "输出什么", "做完的样子", "上下文", "不做", "我的假设", "要你拍板的"):
             self.assertIn(f, block)
 
-    def test_correction_loop_exit(self) -> None:
-        for s in ("明确确认", "第 3 轮", "二选一", "硬上限 5 轮", "只改被指出的行", "不得再错"):
-            self.assertIn(s, self.loop)
-        self.assertIn("没回话", self.loop)
+    def test_user_restatement_is_natural_prose(self) -> None:
+        sec = re.search(r"## 3\. 给用户的复述[^\n]*\n(.*?)\n## ", self.ref, re.S).group(1)
+        for s in ("1–3 句", "第一人称", "接下来", "最多一个问题", "不要标题、不要加粗标签"):
+            self.assertIn(s, sec)
+        examples = [l for l in sec.splitlines() if l.startswith("- ") and len(l) > 40]
+        self.assertGreaterEqual(len(examples), 3)
+        self.assertTrue(any("写完告诉你放在哪" in e for e in examples))
+        for e in examples:
+            self.assertNotIn("**", e)
+        self.assertIn("不逐项列字段", self.skill)
 
-    def test_goal_review(self) -> None:
-        self.assertIn("roles=intent", self.goal)
-        self.assertIn("≥0.8", self.goal)
-        self.assertIn("最多 2 轮", self.goal)
-        self.assertIn("显式降级", self.goal)
-        self.assertIn("不可逆", self.goal)
+    def test_explore_detailed_output_concise(self) -> None:
+        for s in ("现状", "约束", "已有工作", "evidence/intent/"):
+            self.assertIn(s, self.ref)
+        self.assertIn("简洁", self.skill)
 
-    def test_probe_dispatch(self) -> None:
-        self.assertIn("并行", self.probe)
-        self.assertIn("交接契约", self.probe)
-        self.assertIn("Digest（≤10 行）", self.probe)
-        self.assertIn("只读", self.probe)
-        self.assertIn("不回灌工具轨迹", self.probe)
+    def test_safety_lines(self) -> None:
+        self.assertIn("忠于用户原话", self.skill)
+        self.assertIn("goal 模式也必须停下等人", self.skill)
+        self.assertIn("没回话不算确认", self.skill)
 
-    def test_skill_gates(self) -> None:
-        for s in ("先查后问", "推荐答案", "忠于用户原话", "wizard/intent.md", "宿主无 subagent"):
-            self.assertIn(s, self.skill)
-
-    def test_evals_count(self) -> None:
-        self.assertGreaterEqual(read("evals/cases.yaml").count("  - id: "), 20)
+    def test_goal_review_and_fallback(self) -> None:
+        self.assertIn("roles=intent", self.ref)
+        self.assertIn("无 P0/P1", self.ref)
+        self.assertIn("**不调用** role-based-reviewer", self.ref)
 
 
 if __name__ == "__main__":

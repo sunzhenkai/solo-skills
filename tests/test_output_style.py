@@ -18,30 +18,25 @@ class OutputStyleTest(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
-    def test_detects_violations(self) -> None:
+    def test_size_warn_checklist_error_label_warn(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             s = Path(tmp) / "skills"
             (s / "taskrail").mkdir(parents=True)
             (s / "taskrail" / "SKILL.md").write_text("x" * 9000, encoding="utf-8")
-            (s / "other").mkdir()
-            (s / "other" / "SKILL.md").write_text("x" * 9000, encoding="utf-8")
             ref = s / "task-intent" / "references"
             ref.mkdir(parents=True)
-            (ref / "statement-template.md").write_text(
-                "```markdown\n" + "\n".join(f"- 行{i}" for i in range(9)) + "\n- 当前 phase\n```\n",
-                encoding="utf-8",
-            )
-            (ref / "probe.md").write_text(
-                "## Digest（≤10 行）\n\n```text\n" + "\n".join("a" for _ in range(11)) + "\n```\n",
+            (ref / "intent.md").write_text(
+                "## 3. 给用户的复述（自然口语）\n\n"
+                "- **要干嘛**：把导出改快一些，并且把前后耗时对比一并发给你看看结果\n\n"
+                "## 6. x\n\n## 覆盖清单\n- 要干嘛：x\n- 怎么干：y\n\n",
                 encoding="utf-8",
             )
             errs, warns = chk.run(s)
-        joined = "\n".join(errs)
-        self.assertIn("taskrail/SKILL.md", joined)
-        self.assertIn("超过 8 行", joined)
-        self.assertIn("phase", joined)
-        self.assertIn("Digest 模板超过 10 行", joined)
-        self.assertEqual(len(warns), 1)
+        self.assertTrue(any("taskrail/SKILL.md" in w for w in warns))
+        self.assertTrue(any("自然口语" in w for w in warns))
+        self.assertTrue(any("输出什么" in e for e in errs))
+        self.assertFalse(any("要干嘛" in e for e in errs))
+        self.assertFalse(any("对用户说话" in e for e in errs))  # 临时目录无 contract，不报
 
 
 if __name__ == "__main__":

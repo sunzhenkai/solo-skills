@@ -31,7 +31,7 @@ class TestOutputContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        cls.brief = (ROOT / "references" / "brief-protocol.md").read_text(encoding="utf-8")
+        cls.brief = (ROOT / "references" / "protocol.md").read_text(encoding="utf-8")
 
     def test_skill_requires_binding_state_line(self) -> None:
         self.assertIn("依据状态：所审产物的状态标识（提交号 / dirty 摘要）与审阅边界齐备性", self.text)

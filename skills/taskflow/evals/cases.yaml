@@ -207,14 +207,13 @@ cases:
   - id: acceptance-rubric-thresholds
     kind: core
     judge: deterministic
-    description: 最终验收按五维 rubric 出分，UI/UX 六子项均值达标才通过
+    description: 最终验收按五维 rubric 给结论，无未处置 Blocker/Major 才通过
     given: driver 收尾，准备回填验收标准
     expect:
       must:
         - 五维为功能闭环、UI/UX、工程质量、画像一致性、证据
         - UI/UX 拆信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项
-        - 五维均 ≥2 且 UI/UX 均值 ≥2.5，UI/UX 任一子项为 0 不通过
-        - UI/UX 得分是信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项的平均分
+        - 无未处置 Blocker / Major、判据逐条有证据；UI/UX 任一子项为 0 不通过
         - 先证据后打分，评分主体按 product / design / engineer 分工
       must_not:
         - 缺分或缺证据仍勾验收标准 checkbox
@@ -261,18 +260,6 @@ cases:
       must_not:
         - 用五维分数或证据清单推断未勾 checkbox 已完成
         - 另建完成度、暂缓或分支状态台账
-
-  - id: simple-driver-one-slice
-    kind: core
-    judge: deterministic
-    description: simple 档默认单切片实施
-    given: 上游 taskrail tier 为 simple 且已 handoff 建 driver
-    expect:
-      must:
-        - 实施段默认仅 1 个子 change（或等价单切片）
-        - 进度只认 checkbox
-      must_not:
-        - 为 simple 默认拆多切片
 
   - id: web-ui-apply-consumes-active-instance
     kind: core

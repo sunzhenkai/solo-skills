@@ -93,7 +93,8 @@ class TestGatePacksSingleSource(unittest.TestCase):
     def test_web_ui_tier_gate(self) -> None:
         self.assertIn("**Active Instance 档位门**", self.packs)
         self.assertIn("按档调度，保任务速度", self.packs)
-        self.assertIn("medium / complex", self.packs)
+        self.assertIn("**complex**：进入 `approve` 冻结前必须已有 frozen Active Instance", self.packs)
+        self.assertIn("**medium**：SHOULD 使用 frozen Active Instance", self.packs)
         self.assertIn("adopt-only：沿用交付仓已有组件库", self.packs)
         self.assertIn("simple（SHOULD，非硬门）", self.packs)
 

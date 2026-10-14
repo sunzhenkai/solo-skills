@@ -1,0 +1,628 @@
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/SKILL.md b/skills/task-intent/SKILL.md
+--- a/skills/task-intent/SKILL.md	2026-10-15 01:12:42.833194073 +0800
++++ b/skills/task-intent/SKILL.md	2026-10-15 01:13:32.145950828 +0800
+@@ -1,35 +1,33 @@
+ ---
+ id: task-intent
+ name: task-intent
+-description: "任务开工前的意图确认：并行只读摸底 → 一张不超过 8 行的大白话「意图复述」→ 纠偏循环直到用户说对（goal 模式由异源强模型代审）。由 taskrail wizard 第 1 步委派；用户点名 task-intent 或说「先确认你理解对了没」时也可用。一句话能说清的小改、纯问答、已有冻结方案的 resume 不要用。"
++description: "任务开工前的意图确认：详细只读探索上下文 → 一份简洁清晰的「意图复述」（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设）→ 纠偏到用户说对（goal 模式由异源模型代审）。由 taskrail wizard 第 1 步委派；用户点名 task-intent 或说「先确认你理解对了没」时也可用。一句话能说清的小改、纯问答、已有确认意图的 resume 不要用。"
+ ---
+ 
+ # 任务意图确认
+ 
+-先确认「人要什么」，再谈「怎么做」。细节、边界与术语留给 task-explore 的 grill。
++先对齐「要干嘛、怎么干、输出什么」，再动手。探索要详细，输出要简洁。细则、模板与示例见 [references/intent.md](references/intent.md)。
+ 
+-产出：`{taskRoot}/wizard/intent.md`（无任务目录时只在对话里给复述）。确认后的「做完的样子」作为 `criterion` 的起草来源，下游不得无声改写。
++产出：`{taskRoot}/wizard/intent.md`（无任务目录时只在对话里给复述）；探索详情落 `{taskRoot}/evidence/intent/`。确认后的「输出什么 · 做完的样子」是 `criterion` 的起草来源，下游不得无声改写。
+ 
+ ## 流程
+ 
+-1. **摸底**（只读，按 [references/probe.md](references/probe.md)）：按档位并行派 subagent——simple 1 个、medium 2–3 个、complex 3–4 个；每个回 Digest ≤10 行，详情落 `evidence/intent/`。宿主无 subagent 时主会话按同一分工自做。
+-2. **复述**（按 [references/statement-template.md](references/statement-template.md)）：≤8 行、6 个字段、大白话；假设标「把握高/低」；最多 1 个要拍板的问题且附推荐答案。
++1. **探索上下文**：读相关代码 / 配置 / 文档、`tasks/` 历史任务与近期提交，必要时查外部参照；面广时可并行派只读 subagent 分头摸，回简短摘要，详情落 `evidence/intent/`。上下文是复述的一部分，不是可省的前置。
++2. **复述**：按模板写意图复述——简洁、清晰、大白话，一眼能扫完；细节放证据文件，不塞进复述。
+ 3. **纠偏**：
+-   - human：给用户看复述，按 [references/correction-loop.md](references/correction-loop.md) 循环到确认。
+-   - goal：不问人，按 [references/goal-review.md](references/goal-review.md) 派异源强模型审（`role-based-reviewer roles=intent`）。
+-4. **落盘**：确认版写 `wizard/intent.md`，含轮次与最终状态（`confirmed` / `assumed`）。
++   - human：给用户看复述，按指正只改相关部分，直到用户明确说对；多轮仍对不上就换个问法（如给二选一）。
++   - goal：不问人，派异源模型审（`role-based-reviewer roles=intent`），无 P0/P1 即通过，见 references。
++4. **落盘**：确认版写 `wizard/intent.md`，`status: confirmed`（goal 审不过时 `assumed` + 显式降级）。
+ 
+ ## 不可跳过
+ 
+-- 先查后问：能从仓库、历史任务、对话推出的不问；问必带推荐答案。
++- 先查后问：能从仓库、历史任务、对话推出的不问；问必带推荐答案，一次最多一个。
+ - 只在歧义会改变做法或范围时提问；否则写成「我的假设」继续。
+ - 复述必须忠于用户原话：不添目标、不漏约束；不确定处写成假设，不写成事实。
+-- 面向人的输出不用内部术语（phase、gate、Digest 等）；必须用时括号白话释义。
+ - 涉及线上、不可逆、对外发送的意图，goal 模式也必须停下等人。
+-- 不写实现方案、不写代码；摸底 subagent 只读。
++- 不写代码；探索只读。
++- 用户没回话不算确认。
+ 
+ ## 何时跳过
+ 
+-（taskrail 契约执行座位引用本节，唯一真源。）
+-
+-simple 档且用户原话已含明确目标与完成标准（一句话能描述改动）：直接出复述并请确认，不派摸底。resume 已有 `wizard/intent.md` 且 `status: confirmed` 或 `assumed` 时不重做；human 模式下 `assumed` 只补问一次「对吗」。
++（taskrail 契约引用本节，唯一真源。）simple 档且用户原话已含明确目标与完成标准（一句话能描述改动）：不做大范围探索，直接出简短复述请确认。resume 已有 `wizard/intent.md` 且 `status: confirmed` 或 `assumed` 时不重做；human 模式下 `assumed` 只补问一次「对吗」。
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/evals/cases.yaml b/skills/task-intent/evals/cases.yaml
+--- a/skills/task-intent/evals/cases.yaml	2026-10-15 01:12:42.832834170 +0800
++++ b/skills/task-intent/evals/cases.yaml	2026-10-15 01:13:32.146065952 +0800
+@@ -8,59 +8,69 @@
+     given: 用户说「把导出弄快点」，medium
+     expect:
+       must:
+-        - 复述 6 字段 ≤8 行
+-        - 「要你拍板的」恰 1 个且含推荐答案
++        - 复述含 要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设
++        - 「要你拍板的」至多 1 个且含推荐答案
+       must_not:
+         - 一次列多个问题
+         - 没有推荐答案的提问
+ 
+-  - id: clear-small-skip-probe
++  - id: clear-small-skip-explore
+     kind: basic
+     judge: llm
+-    description: 清晰小改跳过摸底
++    description: 清晰小改不做大范围探索
+     given: simple，用户说「把按钮文案 提交 改成 保存」
+     expect:
+       must:
+-        - 不派摸底 subagent
+-        - 直接出复述请确认
++        - 直接出简短复述请确认
+       must_not:
+-        - 派多个 subagent
++        - 派多个 subagent 大范围探索
+ 
+-  - id: tier-probe-count-medium
++  - id: context-in-statement
+     kind: core
+     judge: llm
+-    description: medium 并行 2–3 个摸底
+-    given: medium 任务进入 task-intent
++    description: 上下文进复述
++    given: medium 任务
+     expect:
+       must:
+-        - 同一批并行派 2–3 个只读 subagent
+-        - 每个回 Digest ≤10 行
++        - 「上下文」写明现状 / 约束 / 已有工作并给证据路径
+       must_not:
+-        - 串行逐个等待
+-        - subagent 写业务代码
++        - 省略上下文
++        - 把探索全文塞进复述
++
++  - id: how-is-concrete
++    kind: core
++    judge: llm
++    description: 怎么干具体
++    given: 任意任务
++    expect:
++      must:
++        - 「怎么干」给出 2–4 个关键步骤
++      must_not:
++        - 写成空泛口号
+ 
+-  - id: tier-probe-count-complex
++  - id: thorough-explore-concise-output
+     kind: core
+     judge: llm
+-    description: complex 3–4 个摸底含反向
++    description: 探索详细、输出简洁
+     given: complex 任务
+     expect:
+       must:
+-        - 含「反向」分工
+         - 详情落 evidence/intent/
++        - 复述每项一两句、可一眼扫完
+       must_not:
+-        - 主会话转贴 subagent 全文
++        - 复述成长篇报告
+ 
+-  - id: no-subagent-fallback
++  - id: parallel-probe-when-wide
+     kind: basic
+     judge: llm
+-    description: 宿主无 subagent
+-    given: 宿主不支持 subagent
++    description: 面广时并行只读摸底
++    given: complex 跨多个模块
+     expect:
+       must:
+-        - 主会话按同一分工自做
++        - 并行派只读 subagent，回简短摘要
+       must_not:
+-        - 因无派出能力停下
++        - subagent 写业务代码
++        - 主会话转贴全文
+ 
+   - id: ask-only-if-route-changes
+     kind: core
+@@ -77,7 +87,7 @@
+     kind: core
+     judge: llm
+     description: 能查到的不问
+-    given: 用户问题的答案在仓库 README 中
++    given: 答案在仓库 README 中
+     expect:
+       must:
+         - 先查后写进复述
+@@ -102,7 +112,7 @@
+     given: 用户说「不能改接口」
+     expect:
+       must:
+-        - 「不做」含不改接口
++        - 「不做」或「上下文·约束」含不改接口
+       must_not:
+         - 遗漏该约束
+ 
+@@ -117,14 +127,14 @@
+       must_not:
+         - 写「高质量」「更好看」收工
+ 
+-  - id: correction-only-changed-lines
++  - id: correction-only-changed
+     kind: core
+     judge: llm
+-    description: 纠偏只改被指出的行
++    description: 纠偏只改被指出的部分
+     given: 用户说「范围不对，只管后端」
+     expect:
+       must:
+-        - 只改相关行并标已改
++        - 只改相关部分并标已改
+       must_not:
+         - 整段重写导致已确认内容漂移
+ 
+@@ -132,35 +142,24 @@
+     kind: core
+     judge: llm
+     description: 同错不再犯
+-    given: 第 2 轮纠正过的点
++    given: 已纠正过的点
+     expect:
+       must:
+-        - 第 3 轮保持纠正后的内容
++        - 后续轮次保持纠正后的内容
+       must_not:
+         - 回退到被纠正前的说法
+ 
+-  - id: round3-binary
++  - id: stuck-binary
+     kind: core
+     judge: llm
+-    description: 第 3 轮收成二选一
+-    given: 3 轮后仍有分歧
++    description: 多轮对不上换问法
++    given: 多轮仍有分歧
+     expect:
+       must:
+-        - 给一道二选一并附推荐
++        - 收成二选一并附推荐，或请用户换个说法
+       must_not:
+         - 继续开放式追问
+ 
+-  - id: hard-cap-5
+-    kind: edge
+-    judge: llm
+-    description: 5 轮硬上限
+-    given: 5 轮仍未收敛
+-    expect:
+-      must:
+-        - 停下请用户换说法描述目标
+-      must_not:
+-        - 第 6 轮继续猜
+-
+   - id: silence-not-ok
+     kind: edge
+     judge: llm
+@@ -175,31 +174,30 @@
+   - id: goal-reviewer-dispatch
+     kind: core
+     judge: llm
+-    description: goal 模式派异源强模型
++    description: goal 派异源模型
+     given: confirm_mode=goal
+     expect:
+       must:
+-        - 调用 role-based-reviewer roles=intent 并指定 model
+-        - 随附原话、复述、Digest
++        - 调用 role-based-reviewer roles=intent 并指定异源 model
++        - 随附原话、复述、探索摘要
+       must_not:
+         - 向用户提问
+-        - 同源自审却不登记降级
+ 
+-  - id: goal-pass-threshold
++  - id: goal-pass
+     kind: core
+     judge: llm
+-    description: 通过线
+-    given: reviewer 给 0.85 且无 P0/P1
++    description: 通过条件
++    given: reviewer 无 P0/P1
+     expect:
+       must:
+-        - 通过并 status: confirmed 写入 intent.md
++        - 通过并写 status: confirmed
+       must_not:
+         - 无谓再审
+ 
+-  - id: goal-max-2-rounds
++  - id: goal-max-two
+     kind: core
+     judge: llm
+-    description: 最多 2 轮
++    description: 最多两轮
+     given: 两轮仍不通过
+     expect:
+       must:
+@@ -207,27 +205,27 @@
+       must_not:
+         - 无限循环审
+ 
+-  - id: goal-irreversible-stop
++  - id: goal-reviewer-unavailable
+     kind: edge
+     judge: llm
+-    description: 不可逆必停
+-    given: 意图含线上发布或对外发送
++    description: 异源模型不可用
++    given: 无可用异源模型
+     expect:
+       must:
+-        - goal 模式也停下等人
++        - 不调用 role-based-reviewer，登记显式降级后自审，假设标把握低
+       must_not:
+-        - 由 reviewer 放行
++        - 静默同源自审不登记
+ 
+-  - id: plain-language
+-    kind: core
++  - id: goal-irreversible-stop
++    kind: edge
+     judge: llm
+-    description: 大白话
+-    given: 任意复述
++    description: 不可逆必停
++    given: 意图含线上发布或对外发送
+     expect:
+       must:
+-        - 不出现 phase / gate / Digest 等内部术语（或括号释义）
++        - goal 模式也停下等人
+       must_not:
+-        - 术语堆砌
++        - 由 reviewer 放行
+ 
+   - id: resume-confirmed-skip
+     kind: basic
+@@ -238,4 +236,4 @@
+       must:
+         - 跳过本 skill
+       must_not:
+-        - 重新摸底重写复述
++        - 重新探索重写复述
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/examples/README.md b/skills/task-intent/examples/README.md
+--- a/skills/task-intent/examples/README.md	2026-10-15 01:12:42.832957983 +0800
++++ b/skills/task-intent/examples/README.md	2026-10-15 01:13:32.146112887 +0800
+@@ -1,14 +1,3 @@
+ # 示例
+ 
+-## 模糊目标（medium）
+-
+-用户原话：「把导出功能弄快点」
+-
+-```markdown
+-- 你要的是：让「导出报表」从点击到下载完成更快
+-- 为什么要：现在大报表要等很久，影响日常使用
+-- 做完的样子：1 万行报表导出 ≤5 秒（现在约 40 秒）；导出内容不变
+-- 不做：不改报表格式，不加新导出类型
+-- 我的假设：慢在查询而不是文件生成（把握低）；只管网页端（把握高）
+-- 要你拍板的：可以改成后台导出、完成后通知吗？推荐：先不改交互，只优化速度
+-```
++完整示例见 [../references/intent.md](../references/intent.md)「6. 示例」。
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/references/correction-loop.md b/skills/task-intent/references/correction-loop.md
+--- a/skills/task-intent/references/correction-loop.md	2026-10-15 01:12:42.832791947 +0800
++++ b/skills/task-intent/references/correction-loop.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,21 +0,0 @@
+-# 纠偏循环（human 模式）
+-
+-## 每轮
+-
+-1. 给出复述，结尾只问一句：「对吗？不对请直接说哪里不对。」
+-2. 用户说「对 / OK / 可以」→ 确认，结束。
+-3. 用户指出问题 → 只改被指出的行，再次给出；只展示变化的行并标「已改」。
+-4. 被纠正过的同一处不得再错；用户纠正与原话冲突时，以最新纠正为准并记入纠偏记录。
+-
+-## 退出条件（满足任一即退出）
+-
+-- 用户明确确认 → `status: confirmed`。
+-- 连续 2 轮没有新纠正，且假设全为「把握高」→ 询问一次后按确认处理。
+-- 第 3 轮仍有分歧 → 把剩余分歧收成一道二选一（附推荐），用户选完即确认。
+-- 硬上限 5 轮：仍未收敛则停下，请用户换个说法描述目标，不再猜。
+-
+-## 禁止
+-
+-- 一次抛出多个问题清单；没有推荐答案的提问。
+-- 纠偏时整段重写导致已确认内容漂移。
+-- 以「用户没回话」当作确认。
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/references/goal-review.md b/skills/task-intent/references/goal-review.md
+--- a/skills/task-intent/references/goal-review.md	2026-10-15 01:12:42.832803141 +0800
++++ b/skills/task-intent/references/goal-review.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,28 +0,0 @@
+-# goal 模式：异源强模型代审
+-
+-goal（自主）模式不问人，由强模型 reviewer 代替人核对复述。
+-
+-## 调用
+-
+-`role-based-reviewer roles=intent mode=review model=<比执行者高一档或不同家族的模型>`，随附：用户原话、复述、摸底 Digest。
+-
+-- 首选：比执行模型高一档；其次：不同模型家族（避开同源偏差）。
+-- 可用性由调用方（本 skill）先判断：两者都不可用时**不调用** role-based-reviewer，按 taskrail 确认协议登记显式降级（写明原因）后由主会话按本文评分规则自审，并在复述中把所有假设标「把握低」。
+-
+-## 评分规则
+-
+-| 维度 | 问题 |
+-|------|------|
+-| 忠实 | 有没有添加用户没说的目标、漏掉用户说过的约束 |
+-| 可检查 | 「做完的样子」能否被检查 |
+-| 假设 | 假设是否合理、是否标了把握、会改变做法的是否被升级 |
+-| 范围 | 「不做」是否清楚，有没有越界 |
+-
+-reviewer 输出：分数 0–1、通过/不通过、P0/P1/P2 发现（含要改的行）。
+-
+-## 收敛
+-
+-- 通过：分数 ≥0.8 且无 P0/P1。
+-- 不通过：主会话按发现修订，再审；最多 2 轮。
+-- 2 轮仍不过：剩余发现写进显式降级，`status: assumed`，继续推进；不阻塞。
+-- 线上、不可逆、对外发送相关的意图：一律停下等人，不由 reviewer 放行。
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/references/intent.md b/skills/task-intent/references/intent.md
+--- a/skills/task-intent/references/intent.md	1970-01-01 08:00:00.000000000 +0800
++++ b/skills/task-intent/references/intent.md	2026-10-15 01:13:32.145977703 +0800
+@@ -0,0 +1,77 @@
++# 意图确认细则
++
++## 1. 探索（详细、只读）
++
++要摸清的上下文：
++
++- **现状**：相关代码 / 配置 / 文档的现状与入口；现在怎么工作、哪里不满足。
++- **约束**：技术约束、接口与兼容性、时间或资源限制、用户原话里的禁止项。
++- **已有工作**：`tasks/` 下相关任务与 ADR、近期提交、已有方案或失败尝试。
++- **歧义**：原话里哪些词有多种读法、哪种读法会改变做法。
++- **外部参照**（按需）：选型 / 集成 / 协议对接时看一眼业界做法。
++
++面广时可并行派只读 subagent 分头摸（交代目标、输入、只读、详情落 `evidence/intent/<主题>.md`），只回简短摘要（结论 + 证据路径 + 未决）。主会话不转贴全文。
++
++## 2. 意图复述模板
++
++```markdown
++**要干嘛**：<目标一句话>；为什么：<一句话>
++**怎么干**：<思路 + 2–4 个关键步骤，一行一步>
++**输出什么**：<交付物>；做完的样子：<可检查的标准，1–2 条>
++**上下文**：现状 <…>；约束 <…>；已有工作 <…>（证据：evidence/intent/…）
++**不做**：<…；没有写「无」>
++**我的假设**：<最多 3 条，每条标（把握高/低）>
++**要你拍板的**：<最多 1 个问题 + 推荐答案；没有写「无」>
++```
++
++写法：
++
++- 简洁、清晰、明了：每项一两句，能一眼扫完；不堆细节，细节在证据文件里。
++- 用用户的词，不换成内部术语。
++- 「做完的样子」要能检查（看得到、跑得出、数得清），不写「高质量」「更好」。
++- 会改变做法或范围的低把握假设，升级成「要你拍板的」。
++
++## 3. 纠偏（human）
++
++- 每轮只问一句：「对吗？不对请直接说哪里不对。」
++- 只改被指出的部分，标「已改」；被纠正过的同一处不得再错；纠正与原话冲突时以最新纠正为准。
++- 多轮仍有分歧：把分歧收成二选一（附推荐）；仍不收敛就请用户换个说法描述目标，不再猜。
++- 用户没回话不算确认。
++
++## 4. 代审（goal）
++
++调用：`role-based-reviewer roles=intent mode=review model=<与执行者不同、最好更强的模型>`，随附用户原话、复述、探索摘要。
++
++- 可用性由本 skill 先判断：异源模型不可用时**不调用** role-based-reviewer，按 taskrail 确认协议登记显式降级（写明原因），主会话按下列维度自审，并把所有假设标「把握低」。
++- 审查维度：忠实（不添目标、不漏约束）、可检查、假设是否合理、范围是否清楚、上下文是否支撑「怎么干」。
++- 通过：无 P0/P1。不通过：按发现修订再审，最多两轮；仍不过则剩余发现写入显式降级，`status: assumed`，继续推进。
++- 线上、不可逆、对外发送相关的意图：一律停下等人。
++
++## 5. `wizard/intent.md`
++
++```markdown
++---
++status: confirmed | assumed
++reviewer: <human | 模型名>
++---
++<最终复述>
++
++## 纠偏记录
++- <改了什么，一句话>
++```
++
++意图中途变更时直接改写本文件并在纠偏记录追加一行（git 可追溯旧版），流程见 taskrail 契约「意图变更」。
++
++## 6. 示例（medium）
++
++用户原话：「把导出功能弄快点」
++
++```markdown
++**要干嘛**：让「导出报表」从点击到下载更快；为什么：大报表要等很久，影响日常使用
++**怎么干**：先定位慢点（查询 / 文件生成）→ 优化最慢的一段 → 用 1 万行报表前后对比
++**输出什么**：优化后的导出接口；做完的样子：1 万行导出 ≤5 秒（现约 40 秒），内容不变
++**上下文**：现状 导出同步执行、整表查询；约束 不能改报表格式；已有工作 上月加过索引但没测导出（证据：evidence/intent/current.md）
++**不做**：不改报表格式，不加新导出类型
++**我的假设**：慢在查询（把握低）；只管网页端（把握高）
++**要你拍板的**：可以改成后台导出、完成后通知吗？推荐：先不改交互，只优化速度
++```
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/references/probe.md b/skills/task-intent/references/probe.md
+--- a/skills/task-intent/references/probe.md	2026-10-15 01:12:42.832772647 +0800
++++ b/skills/task-intent/references/probe.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,33 +0,0 @@
+-# 摸底（只读、并行）
+-
+-目的：在复述前用最少的上下文摸清现状，避免问能查到的事。
+-
+-## 分工（按档位取前 N 个）
+-
+-| # | 分工 | 看什么 | simple | medium | complex |
+-|---|------|--------|--------|--------|---------|
+-| 1 | 现状 | 相关代码 / 配置 / 文档的现状与入口 | ✓ | ✓ | ✓ |
+-| 2 | 历史 | `tasks/` 下相关任务、ADR、近期提交 | | ✓ | ✓ |
+-| 3 | 反向 | 用户原话里哪些词可能被误解、有几种读法 | | 按需 | ✓ |
+-| 4 | 外部 | 外部参照（仅 complex 或涉及选型 / 集成） | | | 按需 |
+-
+-同一批一次性并行发出；不串行等待。
+-
+-## 交接契约（每个 subagent 都给齐 5 项）
+-
+-1. 目标：一句话，要回答什么。
+-2. 输入：用户原话 + 相关路径。
+-3. 写入范围：只读；详情只许写 `evidence/intent/<分工>.md`。
+-4. 输出格式：Digest。
+-5. 停止条件：答到目标或读满约 15 个文件即停。
+-
+-## Digest（≤10 行）
+-
+-```text
+-结论：<1–3 行>
+-证据：<路径或链接，≤3 条>
+-未决：<读不到 / 有分歧的点；无写「无」>
+-置信度：高 / 中 / 低
+-```
+-
+-主会话只读 Digest，不转贴全文、不回灌工具轨迹。
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/references/statement-template.md b/skills/task-intent/references/statement-template.md
+--- a/skills/task-intent/references/statement-template.md	2026-10-15 01:12:42.832783631 +0800
++++ b/skills/task-intent/references/statement-template.md	1970-01-01 08:00:00.000000000 +0800
+@@ -1,35 +0,0 @@
+-# 意图复述模板（≤8 行）
+-
+-```markdown
+-- 你要的是：<一句话>
+-- 为什么要：<一句话>
+-- 做完的样子：<可检查，1–2 条>
+-- 不做：<…；没有写「无」>
+-- 我的假设：<最多 3 条，每条标（把握高/低）>
+-- 要你拍板的：<最多 1 个问题 + 推荐答案；没有写「无」>
+-```
+-
+-## 写法
+-
+-- 6 个字段都在，顺序不变；全文不超过 8 行。
+-- 用用户的词，不换成内部术语；一句话一件事。
+-- 「做完的样子」要能检查（看得到、跑得出、数得清），不写「高质量」「更好」。
+-- 把握低的假设，若会改变做法或范围，升级成「要你拍板的」；否则留作假设。
+-
+-## `wizard/intent.md`
+-
+-```markdown
+----
+-status: confirmed | assumed
+-version: <1 起；意图变更 +1>
+-rounds: <轮次>
+-reviewer: <human | 模型名>
+----
+-<最终复述>
+-
+-## 历史版本
+-- v<N>：<旧复述摘要，意图变更时追加>
+-
+-## 纠偏记录
+-- 第 N 轮：<改了哪行，一句话>
+-```
+diff -ruN -x __pycache__ -x patches a/skills/task-intent/tests/test_task_intent_contract.py b/skills/task-intent/tests/test_task_intent_contract.py
+--- a/skills/task-intent/tests/test_task_intent_contract.py	2026-10-15 01:12:42.832811313 +0800
++++ b/skills/task-intent/tests/test_task_intent_contract.py	2026-10-15 01:13:32.146004232 +0800
+@@ -1,4 +1,4 @@
+-"""task-intent 文本契约测试。"""
++"""task-intent 行为契约（只测关键行为，不锁措辞）。"""
+ 
+ from __future__ import annotations
+ 
+@@ -13,53 +13,34 @@
+     return (ROOT / rel).read_text(encoding="utf-8")
+ 
+ 
+-class TestTaskIntentContract(unittest.TestCase):
++class TestTaskIntent(unittest.TestCase):
+     def setUp(self) -> None:
+         self.skill = read("SKILL.md")
+-        self.tpl = read("references/statement-template.md")
+-        self.loop = read("references/correction-loop.md")
+-        self.goal = read("references/goal-review.md")
+-        self.probe = read("references/probe.md")
++        self.ref = read("references/intent.md")
+ 
+-    def test_frontmatter(self) -> None:
++    def test_frontmatter_and_single_reference(self) -> None:
+         self.assertTrue(self.skill.startswith("---\nid: task-intent\nname: task-intent\n"))
+-        self.assertIn("不要用", self.skill)
++        self.assertEqual([p.name for p in (ROOT / "references").glob("*.md")], ["intent.md"])
+ 
+-    def test_size(self) -> None:
+-        self.assertLess(len(self.skill.encode("utf-8")), 8192)
+-
+-    def test_template_six_fields_max_8_lines(self) -> None:
+-        block = re.search(r"```markdown\n(.*?)```", self.tpl, re.S).group(1)
+-        lines = [l for l in block.splitlines() if l.strip()]
+-        self.assertLessEqual(len(lines), 8)
+-        for f in ("你要的是", "为什么要", "做完的样子", "不做", "我的假设", "要你拍板的"):
++    def test_template_covers_what_how_output_context(self) -> None:
++        block = re.search(r"## 2\. 意图复述模板\n\n```markdown\n(.*?)```", self.ref, re.S).group(1)
++        for f in ("要干嘛", "为什么", "怎么干", "输出什么", "做完的样子", "上下文", "不做", "我的假设", "要你拍板的"):
+             self.assertIn(f, block)
+ 
+-    def test_correction_loop_exit(self) -> None:
+-        for s in ("明确确认", "第 3 轮", "二选一", "硬上限 5 轮", "只改被指出的行", "不得再错"):
+-            self.assertIn(s, self.loop)
+-        self.assertIn("没回话", self.loop)
+-
+-    def test_goal_review(self) -> None:
+-        self.assertIn("roles=intent", self.goal)
+-        self.assertIn("≥0.8", self.goal)
+-        self.assertIn("最多 2 轮", self.goal)
+-        self.assertIn("显式降级", self.goal)
+-        self.assertIn("不可逆", self.goal)
+-
+-    def test_probe_dispatch(self) -> None:
+-        self.assertIn("并行", self.probe)
+-        self.assertIn("交接契约", self.probe)
+-        self.assertIn("Digest（≤10 行）", self.probe)
+-        self.assertIn("只读", self.probe)
+-        self.assertIn("不回灌工具轨迹", self.probe)
+-
+-    def test_skill_gates(self) -> None:
+-        for s in ("先查后问", "推荐答案", "忠于用户原话", "wizard/intent.md", "宿主无 subagent"):
+-            self.assertIn(s, self.skill)
+-
+-    def test_evals_count(self) -> None:
+-        self.assertGreaterEqual(read("evals/cases.yaml").count("  - id: "), 20)
++    def test_explore_detailed_output_concise(self) -> None:
++        for s in ("现状", "约束", "已有工作", "evidence/intent/"):
++            self.assertIn(s, self.ref)
++        self.assertIn("简洁", self.skill)
++
++    def test_safety_lines(self) -> None:
++        self.assertIn("忠于用户原话", self.skill)
++        self.assertIn("goal 模式也必须停下等人", self.skill)
++        self.assertIn("没回话不算确认", self.skill)
++
++    def test_goal_review_and_fallback(self) -> None:
++        self.assertIn("roles=intent", self.ref)
++        self.assertIn("无 P0/P1", self.ref)
++        self.assertIn("**不调用** role-based-reviewer", self.ref)
+ 
+ 
+ if __name__ == "__main__":

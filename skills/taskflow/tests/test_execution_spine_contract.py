@@ -139,7 +139,7 @@ class TestRubricExecutorBinding(unittest.TestCase):
         self.assertIn("不得少于该表「必载评审」", self.rubric)
 
     def test_gate_failure_caps_score(self) -> None:
-        self.assertIn("**可自动化门**任一失败 → 对应维度不得 ≥2.5", self.rubric)
+        self.assertIn("**可自动化门**任一失败 → 对应维度不通过", self.rubric)
 
     def test_web_ui_evidence_binding(self) -> None:
         self.assertIn("scan_design_constraints", self.rubric)
@@ -153,8 +153,7 @@ class TestRubricExecutorBinding(unittest.TestCase):
         self.assertIn("SHOULD 异源", self.rubric)
 
     def test_existing_pass_line_intact(self) -> None:
-        self.assertIn("五维均 ≥2", self.rubric)
-        self.assertIn("UI/UX 六子项均值 ≥2.5", self.rubric)
+        self.assertIn("不设均值硬线", self.rubric)
 
 
 if __name__ == "__main__":

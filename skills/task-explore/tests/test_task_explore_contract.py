@@ -85,32 +85,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("在确认后进行 new/resume 命令", self.skill)
         self.assertIn("用户确认前不进入", self.skill)
 
-    def test_archive_checks_dest_before_mutating_task_md(self) -> None:
-        dest = self.archive.find("目标已存在则停止")
-        save = self.archive.find("目标路径确认无冲突后")
-        status = self.archive.find("`status` 改为 `archived`")
-        move = self.archive.find("**移动**过去")
-        self.assertGreater(dest, -1)
-        self.assertGreater(save, dest)
-        self.assertGreater(status, save)
-        self.assertGreater(move, status)
-
-    def test_archive_gate_keeps_zero_side_effects_on_conflict(self) -> None:
-        section = self._section(self.skill, "## `archive`")
-        self.assertIn("目标已存在则停止并询问，禁止覆盖", section)
-        self.assertIn("不得改 `TASK.md`、不得移动目录、不得改 INDEX", section)
-        self.assertIn("未结子任务", section)
-
-    def test_archive_requires_closing_reason(self) -> None:
-        self.assertIn("留下本次结论与关闭原因", self.skill)
-        self.assertIn("关闭原因", self.archive)
-        self.assertIn("本次结论", self.archive)
-        self.assertIn("取自用户回答", self.archive)
-        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
-        self.assertIn("**归档** 小节", tpl)
-        self.assertIn("本次结论", tpl)
-        self.assertIn("SUMMARY.md", tpl)
-
     def test_approve_exit_handoff_not_archive(self) -> None:
         self.assertIn("下一步只写 handoff", self.approve)
         self.assertIn("不列 archive", self.approve)
@@ -120,69 +94,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("「方案已写完」「还有未决」不是关闭原因", self.archive)
         section = self._section(self.skill, "## `archive`")
         self.assertIn("改走 handoff", section)
-        self.assertIn("「方案已写完」「还有未决」不是关闭原因", section)
-
-    def test_archive_counts_open_items_without_forcing_clearance(self) -> None:
-        section = self._section(self.skill, "## `archive`")
-        self.assertIn("未决问题", section)
-        self.assertIn("不要求清零", self.archive)
-        self.assertIn("随归档关闭", self.archive)
-
-    def test_archive_reads_driver_progress_without_writeback(self) -> None:
-        self.assertIn("已完成 X/Y", self.archive)
-        self.assertIn("进度未知", self.archive)
-        self.assertIn("**不回写**", self.archive)
-
-    def test_archive_checks_inbound_links(self) -> None:
-        self.assertIn("旧路径的链接", self.archive)
-        self.assertIn("保留断链", self.archive)
-
-    def test_archive_updates_index_wording(self) -> None:
-        self.assertIn("保留 `→ {task-name}-driver` 结尾", self.archive)
-        self.assertIn("不留「设计中」这类进行时", self.archive)
-
-    def test_archive_writes_human_summary(self) -> None:
-        self.assertIn("## 任务总结（`{taskRoot}/SUMMARY.md`）", self.archive)
-        self.assertIn("主干是时间线", self.archive)
-        self.assertIn("不超过约 40 行", self.archive)
-        self.assertIn("交付进度未记录", self.archive)
-        self.assertIn("给用户过一眼", self.archive)
-        self.assertIn("`{taskRoot}/SUMMARY.md`（给人读的时间线总结）", self.skill)
-        self.assertIn("│   ├── SUMMARY.md", self.skill)
-
-    def test_archive_summary_written_after_dest_check(self) -> None:
-        dest = self.archive.find("目标已存在则停止")
-        summary = self.archive.find("给用户过眼后继续")
-        move = self.archive.find("**移动**过去")
-        self.assertGreater(summary, dest)
-        self.assertGreater(move, summary)
-
-    def test_archive_requires_save_before_move(self) -> None:
-        self.assertIn("必须按 `save` 写回", self.archive)
-        self.assertIn("不接受按现状归档", self.archive)
-        self.assertIn("必须先按 `save` 落盘", self._section(self.skill, "## `archive`"))
-
-    def test_batch_archive_reuses_full_gates(self) -> None:
-        self.assertIn("逐个跑完整门禁", self.archive)
-        self.assertIn("合并成一次确认", self.archive)
-        self.assertIn("已搬的不回滚", self.archive)
-        self.assertNotIn("不在本阶段范围", self.archive.split("<!-- 原 phase-reopen.md -->")[0])
-
-    def test_archive_single_confirmation_for_multiple_gates(self) -> None:
-        self.assertIn("合并成一次确认", self.archive)
-        self.assertIn("「确认关闭」的明确答复才搬", self.archive)
-        skill_sec = self._section(self.skill, "## `archive`")
-        self.assertIn("合并成一次确认", skill_sec)
-        self.assertIn("未确认不搬", skill_sec)
-
-    def test_archive_verifies_move_afterwards(self) -> None:
-        self.assertIn("旧路径已不存在", self.archive)
-        self.assertIn("`TASK.md` 与 `SUMMARY.md` 可读", self.archive)
-        self.assertIn("INDEX 每条归档路径都实际存在", self.archive)
-
-    def test_archive_date_is_consistent(self) -> None:
-        self.assertIn("三处日期必须同一个 `{yyyy-mm-dd}`", self.archive)
-        self.assertIn("三处", self._section(self.skill, "## `archive`"))
 
     def test_index_sync_on_mutating_phases(self) -> None:
         self.assertIn(
@@ -243,44 +154,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不归档、不搬目录、不清绑定", handoff_sec)
         self.assertIn("不归档、不搬目录、不清绑定", self.handoff)
 
-    def test_reopen_checks_dest_before_move(self) -> None:
-        dest = self.reopen.find("目标已存在则停止")
-        status = self.reopen.find("`status` 改回 `ongoing`")
-        move = self.reopen.find("**移动**回 `tasks/ongoing/{task-name}`")
-        self.assertGreater(dest, -1)
-        self.assertGreater(status, dest)
-        self.assertGreater(move, status)
-
-    def test_reopen_gate_zero_side_effects_on_conflict(self) -> None:
-        section = self._section(self.skill, "## `reopen`")
-        self.assertIn("禁止覆盖", section)
-        self.assertIn("不得改 `TASK.md`、不得移动目录、不得改 INDEX", section)
-        self.assertIn("「确认 reopen」的明确答复", section)
-
-    def test_reopen_preserves_history_and_driver(self) -> None:
-        self.assertIn("保留 `archived: YYYY-MM-DD` 作为历史", self.reopen)
-        self.assertIn("加 `reopened: YYYY-MM-DD`", self.reopen)
-        self.assertIn("一律不删不改写", self.reopen)
-        self.assertIn("driver 及其 change 不删", self.reopen)
-
-    def test_reopen_clears_handoff_tailnote_in_index(self) -> None:
-        self.assertIn("去掉 `→ {task-name}-driver` 尾注", self.reopen)
-        self.assertIn("去掉 `→ {task-name}-driver` 尾注", self._section(self.skill, "## `reopen`"))  # noqa: E501
-
-    def test_reopen_checks_subtask_name_collision(self) -> None:
-        self.assertIn("**子任务名撞车**", self.reopen)
-        self.assertIn("`{sub}-driver` 会撞", self.reopen)
-
-    def test_reopen_reports_driver_side_without_assuming(self) -> None:
-        self.assertIn("以 `TASK.md` 的 `status` 为准", self.reopen)
-        self.assertIn("进度未知", self.reopen)
-
-    def test_reopen_keeps_summary_as_history(self) -> None:
-        self.assertIn("`SUMMARY.md` 随树搬回", self.reopen)
-        self.assertIn("不改写", self.reopen)
-        tpl = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
-        self.assertIn("reopened: YYYY-MM-DD", tpl)
-
     def test_split_phase_is_routed_and_gated(self) -> None:
         self.assertIn("## `expand` / `split`", self.skill)
         split = self._section(self.skill, "## `expand` / `split`")
@@ -301,13 +174,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("父是纯伞不可交接", handoff_sec)
         self.assertIn("不建 `{parent}-driver`", handoff_sec)
         self.assertIn("不得建 `{parent}-driver`", self.handoff)
-
-    def test_parent_archive_closes_whole_tree(self) -> None:
-        self.assertIn("未结子任务", self._section(self.skill, "## `archive`"))
-        self.assertIn("含子任务树", self.archive)
-        self.assertIn("父任务归档即关闭整棵子任务树", self.archive)
-        reopen = self._section(self.skill, "## `reopen`")
-        self.assertIn("不自动复活", reopen)
 
     def test_nested_layout_and_index_rows(self) -> None:
         self.assertIn("`{parent}/{sub}`", self.skill)
@@ -343,9 +209,8 @@ class ContractTest(unittest.TestCase):
 
     def test_goal_confirmations_go_to_review(self) -> None:
         section = self._section(self.skill, "## Goal 里的确认")
-        self.assertIn("走 taskrail 确认协议 的「审阅」", section)
+        self.assertIn("「审阅」", section)
         self.assertIn("不列选项", section)
-        self.assertIn("不在 goal 里时，下面的确认规则不变", section)
         self.assertIn("不交给审阅放行", section)
         self.assertIn("处在 goal 里时不逐条问用户", self.skill)
         self.assertIn("## Goal 里", self.approve)
@@ -379,7 +244,6 @@ class ContractTest(unittest.TestCase):
         self.assertIn("## 设计依据", self.design_template)
         self.assertIn("设计依据核对", self.plan_review)
 
-
     def test_commands_are_not_phase(self) -> None:
         self.assertIn("命令与 `TASK.md.phase`", self.skill)
         self.assertIn("禁止把命令名写入 `phase`", self.skill)
@@ -408,7 +272,6 @@ class ContractTest(unittest.TestCase):
             "references/commands.md",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
-
 
     def test_explore_grills_quality_goal(self) -> None:
         self.assertIn("质量目标", self.explore)

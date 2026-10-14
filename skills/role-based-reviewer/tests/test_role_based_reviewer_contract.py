@@ -89,21 +89,21 @@ class TestRedirectSingleSource(unittest.TestCase):
     """角色文件的「跨角色 redirect」只留指针，边界表唯一真源在 constraints.md。"""
 
     def test_roles_point_to_constraints(self) -> None:
-        table = read("references/constraints.md")
+        table = read("references/protocol.md")
         for f in sorted((ROOT / "references" / "roles").glob("*.md")):
             text = f.read_text(encoding="utf-8")
             sec = text.split("## 跨角色 redirect", 1)[1].split("\n## ", 1)[0]
             self.assertNotIn("↔", sec, f.name)
-            self.assertIn("](../constraints.md)", sec, f.name)
+            self.assertIn("](../protocol.md)", sec, f.name)
             self.assertRegex(table, rf"\| (\w+ ↔ {f.stem}|{f.stem} ↔ \w+) \|", f.name)
 
 
 class TestIntentRole(unittest.TestCase):
     def test_intent_role_contract(self) -> None:
         text = read("references/roles/intent.md")
-        for s in ("用户原话", "分数：0–1", "≥0.8", "不参与视角推断"):
+        for s in ("用户原话", "无 🔴/🟡 即通过", "上下文不支撑做法", "不参与视角推断"):
             self.assertIn(s, text)
-        self.assertIn("intent ↔ product", read("references/constraints.md"))
+        self.assertIn("intent ↔ product", read("references/protocol.md"))
 
 
 if __name__ == "__main__":

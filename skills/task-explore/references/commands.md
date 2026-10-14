@@ -40,7 +40,7 @@
 
 ## `design`
 
-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下，先在交付项目根建立 Active Instance 至 freeze；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：complex 无 frozen Active Instance 则停下，先在交付项目根建立 Active Instance 至 freeze；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
 
 ## `approve`
 
@@ -72,28 +72,11 @@
 
 ## `archive`
 
-对确认关闭的探索任务归档（不交接而结束、或 `handed-off` 后确认无需回溯），整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`，不要用本阶段代替交接。经 taskrail、方案已冻结且方案含实施动作、尚未 `handed-off` 时，不进入本命令，改走 handoff。「方案已写完」「还有未决」不是关闭原因。进入本阶段后 **先读** [references/archive-reopen.md](archive-reopen.md)，未读完不得搬目录。
-
-门禁按序执行、任一不过即停；步骤与细则在 reference，下列五条不可跳过：
-
-- 必须已绑定或用户给出名字，且拿到用户「确认关闭」的明确答复；只给名字不算确认，未确认不搬。
-- **目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
-- 存在子任务目录时：所有子任务 `status` 必须为 `handed-off` 或 `archived`，否则打断并列出未结子任务。父任务归档即整树关闭。
-- 未决问题、曾 `handed-off` 的 driver 交付进度、指向旧路径的入链，三项必须清点并合并成一次确认后才搬。
-- 必须在 `TASK.md` 留下本次结论与关闭原因，并写 `{taskRoot}/SUMMARY.md`（给人读的时间线总结）；曾 `handed-off` 的任务必须先按 `save` 落盘才搬。`archived` 日期在元信息、目录名、INDEX 三处一致。
-
-不要把任务内容晋升到 `docs/design/` 或其它项目文档，除非用户另说。
+对确认关闭的探索任务归档，整树搬到 `tasks/archive/{yyyy-mm-dd}/{task-name}`。要交付请用 `handoff`。经 taskrail、方案已冻结且含实施动作、尚未 `handed-off` 时改走 handoff。进入前 **先读** [references/archive-reopen.md](archive-reopen.md)：不覆盖、不搬未确认的、先列未结项。
 
 ## `reopen`
 
-把已 `archive` 的探索任务搬回 `tasks/ongoing/{task-name}`；或对 `handed-off` 任务撤回交接（目录不动，只改状态）。进入本阶段后 **先读** [references/archive-reopen.md](archive-reopen.md)，未读完不得搬目录。
-
-定位分支与步骤在 reference，下列四条门禁不可跳过：
-
-- 必须拿到用户「确认 reopen」的明确答复；只给任务名不算确认。
-- **目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
-- 状态以 `TASK.md` 的 `status` 为准，不按目录位置猜；已 `handed-off` / 已 `archived` 的子任务不自动复活，driver 一律不删。
-- 撤回 `handed-off` 后，INDEX 行留在 Ongoing 但去掉 `→ {task-name}-driver` 尾注。
+把已归档任务搬回 `ongoing/`，或撤回 `handed-off`（目录不动）。进入前 **先读** [references/archive-reopen.md](archive-reopen.md)；须用户「确认 reopen」，目标已存在则停止，driver 不删。
 
 ---
 

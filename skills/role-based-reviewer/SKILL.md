@@ -41,7 +41,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre�
 
 ## MUST 先读取
 
-[constraints](references/constraints.md) + [preload-protocol](references/preload-protocol.md) + [brief-protocol](references/brief-protocol.md) + [role-vocabulary](references/role-vocabulary.md)。
+[references/protocol.md](references/protocol.md)（约束、预加载、输出骨架、角色边界）。
 
 ## 视角推断与耗时优化
 
@@ -52,9 +52,9 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre�
 ## 流程
 
 1. 过三道门禁。未过门 1 则不要按本 skill 执行。解析 `mode`、`roles` 与可选的 `model` / `endpoint`；未指定角色时按上节推断，受门 2 约束。
-2. 对每个生效角色，按 [preload-protocol](references/preload-protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计默认 ≤6 个文件；超出时说明原因。`mode=review` 另遵循耗时优化。
+2. 对每个生效角色，按 [protocol 预加载节](references/protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计宜控制在约 6 个文件（建议，非硬线）。`mode=review` 另遵循耗时优化。
 3. `mode=ask`：按角色输出独立结论、证据、边界与下游建议。
-4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 brief-protocol 汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审（例外：调用方已判定不可用、未调用本 skill 并自行登记降级，如 task-intent goal 自审）。
+4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 protocol 输出骨架汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审（例外：调用方已判定不可用、未调用本 skill 并自行登记降级，如 task-intent goal 自审）。
 5. 合并时只去重「同一证据支持的同一风险」；不得把不同角色的结论混写成无归属意见。
 6. 下一步默认只推荐一个主责动作；确需并行时写明独立任务与先后关系。
 
@@ -64,7 +64,7 @@ Blocker / Major 默认报，Minor / Suggestion 仅在要求仔细审查时给（
 
 ## 输出
 
-骨架见 [brief-protocol](references/brief-protocol.md)。多角色 review 至少包含：
+骨架见 [protocol 输出骨架节](references/protocol.md)。多角色 review 至少包含：
 
 - 依据状态：所审产物的状态标识（提交号 / dirty 摘要）与审阅边界齐备性（缺项逐条写明）
 - 生效角色及选择依据

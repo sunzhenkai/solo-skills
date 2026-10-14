@@ -88,14 +88,15 @@ class TestAcceptanceRubric(unittest.TestCase):
         self.text = read("references/acceptance-rubric.md")
 
     def test_global_pass_line(self) -> None:
-        self.assertIn("全量通过线：五维均 ≥2，UI/UX 六子项均值 ≥2.5，任一子项为 0 不通过。", self.text)
+        self.assertIn("无未处置 Blocker / Major", self.text)
+        self.assertIn("不设均值硬线", self.text)
 
     def test_uiux_zero_subitem_blocks(self) -> None:
-        self.assertIn("任一子项为 0 则不通过，即使均值达标", self.text)
+        self.assertIn("任一子项为 0 则不通过", self.text)
 
     def test_skill_body_restates_thresholds(self) -> None:
         text = skill_corpus(SKILL_ROOT)
-        self.assertIn("五维均 ≥2、UI/UX 均值 ≥2.5", text)
+        self.assertIn("无未处置 Blocker / Major、判据逐条有证据", text)
 
 
 class TestPendingConfirmationSyncLock(unittest.TestCase):
@@ -236,12 +237,9 @@ class TestDescriptionTriggerBranches(unittest.TestCase):
 
 
 
-class TestSimpleSingleSlice(unittest.TestCase):
-    def test_simple_single_slice_section(self) -> None:
-        text = skill_corpus(SKILL_ROOT)
-        self.assertIn("### simple 单切片", text)
-        self.assertIn("实施段默认**仅 1 个子 change**", text)
-        self.assertIn("进度仍只认 checkbox", text)
+class TestSimpleNoDriver(unittest.TestCase):
+    def test_simple_section_removed(self) -> None:
+        self.assertNotIn("### simple 单切片", skill_corpus(SKILL_ROOT))
 
 
 if __name__ == "__main__":

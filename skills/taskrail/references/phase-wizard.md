@@ -13,7 +13,7 @@
 - **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
 - **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。
 - **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [gate-packs.md](gate-packs.md) 写入适用门包与**基准物**；验收方式禁止写「对照外部产品或参考实现」——外部参照只是一次性输入。
-- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；medium/complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
+- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
 
 ## 决策收敛
 
@@ -93,7 +93,7 @@
 
 | 档位 | 典型 | wizard 之后 |
 |------|------|-------------|
-| 简单 | 局部修改 | explore(仅 grill) → approve(轻) → handoff → propose(单切片) → apply → archive |
+| 简单 | 局部修改 | 直接实现 + 验证（不建 driver）→ done |
 | 中等 | 跨模块/仓库、改动量稍大 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
 | 复杂 | 项目级重构、逻辑重塑、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive |
 

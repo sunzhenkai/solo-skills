@@ -1,6 +1,6 @@
 # minimal-webui：handoff → check_handoff → ui_evidence 回归样例
 
-最小 Web UI 任务（simple 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
+最小 Web UI 任务（medium 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
 
 1. `workspace/tasks/ongoing/demo-list/TASK.md`：已 `handed-off`，「## 交接」带交付类别、门包与三条 digest。
 2. `taskflow/scripts/check_handoff.py workspace demo-list` 应 exit 0；回退到 approve 态或删掉一条 digest 应 exit 1。
