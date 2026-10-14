@@ -1,0 +1,293 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/SKILL.md taskrail/SKILL.md
+--- a/skills/taskrail/SKILL.md	2026-10-15 01:01:06.521406272 +0800
++++ b/skills/taskrail/SKILL.md	2026-10-15 01:01:15.844063792 +0800
+@@ -97,6 +97,8 @@
+ 
+ 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
+ 
++8. 对照 `wizard/intent.md`（若有）：「做完的样子」逐条成立，「不做」未被越界。
++
+ `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
+ 
+ ## 硬边界
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/evals/cases.yaml taskrail/evals/cases.yaml
+--- a/skills/taskrail/evals/cases.yaml	2026-10-15 01:01:06.521416306 +0800
++++ b/skills/taskrail/evals/cases.yaml	2026-10-15 01:01:34.726275602 +0800
+@@ -204,3 +204,31 @@
+       must_not:
+         - 主会话转贴 worker 全文或工具轨迹
+         - 把闸口或面向用户的提问派出
++
++  - id: intent-closed-loop
++    kind: core
++    judge: llm
++    description: 意图「做完的样子」从 wizard 流到完成门（跨 task-intent / taskrail / taskflow）
++    given: medium 任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
++    expect:
++      must:
++        - wizard 定稿时 criterion 与「做完的样子」一致或写明差异
++        - 验收 rubric 随附 intent.md
++        - 完成门第 8 条逐条核对「做完的样子」与「不做」（格式未改）
++      must_not:
++        - 只看 checkbox 全勾就标 done
++        - 交付时不读 intent.md
++
++  - id: intent-change-mid-task
++    kind: core
++    judge: llm
++    description: 中途改意图走契约「意图变更」
++    given: design 阶段用户说「改成只做后端」；另一任务已 handed-off 时用户改完成标准
++    expect:
++      must:
++        - 重跑 task-intent，intent.md version +1，旧版留在历史版本
++        - 判据变化走确认协议显式改 criterion 并记决策
++        - 未 handed-off 回退 phase（改范围已 approve 须重新 approve）；已 handed-off 经 taskflow 修订子 change
++      must_not:
++        - 用当轮叙事直接改 criterion
++        - 在 grill 或 apply 中静默改写意图
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/confirm-protocol.md taskrail/references/confirm-protocol.md
+--- a/skills/taskrail/references/confirm-protocol.md	2026-10-15 01:01:06.521056450 +0800
++++ b/skills/taskrail/references/confirm-protocol.md	2026-10-15 01:01:15.844249783 +0800
+@@ -19,7 +19,7 @@
+ | 模式 | 行为 |
+ |------|------|
+ | human | 闸口列选项（含推荐），等人确认或改值后放行 |
+-| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审 |
++| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `goal-review.md`（≥0.8 且无 P0/P1） |
+ 
+ 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/contract.md taskrail/references/contract.md
+--- a/skills/taskrail/references/contract.md	2026-10-15 01:01:06.521114144 +0800
++++ b/skills/taskrail/references/contract.md	2026-10-15 01:01:15.844297002 +0800
+@@ -40,6 +40,15 @@
+ 
+ `status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`。查证项与外部依赖写入「可带进实现的未决」，未决不阻断交接。同一已冻结方案的多条实施线建成该 `{slug}-driver` 的 taskflow 子 change。禁止用当轮叙事改写 `criterion`。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive。
+ 
++## 意图变更
++
++用户在 wizard 之后改主意（或 grill / design / apply 发现与 `wizard/intent.md` 冲突）时，按序，不得跳步：
++
++1. 重跑 `task-intent`，产出新版本（`wizard/intent.md` 的 `version` +1，旧版移入「历史版本」节，不删）。
++2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion`（human 逐条确认；goal 审阅收敛），记入 `TASK.md` 决策节；这是唯一合法改写，不算「用当轮叙事改写」。
++3. phase 回退：只改细节 → 留在当前 phase；改范围 / 判据且未 `handed-off` → 回 `wizard`（方案未冻结）或 `design`（已有设计）；已 `approve` 的须重新 approve。
++4. 已 `handed-off`：探索侧不回退，经 taskflow 开修订子 change（或修订 driver 判据快照），未勾 checkbox 按新判据重排；已交付部分写显式决策。
++
+ ## 目录
+ 
+ ```text
+@@ -48,6 +57,8 @@
+ ├── ongoing/{slug}/
+ │   ├── TASK.md
+ │   ├── wizard/plan.md
++│   ├── wizard/intent.md         # task-intent 确认版（含 version / 历史版本）
++│   ├── evidence/intent/         # 意图摸底详情（只读 subagent 写）
+ │   ├── explore/                 # grill 纪要等（可选）
+ │   ├── design/
+ │   ├── approve/                 # 评审意见 + APPROVED.md
+@@ -117,7 +128,7 @@
+ 
+ | 单位 | simple | medium / complex |
+ |------|--------|------------------|
+-| wizard 意图摸底（task-intent） | 1 个（原话已清晰可不派） | 2–3 / 3–4 个并行 |
++| wizard 意图摸底（task-intent） | 1 个（跳过条件见 task-intent「何时跳过」） | 2–3 / 3–4 个并行 |
+ | explore | worker 摸底；grill 提问留主会话 | worker（调研 / 起草；grill 提问与闸口留主会话） |
+ | design | （跳过） | worker |
+ | apply | worker | worker（并行与实现者输入见 taskflow） |
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/phase-wizard.md taskrail/references/phase-wizard.md
+--- a/skills/taskrail/references/phase-wizard.md	2026-10-15 01:01:06.521084635 +0800
++++ b/skills/taskrail/references/phase-wizard.md	2026-10-15 01:01:15.844150817 +0800
+@@ -31,7 +31,7 @@
+ 3. 涉及数据写删迁或改表时，写备份与回滚路径（仅针对本次改动）；大 size / 不可回滚写入「风险点」。
+ 4. 外部参照：读并做完 [external-precedent.md](external-precedent.md)。必做：复杂档；中等档涉及选型 / 外部集成 / 协议对接。其余跳过。
+ 5. 按模板写 `wizard/plan.md`（含交付类别与门包节；无交付产出写「不适用」）；同步 `TASK.md`（`criterion`、`tier`、方案节）。写不出可检查判据则停，走确认协议（[confirm-protocol.md](confirm-protocol.md)）。
+-6. 闸口「wizard 定稿」：未决口子须已带推荐再交确认协议（human 三选一；goal 审阅收敛后同轮继续）。禁止空问清单。
++6. 闸口「wizard 定稿」：`criterion` 与 `wizard/intent.md`「做完的样子」一致，或在方案中写明差异；未决口子须已带推荐再交确认协议（human 三选一；goal 审阅收敛后同轮继续）。禁止空问清单。
+ 
+ ## 输出模板
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/tests/test_intent_loop_contract.py taskrail/tests/test_intent_loop_contract.py
+--- a/skills/taskrail/tests/test_intent_loop_contract.py	1970-01-01 08:00:00.000000000 +0800
++++ b/skills/taskrail/tests/test_intent_loop_contract.py	2026-10-15 01:01:34.723275590 +0800
+@@ -0,0 +1,69 @@
++"""意图闭环：task-intent ↔ taskrail ↔ task-explore ↔ taskflow ↔ role-based-reviewer 的跨 skill 文本契约（审计 10 条缺口）。"""
++
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++SKILLS = Path(__file__).resolve().parents[2]
++
++
++def r(rel: str) -> str:
++    return (SKILLS / rel).read_text(encoding="utf-8")
++
++
++class IntentLoopTest(unittest.TestCase):
++    def test_01_reviewer_unavailable_consistent(self) -> None:
++        self.assertIn("可用性由调用方（本 skill）先判断", r("task-intent/references/goal-review.md"))
++        self.assertIn("**不调用** role-based-reviewer", r("task-intent/references/goal-review.md"))
++        self.assertIn("例外：调用方已判定不可用、未调用本 skill 并自行登记降级", r("role-based-reviewer/SKILL.md"))
++
++    def test_02_intent_change_rule(self) -> None:
++        c = r("taskrail/references/contract.md")
++        for s in ("## 意图变更", "重跑 `task-intent`", "`version` +1", "**显式**改 `criterion`", "phase 回退", "经 taskflow 开修订子 change"):
++            self.assertIn(s, c)
++        self.assertIn("「意图变更」", r("task-explore/references/explore-design.md"))
++
++    def test_03_done_gate_reads_intent(self) -> None:
++        self.assertIn("8. 对照 `wizard/intent.md`", r("taskrail/SKILL.md"))
++        self.assertIn("「不做」未被越界", r("taskrail/SKILL.md"))
++        self.assertIn("另附 `wizard/intent.md`", r("taskflow/references/acceptance-rubric.md"))
++
++    def test_04_wizard_gate_checks_criterion(self) -> None:
++        self.assertIn("`criterion` 与 `wizard/intent.md`「做完的样子」一致", r("taskrail/references/phase-wizard.md"))
++
++    def test_05_taskflow_points_to_seat(self) -> None:
++        self.assertIn("交接 5 项、回 Digest ≤10 行", r("taskflow/SKILL.md"))
++
++    def test_06_layout_has_intent_dirs(self) -> None:
++        c = r("taskrail/references/contract.md")
++        self.assertIn("wizard/intent.md         #", c)
++        self.assertIn("evidence/intent/", c)
++
++    def test_07_resume_skips_assumed(self) -> None:
++        self.assertIn("`status: confirmed` 或 `assumed` 时不重做", r("task-intent/SKILL.md"))
++
++    def test_08_goal_threshold_single(self) -> None:
++        self.assertIn("通过线按 task-intent `goal-review.md`", r("taskrail/references/confirm-protocol.md"))
++
++    def test_09_skip_rule_single_source(self) -> None:
++        self.assertIn("跳过条件见 task-intent「何时跳过」", r("taskrail/references/contract.md"))
++        self.assertIn("唯一真源", r("task-intent/SKILL.md"))
++
++    def test_10_cross_skill_evals(self) -> None:
++        e = r("taskrail/evals/cases.yaml")
++        self.assertIn("id: intent-closed-loop", e)
++        self.assertIn("id: intent-change-mid-task", e)
++
++    def test_template_has_version(self) -> None:
++        t = r("task-intent/references/statement-template.md")
++        self.assertIn("version:", t)
++        self.assertIn("## 历史版本", t)
++
++    def test_severity_moved(self) -> None:
++        self.assertIn("**Blocker**：必须修复", r("role-based-reviewer/references/severity.md"))
++        self.assertIn("references/severity.md", r("role-based-reviewer/SKILL.md"))
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff -ruN -x __pycache__ -x patches /tmp/snap/task-intent/SKILL.md task-intent/SKILL.md
+--- a/skills/task-intent/SKILL.md	2026-10-15 01:01:06.523493522 +0800
++++ b/skills/task-intent/SKILL.md	2026-10-15 01:01:15.844323040 +0800
+@@ -30,4 +30,6 @@
+ 
+ ## 何时跳过
+ 
+-simple 档且用户原话已含明确目标与完成标准（一句话能描述改动）：直接出复述并请确认，不派摸底。resume 已有 `wizard/intent.md` 且 `status: confirmed` 时不重做。
++（taskrail 契约执行座位引用本节，唯一真源。）
++
++simple 档且用户原话已含明确目标与完成标准（一句话能描述改动）：直接出复述并请确认，不派摸底。resume 已有 `wizard/intent.md` 且 `status: confirmed` 或 `assumed` 时不重做；human 模式下 `assumed` 只补问一次「对吗」。
+diff -ruN -x __pycache__ -x patches /tmp/snap/task-intent/references/goal-review.md task-intent/references/goal-review.md
+--- a/skills/task-intent/references/goal-review.md	2026-10-15 01:01:06.523370622 +0800
++++ b/skills/task-intent/references/goal-review.md	2026-10-15 01:01:15.843811019 +0800
+@@ -7,7 +7,7 @@
+ `role-based-reviewer roles=intent mode=review model=<比执行者高一档或不同家族的模型>`，随附：用户原话、复述、摸底 Digest。
+ 
+ - 首选：比执行模型高一档；其次：不同模型家族（避开同源偏差）。
+-- 两者都不可用：按 taskrail 确认协议登记显式降级（写明原因），由主会话自审，并在复述中把所有假设标「把握低」。
++- 可用性由调用方（本 skill）先判断：两者都不可用时**不调用** role-based-reviewer，按 taskrail 确认协议登记显式降级（写明原因）后由主会话按本文评分规则自审，并在复述中把所有假设标「把握低」。
+ 
+ ## 评分规则
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/task-intent/references/statement-template.md task-intent/references/statement-template.md
+--- a/skills/task-intent/references/statement-template.md	2026-10-15 01:01:06.523354780 +0800
++++ b/skills/task-intent/references/statement-template.md	2026-10-15 01:01:15.844381513 +0800
+@@ -21,11 +21,15 @@
+ ```markdown
+ ---
+ status: confirmed | assumed
++version: <1 起；意图变更 +1>
+ rounds: <轮次>
+ reviewer: <human | 模型名>
+ ---
+ <最终复述>
+ 
++## 历史版本
++- v<N>：<旧复述摘要，意图变更时追加>
++
+ ## 纠偏记录
+ - 第 N 轮：<改了哪行，一句话>
+ ```
+diff -ruN -x __pycache__ -x patches /tmp/snap/task-explore/references/explore-design.md task-explore/references/explore-design.md
+--- a/skills/task-explore/references/explore-design.md	2026-10-15 01:01:06.522728630 +0800
++++ b/skills/task-explore/references/explore-design.md	2026-10-15 01:01:21.722634404 +0800
+@@ -17,7 +17,7 @@
+ 1. 必须已绑定任务；否则先走绑定。
+ 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
+ 3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+-**意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图。
++**意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图；后续按 taskrail 契约「意图变更」处理判据与 phase。
+ 4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
+ 5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
+ 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskflow/SKILL.md taskflow/SKILL.md
+--- a/skills/taskflow/SKILL.md	2026-10-15 01:01:06.522968366 +0800
++++ b/skills/taskflow/SKILL.md	2026-10-15 01:01:15.844186468 +0800
+@@ -61,7 +61,7 @@
+ - 一轮结束只有三种情况（以 Driver 协议块为准）；「需要用户决策」按 [../taskrail/references/suspension.md](../taskrail/references/suspension.md) 挂起五元组呈现，不依赖的条目继续。
+ - 新发现的降级按 [../taskrail/references/quality-profile.md](../taskrail/references/quality-profile.md) 定级：A 类 `pending` 停等用户；B 类 `provisional` 到用户在场点追认。
+ - 归档前逐条跑「收尾机械校核」；禁止 `--yes` 掩盖未勾。最终验收按 [references/acceptance-rubric.md](references/acceptance-rubric.md)，回归按 [references/delivery-quality-loop.md](references/delivery-quality-loop.md)。
+-- 并行：旗舰先行、同类失败升级、改共享面必广播。
++- 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 按 taskrail 契约「执行座位」：交接 5 项、回 Digest ≤10 行。
+ - 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
+ - Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskflow/references/acceptance-rubric.md taskflow/references/acceptance-rubric.md
+--- a/skills/taskflow/references/acceptance-rubric.md	2026-10-15 01:01:06.523005506 +0800
++++ b/skills/taskflow/references/acceptance-rubric.md	2026-10-15 01:01:15.844111442 +0800
+@@ -5,7 +5,7 @@
+ ## 评分主体与顺序
+ 
+ - 先交证据，再由对应岗位打分；实现者自评只作输入，不算通过线。
+-- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 taskrail 确认协议 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审）。退普通 subagent 须写明不可用原因，否则按 taskrail 确认协议 退出点「评审降级未记录」不放行。
++- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 taskrail 确认协议 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审），另附 `wizard/intent.md`（若有）供核对「做完的样子」与「不做」。退普通 subagent 须写明不可用原因，否则按 taskrail 确认协议 退出点「评审降级未记录」不放行。
+ - 角色由交付类别门包（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
+ - 评分先套门包：**可自动化门**任一失败 → 对应维度不得 ≥2.5（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
+ - Web UI：可自动化门对齐 Active Instance validate / `scan_design_constraints`（或等价）与门包 token/无障碍/状态/结构断言；运行态优先 `ui_evidence_check` current-build 证据；主观项（视觉层级等）MUST 指到 Gallery 或 `core/tokens.yaml` 可指认件，否则只记 Suggestion。
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/SKILL.md role-based-reviewer/SKILL.md
+--- a/skills/role-based-reviewer/SKILL.md	2026-10-15 01:01:06.521969239 +0800
++++ b/skills/role-based-reviewer/SKILL.md	2026-10-15 01:01:21.722533043 +0800
+@@ -54,15 +54,13 @@
+ 1. 过三道门禁。未过门 1 则不要按本 skill 执行。解析 `mode`、`roles` 与可选的 `model` / `endpoint`；未指定角色时按上节推断，受门 2 约束。
+ 2. 对每个生效角色，按 [preload-protocol](references/preload-protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计默认 ≤6 个文件；超出时说明原因。`mode=review` 另遵循耗时优化。
+ 3. `mode=ask`：按角色输出独立结论、证据、边界与下游建议。
+-4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 brief-protocol 汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审。
++4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 brief-protocol 汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审（例外：调用方已判定不可用、未调用本 skill 并自行登记降级，如 task-intent goal 自审）。
+ 5. 合并时只去重「同一证据支持的同一风险」；不得把不同角色的结论混写成无归属意见。
+ 6. 下一步默认只推荐一个主责动作；确需并行时写明独立任务与先后关系。
+ 
+ ## 严重级别（`mode=review`）
+ 
+-- **Blocker**：必须修复（正确性错误、安全漏洞、数据丢失、无法发布）
+-- **Major**：应当修复（明显缺陷、架构问题、关键场景缺失）
+-- **Minor** / **Suggestion**：默认不报（门 3）；用户要求仔细审查时再给可读性、一致性、风格类问题
++Blocker / Major 默认报，Minor / Suggestion 仅在要求仔细审查时给（门 3）；定义见 [references/severity.md](references/severity.md)。
+ 
+ ## 输出
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/references/severity.md role-based-reviewer/references/severity.md
+--- a/skills/role-based-reviewer/references/severity.md	1970-01-01 08:00:00.000000000 +0800
++++ b/skills/role-based-reviewer/references/severity.md	2026-10-15 01:01:21.722491868 +0800
+@@ -0,0 +1,9 @@
++# 严重级别
++
++从 SKILL.md 原句下沉（内容未改）。
++
++## `mode=review`
++
++- **Blocker**：必须修复（正确性错误、安全漏洞、数据丢失、无法发布）
++- **Major**：应当修复（明显缺陷、架构问题、关键场景缺失）
++- **Minor** / **Suggestion**：默认不报（门 3）；用户要求仔细审查时再给可读性、一致性、风格类问题

@@ -179,3 +179,56 @@ cases:
         - 把缺依赖当作跳过
         - 实现者自评作为 design 评审（reviewer = implementer）
         - not_applicable 不写理由就省略某态
+
+  - id: wizard-intent-first
+    kind: core
+    judge: deterministic
+    description: wizard 第 1 步先确认意图
+    given: 新任务进入 wizard（human）
+    expect:
+      must:
+        - 委托 task-intent，给用户 ≤8 行意图复述并纠偏到确认
+        - 落 wizard/intent.md 后再摸底写 plan
+      must_not:
+        - 未确认意图就写 wizard/plan.md
+
+  - id: default-dispatch-digest
+    kind: core
+    judge: llm
+    description: 执行座位默认派出、回 Digest
+    given: medium 任务进入 design，宿主支持 subagent
+    expect:
+      must:
+        - 派 worker 并给齐交接 5 项（目标 / 输入 / 写入范围 / 输出格式 / 停止条件）
+        - 主会话只收 ≤10 行 Digest
+      must_not:
+        - 主会话转贴 worker 全文或工具轨迹
+        - 把闸口或面向用户的提问派出
+
+  - id: intent-closed-loop
+    kind: core
+    judge: llm
+    description: 意图「做完的样子」从 wizard 流到完成门（跨 task-intent / taskrail / taskflow）
+    given: medium 任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
+    expect:
+      must:
+        - wizard 定稿时 criterion 与「做完的样子」一致或写明差异
+        - 验收 rubric 随附 intent.md
+        - 完成门第 8 条逐条核对「做完的样子」与「不做」（格式未改）
+      must_not:
+        - 只看 checkbox 全勾就标 done
+        - 交付时不读 intent.md
+
+  - id: intent-change-mid-task
+    kind: core
+    judge: llm
+    description: 中途改意图走契约「意图变更」
+    given: design 阶段用户说「改成只做后端」；另一任务已 handed-off 时用户改完成标准
+    expect:
+      must:
+        - 重跑 task-intent，intent.md version +1，旧版留在历史版本
+        - 判据变化走确认协议显式改 criterion 并记决策
+        - 未 handed-off 回退 phase（改范围已 approve 须重新 approve）；已 handed-off 经 taskflow 修订子 change
+      must_not:
+        - 用当轮叙事直接改 criterion
+        - 在 grill 或 apply 中静默改写意图

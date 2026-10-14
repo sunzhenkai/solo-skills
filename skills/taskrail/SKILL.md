@@ -14,6 +14,8 @@ description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，�
 
 ## 输入
 
+流程总览见 `docs/task-flow/README.md`（给人读，非真源）。
+
 ```text
 taskrail <一句话目标>
 taskrail goal: <一句话目标>
@@ -29,6 +31,7 @@ taskrail list
 
 执行前确认可读；缺任一项停下报告安装选项：
 
+- `task-intent`（wizard 第 1 步意图确认）
 - `task-explore`（simple/medium 的 explore 仅为 grill；复杂档完整 explore；medium 可轻 design）
 - `taskflow`（凡经 taskrail 的交付均必需，含 simple；入口门 `taskflow/scripts/check_handoff.py`）
 - `grilling`（有任务目录时的拷问）
@@ -45,11 +48,11 @@ taskrail list
 
 ## 主循环
 
-每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 推荐派出的单位可交宿主 subagent（否则主会话自做；见契约「执行座位」）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
+每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 按契约「执行座位」默认派宿主 subagent（交接 5 项、回 Digest ≤10 行；无能力则主会话自做）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
 
 | phase | 动作 |
 |-------|------|
-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）；闸口定稿 |
+| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；第 1 步委托 `task-intent` 落 `wizard/intent.md`；落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）；闸口定稿 |
 | `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
 | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
@@ -96,6 +99,8 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 
 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 
+8. 对照 `wizard/intent.md`（若有）：「做完的样子」逐条成立，「不做」未被越界。
+
 `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
 
 ## 硬边界
@@ -104,4 +109,4 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 - 危险与线上退出点以确认协议为准。
 - 不在正文复制确认协议的审阅规则；不复制 taskflow 的 Driver 协议。
 - 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
-- Worker 派出为推荐选项，非强制；无宿主 subagent 时主会话自做，不因此退出轨道。
+- Worker 默认派出；无宿主 subagent 时主会话自做，不因此退出轨道。

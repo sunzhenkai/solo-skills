@@ -30,19 +30,19 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 ## 命令
 
-| 命令               | 何时                                             | 写入                                                |
-| ------------------ | ------------------------------------------------ | --------------------------------------------------- |
-| `new`              | 立项；从输入推断任务名                           | `tasks/ongoing/{task-name}/` + `INDEX.md`           |
-| `explore`          | 不断探索预期目标                                 | 术语/ADR 可落任务目录；`TASK.md` 须经确认或 `save`  |
-| `chat`             | **默认命令**：对任务问答                         | 默认不写盘                                          |
-| `resume`           | 恢复进行中的探索任务                             | 任务文档只读；INDEX 漂移可重建                      |
-| `design`           | 针对任务方案设计                                 | `{taskRoot}/design/`                                |
-| `approve`          | **必经**：结构门 + 评审 + 冻结                   | `approve/APPROVED.md`；`TASK.md` 决策；INDEX        |
-| `save`             | 保存任务最新进展到任务文档                       | 更新 `TASK.md` 与 `INDEX.md`                        |
-| `handoff`          | 交接给 taskflow，转入 `handed-off`               | driver + 任务状态更新                               |
-| `archive`          | 归档确认关闭的探索任务（含 `handed-off` 后收尾） | `tasks/archive/{yyyy-mm-dd}/{task-name}`            |
-| `reopen`           | 把归档探索任务搬回 ongoing                       | `ongoing/` + `INDEX.md`                             |
-| `expand` / `split` | 拆子任务（`split` 为 `expand` 别名）             | `ongoing/{parent}/{sub}/` + 父 TASK.md + `INDEX.md` |
+| 命令 | 何时 | 写入 |
+| --- | --- | --- |
+| `new` | 立项；从输入推断任务名 | `tasks/ongoing/{task-name}/` + `INDEX.md` |
+| `explore` | 不断探索预期目标 | 术语/ADR 可落任务目录；`TASK.md` 须经确认或 `save` |
+| `chat` | **默认命令**：对任务问答 | 默认不写盘 |
+| `resume` | 恢复进行中的探索任务 | 任务文档只读；INDEX 漂移可重建 |
+| `design` | 针对任务方案设计 | `{taskRoot}/design/` |
+| `approve` | **必经**：结构门 + 评审 + 冻结 | `approve/APPROVED.md`；`TASK.md` 决策；INDEX |
+| `save` | 保存任务最新进展到任务文档 | 更新 `TASK.md` 与 `INDEX.md` |
+| `handoff` | 交接给 taskflow，转入 `handed-off` | driver + 任务状态更新 |
+| `archive` | 归档确认关闭的探索任务（含 `handed-off` 后收尾） | `tasks/archive/{yyyy-mm-dd}/{task-name}` |
+| `reopen` | 把归档探索任务搬回 ongoing | `ongoing/` + `INDEX.md` |
+| `expand` / `split` | 拆子任务（`split` 为 `expand` 别名） | `ongoing/{parent}/{sub}/` + 父 TASK.md + `INDEX.md` |
 
 兼容别名：点名 `decide` / `plan-review` → 走 `approve`（细则见 phase-approve；旧文件为薄引用）。
 
@@ -52,18 +52,18 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 进入命令时 **只读该命令详情**，不要预加载其它 phase 或文档骨架。
 
-| 命令                     | 进入时读取                                                                                                                  |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `explore`                | [references/explore-design.md](references/explore-design.md)                                                                |
-| `design`                 | [references/explore-design.md](references/explore-design.md)；落盘时再读 [references/templates.md](references/templates.md) |
-| `approve`                | [references/approve.md](references/approve.md)                                                                              |
-| `decide` / `plan-review` | 兼容别名：同 `approve`，读 [references/approve.md](references/approve.md)                                                   |
-| `handoff`                | [references/handoff.md](references/handoff.md)；委托时再读 `taskflow`                                                       |
-| `archive`                | [references/archive-reopen.md](references/archive-reopen.md)                                                                |
-| `reopen`                 | [references/archive-reopen.md](references/archive-reopen.md)                                                                |
-| `new` / `save`           | [references/commands.md](references/commands.md)；写文件时再读 [references/templates.md](references/templates.md)           |
-| `expand` / `split`       | 本文件步骤；写文件时再读 [references/templates.md](references/templates.md)                                                 |
-| `chat` / `resume`        | [references/commands.md](references/commands.md)                                                                            |
+| 命令 | 进入时读取 |
+| --- | --- |
+| `explore` | [references/explore-design.md](references/explore-design.md) |
+| `design` | [references/explore-design.md](references/explore-design.md)；落盘时再读 [references/templates.md](references/templates.md) |
+| `approve` | [references/approve.md](references/approve.md) |
+| `decide` / `plan-review` | 兼容别名：同 `approve`，读 [references/approve.md](references/approve.md) |
+| `handoff` | [references/handoff.md](references/handoff.md)；委托时再读 `taskflow` |
+| `archive` | [references/archive-reopen.md](references/archive-reopen.md) |
+| `reopen` | [references/archive-reopen.md](references/archive-reopen.md) |
+| `new` / `save` | [references/commands.md](references/commands.md)；写文件时再读 [references/templates.md](references/templates.md) |
+| `expand` / `split` | 本文件步骤；写文件时再读 [references/templates.md](references/templates.md) |
+| `chat` / `resume` | [references/commands.md](references/commands.md) |
 
 写台账（`INDEX.md` / `TASK.md`）时，除该命令详情外再读 [references/ledger.md](references/ledger.md)；不写台账的命令不读。
 
@@ -81,10 +81,10 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 ## 何时不用
 
-| 情况                               | 改用                                                     |
-| ---------------------------------- | -------------------------------------------------------- |
-| 从未建探索任务，范围清楚、马上实现 | 直接实现，或 `taskflow` / `openspec-propose`             |
-| 已有探索任务，路径已清、要交付     | 本 skill 的 `handoff`（不要另起无关 `{task}-driver` 名） |
-| 只要读代码、不需要任务台账         | `code-explore`                                           |
-| 只要一次 grill、不需要 `tasks/`    | `grill-with-docs` / `grilling`                           |
-| 已在 OpenSpec change 里交付        | `taskflow` + `openspec-*`                                |
+| 情况 | 改用 |
+| --- | --- |
+| 从未建探索任务，范围清楚、马上实现 | 直接实现，或 `taskflow` / `openspec-propose` |
+| 已有探索任务，路径已清、要交付 | 本 skill 的 `handoff`（不要另起无关 `{task}-driver` 名） |
+| 只要读代码、不需要任务台账 | `code-explore` |
+| 只要一次 grill、不需要 `tasks/` | `grill-with-docs` / `grilling` |
+| 已在 OpenSpec change 里交付 | `taskflow` + `openspec-*` |

@@ -40,6 +40,15 @@ wizard → explore(+grill) → design → approve → [handoff] → propose → 
 
 `status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`。查证项与外部依赖写入「可带进实现的未决」，未决不阻断交接。同一已冻结方案的多条实施线建成该 `{slug}-driver` 的 taskflow 子 change。禁止用当轮叙事改写 `criterion`。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive。
 
+## 意图变更
+
+用户在 wizard 之后改主意（或 grill / design / apply 发现与 `wizard/intent.md` 冲突）时，按序，不得跳步：
+
+1. 重跑 `task-intent`，产出新版本（`wizard/intent.md` 的 `version` +1，旧版移入「历史版本」节，不删）。
+2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion`（human 逐条确认；goal 审阅收敛），记入 `TASK.md` 决策节；这是唯一合法改写，不算「用当轮叙事改写」。
+3. phase 回退：只改细节 → 留在当前 phase；改范围 / 判据且未 `handed-off` → 回 `wizard`（方案未冻结）或 `design`（已有设计）；已 `approve` 的须重新 approve。
+4. 已 `handed-off`：探索侧不回退，经 taskflow 开修订子 change（或修订 driver 判据快照），未勾 checkbox 按新判据重排；已交付部分写显式决策。
+
 ## 目录
 
 ```text
@@ -48,6 +57,8 @@ tasks/
 ├── ongoing/{slug}/
 │   ├── TASK.md
 │   ├── wizard/plan.md
+│   ├── wizard/intent.md         # task-intent 确认版（含 version / 历史版本）
+│   ├── evidence/intent/         # 意图摸底详情（只读 subagent 写）
 │   ├── explore/                 # grill 纪要等（可选）
 │   ├── design/
 │   ├── approve/                 # 评审意见 + APPROVED.md
@@ -102,7 +113,7 @@ updated: YYYY-MM-DD
 
 | 进入阶段 | 必须已有 |
 |----------|----------|
-| explore / design | `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
+| explore / design | `wizard/intent.md`（`status: confirmed` 或 `assumed`；本规则生效前的旧任务缺失不回溯）+ `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
 | design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
 | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：medium/complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
 | propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；复杂档含质量画像与显式降级原文快照；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver（Web UI 含三条 digest）；`status: handed-off` 与 `driver` 已写入；`TASK.md`「## 交接」含「交付类别」「适用门包」行，`taskflow/scripts/check_handoff.py` exit 0 |
@@ -111,19 +122,23 @@ updated: YYYY-MM-DD
 
 ## 执行座位
 
-高噪声 legwork **可**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。其余单位默认主会话（orchestrator）。
+高噪声 legwork **默认**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。目的：并行提速、主会话上下文不被工具轨迹污染。
 
-**派出是推荐，不是强制。** 宿主无 subagent、未派出、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道。
+**默认派出，能力缺失可自做。** 宿主无 subagent、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道；有能力却不派时，在 `TASK.md` 进展里写一句理由。
 
 | 单位 | simple | medium / complex |
 |------|--------|------------------|
-| explore | 主会话 | **推荐** worker（调研 / 起草；grill 提问与闸口留主会话） |
-| design | （跳过） | **推荐** worker |
-| apply | **推荐** worker | **推荐** worker（并行与实现者输入见 taskflow） |
+| wizard 意图摸底（task-intent） | 1 个（跳过条件见 task-intent「何时跳过」） | 2–3 / 3–4 个并行 |
+| explore | worker 摸底；grill 提问留主会话 | worker（调研 / 起草；grill 提问与闸口留主会话） |
+| design | （跳过） | worker |
+| apply | worker | worker（并行与实现者输入见 taskflow） |
+| 评审 / 验证复跑 | worker | worker（按角色并行，见 role-based-reviewer） |
 
-闸口（确认协议）、危险退出、面向用户的提问与选项：**永不**派出。
+**不派**：闸口（确认协议）、危险退出、面向用户的提问与选项；一句话能说清或预计改动 <30 行的活；强依赖主会话上下文、拆不开的步骤。同一批可并行的单位一次性发出；simple ≤1、medium ≤3、complex ≤5 个。
 
-派出时交代单位、输入路径、写入范围（apply 含 change 范围内业务代码）；apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。Worker 回 **Digest**（结论 / 落盘路径 / 未决）；主会话只收 Digest，不回灌工具轨迹；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
+**交接契约（5 项，缺一不派）**：① 目标（一句话要回答 / 完成什么）；② 输入路径；③ 写入范围（apply 含 change 范围内业务代码；其余默认只读 + 落盘路径）；④ 输出格式（Digest）；⑤ 停止条件。apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。
+
+**Digest（≤10 行）**：结论 / 落盘路径 / 未决 / 置信度。详情落盘，主会话只收 Digest，不回灌工具轨迹、不转贴全文；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
 
 ## 确认闸口（封闭）
 

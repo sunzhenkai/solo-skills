@@ -449,5 +449,15 @@ class TestExternalPrecedentThinReference(unittest.TestCase):
         self.assertIn("会改方案走向", self.precedent)
 
 
+class TestGrillAfterIntent(unittest.TestCase):
+    def test_grill_narrowed(self) -> None:
+        text = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
+        self.assertIn("**意图已定**", text)
+        self.assertIn("grill 不重问", text)
+        self.assertIn("回 `task-intent` 纠偏", text)
+        cmds = (ROOT / "references" / "commands.md").read_text(encoding="utf-8")
+        self.assertIn("grill 在意图确认之后", cmds)
+
+
 if __name__ == "__main__":
     unittest.main()

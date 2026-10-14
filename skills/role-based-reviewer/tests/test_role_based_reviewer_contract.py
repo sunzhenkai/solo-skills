@@ -37,6 +37,7 @@ class TestGates(unittest.TestCase):
             "design",
             "qa",
             "skill",
+            "intent",
         ):
             self.assertIn(f"`{role}`", self.text)
 
@@ -44,7 +45,7 @@ class TestGates(unittest.TestCase):
 class TestRoleFilesStructure(unittest.TestCase):
     """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 skill）。"""
 
-    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill")
+    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill", "intent")
 
     def test_thickened_roles_have_criteria(self) -> None:
         for role in self.THICKENED_FULL:
@@ -95,6 +96,14 @@ class TestRedirectSingleSource(unittest.TestCase):
             self.assertNotIn("↔", sec, f.name)
             self.assertIn("](../constraints.md)", sec, f.name)
             self.assertRegex(table, rf"\| (\w+ ↔ {f.stem}|{f.stem} ↔ \w+) \|", f.name)
+
+
+class TestIntentRole(unittest.TestCase):
+    def test_intent_role_contract(self) -> None:
+        text = read("references/roles/intent.md")
+        for s in ("用户原话", "分数：0–1", "≥0.8", "不参与视角推断"):
+            self.assertIn(s, text)
+        self.assertIn("intent ↔ product", read("references/constraints.md"))
 
 
 if __name__ == "__main__":

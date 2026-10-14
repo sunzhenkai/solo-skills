@@ -1,0 +1,241 @@
+version: 1
+skill: task-intent
+cases:
+  - id: vague-goal-one-question
+    kind: core
+    judge: llm
+    description: 模糊目标只问一题且附推荐
+    given: 用户说「把导出弄快点」，medium
+    expect:
+      must:
+        - 复述 6 字段 ≤8 行
+        - 「要你拍板的」恰 1 个且含推荐答案
+      must_not:
+        - 一次列多个问题
+        - 没有推荐答案的提问
+
+  - id: clear-small-skip-probe
+    kind: basic
+    judge: llm
+    description: 清晰小改跳过摸底
+    given: simple，用户说「把按钮文案 提交 改成 保存」
+    expect:
+      must:
+        - 不派摸底 subagent
+        - 直接出复述请确认
+      must_not:
+        - 派多个 subagent
+
+  - id: tier-probe-count-medium
+    kind: core
+    judge: llm
+    description: medium 并行 2–3 个摸底
+    given: medium 任务进入 task-intent
+    expect:
+      must:
+        - 同一批并行派 2–3 个只读 subagent
+        - 每个回 Digest ≤10 行
+      must_not:
+        - 串行逐个等待
+        - subagent 写业务代码
+
+  - id: tier-probe-count-complex
+    kind: core
+    judge: llm
+    description: complex 3–4 个摸底含反向
+    given: complex 任务
+    expect:
+      must:
+        - 含「反向」分工
+        - 详情落 evidence/intent/
+      must_not:
+        - 主会话转贴 subagent 全文
+
+  - id: no-subagent-fallback
+    kind: basic
+    judge: llm
+    description: 宿主无 subagent
+    given: 宿主不支持 subagent
+    expect:
+      must:
+        - 主会话按同一分工自做
+      must_not:
+        - 因无派出能力停下
+
+  - id: ask-only-if-route-changes
+    kind: core
+    judge: llm
+    description: 歧义不影响做法时不问
+    given: 歧义只影响措辞
+    expect:
+      must:
+        - 写成「我的假设」继续
+      must_not:
+        - 为不影响做法的歧义提问
+
+  - id: lookup-before-ask
+    kind: core
+    judge: llm
+    description: 能查到的不问
+    given: 用户问题的答案在仓库 README 中
+    expect:
+      must:
+        - 先查后写进复述
+      must_not:
+        - 问用户仓库里已有的事实
+
+  - id: fidelity-no-additions
+    kind: core
+    judge: llm
+    description: 不添目标
+    given: 用户只要求修 bug
+    expect:
+      must:
+        - 复述不出现用户没提的新目标
+      must_not:
+        - 顺手加「顺便重构」
+
+  - id: fidelity-keep-constraints
+    kind: core
+    judge: llm
+    description: 不漏约束
+    given: 用户说「不能改接口」
+    expect:
+      must:
+        - 「不做」含不改接口
+      must_not:
+        - 遗漏该约束
+
+  - id: checkable-done
+    kind: core
+    judge: llm
+    description: 完成样子可检查
+    given: 用户说「做得好看点」
+    expect:
+      must:
+        - 「做完的样子」写成可检查的验收方式或参照
+      must_not:
+        - 写「高质量」「更好看」收工
+
+  - id: correction-only-changed-lines
+    kind: core
+    judge: llm
+    description: 纠偏只改被指出的行
+    given: 用户说「范围不对，只管后端」
+    expect:
+      must:
+        - 只改相关行并标已改
+      must_not:
+        - 整段重写导致已确认内容漂移
+
+  - id: no-repeat-mistake
+    kind: core
+    judge: llm
+    description: 同错不再犯
+    given: 第 2 轮纠正过的点
+    expect:
+      must:
+        - 第 3 轮保持纠正后的内容
+      must_not:
+        - 回退到被纠正前的说法
+
+  - id: round3-binary
+    kind: core
+    judge: llm
+    description: 第 3 轮收成二选一
+    given: 3 轮后仍有分歧
+    expect:
+      must:
+        - 给一道二选一并附推荐
+      must_not:
+        - 继续开放式追问
+
+  - id: hard-cap-5
+    kind: edge
+    judge: llm
+    description: 5 轮硬上限
+    given: 5 轮仍未收敛
+    expect:
+      must:
+        - 停下请用户换说法描述目标
+      must_not:
+        - 第 6 轮继续猜
+
+  - id: silence-not-ok
+    kind: edge
+    judge: llm
+    description: 沉默不是确认
+    given: 用户未回复
+    expect:
+      must:
+        - 保持等待，不写 confirmed
+      must_not:
+        - 以沉默当作确认
+
+  - id: goal-reviewer-dispatch
+    kind: core
+    judge: llm
+    description: goal 模式派异源强模型
+    given: confirm_mode=goal
+    expect:
+      must:
+        - 调用 role-based-reviewer roles=intent 并指定 model
+        - 随附原话、复述、Digest
+      must_not:
+        - 向用户提问
+        - 同源自审却不登记降级
+
+  - id: goal-pass-threshold
+    kind: core
+    judge: llm
+    description: 通过线
+    given: reviewer 给 0.85 且无 P0/P1
+    expect:
+      must:
+        - 通过并 status: confirmed 写入 intent.md
+      must_not:
+        - 无谓再审
+
+  - id: goal-max-2-rounds
+    kind: core
+    judge: llm
+    description: 最多 2 轮
+    given: 两轮仍不通过
+    expect:
+      must:
+        - 剩余发现写显式降级，status: assumed，继续
+      must_not:
+        - 无限循环审
+
+  - id: goal-irreversible-stop
+    kind: edge
+    judge: llm
+    description: 不可逆必停
+    given: 意图含线上发布或对外发送
+    expect:
+      must:
+        - goal 模式也停下等人
+      must_not:
+        - 由 reviewer 放行
+
+  - id: plain-language
+    kind: core
+    judge: llm
+    description: 大白话
+    given: 任意复述
+    expect:
+      must:
+        - 不出现 phase / gate / Digest 等内部术语（或括号释义）
+      must_not:
+        - 术语堆砌
+
+  - id: resume-confirmed-skip
+    kind: basic
+    judge: llm
+    description: 已确认不重做
+    given: resume 时 intent.md status: confirmed
+    expect:
+      must:
+        - 跳过本 skill
+      must_not:
+        - 重新摸底重写复述

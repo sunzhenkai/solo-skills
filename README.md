@@ -9,6 +9,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | Skill | 用途 |
 | --- | --- |
 | `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple/medium 的 explore 仅为 grill；凡经本入口均 handoff+OpenSpec（simple 单切片）；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
+| `task-intent` | **开工前意图确认**：并行只读摸底 → ≤8 行大白话意图复述 → 纠偏循环（goal 由异源强模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
 | `task-explore` | 探索台账与命令能力（explore/design/approve/expand/handoff 等命令；`TASK.md.phase` 只许契约枚举） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
@@ -95,6 +96,7 @@ make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 
 - 源布局：`skills/<id>/`（git 真相）。仓库根 `.claude/skills/` 下的软链仅为本仓开发时在 Claude Code 里即时生效，不影响安装路径（安装一律走 `npx skills` / `dotf`）。
 - skill 结构按「最小 → 完整」分层：`SKILL.md` + `references/` 是底线，`tests/` `evals/` `examples/` `experience/` `patches/`/`evolutions/` 按各 skill 成熟度逐步补齐（现状多数 skill 尚无全套）；规范定义见 AGENTS.md「结构约定」。
+- task 系列流程与使用说明：[docs/task-flow/README.md](docs/task-flow/README.md)。
 - `agent-roster` 的仓级文档（ADR、CONTEXT、README）在 `docs/agent-roster/`，保留自其独立仓的完整 git 历史。
 - `lark-cli` 的官方 `lark-*` skill 嵌在 lark-cli 二进制里（`lark-cli skills read` 按需读取），不需要也不应该装进 `~/.agents/skills`。
 - License: MIT。

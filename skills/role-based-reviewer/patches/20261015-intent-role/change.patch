@@ -1,0 +1,142 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/SKILL.md role-based-reviewer/SKILL.md
+--- a/skills/role-based-reviewer/SKILL.md	2026-10-15 00:52:40.498252818 +0800
++++ b/skills/role-based-reviewer/SKILL.md	2026-10-15 00:52:54.903334785 +0800
+@@ -31,7 +31,7 @@
+ 
+ ## 输入
+ 
+-- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
++- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`、`intent`（仅调用方显式传入，审意图复述）。
+ - `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
+ - `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
+ - `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。质量目标含审美 / 体验等无法用确定性度量完备验收的项时，角色底线里还须带天花板参照集（把「卓越」落成可数构成件或外部参照）。命中交付类别门包时还须附门包（见 taskrail 门包表）与运行态证据（起服务 + 截图 / 录屏 / 断言输出）。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/references/constraints.md role-based-reviewer/references/constraints.md
+--- a/skills/role-based-reviewer/references/constraints.md	2026-10-15 00:52:40.498295928 +0800
++++ b/skills/role-based-reviewer/references/constraints.md	2026-10-15 00:52:54.903475496 +0800
+@@ -36,6 +36,7 @@
+ 
+ | 边界 | 共享对象 | 判据 | redirect |
+ |------|---------|------|---------|
++| intent ↔ product | 需求 / 意图 | 复述是否忠于用户原话 → intent；需求本身是否合理、值不值得做 → product | 互引 |
+ | sre ↔ ops | 灰度、配置 | 基础设施（集群/部署/配置下发/告警）→ sre；业务侧（功能开关/运营规则/渠道配置）→ ops | 互引 |
+ | sre ↔ engineer | 重启 / OOM / 稳定性 | 集群·部署·调度·探针 → sre；代码缺陷·GC·调用链 → engineer | 互引 |
+ | engineer ↔ algo | 推理 / 排序服务 | 可用性·性能·发版 → engineer；模型效果·策略·实验 → algo | 互引 |
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/references/role-vocabulary.md role-based-reviewer/references/role-vocabulary.md
+--- a/skills/role-based-reviewer/references/role-vocabulary.md	2026-10-15 00:52:40.498327632 +0800
++++ b/skills/role-based-reviewer/references/role-vocabulary.md	2026-10-15 00:52:54.903746839 +0800
+@@ -16,6 +16,7 @@
+ | `design`（别名 `uiux`） | UI/UX | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉与设计系统一致性、响应式 | 后端逻辑（→ engineer）；需求范围与价值（→ product） |
+ | `qa` | QA | 可测性、覆盖缺口、边界/异常、回归、并发与时序、数据一致性 | 产品价值判断（→ product）；实现方案选型（→ engineer） |
+ | `skill` | Skill 诊断 | Agent Skill 的 description 触发面、门禁/协议一致性与可执行性、references 按需加载、契约测试覆盖、公开仓纪律 | `scripts/` 代码质量（→ engineer）；通用可测性（→ qa）；skill 存在价值（→ product） |
++| `intent` | 意图复述审查 | 复述是否忠于用户原话：添加目标、漏掉约束、完成样子可检查、假设标注（仅调用方显式传入） | 需求合理性（→ product）；方案与实现（→ engineer） |
+ 
+ 项目没有对应域时，不要强行启用 `algo` / `data` / `biz` / `ops` / `design`。目录或文件名沾边不是强信号；主体问题不在该角色职责内就不要加。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/references/roles/intent.md role-based-reviewer/references/roles/intent.md
+--- a/skills/role-based-reviewer/references/roles/intent.md	1970-01-01 08:00:00.000000000 +0800
++++ b/skills/role-based-reviewer/references/roles/intent.md	2026-10-15 00:52:54.894198375 +0800
+@@ -0,0 +1,35 @@
++# 意图复述审查（`intent`）
++
++角色文件：仅在本角色生效时加载（见 [preload-protocol](../preload-protocol.md)）；职责边界以 [role-vocabulary](../role-vocabulary.md) 为准。级别：🔴 Blocker（对应 P0）/ 🟡 Major（P1）/ ⚪ 默认不报（P2），拿不准降一级。只由调用方显式传入（典型：`task-intent` 的 goal 模式），不参与视角推断。
++
++## 优先锚点
++
++用户原话（最高真源）、意图复述（6 字段）、摸底 Digest。只读这三样；不读实现、不扩大到方案评审。
++
++## 核心检查清单
++
++每条附命中判据；判据不满足则不报。
++
++1. 🔴 添加目标：复述出现用户原话与摸底都推不出的目标或范围。
++   命中判据：指出复述中一句话，原话与 Digest 中均无来源。
++2. 🔴 漏掉约束：用户原话里的限制 / 禁止 / 期限没进「不做」或「做完的样子」。
++   命中判据：引用原话片段，复述中无对应。
++3. 🟡 不可检查：「做完的样子」无法被检查（形容词收工、无参照）。
++   命中判据：两个独立执行者对是否完成会给出不同判断。
++4. 🟡 假设失当：会改变做法或范围的假设未标「把握低」或未升级为「要你拍板的」。
++   命中判据：指出一条假设，换一种读法会导致不同的交付范围。
++5. ⚪ 措辞：术语未释义、超过 8 行。
++
++## 输出
++
++在 brief-protocol 骨架之外另给：`分数：0–1`、`结论：通过 / 不通过`（通过线：≥0.8 且无 🔴/🟡）、每条发现带「要改的行」。
++
++## 不算问题
++
++- 文风偏好、同义改写。
++- 实现方案是否最优（→ product / engineer，且不在本环节）。
++- 用户原话本身的需求合理性（复述只需忠实，不评需求）。
++
++## 跨角色 redirect
++
++见 [constraints.md](../constraints.md)「角色间 redirect」表中含 `intent` 的行（唯一真源，本文件不复述）。
+diff -ruN -x __pycache__ -x patches /tmp/snap/role-based-reviewer/tests/test_role_based_reviewer_contract.py role-based-reviewer/tests/test_role_based_reviewer_contract.py
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-10-15 00:52:40.498114632 +0800
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py	2026-10-15 00:52:54.903861580 +0800
+@@ -37,6 +37,7 @@
+             "design",
+             "qa",
+             "skill",
++            "intent",
+         ):
+             self.assertIn(f"`{role}`", self.text)
+ 
+@@ -44,7 +45,7 @@
+ class TestRoleFilesStructure(unittest.TestCase):
+     """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 skill）。"""
+ 
+-    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill")
++    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill", "intent")
+ 
+     def test_thickened_roles_have_criteria(self) -> None:
+         for role in self.THICKENED_FULL:
+@@ -97,5 +98,13 @@
+             self.assertRegex(table, rf"\| (\w+ ↔ {f.stem}|{f.stem} ↔ \w+) \|", f.name)
+ 
+ 
++class TestIntentRole(unittest.TestCase):
++    def test_intent_role_contract(self) -> None:
++        text = read("references/roles/intent.md")
++        for s in ("用户原话", "分数：0–1", "≥0.8", "不参与视角推断"):
++            self.assertIn(s, text)
++        self.assertIn("intent ↔ product", read("references/constraints.md"))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/confirm-protocol.md taskrail/references/confirm-protocol.md
+--- a/skills/taskrail/references/confirm-protocol.md	2026-10-15 00:52:40.496536532 +0800
++++ b/skills/taskrail/references/confirm-protocol.md	2026-10-15 00:52:54.913923792 +0800
+@@ -19,7 +19,7 @@
+ | 模式 | 行为 |
+ |------|------|
+ | human | 闸口列选项（含推荐），等人确认或改值后放行 |
+-| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项 |
++| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审 |
+ 
+ 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/phase-wizard.md taskrail/references/phase-wizard.md
+--- a/skills/taskrail/references/phase-wizard.md	2026-10-15 00:52:40.496592114 +0800
++++ b/skills/taskrail/references/phase-wizard.md	2026-10-15 00:52:54.913842319 +0800
+@@ -26,7 +26,7 @@
+ 
+ ## 步骤
+ 
+-1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认。歧义影响走向时才问（带推荐答案）。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
++1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认；goal 模式由 `role-based-reviewer roles=intent` 异源强模型代审（最多 2 轮，不过则记显式降级继续）。歧义影响走向时才问（带推荐答案）。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
+ 2. 只读摸底；事实与假设分开。
+ 3. 涉及数据写删迁或改表时，写备份与回滚路径（仅针对本次改动）；大 size / 不可回滚写入「风险点」。
+ 4. 外部参照：读并做完 [external-precedent.md](external-precedent.md)。必做：复杂档；中等档涉及选型 / 外部集成 / 协议对接。其余跳过。
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/tests/test_taskrail_contract.py taskrail/tests/test_taskrail_contract.py
+--- a/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 00:52:40.497128681 +0800
++++ b/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 00:52:54.913972323 +0800
+@@ -124,6 +124,7 @@
+         self.assertIn("wizard/intent.md", self.wizard)
+         self.assertIn("第 1 步委托 `task-intent`", self.skill)
+         self.assertIn("`wizard/intent.md`（`status: confirmed` 或 `assumed`", self.contract)
++        self.assertIn("roles=intent", self.wizard)
+ 
+ 
+ 

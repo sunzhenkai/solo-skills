@@ -114,10 +114,20 @@ class ContractTest(unittest.TestCase):
 
     def test_optional_worker_seat(self) -> None:
         self.assertIn("## 执行座位", self.contract)
-        self.assertIn("派出是推荐，不是强制", self.contract)
+        self.assertIn("默认派出，能力缺失可自做", self.contract)
+        self.assertIn("交接契约（5 项，缺一不派）", self.contract)
+        self.assertIn("Digest（≤10 行）", self.contract)
+        self.assertIn("**不派**", self.contract)
         self.assertIn("宿主 subagent", self.contract)
         self.assertIn("不回灌工具轨迹", self.contract)
-        self.assertIn("Worker 派出为推荐选项", self.skill)
+        self.assertIn("Worker 默认派出", self.skill)
+
+    def test_wizard_delegates_task_intent(self) -> None:
+        self.assertIn("委托 `task-intent`", self.wizard)
+        self.assertIn("wizard/intent.md", self.wizard)
+        self.assertIn("第 1 步委托 `task-intent`", self.skill)
+        self.assertIn("`wizard/intent.md`（`status: confirmed` 或 `assumed`", self.contract)
+        self.assertIn("roles=intent", self.wizard)
 
 
 

@@ -1,0 +1,91 @@
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/SKILL.md taskrail/SKILL.md
+--- a/skills/taskrail/SKILL.md	2026-10-15 00:53:09.642175035 +0800
++++ b/skills/taskrail/SKILL.md	2026-10-15 00:53:21.866197672 +0800
+@@ -46,7 +46,7 @@
+ 
+ ## 主循环
+ 
+-每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 推荐派出的单位可交宿主 subagent（否则主会话自做；见契约「执行座位」）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
++每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 按契约「执行座位」默认派宿主 subagent（交接 5 项、回 Digest ≤10 行；无能力则主会话自做）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
+ 
+ | phase | 动作 |
+ |-------|------|
+@@ -105,4 +105,4 @@
+ - 危险与线上退出点以确认协议为准。
+ - 不在正文复制确认协议的审阅规则；不复制 taskflow 的 Driver 协议。
+ - 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
+-- Worker 派出为推荐选项，非强制；无宿主 subagent 时主会话自做，不因此退出轨道。
++- Worker 默认派出；无宿主 subagent 时主会话自做，不因此退出轨道。
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/evals/cases.yaml taskrail/evals/cases.yaml
+--- a/skills/taskrail/evals/cases.yaml	2026-10-15 00:53:09.642195739 +0800
++++ b/skills/taskrail/evals/cases.yaml	2026-10-15 00:53:38.461466232 +0800
+@@ -191,3 +191,16 @@
+         - 落 wizard/intent.md 后再摸底写 plan
+       must_not:
+         - 未确认意图就写 wizard/plan.md
++
++  - id: default-dispatch-digest
++    kind: core
++    judge: llm
++    description: 执行座位默认派出、回 Digest
++    given: medium 任务进入 design，宿主支持 subagent
++    expect:
++      must:
++        - 派 worker 并给齐交接 5 项（目标 / 输入 / 写入范围 / 输出格式 / 停止条件）
++        - 主会话只收 ≤10 行 Digest
++      must_not:
++        - 主会话转贴 worker 全文或工具轨迹
++        - 把闸口或面向用户的提问派出
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/references/contract.md taskrail/references/contract.md
+--- a/skills/taskrail/references/contract.md	2026-10-15 00:53:09.641610309 +0800
++++ b/skills/taskrail/references/contract.md	2026-10-15 00:53:21.866060810 +0800
+@@ -111,19 +111,23 @@
+ 
+ ## 执行座位
+ 
+-高噪声 legwork **可**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。其余单位默认主会话（orchestrator）。
++高噪声 legwork **默认**交给 worker（同机通道抽象为**宿主 subagent**，不绑具体 Tool；点名 Endpoint 时走 `agent-roster`），不新增 `phase`，不改变闸口与完成门。目的：并行提速、主会话上下文不被工具轨迹污染。
+ 
+-**派出是推荐，不是强制。** 宿主无 subagent、未派出、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道。
++**默认派出，能力缺失可自做。** 宿主无 subagent、或派出失败 → 主会话按同一落点与完成标准自做，**不得**因缺少派出能力停下或改道；有能力却不派时，在 `TASK.md` 进展里写一句理由。
+ 
+ | 单位 | simple | medium / complex |
+ |------|--------|------------------|
+-| explore | 主会话 | **推荐** worker（调研 / 起草；grill 提问与闸口留主会话） |
+-| design | （跳过） | **推荐** worker |
+-| apply | **推荐** worker | **推荐** worker（并行与实现者输入见 taskflow） |
++| wizard 意图摸底（task-intent） | 1 个（原话已清晰可不派） | 2–3 / 3–4 个并行 |
++| explore | worker 摸底；grill 提问留主会话 | worker（调研 / 起草；grill 提问与闸口留主会话） |
++| design | （跳过） | worker |
++| apply | worker | worker（并行与实现者输入见 taskflow） |
++| 评审 / 验证复跑 | worker | worker（按角色并行，见 role-based-reviewer） |
+ 
+-闸口（确认协议）、危险退出、面向用户的提问与选项：**永不**派出。
++**不派**：闸口（确认协议）、危险退出、面向用户的提问与选项；一句话能说清或预计改动 <30 行的活；强依赖主会话上下文、拆不开的步骤。同一批可并行的单位一次性发出；simple ≤1、medium ≤3、complex ≤5 个。
+ 
+-派出时交代单位、输入路径、写入范围（apply 含 change 范围内业务代码）；apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。Worker 回 **Digest**（结论 / 落盘路径 / 未决）；主会话只收 Digest，不回灌工具轨迹；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
++**交接契约（5 项，缺一不派）**：① 目标（一句话要回答 / 完成什么）；② 输入路径；③ 写入范围（apply 含 change 范围内业务代码；其余默认只读 + 落盘路径）；④ 输出格式（Digest）；⑤ 停止条件。apply 的实现者输入只引用 taskflow `implementer-isolation`，不另列。
++
++**Digest（≤10 行）**：结论 / 落盘路径 / 未决 / 置信度。详情落盘，主会话只收 Digest，不回灌工具轨迹、不转贴全文；产物缺失则停在当前 `phase`。`TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
+ 
+ ## 确认闸口（封闭）
+ 
+diff -ruN -x __pycache__ -x patches /tmp/snap/taskrail/tests/test_taskrail_contract.py taskrail/tests/test_taskrail_contract.py
+--- a/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 00:53:09.642090666 +0800
++++ b/skills/taskrail/tests/test_taskrail_contract.py	2026-10-15 00:53:21.866247486 +0800
+@@ -114,10 +114,13 @@
+ 
+     def test_optional_worker_seat(self) -> None:
+         self.assertIn("## 执行座位", self.contract)
+-        self.assertIn("派出是推荐，不是强制", self.contract)
++        self.assertIn("默认派出，能力缺失可自做", self.contract)
++        self.assertIn("交接契约（5 项，缺一不派）", self.contract)
++        self.assertIn("Digest（≤10 行）", self.contract)
++        self.assertIn("**不派**", self.contract)
+         self.assertIn("宿主 subagent", self.contract)
+         self.assertIn("不回灌工具轨迹", self.contract)
+-        self.assertIn("Worker 派出为推荐选项", self.skill)
++        self.assertIn("Worker 默认派出", self.skill)
+ 
+     def test_wizard_delegates_task_intent(self) -> None:
+         self.assertIn("委托 `task-intent`", self.wizard)

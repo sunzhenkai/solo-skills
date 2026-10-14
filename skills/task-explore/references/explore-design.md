@@ -9,7 +9,7 @@
 
 | 形态 | 何时 | 做什么 |
 |------|------|--------|
-| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 澄清目标/判据/范围；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
+| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 追问细节、边界与约束（目标 / 做完的样子 / 不做 以 `wizard/intent.md` 确认版为准，不重问）；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
 | **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
 
 针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
@@ -17,6 +17,7 @@
 1. 必须已绑定任务；否则先走绑定。
 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
 3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+**意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图；后续按 taskrail 契约「意图变更」处理判据与 phase。
 4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
 5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。

@@ -26,12 +26,12 @@
 
 ## 步骤
 
-1. 澄清意图；歧义影响走向时才问（带推荐答案）。
+1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认；goal 模式由 `role-based-reviewer roles=intent` 异源强模型代审（最多 2 轮，不过则记显式降级继续）。歧义影响走向时才问（带推荐答案）。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
 2. 只读摸底；事实与假设分开。
 3. 涉及数据写删迁或改表时，写备份与回滚路径（仅针对本次改动）；大 size / 不可回滚写入「风险点」。
 4. 外部参照：读并做完 [external-precedent.md](external-precedent.md)。必做：复杂档；中等档涉及选型 / 外部集成 / 协议对接。其余跳过。
 5. 按模板写 `wizard/plan.md`（含交付类别与门包节；无交付产出写「不适用」）；同步 `TASK.md`（`criterion`、`tier`、方案节）。写不出可检查判据则停，走确认协议（[confirm-protocol.md](confirm-protocol.md)）。
-6. 闸口「wizard 定稿」：未决口子须已带推荐再交确认协议（human 三选一；goal 审阅收敛后同轮继续）。禁止空问清单。
+6. 闸口「wizard 定稿」：`criterion` 与 `wizard/intent.md`「做完的样子」一致，或在方案中写明差异；未决口子须已带推荐再交确认协议（human 三选一；goal 审阅收敛后同轮继续）。禁止空问清单。
 
 ## 输出模板
 

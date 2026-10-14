@@ -15,6 +15,7 @@
 不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
 
 - **仅 grill**（simple / medium，经 taskrail）：只做 grilling 澄清，不强制写 glossary/ADR 全套。
+- **grill 在意图确认之后**：`wizard/intent.md` 已确认的目标与边界不重问，grill 只追细节；冲突回 `task-intent` 纠偏。
 - **完整 explore**（complex）：按 phase-explore 全文（含外部参照、术语/ADR 落盘）。
 
 ## `chat`（默认）

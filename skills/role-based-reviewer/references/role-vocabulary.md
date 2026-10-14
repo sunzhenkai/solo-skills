@@ -16,6 +16,7 @@
 | `design`（别名 `uiux`） | UI/UX | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉与设计系统一致性、响应式 | 后端逻辑（→ engineer）；需求范围与价值（→ product） |
 | `qa` | QA | 可测性、覆盖缺口、边界/异常、回归、并发与时序、数据一致性 | 产品价值判断（→ product）；实现方案选型（→ engineer） |
 | `skill` | Skill 诊断 | Agent Skill 的 description 触发面、门禁/协议一致性与可执行性、references 按需加载、契约测试覆盖、公开仓纪律 | `scripts/` 代码质量（→ engineer）；通用可测性（→ qa）；skill 存在价值（→ product） |
+| `intent` | 意图复述审查 | 复述是否忠于用户原话：添加目标、漏掉约束、完成样子可检查、假设标注（仅调用方显式传入） | 需求合理性（→ product）；方案与实现（→ engineer） |
 
 项目没有对应域时，不要强行启用 `algo` / `data` / `biz` / `ops` / `design`。目录或文件名沾边不是强信号；主体问题不在该角色职责内就不要加。
 

@@ -61,7 +61,7 @@ propose / apply / 收尾前**先读** [references/execution-discipline.md](refer
 - 一轮结束只有三种情况（以 Driver 协议块为准）；「需要用户决策」按 [../taskrail/references/suspension.md](../taskrail/references/suspension.md) 挂起五元组呈现，不依赖的条目继续。
 - 新发现的降级按 [../taskrail/references/quality-profile.md](../taskrail/references/quality-profile.md) 定级：A 类 `pending` 停等用户；B 类 `provisional` 到用户在场点追认。
 - 归档前逐条跑「收尾机械校核」；禁止 `--yes` 掩盖未勾。最终验收按 [references/acceptance-rubric.md](references/acceptance-rubric.md)，回归按 [references/delivery-quality-loop.md](references/delivery-quality-loop.md)。
-- 并行：旗舰先行、同类失败升级、改共享面必广播。
+- 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 按 taskrail 契约「执行座位」：交接 5 项、回 Digest ≤10 行。
 - 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
 - Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
 
