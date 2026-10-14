@@ -34,14 +34,14 @@ class TestImplementerInputCarriesSpine(unittest.TestCase):
 
     def test_web_ui_apply_delegation(self) -> None:
         self.assertIn("## Web UI 实现委托", self.text)
-        self.assertIn("ui-template-apply", self.text)
+        self.assertNotIn("ui-template-", self.text)
         self.assertIn("无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面", self.text)
-        self.assertIn("先按 `ui-template-apply` 内置的 frontend-design 方法", self.text)
+        self.assertIn("先按代表页 two-pass 方法", self.text)
         self.assertIn("实现并修订一条主流程代表页", self.text)
-        self.assertIn("移交 `ui-template-design` `iterate`", self.text)
+        self.assertIn("回 design 阶段修订 Active Instance 并重新 freeze", self.text)
 
     def test_ui_slice_skeleton_mentions_apply(self) -> None:
-        self.assertIn("`{task}-ui`：Web UI 切片委托 `ui-template-apply`", self.text)
+        self.assertIn("`{task}-ui`：Web UI 切片消费 frozen Active Instance", self.text)
 
 
 class TestParallelPreconditions(unittest.TestCase):
@@ -101,12 +101,12 @@ class TestQualityLoopSpine(unittest.TestCase):
         self.assertIn("**契约前置**", self.loop)
         self.assertIn("并行派发只允许发生在契约冻结之后", self.loop)
         self.assertIn("design-system/v1", self.loop)
-        self.assertIn("ui-template-apply", self.loop)
+        self.assertNotIn("ui-template-", self.loop)
 
     def test_flagship_slice(self) -> None:
         self.assertIn("**旗舰切片**", self.loop)
         self.assertIn("../../taskrail/references/gate-packs.md", self.loop)
-        self.assertIn("Phase 8 + Gallery", self.loop)
+        self.assertIn("`ui_evidence_check` report + Gallery", self.loop)
 
     def test_gate_pack_overlay(self) -> None:
         self.assertIn("**门包叠加**", self.loop)
@@ -143,7 +143,7 @@ class TestRubricExecutorBinding(unittest.TestCase):
 
     def test_web_ui_evidence_binding(self) -> None:
         self.assertIn("scan_design_constraints", self.rubric)
-        self.assertIn("Phase 8 current-build", self.rubric)
+        self.assertIn("`ui_evidence_check` current-build", self.rubric)
         self.assertIn("Gallery", self.rubric)
 
     def test_uncovered_counts_as_downgrade(self) -> None:

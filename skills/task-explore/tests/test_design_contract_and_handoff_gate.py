@@ -37,7 +37,8 @@ class TestDesignContractArtifact(unittest.TestCase):
 
     def test_web_ui_active_instance_gate(self) -> None:
         self.assertIn("**Web UI Active Instance 门**", self.design)
-        self.assertIn("移交 `ui-template-design`", self.design)
+        self.assertNotIn("ui-template-", self.design)
+        self.assertIn("先在交付项目根建立 Active Instance 至 freeze", self.design)
         self.assertIn("不写空心 UI 方案", self.design)
         self.assertIn("禁止在 `{taskRoot}/design/` 重写 `core/tokens.yaml`", self.design)
 
@@ -104,7 +105,7 @@ class TestApproveActiveInstanceGate(unittest.TestCase):
     def test_structure_gate_web_ui(self) -> None:
         self.assertIn("**Web UI 附加**", self.approve)
         self.assertIn("medium / complex", self.approve)
-        self.assertIn("check_active_instance.py validate", self.approve)
+        self.assertIn("项目约定的 Active Instance 校验", self.approve)
         self.assertIn("不得冻结", self.approve)
 
     def test_review_boundary_requires_digests(self) -> None:

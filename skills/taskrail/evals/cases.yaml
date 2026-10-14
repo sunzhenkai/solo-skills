@@ -140,32 +140,32 @@ cases:
   - id: web-ui-active-instance-baseline
     kind: core
     judge: deterministic
-    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现走 ui-template-apply
+    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
     given: 交付类别为 Web UI，medium/complex 进入 approve，或 simple 无 freeze 仅 adopt-only
     expect:
       must:
         - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
-        - medium/complex 无 freeze 时停下移交 ui-template-design，不批准
-        - simple adopt-only 须已确认显式降级；实现委托 ui-template-apply
-        - 视觉完成证据含代表页源码及其初稿之后的修订；Gallery 与 digest 只证明系统未漂
+        - medium/complex 无 freeze 时停下回 design 建立 Active Instance，不批准
+        - simple adopt-only 须已确认显式降级；不强制代表页 two-pass / Gallery
+        - medium/complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
       must_not:
         - 用散文组件约定或 ui-skills-root 替代 Active Instance
         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
         - 仅用 Gallery 指针或 digest 作为视觉完成
 
-  - id: ui-evidence-gate-pass
-    kind: core
+  - id: web-ui-runtime-evidence-and-design-review
+    kind: regression
     judge: deterministic
-    description: Web UI 完成须 ui_evidence_check.py report exit 0 且 design 评审 --validate-review exit 0
-    given: Web UI 切片收尾验收（含 simple），manifest 声明各 route 的 loading/empty/error/success 态
+    description: Web UI 运行态证据与 design 评审按档调度（complex/medium 硬门；simple SHOULD）
+    given: 交付类别为 Web UI，进入完成门
     expect:
       must:
-        - 跑 scripts/ui_evidence_check.py 产出 report.json，含 desktop 1280x800 与 mobile 375x812 截图、axe WCAG 2.2 AA、键盘 Tab 走查与四个数据态截图
-        - report exit 0，且 design 评审文件 roles 含 design、reviewer ≠ implementer、report 指向通过的 report.json
-        - 不适用的态写进 not_applicable 并附理由
+        - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
+        - medium：同脚本 exit 0，允许精简 manifest（单路由 / 单桌面视口 / 四态可批量 not_applicable）
+        - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
       must_not:
-        - 用自述、Gallery 指针或 digest 代替运行态证据
-
+        - simple 因未跑 ui_evidence_check 且未登记降级而标 done
+        - medium/complex 用 Gallery 指针或 digest 代替运行态证据
   - id: ui-evidence-gate-fail
     kind: failure
     judge: deterministic

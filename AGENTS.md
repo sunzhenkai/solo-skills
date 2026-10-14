@@ -20,7 +20,7 @@ python3 -m pytest skills -q               # 全部测试（秒级）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
 
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
-make install-deps   # 安装外部依赖（openspec-* + grilling + ui-template-*），结尾跑 check-deps
+make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
 ```
 
@@ -52,8 +52,6 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
 | `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
-| `ui-template-design` / `ui-template-apply` | `sunzhenkai/ui-templates-skill` | taskrail / task-explore / taskflow（Web UI Active Instance / 实现） |
-| `ui-template-author`（可选） | `sunzhenkai/ui-templates-skill` | Web UI 从源做 package |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
 - 任务编排入口是 **`taskrail`**；确认协议并入 taskrail（`skills/taskrail/references/confirm-protocol.md`，含质量画像、门包与挂起五元组）。已删除：`task-confirm` / `task-wizard` / `task-goal` / `task-delivery`。

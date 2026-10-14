@@ -274,17 +274,17 @@ cases:
       must_not:
         - 为 simple 默认拆多切片
 
-  - id: web-ui-apply-via-ui-template-apply
+  - id: web-ui-apply-consumes-active-instance
     kind: core
     judge: deterministic
-    description: Web UI 切片委托 ui-template-apply；无 Active Instance 不得直接铺页
+    description: Web UI 切片消费 frozen Active Instance；无 Active Instance 不得直接铺页
     given: 交付类别为 Web UI，driver 进入实施段
     expect:
       must:
-        - UI 切片委托 ui-template-apply 消费 frozen Active Instance 或已确认 adopt-only
+        - UI 切片消费 frozen Active Instance 或已确认 adopt-only，代表页 two-pass 先行
         - 先按 frontend-design 实现并修订一条主流程代表页，其余表面从其壳层与字阶长出
-        - 实现者输入携带三条 digest；证据优先 Phase 8 与 Gallery
-        - 改 DS 本体移交 ui-template-design iterate 后刷新 digest
+        - 实现者输入携带三条 digest；证据优先 ui_evidence_check report 与 Gallery
+        - 改 DS 本体回 design 修订 Active Instance 并重新 freeze 后刷新 digest
       must_not:
         - 无 Active Instance 且无已确认 adopt-only 降级时直接生成业务页
         - 在 apply 内改 core tokens/pattern
@@ -326,15 +326,14 @@ cases:
       must_not:
         - agent 自行写入 gate_bypass
 
-  - id: frontend-design-via-ui-template-apply-vendor
+  - id: web-ui-no-external-ui-skill
     kind: regression
     judge: deterministic
-    description: frontend-design 依赖指向 ui-template-apply 内置 vendor，不单独安装
-    given: Web UI 切片需要按 frontend-design 实现代表页
+    description: Web UI 实现不依赖仓外 ui-templates 系列 skill
+    given: Web UI 切片需要实现代表页
     expect:
       must:
-        - 读取 ui-template-apply/references/vendor/frontend-design/SKILL.md
-        - vendor 缺失时 make check-deps 报 MISS 并非零退出，提示 make install-ui-templates 重装
+        - 按代表页 two-pass 方法实现并修订一条主流程代表页，消费 frozen Active Instance
+        - 缺 Active Instance 时回 design 阶段在交付项目根建立并 freeze
       must_not:
-        - 另装独立 frontend-design skill 或引用 pretty-view-html 的副本代替
-        - vendor 缺失仍继续铺页
+        - 要求安装或委托 ui-template-design / ui-template-apply / ui-template-author

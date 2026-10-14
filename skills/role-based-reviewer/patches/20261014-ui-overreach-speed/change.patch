@@ -1,0 +1,43 @@
+diff --git a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+index e346259..2bdd486 100644
+--- a/skills/role-based-reviewer/references/roles/design.md
++++ b/skills/role-based-reviewer/references/roles/design.md
+@@ -14,6 +14,12 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ 判定方式：`[代码]` 读 diff/源码可判；`[运行态]` 必须渲染后确认。纯 diff 评审中 `[运行态]` 条目降级为「⚠ 需运行态验证」提示，不做判定、不装能判；不为此启动服务或截图。Blocker 门槛 = quality floor：键盘可达、focus 可见、破坏性操作有确认或 undo、空态不崩、表单错误有反馈、尊重 reduced-motion。
+ 
++## 调用范围与速度
++
++- **何时全量扫**：taskrail 门包对 **medium / complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
++- **何时只扫 floor（保速度）**：审阅边界写明 `tier=simple` / adopt-only / 「非主表面 / 文案微调 / 单控件修复」时，**只报 quality floor 的 🔴 条**（破坏性确认、键盘可达、focus 可见）与直接相关的 🔴；其余 🟡 / ⚪ 默认不扫，最多作 Suggestion。不为此启动服务、截图或跑 `ui_evidence_check`。
++- **非 Web UI 交付**：调用方未点名 design 时不要主动扩权；点名了同样按边界裁剪范围。
++
+ ### 1. 交互流程
+ 
+ 1. 🔴 [代码] 破坏性操作（删除、批量操作、发布、资金类）必须二次确认或可 undo，never immediate
+@@ -123,7 +129,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ## 下游建议
+ 
+-`ui-template-design` → UI 模板与设计规格生成；修复类结论交回常规实现流程。
++设计规格 / Active Instance 修订交回 task* 的 design 阶段；修复类结论交回常规实现流程。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index 5a1b0e6..8e6bb59 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -60,6 +60,12 @@ class TestRoleFilesStructure(unittest.TestCase):
+             self.assertIn("🔴", text, role)
+             self.assertIn("🟡", text, role)
+ 
++    def test_design_has_speed_scope_section(self) -> None:
++        text = read("references/roles/design.md")
++        self.assertIn("## 调用范围与速度", text)
++        self.assertIn("何时只扫 floor（保速度）", text)
++        self.assertIn("tier=simple", text)
++
+     def test_design_has_ceiling_reference_section(self) -> None:
+         text = read("references/roles/design.md")
+         self.assertIn("## 天花板参照集", text)

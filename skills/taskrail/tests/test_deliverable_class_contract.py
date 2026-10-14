@@ -35,7 +35,8 @@ class TestWizardDeliverableClass(unittest.TestCase):
         self.assertIn("## Active Instance（仅 Web UI；其它类别写「不适用」）", self.wizard)
         for field in ("- 状态：", "- 根路径：", "- contract digest：", "- binding digest：", "- projection digest：", "- 前置动作："):
             self.assertIn(field, self.wizard)
-        self.assertIn("ui-template-design", self.wizard)
+        self.assertNotIn("ui-template-", self.wizard)
+        self.assertIn("design 阶段建立 Active Instance 至 freeze", self.wizard)
 
     def test_template_keeps_existing_sections(self) -> None:
         for kept in ("## 完成判据", "## 交付标准", "## 质量属性", "## 流程总览", "## 建议路由"):
@@ -58,8 +59,9 @@ class TestCompletionGateMechanical(unittest.TestCase):
         self.assertIn("`accepted-recorded` 含理由", self.skill)
 
     def test_web_ui_digest_done_gate(self) -> None:
-        self.assertIn("7. Web UI：driver / `design/contract.md` 所记三条 digest", self.skill)
-        self.assertIn("与交付仓 Active Instance 当前 freeze 一致", self.skill)
+        self.assertIn("7. Web UI（按档", self.skill)
+        self.assertIn("**medium / complex** 须 digest 与仓库 freeze 一致", self.skill)
+        self.assertIn("未跑须登记 B 类显式降级", self.skill)
 
     def test_mechanical_wording(self) -> None:
         self.assertIn("完成门**逐条机械核对**", self.skill)
@@ -94,8 +96,8 @@ class TestContractPayload(unittest.TestCase):
         self.assertIn("**Web UI**：共享面契约 = 交付项目根 `design-system/v1`", self.contract)
         self.assertIn("Web UI 指针必须含 Active Instance 根路径与三条 digest", self.contract)
         self.assertIn("simple 无 freeze 仅当 adopt-only + 已确认显式降级", self.contract)
-        self.assertIn("ui-template-design", self.contract)
-        self.assertIn("ui-template-apply", self.contract)
+        self.assertNotIn("ui-template-", self.contract)
+        self.assertIn("Web UI 不依赖仓外 skill", self.contract)
 
     def test_approve_and_propose_carry_gate_pack(self) -> None:
         self.assertIn("命中门包时另附交付类别、适用门包与基准物", self.contract)

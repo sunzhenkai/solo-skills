@@ -79,16 +79,16 @@
 
 - **契约文件**：共享面（接口、类型、primitive、目录与命名、样板切片）已冻结的产物指针；并行派发前必须已存在，冻结后漂移走「并行执行」的共享面广播纪律。Web UI：指针 = Active Instance 根路径 + contract / binding / projection 三条 digest（与 handoff 载荷一致）。
 - **门包**：适用交付类别的门包条目（可自动化门 / 运行态证据 / 主观项）+ 本切片负责产出的证据清单。
-- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 taskrail 确认协议「未覆盖即降级」登记。Web UI：优先 `ui-template-apply` Phase 8 current-build 证据与 Gallery。
+- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 taskrail 确认协议「未覆盖即降级」登记。Web UI：优先 `ui_evidence_check` current-build 证据与 Gallery。
 
 ## Web UI 实现委托
 
 交付类别为 Web UI 时：
 
-- UI 切片（含旗舰切片）的页面实现 MUST 委托仓外 **`ui-template-apply`**（`bootstrap | increment`），消费 driver 所记 frozen Active Instance（或已确认的 adopt-only pin）。先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。功能切片不代替这次修订。
+- UI 切片（含旗舰切片）的页面实现 MUST 消费 driver 所记 frozen Active Instance（或已确认的 adopt-only）。先按代表页 two-pass 方法（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。功能切片不代替这次修订。
 - 无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。
-- UI 切片完成 = `ui_evidence_check.py` report exit 0 + design 评审文件 `--validate-review` exit 0（见 gate-packs「Web UI」）；`ui-template-apply` 不可用（含其 vendor frontend-design 缺失）时**停下**报告安装选项（`make check-deps`），不得改由裸写页面顶替。`ui-skills-root` 与零散 craft skill 不替代 `ui-template-apply` 这次实现。
-- 发现须改 token / pattern / page-type / binding 语义：停并行，移交 `ui-template-design` `iterate`（Apply 的 binding handoff 归 design 轨），刷新 digest 与 `design/contract.md` / driver 指针后再派发；不得在 apply 内改 core。
+- UI 切片完成 = `ui_evidence_check.py` report exit 0 + design 评审文件 `--validate-review` exit 0（见 gate-packs「Web UI」）；`ui-skills-root` 与零散 craft skill 不替代代表页 two-pass 与 Active Instance。
+- 发现须改 token / pattern / page-type / binding 语义：停并行，回 design 阶段修订 Active Instance 并重新 freeze，刷新 digest 与 `design/contract.md` / driver 指针后再派发；不得在 apply 内改 core。
 - 并行派发前契约 = 三条 digest；漂移走共享面广播，且须与 Active Instance freeze 再对齐。
 
 只有任务显式标记 benchmark / regression 时才盲测复跑：实现者只拿同一份样例/需求原文与运行约束，不拿画像、rubric、期望清单或审阅意见；复跑不追加事后提示。

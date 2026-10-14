@@ -4,9 +4,6 @@
 #   - openspec-explore / openspec-propose / openspec-apply-change / openspec-archive-change
 #       由 @fission-ai/openspec CLI 生成，不发布为独立 skill 包
 #   - grilling / grill-with-docs / domain-modeling   来自 mattpocock/skills
-#   - ui-template-design / ui-template-apply / ui-template-author
-#       来自 sunzhenkai/ui-templates-skill（Web UI Active Instance / 实现 / 可选 package）
-#       frontend-design：不单独安装，随 ui-template-apply 以 vendor 形式提供（references/vendor/frontend-design）
 #   - playwright + axe-core（taskrail/scripts/ui_evidence_check.py 的运行时，非 skill）：
 #       pip install playwright && playwright install chromium；在交付仓 npm i -D axe-core
 #   - acpx（二进制，非 skill）                        agent-roster 的委派执行，https://acpx.sh
@@ -18,33 +15,25 @@ SKILLS_DIR ?= $(HOME)/.agents/skills
 
 MATT_SKILLS   := grilling grill-with-docs domain-modeling
 OPENSPEC_SKILLS := openspec-explore openspec-propose openspec-apply-change openspec-archive-change
-# author 可选；check-deps 只硬检 design + apply（Web UI 硬依赖）
-UI_TEMPLATE_SKILLS := ui-template-design ui-template-apply
-UI_TEMPLATE_OPTIONAL := ui-template-author
 
-EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS) $(UI_TEMPLATE_SKILLS)
+EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS)
 
-.PHONY: help install-deps install-matt install-openspec install-ui-templates install-acpx check-deps check-names
+.PHONY: help install-deps install-matt install-openspec install-acpx check-deps check-names
 
 help:
-	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling + ui-template-*）并跑 check"
+	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling）并跑 check"
 	@echo "make install-matt          只装 grilling / grill-with-docs / domain-modeling"
 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
-	@echo "make install-ui-templates  安装 ui-template-design / apply / author"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
-	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出；author 缺失仅 WARN）"
+	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出）"
 	@echo "make check-names           扫描 skills/docs/根文档里的具体项目名（.project-denylist；命中非零退出）"
 
-install-deps: install-matt install-openspec install-ui-templates
+install-deps: install-matt install-openspec
 	@$(MAKE) --no-print-directory check-deps
 
 install-matt:
 	@mkdir -p $(SKILLS_DIR)
 	npx -y skills add mattpocock/skills -g -y $(addprefix -s ,$(MATT_SKILLS))
-
-install-ui-templates:
-	@mkdir -p $(SKILLS_DIR)
-	npx -y skills add sunzhenkai/ui-templates-skill -g -y $(addprefix -s ,$(UI_TEMPLATE_SKILLS) $(UI_TEMPLATE_OPTIONAL))
 
 install-openspec:
 	@mkdir -p $(SKILLS_DIR)
@@ -71,13 +60,6 @@ check-deps:
 		if [ -f "$(SKILLS_DIR)/$$s/SKILL.md" ]; then echo "ok    $$s"; \
 		else echo "MISS  $$s"; miss=1; fi; \
 	done; \
-	for s in $(UI_TEMPLATE_OPTIONAL); do \
-		if [ -f "$(SKILLS_DIR)/$$s/SKILL.md" ]; then echo "ok    $$s"; \
-		else echo "WARN  $$s 未安装（Web UI 从源做 package 时需要，见 make install-ui-templates）"; fi; \
-	done; \
-	fd="$(SKILLS_DIR)/ui-template-apply/references/vendor/frontend-design/SKILL.md"; \
-	if [ -f "$$fd" ]; then echo "ok    frontend-design（ui-template-apply vendor）"; \
-	else echo "MISS  frontend-design：ui-template-apply 内置 vendor 缺失（Web UI 代表页实现依赖，make install-ui-templates 重装）"; miss=1; fi; \
 	if command -v acpx >/dev/null; then echo "ok    acpx"; \
 	else echo "WARN  acpx 未安装（仅 agent-roster 委派执行需要，见 make install-acpx）"; fi; \
 	exit $$miss

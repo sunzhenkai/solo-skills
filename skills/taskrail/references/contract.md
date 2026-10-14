@@ -61,7 +61,7 @@ tasks/
 - 无 `tasks/` 时须先获确认再建（沿用 task-explore 纪律）。
 - 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
 - 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
-- **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体与 `.ui-template-design/` 落交付项目根，由 `ui-template-design` 维护。
+- **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体落交付项目根，由交付仓自己维护（task* 的 design 阶段负责建立 / 修订并 freeze）。
 - 单任务产物只写当前任务目录；禁止写仓库根 `CONTEXT.md`、`docs/adr/`、`docs/design/`。
 
 ## TASK.md 元信息（封闭字段）
@@ -152,6 +152,6 @@ updated: YYYY-MM-DD
 | `task-explore` | 台账与 explore/design/expand/approve/handoff/archive 等**命令** |
 | `taskflow` | driver + propose/apply/archive；交付 checkbox |
 
-仓外（Web UI）：`ui-template-design`（冻结 Active Instance）、`ui-template-apply`（实现业务页）、`ui-template-author`（可选，从源做 package）。task* 只门禁与移交，不复制其 0–9。
+Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内建立并 freeze，业务页由 apply 阶段按代表页 two-pass 方法实现；task* 只认指针与 digest，不复制 DS 本体。
 
 已删除的旧 id（`task-wizard` / `task-goal` / `task-delivery`）勿再引用；统一用上表四 skill。

@@ -60,6 +60,12 @@ class TestRoleFilesStructure(unittest.TestCase):
             self.assertIn("🔴", text, role)
             self.assertIn("🟡", text, role)
 
+    def test_design_has_speed_scope_section(self) -> None:
+        text = read("references/roles/design.md")
+        self.assertIn("## 调用范围与速度", text)
+        self.assertIn("何时只扫 floor（保速度）", text)
+        self.assertIn("tier=simple", text)
+
     def test_design_has_ceiling_reference_section(self) -> None:
         text = read("references/roles/design.md")
         self.assertIn("## 天花板参照集", text)

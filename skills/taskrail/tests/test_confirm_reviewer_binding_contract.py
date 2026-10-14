@@ -81,21 +81,24 @@ class TestGatePacksSingleSource(unittest.TestCase):
     def test_web_ui_binds_design_role(self) -> None:
         self.assertIn("role-based-reviewer roles=design", self.packs)
         self.assertIn("role-based-reviewer roles=engineer", self.packs)
+        self.assertIn("**simple**：不强制 `roles=design`", self.packs)
 
     def test_web_ui_binds_active_instance(self) -> None:
         self.assertIn("design-system/v1", self.packs)
         self.assertIn("status: frozen", self.packs)
         self.assertIn("contract / binding / projection", self.packs)
-        self.assertIn("ui-template-design", self.packs)
-        self.assertIn("ui-template-apply", self.packs)
+        self.assertNotIn("ui-template-", self.packs)
+        self.assertIn("design 阶段在交付仓内建立并 freeze", self.packs)
 
     def test_web_ui_tier_gate(self) -> None:
         self.assertIn("**Active Instance 档位门**", self.packs)
+        self.assertIn("按档调度，保任务速度", self.packs)
         self.assertIn("medium / complex", self.packs)
-        self.assertIn("adopt published package", self.packs)
+        self.assertIn("adopt-only：沿用交付仓已有组件库", self.packs)
+        self.assertIn("simple（SHOULD，非硬门）", self.packs)
 
     def test_web_ui_automations_hook_ds_runtime(self) -> None:
-        self.assertIn("check_active_instance.py validate", self.packs)
+        self.assertIn("项目约定的 Active Instance 校验", self.packs)
         self.assertIn("scan_design_constraints.py", self.packs)
 
     def test_entry_taxonomy(self) -> None:

@@ -60,7 +60,7 @@
 - 能形成至少两个可行方案；否则说明还缺哪些信息
 - 架构 / 接口 / 技术栈的选择都写得出依据（设计模式或软件工程原则）；写不出就列入未决，不算设计完成。本任务不涉及这三类选择时写「不适用」并说明，不为凑数贴模式名
 - 命中交付类别门包时（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md) 判定见 taskrail wizard 的「交付类别与门包」节）：设计稿必须含**契约文件指针**（共享面冻结产物：接口 / 类型 / primitive / 目录与命名 / 样板切片）与**证据计划**（该交付类别的证据形式、产物状态绑定方式与覆盖边界）。缺任一项按缺口停下，不写空心方案
-- **Web UI Active Instance 门**：交付类别为 Web UI 时，先核对交付项目根 Active Instance。**medium / complex**：无 `status: frozen` 则停下，移交 `ui-template-design`（必要时先 `ui-template-author`），**不写空心 UI 方案**、不在 design 稿重定义 token / primitive 精确值。**simple**：无 freeze 仅可走 adopt published package，并在质量画像登记显式降级（未确认不得进入可批准定稿）。已 freeze 时 `design/contract.md` MUST 含：Active Instance 根路径、contract / binding / projection 三条 digest、（如有）package pin；任务 design 只做业务 IA、页面清单 ↔ Page Type、数据与验收。
+- **Web UI Active Instance 门**：交付类别为 Web UI 时，先核对交付项目根 Active Instance。**medium / complex**：无 `status: frozen` 则停下，先在交付项目根建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive），**不写空心 UI 方案**、不在 design 稿重定义 token / primitive 精确值。**simple**：无 freeze 仅可走 adopt-only（沿用交付仓已有组件库），并在质量画像登记显式降级（未确认不得进入可批准定稿）。已 freeze 时 `design/contract.md` MUST 含：Active Instance 根路径、contract / binding / projection 三条 digest、（如有）package pin；任务 design 只做业务 IA、页面清单 ↔ Page Type、数据与验收。
 
 推荐若依赖未决项，把未决单独列出，不要写成已定。
 
@@ -103,7 +103,7 @@
 
 - 不写实现代码，不创建 OpenSpec `tasks.md`
 - 命中门包时不得省略契约文件指针与证据计划；本 skill 只留指针，契约本体落交付仓并由交付仓维护
-- Web UI：禁止在 `{taskRoot}/design/` 重写 `core/tokens.yaml` / primitive 精确值；改 DS 本体只移交 `ui-template-design`
+- Web UI：禁止在 `{taskRoot}/design/` 重写 `core/tokens.yaml` / primitive 精确值；改 DS 本体只在交付项目根修订 Active Instance 并重新 freeze
 - 不把设计写到任务目录以外（尤其禁止 `docs/design/`）
 - 必须有图和权衡表；推荐与未决分开写
 - kebab-case、一篇一个 H1

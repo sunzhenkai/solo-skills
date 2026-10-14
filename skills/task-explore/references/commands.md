@@ -39,7 +39,7 @@
 
 ## `design`
 
-方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下移交 `ui-template-design`；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
+方案写入 `{taskRoot}/design/`，不写 `docs/design/`。**方案不明朗时主动打断，提示缺口。** 进入本阶段后 **先读** [references/explore-design.md](explore-design.md)；落盘时再读 [references/templates.md](templates.md)。写对比表之前按阶段详情做一次外部参照。复杂档在此产出质量画像草稿（字段见 taskrail 确认协议）。命中交付类别门包时，本阶段另落 `design/contract.md`（契约文件指针与证据计划；判定与门包内容见 taskrail 确认协议 门包表）。Web UI：medium/complex 无 frozen Active Instance 则停下，先在交付项目根建立 Active Instance 至 freeze；`design/contract.md` 须含根路径与三条 digest。方案成形后走 `approve`。发现 ≥2 独立方向时评估一次 `expand`。
 
 ## `approve`
 

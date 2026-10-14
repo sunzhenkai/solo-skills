@@ -1,0 +1,231 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 3eddcbe..0101ae8 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -33,7 +33,7 @@ taskrail list
+ - `taskflow`（凡经 taskrail 的交付均必需，含 simple；入口门 `taskflow/scripts/check_handoff.py`）
+ - `grilling`（有任务目录时的拷问）
+ - stock `openspec-*`（propose/apply/archive；经 taskflow）
+-- Web UI 交付另需：`ui-template-design`（无 freeze 时前置）、`ui-template-apply`（实现页，含 vendor frontend-design）、playwright + axe-core（`ui_evidence_check`）；可选 `ui-template-author`（从源做 package）
++- Web UI 交付另需：playwright + axe-core（`ui_evidence_check`）；Active Instance 由 design 阶段在交付仓内建立，不依赖仓外 UI skill
+ 
+ ## 绑定与目录
+ 
+@@ -54,7 +54,7 @@ taskrail list
+ | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
+ | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
+ | `propose` | **先** handoff（若 `status` 尚未 `handed-off`；交接节必写「交付类别」「适用门包」，Web UI 另写 Active Instance 根路径与三条 digest），跑 taskflow 入口门 `check_handoff.py` 通过后再委托 taskflow / `openspec-propose`；simple 为单切片 |
+-| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现走 `ui-template-apply`，先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，再铺其余表面 |
++| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现消费 frozen Active Instance，先按代表页 two-pass 方法实现并修订一条主流程代表页，再铺其余表面 |
+ | `archive` | 交付侧归档 driver；探索侧关闭走 task-explore `archive` |
+ | `done` | 完成门已过；停止新增工作 |
+ 
+@@ -92,7 +92,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**
+ 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+ 5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
+ 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+-7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。另须（全档位，含 simple）：最新代码上 `ui_evidence_check.py` 的 `report.json` exit 0（`--validate-report` 复核），且 design 评审文件经 `--validate-review` 通过（`roles: design`、reviewer ≠ implementer）。代表页源码修订记录只是过程记录，不单独构成证据；digest 与 Gallery 只证明系统未漂。
++7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**medium / complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
+ 
+ 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
+ 
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 6080207..5a9f1c5 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -140,32 +140,32 @@ cases:
+   - id: web-ui-active-instance-baseline
+     kind: core
+     judge: deterministic
+-    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现走 ui-template-apply
++    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
+     given: 交付类别为 Web UI，medium/complex 进入 approve，或 simple 无 freeze 仅 adopt-only
+     expect:
+       must:
+         - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
+-        - medium/complex 无 freeze 时停下移交 ui-template-design，不批准
+-        - simple adopt-only 须已确认显式降级；实现委托 ui-template-apply
+-        - 视觉完成证据含代表页源码及其初稿之后的修订；Gallery 与 digest 只证明系统未漂
++        - medium/complex 无 freeze 时停下回 design 建立 Active Instance，不批准
++        - simple adopt-only 须已确认显式降级；不强制代表页 two-pass / Gallery
++        - medium/complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
+       must_not:
+         - 用散文组件约定或 ui-skills-root 替代 Active Instance
+         - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
+         - 仅用 Gallery 指针或 digest 作为视觉完成
+ 
+-  - id: ui-evidence-gate-pass
+-    kind: core
++  - id: web-ui-runtime-evidence-and-design-review
++    kind: regression
+     judge: deterministic
+-    description: Web UI 完成须 ui_evidence_check.py report exit 0 且 design 评审 --validate-review exit 0
+-    given: Web UI 切片收尾验收（含 simple），manifest 声明各 route 的 loading/empty/error/success 态
++    description: Web UI 运行态证据与 design 评审按档调度（complex/medium 硬门；simple SHOULD）
++    given: 交付类别为 Web UI，进入完成门
+     expect:
+       must:
+-        - 跑 scripts/ui_evidence_check.py 产出 report.json，含 desktop 1280x800 与 mobile 375x812 截图、axe WCAG 2.2 AA、键盘 Tab 走查与四个数据态截图
+-        - report exit 0，且 design 评审文件 roles 含 design、reviewer ≠ implementer、report 指向通过的 report.json
+-        - 不适用的态写进 not_applicable 并附理由
++        - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
++        - medium：同脚本 exit 0，允许精简 manifest（单路由 / 单桌面视口 / 四态可批量 not_applicable）
++        - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
+       must_not:
+-        - 用自述、Gallery 指针或 digest 代替运行态证据
+-
++        - simple 因未跑 ui_evidence_check 且未登记降级而标 done
++        - medium/complex 用 Gallery 指针或 digest 代替运行态证据
+   - id: ui-evidence-gate-fail
+     kind: failure
+     judge: deterministic
+diff --git a/skills/taskrail/references/gate-packs.md b/skills/taskrail/references/gate-packs.md
+index 5ad1c94..15bad8b 100644
+--- a/skills/taskrail/references/gate-packs.md
++++ b/skills/taskrail/references/gate-packs.md
+@@ -11,22 +11,31 @@
+ 
+ ## Web UI
+ 
+-- **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由仓外 `ui-template-design` 产出（有参照源时可先 `ui-template-author` 再领养）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
+-- **Active Instance 档位门**（硬门，与基准物同级）：
+-  - **medium / complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，移交 `ui-template-design`（0–9 至 freeze），不得用散文式「组件约定」顶替。
+-  - **simple**：优先 frozen Active Instance；否则仅当「`ui-template-apply` adopt published package」且质量画像已登记并**确认**显式降级时方可放行；无降级登记不得放行。adopt-only 只豁免 Active Instance，**不豁免**下方 `ui_evidence_check` 运行态证据门与 design 评审文件——simple 同样必须通过。
+-- **必载专家能力**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
++- **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由 task* 的 design 阶段在交付仓内建立并 freeze（有参照源时先从参照源提炼 tokens / primitive）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
++- **Active Instance 档位门**（与基准物同级；按档调度，保任务速度）：
++  - **medium / complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
++  - **simple**：优先 frozen Active Instance；否则「adopt-only：沿用交付仓已有组件库 / 样式体系」且质量画像已登记并**确认**显式降级即可放行；无降级登记不得放行。adopt-only **豁免** Active Instance，并按下方「档位调度」豁免重型证据门。
++- **必载专家能力**（按档）：
++  - **medium / complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
++  - **simple**：不强制 `roles=design`；实现者自检 quality floor（破坏性确认、键盘可达、focus 可见）即可。需要时再点名 design 角色，且该角色只扫 floor（见 `role-based-reviewer` design 角色「调用范围与速度」）。
+ - **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
+-  - Active Instance：`check_active_instance.py validate <active-root> --kind active`（或项目约定等价）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
++  - Active Instance：项目约定的 Active Instance 校验（`design-system.yaml` 为 `status: frozen`、三条 digest 可复算）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
+   - 设计约束扫描：`scan_design_constraints.py <output-root>`（或项目约定等价）通过；
+   - token 纪律：完成时共享色、字、间距在 `core/tokens.yaml`。代表页实现过程中的暂存值在回写前保留在该页；完成时仍留在页面里的共享值视为未完成。
+   - 无障碍：键盘可达、`:focus-visible` 存在、icon-only 有 `aria-label`、异步反馈走 `aria-live`、表单控件有关联 label；
+   - 状态覆盖：数据区四态（loading / empty / error / success）、交互元素态（hover / focus / active / disabled）；
+   - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
+-- **运行态证据（硬门，全档位）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py) 对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）截图、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。`ui-template-apply` 的 Phase 8 current-build 证据与 Gallery 是补充，不替代本 report。playwright / axe-core 缺失时脚本 exit 2 阻断：不得静默跳过，只能装齐后重跑，或经用户确认按「未覆盖即降级」登记 A 类降级。
+-- **design 评审文件（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+-- **主观项**：视觉层次 / 密度 / 排版节奏由 design 评审文件基于 report 截图逐条判定（指到参照集或项目标准的可指认件）。代表页源码修订记录（design thesis、signature、初稿之后改过的页面）是实现过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+-- **实现委托**：业务页实现走仓外 `ui-template-apply`（消费 frozen Active Instance 或已确认的 adopt-only）。先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。改已经共享的 token / pattern / page-type → `ui-template-design` `iterate`，刷新 digest 后再继续 apply。
++- **运行态证据（按档调度）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)
++  - **complex（硬门）**：对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。playwright / axe-core 缺失时脚本 exit 2 阻断，或经用户确认登记 A 类降级。
++  - **medium（硬门，可精简）**：同脚本 exit 0，但允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
++  - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
++- **design 评审文件（按档）**：
++  - **medium / complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
++  - **simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
++- **主观项**：视觉层次 / 密度 / 排版节奏——medium/complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
++- **实现方法（按档）**：
++  - **medium / complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
++  - **simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+ 
+ ## 服务 / 后端
+ 
+diff --git a/skills/taskrail/references/glossary.md b/skills/taskrail/references/glossary.md
+index 73701e9..a036f78 100644
+--- a/skills/taskrail/references/glossary.md
++++ b/skills/taskrail/references/glossary.md
+@@ -38,11 +38,11 @@ taskrail / task-explore / taskflow 共用。其他文件出现下列术语时按
+ 
+ | 术语 | 含义 | 不要混用 |
+ |------|------|----------|
+-| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 `ui-template-design` 产出 | 组件约定、样式说明 |
++| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 task* 的 design 阶段在交付仓内建立并 freeze | 组件约定、样式说明 |
+ | freeze / frozen | Active Instance 的 `status: frozen`：契约已冻结，apply 只消费不改 core | 定稿 |
+ | 三条 digest | contract / binding / projection 三个摘要；写入 `design/contract.md` 与 driver，用来判断是否漂移 | 版本号 |
+-| adopt-only | simple 档无 Active Instance 时直接采用已发布 package；须登记并确认显式降级，只豁免 Active Instance，不豁免证据门 | — |
+-| 代表页 | 一条主流程的代表页面：按 `ui-template-apply` vendor frontend-design 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
++| adopt-only | simple 档无 Active Instance 时直接沿用交付仓已有组件库 / 样式体系；须登记并确认显式降级，豁免 Active Instance，并按 gate-packs 档位调度豁免重型证据门（`ui_evidence_check` / design 评审改为 SHOULD） | — |
++| 代表页 | 一条主流程的代表页面：按代表页 two-pass 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
+ | 旗舰切片 | 命中门包时先单独派出的首个切片，做到全量并过评审后才并行 | — |
+-| Gallery | `ui-template-apply` 的组件 / 页面展示证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
++| Gallery | 交付仓内的组件 / 页面展示页证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
+ | `ui_evidence_check` | [`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)：多视口截图 + axe WCAG 2.2 AA + 焦点走查 + 四态，出 `report.json`；完成门只认它 exit 0 | 自评 |
+diff --git a/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py b/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
+index ac1c664..dcc3c3e 100644
+--- a/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
++++ b/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
+@@ -81,21 +81,24 @@ class TestGatePacksSingleSource(unittest.TestCase):
+     def test_web_ui_binds_design_role(self) -> None:
+         self.assertIn("role-based-reviewer roles=design", self.packs)
+         self.assertIn("role-based-reviewer roles=engineer", self.packs)
++        self.assertIn("**simple**：不强制 `roles=design`", self.packs)
+ 
+     def test_web_ui_binds_active_instance(self) -> None:
+         self.assertIn("design-system/v1", self.packs)
+         self.assertIn("status: frozen", self.packs)
+         self.assertIn("contract / binding / projection", self.packs)
+-        self.assertIn("ui-template-design", self.packs)
+-        self.assertIn("ui-template-apply", self.packs)
++        self.assertNotIn("ui-template-", self.packs)
++        self.assertIn("design 阶段在交付仓内建立并 freeze", self.packs)
+ 
+     def test_web_ui_tier_gate(self) -> None:
+         self.assertIn("**Active Instance 档位门**", self.packs)
++        self.assertIn("按档调度，保任务速度", self.packs)
+         self.assertIn("medium / complex", self.packs)
+-        self.assertIn("adopt published package", self.packs)
++        self.assertIn("adopt-only：沿用交付仓已有组件库", self.packs)
++        self.assertIn("simple（SHOULD，非硬门）", self.packs)
+ 
+     def test_web_ui_automations_hook_ds_runtime(self) -> None:
+-        self.assertIn("check_active_instance.py validate", self.packs)
++        self.assertIn("项目约定的 Active Instance 校验", self.packs)
+         self.assertIn("scan_design_constraints.py", self.packs)
+ 
+     def test_entry_taxonomy(self) -> None:
+diff --git a/skills/taskrail/tests/test_deliverable_class_contract.py b/skills/taskrail/tests/test_deliverable_class_contract.py
+index c70a2fd..fa5d135 100644
+--- a/skills/taskrail/tests/test_deliverable_class_contract.py
++++ b/skills/taskrail/tests/test_deliverable_class_contract.py
+@@ -35,7 +35,8 @@ class TestWizardDeliverableClass(unittest.TestCase):
+         self.assertIn("## Active Instance（仅 Web UI；其它类别写「不适用」）", self.wizard)
+         for field in ("- 状态：", "- 根路径：", "- contract digest：", "- binding digest：", "- projection digest：", "- 前置动作："):
+             self.assertIn(field, self.wizard)
+-        self.assertIn("ui-template-design", self.wizard)
++        self.assertNotIn("ui-template-", self.wizard)
++        self.assertIn("design 阶段建立 Active Instance 至 freeze", self.wizard)
+ 
+     def test_template_keeps_existing_sections(self) -> None:
+         for kept in ("## 完成判据", "## 交付标准", "## 质量属性", "## 流程总览", "## 建议路由"):
+@@ -58,8 +59,9 @@ class TestCompletionGateMechanical(unittest.TestCase):
+         self.assertIn("`accepted-recorded` 含理由", self.skill)
+ 
+     def test_web_ui_digest_done_gate(self) -> None:
+-        self.assertIn("7. Web UI：driver / `design/contract.md` 所记三条 digest", self.skill)
+-        self.assertIn("与交付仓 Active Instance 当前 freeze 一致", self.skill)
++        self.assertIn("7. Web UI（按档", self.skill)
++        self.assertIn("**medium / complex** 须 digest 与仓库 freeze 一致", self.skill)
++        self.assertIn("未跑须登记 B 类显式降级", self.skill)
+ 
+     def test_mechanical_wording(self) -> None:
+         self.assertIn("完成门**逐条机械核对**", self.skill)
+@@ -94,8 +96,8 @@ class TestContractPayload(unittest.TestCase):
+         self.assertIn("**Web UI**：共享面契约 = 交付项目根 `design-system/v1`", self.contract)
+         self.assertIn("Web UI 指针必须含 Active Instance 根路径与三条 digest", self.contract)
+         self.assertIn("simple 无 freeze 仅当 adopt-only + 已确认显式降级", self.contract)
+-        self.assertIn("ui-template-design", self.contract)
+-        self.assertIn("ui-template-apply", self.contract)
++        self.assertNotIn("ui-template-", self.contract)
++        self.assertIn("Web UI 不依赖仓外 skill", self.contract)
+ 
+     def test_approve_and_propose_carry_gate_pack(self) -> None:
+         self.assertIn("命中门包时另附交付类别、适用门包与基准物", self.contract)
+diff --git a/skills/taskrail/tests/test_ui_evidence_check.py b/skills/taskrail/tests/test_ui_evidence_check.py
+index fc74208..2669721 100644
+--- a/skills/taskrail/tests/test_ui_evidence_check.py
++++ b/skills/taskrail/tests/test_ui_evidence_check.py
+@@ -199,7 +199,8 @@ class TestGateWiring(unittest.TestCase):
+     def test_gate_packs_require_script(self) -> None:
+         packs = (ROOT / "references" / "gate-packs.md").read_text(encoding="utf-8")
+         self.assertIn("scripts/ui_evidence_check.py", packs)
+-        self.assertIn("simple 同样必须通过", packs)
++        self.assertIn("simple（SHOULD，非硬门）", packs)
++        self.assertNotIn("simple 同样必须通过", packs)
+         self.assertIn("自述不算证据", packs)
+         self.assertIn("--validate-review", packs)
+ 

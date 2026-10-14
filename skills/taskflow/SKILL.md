@@ -63,7 +63,7 @@ propose / apply / 收尾前**先读** [references/execution-discipline.md](refer
 - 归档前逐条跑「收尾机械校核」；禁止 `--yes` 掩盖未勾。最终验收按 [references/acceptance-rubric.md](references/acceptance-rubric.md)，回归按 [references/delivery-quality-loop.md](references/delivery-quality-loop.md)。
 - 并行：旗舰先行、同类失败升级、改共享面必广播。
 - 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
-- Web UI 切片委托 `ui-template-apply`；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
+- Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
 
 ---
 

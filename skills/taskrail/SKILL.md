@@ -33,7 +33,7 @@ taskrail list
 - `taskflow`（凡经 taskrail 的交付均必需，含 simple；入口门 `taskflow/scripts/check_handoff.py`）
 - `grilling`（有任务目录时的拷问）
 - stock `openspec-*`（propose/apply/archive；经 taskflow）
-- Web UI 交付另需：`ui-template-design`（无 freeze 时前置）、`ui-template-apply`（实现页，含 vendor frontend-design）、playwright + axe-core（`ui_evidence_check`）；可选 `ui-template-author`（从源做 package）
+- Web UI 交付另需：playwright + axe-core（`ui_evidence_check`）；Active Instance 由 design 阶段在交付仓内建立，不依赖仓外 UI skill
 
 ## 绑定与目录
 
@@ -54,7 +54,7 @@ taskrail list
 | `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
 | `approve` | 委托 task-explore `approve`（必经；简单档轻量：只核判据可检查） |
 | `propose` | **先** handoff（若 `status` 尚未 `handed-off`；交接节必写「交付类别」「适用门包」，Web UI 另写 Active Instance 根路径与三条 digest），跑 taskflow 入口门 `check_handoff.py` 通过后再委托 taskflow / `openspec-propose`；simple 为单切片 |
-| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现走 `ui-template-apply`，先按 `ui-template-apply` 内置的 frontend-design 方法（vendor：`ui-template-apply/references/vendor/frontend-design/`，Phase 5 代表切片 two-pass）实现并修订一条主流程代表页，再铺其余表面 |
+| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现消费 frozen Active Instance，先按代表页 two-pass 方法实现并修订一条主流程代表页，再铺其余表面 |
 | `archive` | 交付侧归档 driver；探索侧关闭走 task-explore `archive` |
 | `done` | 完成门已过；停止新增工作 |
 
@@ -92,7 +92,7 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
 5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
-7. Web UI：driver / `design/contract.md` 所记三条 digest 与交付仓 Active Instance 当前 freeze 一致（未漂）；不一致则先 `ui-template-design` iterate 或回 design 刷新指针，不标 `done`。另须（全档位，含 simple）：最新代码上 `ui_evidence_check.py` 的 `report.json` exit 0（`--validate-report` 复核），且 design 评审文件经 `--validate-review` 通过（`roles: design`、reviewer ≠ implementer）。代表页源码修订记录只是过程记录，不单独构成证据；digest 与 Gallery 只证明系统未漂。
+7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**medium / complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
 
 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 

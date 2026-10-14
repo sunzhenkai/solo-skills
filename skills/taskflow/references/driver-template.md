@@ -69,7 +69,7 @@
 
 ## 2. 实施
 - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
-- [ ] 2.2 完成子 change `{task}-ui`：Web UI 切片委托 `ui-template-apply`（bootstrap/increment）消费 frozen Active Instance；无 Active Instance 且无已确认 adopt-only 降级时禁止直接铺业务页；其余同 2.1
+- [ ] 2.2 完成子 change `{task}-ui`：Web UI 切片消费 frozen Active Instance（代表页 two-pass 先行）；无 Active Instance 且无已确认 adopt-only 降级时禁止直接铺业务页；其余同 2.1
 
 ## 3. 收尾
 - [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录

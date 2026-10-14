@@ -72,24 +72,22 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 | `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
 | `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
-| `ui-template-design` / `ui-template-apply` | `sunzhenkai/ui-templates-skill` | taskrail / task-explore / taskflow（Web UI：冻结 Active Instance / 实现页） |
-| `ui-template-author`（可选） | `sunzhenkai/ui-templates-skill` | Web UI 从参照源做 portable package 时 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
 > 有 `tasks/` 任务目录时**禁止**调用 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
-> Web UI：medium/complex 须交付项目根 frozen `design-system/v1` Active Instance；实现走 `ui-template-apply`。安装仓外 skill 前走 skills-store 审计流程。
+> Web UI：medium/complex 须交付项目根 frozen `design-system/v1` Active Instance（由 task* 的 design 阶段在交付仓内建立，不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
 
 ### 一键安装（Makefile）
 
 不在 `dotf` 环境里时，用仓库根的 Makefile：
 
 ```bash
-make install-deps   # 外部依赖全量（openspec-* + grilling + ui-template-*）+ 结尾 check-deps
+make install-deps   # 外部依赖全量（openspec-* + grilling）+ 结尾 check-deps
 make check-deps     # 逐项检查 ~/.agents/skills，缺项非零退出
 make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ```
 
-细分 target：`install-openspec` / `install-matt` / `install-ui-templates`。安装位置可用 `SKILLS_DIR=` 覆盖。
+细分 target：`install-openspec` / `install-matt`。安装位置可用 `SKILLS_DIR=` 覆盖。
 
 已用 `dotf agents -c` 的不需要本 Makefile——`dotf` 已覆盖上述来源（openspec-* 由同一入口调 `openspec init` 生成）。
 

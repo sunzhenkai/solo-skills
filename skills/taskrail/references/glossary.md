@@ -38,11 +38,11 @@ taskrail / task-explore / taskflow 共用。其他文件出现下列术语时按
 
 | 术语 | 含义 | 不要混用 |
 |------|------|----------|
-| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 `ui-template-design` 产出 | 组件约定、样式说明 |
+| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 task* 的 design 阶段在交付仓内建立并 freeze | 组件约定、样式说明 |
 | freeze / frozen | Active Instance 的 `status: frozen`：契约已冻结，apply 只消费不改 core | 定稿 |
 | 三条 digest | contract / binding / projection 三个摘要；写入 `design/contract.md` 与 driver，用来判断是否漂移 | 版本号 |
-| adopt-only | simple 档无 Active Instance 时直接采用已发布 package；须登记并确认显式降级，只豁免 Active Instance，不豁免证据门 | — |
-| 代表页 | 一条主流程的代表页面：按 `ui-template-apply` vendor frontend-design 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
+| adopt-only | simple 档无 Active Instance 时直接沿用交付仓已有组件库 / 样式体系；须登记并确认显式降级，豁免 Active Instance，并按 gate-packs 档位调度豁免重型证据门（`ui_evidence_check` / design 评审改为 SHOULD） | — |
+| 代表页 | 一条主流程的代表页面：按代表页 two-pass 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
 | 旗舰切片 | 命中门包时先单独派出的首个切片，做到全量并过评审后才并行 | — |
-| Gallery | `ui-template-apply` 的组件 / 页面展示证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
+| Gallery | 交付仓内的组件 / 页面展示页证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
 | `ui_evidence_check` | [`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)：多视口截图 + axe WCAG 2.2 AA + 焦点走查 + 四态，出 `report.json`；完成门只认它 exit 0 | 自评 |
