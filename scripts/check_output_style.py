@@ -54,6 +54,8 @@ def check_plain_talk(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     if "## 对用户说话" not in text:
         return [f"{path}: 缺「对用户说话」共用节"]
+    if not (path.parent / "user-report.md").is_file():
+        return [f"{path}: 缺 user-report.md（对用户汇报唯一出处）"]
     sec = text.split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
     if sec.count("前：「") < 3 or sec.count("后：「") < 3:
         return [f"{path}: 「对用户说话」前后对比少于 3 组"]

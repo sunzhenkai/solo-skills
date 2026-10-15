@@ -67,6 +67,8 @@ class PlainTalkTest(unittest.TestCase):
         sec = c.split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
         self.assertGreaterEqual(sec.count("前：「"), 3)
         self.assertGreaterEqual(sec.count("后：「"), 3)
+        self.assertIn("user-report.md", sec)
+        self.assertIn("## 2. 问题报告的顺序", r("taskrail/references/user-report.md"))
 
     def test_skills_point_to_guideline(self) -> None:
         for rel in ("taskrail/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md",
