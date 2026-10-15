@@ -8,13 +8,13 @@ description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，�
 
 面向用户默认简体中文；命令名、路径、状态值与既成术语保持原文。
 
-把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)（原 task-confirm，已并入）；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
+把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
 
 契约真源：[references/contract.md](references/contract.md)（含「术语」节）。
 
 ## 输入
 
-流程总览见 `docs/task-flow/README.md`。对用户说的话按契约「对用户说话」。
+流程总览见 `docs/task-flow/README.md`。对用户说的话按「对用户说话」：[user-report.md](references/user-report.md)。
 
 ```text
 taskrail <一句话目标>
@@ -44,7 +44,7 @@ taskrail list
 2. 无绑定：请用户 **创建**（`new`）或 **恢复**（`resume`）；确认前不进阶段。例外：本轮已点名对象；或 ongoing 仅一项且用户说「继续」。
 3. `new`：无 `tasks/` 须先确认创建。推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`（字段见契约），落 `wizard/` 等目录按需。INDEX 追加一行。
 4. 同名已存在：禁止覆盖；提议 resume 或换名。
-5. `resume`：读 `TASK.md` 元信息与阶段产物；输出 **目标 / phase / 未决 / 建议下一步**；从当前 `phase` 继续，不重出 wizard（除非用户点名重开）。
+5. `resume`：读 `TASK.md` 与阶段产物；按 user-report 的 resume 模板口语汇报；从当前 `phase` 继续，不重出 wizard（除非用户点名重开）。
 
 ## 主循环
 

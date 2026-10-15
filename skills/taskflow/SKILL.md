@@ -6,7 +6,7 @@ description: "交接后的执行：check_handoff 入口门通过后用 `taskflow
 
 # taskflow
 
-向用户报进度、状态与结论时按 taskrail 契约「对用户说话」：口语、少术语，不倒 checkbox 计数与字段。
+向用户报进度、状态与结论时按「对用户说话」：[user-report.md](../taskrail/references/user-report.md)，不倒 checkbox 计数与字段。
 
 面向用户默认使用简体中文；命令、路径、代码、状态值与既成术语保持原文。
 

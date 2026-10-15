@@ -6,7 +6,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 
 # 任务探索
 
-命令名、路径、代码、状态值与既成术语在文件里保持原文；对用户提问与汇报按 taskrail 契约「对用户说话」用口语。
+命令名、路径、代码、状态值与既成术语在文件里保持原文；对用户提问与汇报按「对用户说话」：[user-report.md](../taskrail/references/user-report.md)。
 
 在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
 

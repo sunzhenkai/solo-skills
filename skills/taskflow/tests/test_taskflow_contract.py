@@ -80,7 +80,8 @@ class TestRoundEndConditions(unittest.TestCase):
         self.assertEqual(self.text.count("三种情况允许结束一轮"), 1)
 
     def test_itemized_unfinished_list(self) -> None:
-        self.assertIn("结束时逐条列出未勾项与原因", self.text)
+        self.assertIn("结束时在验证记录逐条列出未勾项与原因", self.text)
+        self.assertIn("对用户按 user-report 说影响与待定事项，不报编号", self.text)
 
 
 class TestAcceptanceRubric(unittest.TestCase):
