@@ -5,7 +5,7 @@
 
 进入本阶段后执行。未绑定则先回到 `SKILL.md` 的绑定规则。
 
-合并原 `plan-review` + `decide`：**结构门 → 评审门 → 冻结**。通过后写 `approve/APPROVED.md` 与 `TASK.md` 决策节，并将 `phase` 置为可 handoff/propose。不写实现代码，不创建 OpenSpec change。
+合并原 `plan-review` + `decide`：**结构门 → 评审门 → 冻结**。通过后写 `approve/APPROVED.md` 与 `TASK.md`「已做决定」，并将 `phase` 置为可 handoff/propose。不写实现代码，不创建 OpenSpec change。
 
 ## 门禁
 
@@ -65,7 +65,7 @@
 
 处在 goal 里时，不逐条问用户，也不列出「全部按默认冻结 / 先改某条 / 暂不冻结」。审阅收敛则写入决策与 APPROVED.md；调用方（taskrail）可在同轮 `handoff`。「降级未确认」不在此列。
 
-不在 goal 里时：带默认值的未决须逐条请用户确认后才写入决策节。
+不在 goal 里时：带默认值的未决按推荐写成决定呈现给用户，用户说「继续」后写入「已做决定」。
 
 ## 重复 approve
 

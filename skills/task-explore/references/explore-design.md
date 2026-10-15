@@ -9,7 +9,7 @@
 
 | 形态 | 何时 | 做什么 |
 |------|------|--------|
-| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 追问细节、边界与约束（目标 / 做完的样子 / 不做 以 `wizard/intent.md` 确认版为准，不重问）；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
+| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 自问自答细节、边界与约束（目标 / 做完的样子 / 不做 以 `wizard/intent.md` 确认版为准，不重问）；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
 | **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
 
 针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
@@ -18,11 +18,11 @@
 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
 3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
 **意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图；后续按 taskrail 契约「意图变更」处理判据与 phase。
-4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
-5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
+4. 读取并遵循 `grilling` 的轮次格式，但**自问自答**：每题先自己查证，再给出推荐结论并写一句理由，落 `explore/` 纪要，定下的决定追加到 `TASK.md`「已做决定」；给用户只报结论（陈述句），不逐题提问。只有真阻塞（改完成标准或范围、线上 / 不可逆、缺只有用户能给的信息）才停下，按 [user-report.md](../../taskrail/references/user-report.md)「说决定，不提问」说清需要什么。`grilling` 不可用时同样自问自答；**不要发明等价命令**，也不要改调 `grill-with-docs`。
+5. 自问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策按推荐自己定并写理由；会改完成标准或范围的决定放进闸口，以已定决定呈现。
 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
 7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
-8. 结束本轮时列出已澄清目标与仍开放的 frontier，并提示是否 `save`。
+8. 结束本轮时列出已定的结论与仍开放的 frontier，并说明会 `save` 到哪。
 
 术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件提示是否更新任务文档。
 

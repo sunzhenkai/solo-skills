@@ -4,7 +4,8 @@
 1. SKILL.md 超过 8192 字节：告警（指导线，不阻断）。
 2. task-intent references/intent.md：
    - `wizard/intent.md` 模板的「覆盖清单」缺字段 → ERROR（落盘文件的结构约束）；
-   - 「给用户的复述」示例出现标题 / 加粗标签 / 字段名开头 → 告警（应为自然口语）。
+   - 「给用户的复述」示例出现标题 / 加粗标签 / 字段名开头 → 告警（应为自然口语）；
+   - 示例出现问号或「要不要 / 你看行吗 / 对吗」→ 告警（应说决定，不提问）。
 3. taskrail contract 必须有「对用户说话」共用节且含 ≥3 组前后对比 → 缺失为 ERROR。
 """
 from __future__ import annotations
@@ -15,7 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LIMIT = 8192
-FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "要你拍板的")
+FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "我的决定")
+QUESTION = re.compile(r"[？?]|要不要|你看行吗|对吗")
 CHECKLIST = re.compile(r"## 覆盖清单\n(.*?)\n\n", re.S)
 PROSE = re.compile(r"## 3\. 给用户的复述[^\n]*\n(.*?)\n## ", re.S)
 
@@ -42,9 +44,13 @@ def check_intent(path: Path) -> tuple[list[str], list[str]]:
     p = PROSE.search(text + "\n## ")
     if p:
         ex = [l[2:] for l in p.group(1).splitlines() if l.startswith("- ") and len(l) > 20]
+        tail = p.group(1).split("示例：", 1)[1] if "示例：" in p.group(1) else ""
+        examples_only = {l[2:] for l in tail.splitlines() if l.startswith("- ")}
         for l in ex:
             if "**" in l or l.lstrip().startswith("#") or re.match(r"(%s)[：:]" % "|".join(FIELDS), l):
                 warns.append(f"{path}: 复述示例像字段打印，应为自然口语：{l[:30]}")
+            if l in examples_only and QUESTION.search(l):
+                warns.append(f"{path}: 复述示例在提问，应把推荐说成决定：{l[:30]}")
     return errs, warns
 
 

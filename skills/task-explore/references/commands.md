@@ -8,11 +8,11 @@
 2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
 3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
 4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
-5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
+5. 绑定该任务。报告路径，并说明下一步默认进 `explore`，想先随便聊就说 `chat`。不要自动开始 grill。
 
 ## `explore`
 
-不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
+不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始 grill（自问自答，见该文件）。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
 
 - **仅 grill**（simple / medium，经 taskrail）：只做 grilling 澄清，不强制写 glossary/ADR 全套。
 - **grill 在意图确认之后**：`wizard/intent.md` 已确认的目标与边界不重问，grill 只追细节；冲突回 `task-intent` 纠偏。
@@ -35,8 +35,8 @@
 
 1. 未指定名字：用 INDEX 的 Ongoing 表列出请用户选。指定了则用该名字。
 2. 任务不在 `ongoing/`：先查 INDEX 的 Archived 表，再扫 `tasks/archive/`。告知已归档路径；**不要自动恢复**，拉回走 `reopen`。找不到则说明，改走 `new`。
-3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标/决策节防方向漂移，再读子任务全套；父文档不被修改。
-4. 按 [user-report.md](../../taskrail/references/user-report.md) 的 resume 模板口语恢复：目标、做到哪、还卡着什么、接下来我做什么（白话动作，不报命令名或 phase）、需要用户定的事。内部命令选择留给自己。然后等用户。
+3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标与「已做决定」防方向漂移，再读子任务全套；父文档不被修改。
+4. 按 [user-report.md](../../taskrail/references/user-report.md) 的 resume 模板口语恢复：目标、做到哪、还卡着什么、接下来我做什么（白话动作，不报命令名或 phase）、我定了什么（难回头的单独一行）、真阻塞时需要什么。内部命令选择留给自己。然后等用户。
 
 ## `design`
 
@@ -46,7 +46,7 @@
 
 **必经**（简单档可由 taskrail 做轻量：只核判据可检查）。结构门 + 评审门 + 冻结。进入本阶段后 **先读** [references/approve.md](approve.md)。没有可批准的方案就打断。Web UI 结构门另核 Active Instance freeze / digest（simple 无 freeze 须已确认 adopt-only 降级）。用户说「按推荐冻结并交接」时，本轮 `approve` 完立刻 `handoff`。处在 goal 里时不逐条问用户，按「Goal 里的确认」走 taskrail 确认协议 审阅；审阅收敛则同样本轮 `approve` 完立刻 `handoff`。
 
-同一任务可多次 `approve`：新决策追加编号写入决策节，被取代的旧决策标注「被 D-n 取代」。父任务的 `approve` 仅限范围、非目标与拆分原则，具体方案属各子任务。
+同一任务可多次 `approve`：新决定追加编号写入「已做决定」，被取代的旧决策标注「被 D-n 取代」。父任务的 `approve` 仅限范围、非目标与拆分原则，具体方案属各子任务。
 
 兼容：点名 `decide` / `plan-review` 时改走本阶段（处在 goal 里时不逐条问用户）。
 
@@ -87,9 +87,9 @@
 触发强化：`design` 发现 ≥2 独立方向，或 `approve` 驳回「范围过大」时，**必须评估一次**（提示并等人/goal 确认），不静默跳过。
 
 1. 必须已绑定，绑定任务即父任务。绑定任务本身是子任务（`TASK.md` 已有 `parent:`）则停止：子任务只一层，提示改用 `approve` / `handoff` 收敛。
-2. 缺 `{sub}` 名或一句话方向则询问；`explore` / `chat` 中发现可拆方向时只提示一次，不自动创建。
+2. 缺 `{sub}` 名就由方向推断；连一句话方向都没有才停下，说明需要它；`explore` / `chat` 中发现可拆方向时只提示一次，不自动创建。
 3. `{sub}` 用 kebab-case，且 **全局唯一**：扫 `ongoing/` 全树（含各父目录的子目录）无同名，冲突则换名。
 4. 创建 `ongoing/{parent}/{sub}/TASK.md`（用模板）：填 `parent: {parent}`，继承父完成判据中可拆部分并写子判据，目标节写该方向的子目标，现状节链接父 `TASK.md` 相关段落。
 5. 父 `TASK.md` 的 **子任务** 小节登记一行（无该小节则新建）：`{sub}`、一句话方向、状态、创建日期。
 6. `INDEX.md` Ongoing 表追加一行：任务列 `{parent}/{sub}`，路径列 `ongoing/{parent}/{sub}/`。
-7. 绑定切换到子任务，报告路径，询问下一步（默认建议 `explore`）。父任务随时可 `resume` 回来。父任务 `status` 恒 `ongoing`、自身无独立进度；`handoff` 永不针对父（对父点名 `handoff` = 自动批量交接就绪子任务），父也永不建自己的 driver。子任务均 `handed-off` 或 `archived` 后，父才可 `archive`。
+7. 绑定切换到子任务，报告路径，并说明下一步默认进 `explore`。父任务随时可 `resume` 回来。父任务 `status` 恒 `ongoing`、自身无独立进度；`handoff` 永不针对父（对父点名 `handoff` = 自动批量交接就绪子任务），父也永不建自己的 driver。子任务均 `handed-off` 或 `archived` 后，父才可 `archive`。

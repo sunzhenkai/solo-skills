@@ -1,0 +1,193 @@
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 25bf3e4..871a6ff 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -229,7 +229,7 @@ cases:
+       must:
+         - 第一人称完整句子，先说结论或要用户做什么
+         - 内部术语（driver / tier / criterion / gate / slice / OpenSpec）不裸露，或附一句白话
+-        - 结尾说清接下来会发生什么；有问题只问一个并带推荐
++        - 结尾说清接下来会发生什么；取舍按推荐说成决定，不提问（真阻塞才停并说清需要什么）
+       must_not:
+         - 「字段：值」清单或「gate=approve；P1×1」式输出
+         - 直接贴 checkbox 计数、原始 ID 堆给用户
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 9926711..c8693d3 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -18,16 +18,16 @@
+ 
+ | 模式 | 行为 |
+ |------|------|
+-| human | 闸口列选项（含推荐），等人确认或改值后放行 |
++| human | 闸口把推荐写成已定的决定（带理由）呈现，等人说「继续」或指出要改哪条后放行；不提问 |
+ | goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `references/intent.md`（无 P0/P1） |
+ 
+ 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+ 
+ ## human 闸口呈现（强制）
+ 
+-每个未决口子必须含：**问题**、**推荐**、**一句话理由**；可选备选。**禁止**只列问题、不写推荐。
++每个未决口子写成**决定**（按推荐定下）+ **一句话理由**；可选备选。**禁止**只列问题、不写推荐；不以问句呈现（规则见 [user-report.md](user-report.md)「说决定，不提问」）。
+ 
+-呈现给用户时按契约「对用户说话」用口语表达，内部字段与 P 级只在落盘文件里结构化。收口句默认：「按推荐继续 / 改第 N 条」。用户回「按推荐」即按表内推荐放行。
++呈现给用户时按契约「对用户说话」用口语表达，内部字段与 P 级只在落盘文件里结构化。收口句默认陈述：「以上按推荐定了，说『继续』我就往下做，要改哪条直接说编号。」用户回「继续」或「按推荐」即放行。
+ 
+ human 强制走查（wizard 定稿 / approve）：无论是否另派审，呈现闸口前自走三连并在呈现中附一行结论——①判据可检查；②流程总览（或推荐方案步骤）从现状走得到判据；③交付标准无漏、无越界。任一项不过：先修方案再走闸口，不把走查失败包装成待确认项。
+ 
+@@ -40,11 +40,11 @@ human 点名派审：用户点名评审（名册 / subagent / 同事已评）时
+ 推荐整体：<一句话放行路径>
+ 走查：<通过|失败|不适用> — <一句>（wizard 定稿 / approve 必填；其它闸口写「不适用」）
+ 
+-| # | 口子 | 推荐 | 理由 |
++| # | 口子 | 决定 | 理由 |
+ |---|------|------|------|
+-| 1 | … | 是/否/具体值 | … |
++| 1 | … | 具体值 | … |
+ 
+-回复「按推荐」即放行；改哪条说编号即可。
++以上按推荐定了；说「继续」即放行，要改哪条直接说编号。
+ ```
+ 
+ ## 闸口输入
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index 8ca96a4..aa36b45 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -155,13 +155,13 @@ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内
+ 
+ ## 对用户说话（task 系列共用，唯一出处）
+ 
+-规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 要你定什么；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
++规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 我的决定；说决定不提问；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
+ 
+ 前后对比：
+ 
+-- 闸口提问 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案我觉得可以定了：按中等规模处理，做完的标准是导出 5 秒内。还有一处小风险是大文件内存占用，我建议先加个上限再动手。按这个定下来吗？」
++- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。有不同意见直接说，否则我就往下做。」
+ - 进度 —— 前：「driver checkbox 3/5，slice-2 apply done，gate pending」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步，预计不需要你介入。」
+-- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处建议修：错误处理漏了超时、缺一条回归测试。我先把这两处补上？」
++- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：错误处理漏了超时、缺一条回归测试，我这就补上。」
+ 
+ ## 术语（原 glossary.md）
+ 
+diff --git a/skills/taskrail/references/phase-wizard.md b/skills/taskrail/references/phase-wizard.md
+index 76dd8b1..7421c25 100644
+--- a/skills/taskrail/references/phase-wizard.md
++++ b/skills/taskrail/references/phase-wizard.md
+@@ -4,7 +4,7 @@
+ 
+ ## 原则
+ 
+-- **先查后问**：能查到的先查；问前必给推荐答案。**禁止**空问清单（只列问题、不写推荐）。
++- **先查后定**：能查到的先查；查不到的按推荐写成决定并带理由，不留裸问题。**禁止**空问清单（只列问题、不写推荐）。
+ - **步骤级颗粒度**：每步一个可执行动作，不超过 2 行，含要点与验证。
+ - **完成判据**：单独成节、一条可检查的话；下游按原文采用。
+ - **交付标准**：只取与本任务相关的交付面；无则写「无」。
+@@ -26,7 +26,7 @@
+ 
+ ## 步骤
+ 
+-1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认；goal 模式由 `role-based-reviewer roles=intent` 异源强模型代审（最多 2 轮，不过则记显式降级继续）。歧义影响走向时才问（带推荐答案）。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
++1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认；goal 模式由 `role-based-reviewer roles=intent` 异源强模型代审（最多 2 轮，不过则记显式降级继续）。歧义按推荐写成决定（带理由），不向用户提问。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
+ 2. 只读摸底；事实与假设分开。
+ 3. 涉及数据写删迁或改表时，写备份与回滚路径（仅针对本次改动）；大 size / 不可回滚写入「风险点」。
+ 4. 外部参照：读并做完 [external-precedent.md](external-precedent.md)。必做：复杂档；中等档涉及选型 / 外部集成 / 协议对接。其余跳过。
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 45dac7d..fb8308a 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -12,7 +12,7 @@ taskrail / task-explore / taskflow 凡是直接给用户看的话都按本文件
+ 1. **影响面**：哪些功能 / 环境 / 人受影响，后果是什么。
+ 2. **要改哪些地方**：按模块或行为说（如“解析版本引用的那一层”），不按文件名。
+ 3. **怎么改**：每处一两句。
+-4. **需要你定的事**：一次只问一个，带上推荐；没有就明说“不需要你定什么，我直接继续”。
++4. **我做的决定**：有取舍就按推荐直接定下，用陈述句带一句理由；只有真阻塞才写「需要你：…」（见第 5 节）。
+ 
+ ## 3. 内部词留在台账
+ 
+@@ -22,9 +22,11 @@ phase、status、tier、driver 名、change id、checkbox 编号与计数、门
+ 
+ 确需给出时放在结尾「细节（可跳过）」一行，最多 3 条；用户要去看时才给完整路径。
+ 
+-## 5. 只问用户该拍板的事
++## 5. 说决定，不提问
+ 
+-- 该问的：范围、取舍、风险接受、对外 / 不可逆动作，以及晋升 Skill 改动前确认 diff。
++- 默认不向用户提问。有歧义或取舍，就按推荐定下来，用陈述句说出决定和一句理由，例如「这次先只做页面和数据结构，服务你后面自己加，免得跟还没修好的导入链路绑在一起」。用户不同意会自己说。
++- 不用问号收尾，不写「要不要」「你看行吗」「对吗」。
++- 只有真阻塞才停：线上 / 不可逆 / 对外发送的动作、要改完成标准、碰到安全底线、缺了做不下去且只有用户能给的信息（账号、权限、外部事实），以及晋升 Skill 改动前确认 diff。停的时候也用陈述句：说清停在哪、需要什么，例如「发布到线上这一步我先停下，你说『发布』我再动手」「测试环境的账号我这边没有，拿到后我接着验证，其余部分已经做完」。
+ - 不问、自己做完后一句话告知的（记账）：更新 `TASK.md` 的 `phase` / `status` / `updated` / 指针、勾 checkbox、勾 evolution 提案里的记账项（如“提案已写”）、重建 INDEX、把台账里过时的“无”改成实情。
+ 
+ ## 6. resume 模板
+@@ -34,7 +36,8 @@ phase、status、tier、driver 名、change id、checkbox 编号与计数、门
+ 目前：<做到哪了，用结果说，不用阶段名>。
+ 还卡着：<影响 + 原因，一两句>（没有就省略）。
+ 接下来我会 <下一步动作，白话>。
+-需要你定：<一个问题 + 推荐>（没有就写“不需要你定什么，我直接继续”）。
++我定了：<决定 + 一句理由>（没有就省略）。
++需要你：<只在真阻塞时写，说清要什么>（没有就省略）。
+ ```
+ 
+ ## 6a. 观感任务收尾
+@@ -44,10 +47,10 @@ phase、status、tier、driver 名、change id、checkbox 编号与计数、门
+ 
+ ## 7. 发出前自检
+ 
+-第一段里不应出现：`phase` / `status` / `tier` / `-driver` / 「x.y 未勾」/ `*.py:行号` / 命令名当作下一步（如“进 apply”）/ 记账类问题。
++第一段里不应出现：`phase` / `status` / `tier` / `-driver` / 「x.y 未勾」/ `*.py:行号` / 命令名当作下一步（如“进 apply”）/ 记账类问题 / 以问号结尾的提问（真阻塞除外）。
+ 
+ ## 前后对比
+ 
+-- 问题报告 —— 前：「根因：adapters.py:213 的 fetch-ref stub 致 ref-drift fail-closed；phase propose / status handed-off；1.1 未勾；要不要更新 TASK.md？」；后：「发布时拿到的版本引用和实际 tag 对不上，所以发布被拦下。要改两处：解析版本引用的那一层、环境选择逻辑。修法是按 tag 精确取引用，取不到就明确报错。需要你定一件事：有个配置名会因此多出一段后缀，我建议改配置而不是加兼容。台账我会自己更新。」
+-- resume —— 前：「目标 X / phase apply / 未决 2 / 建议下一步：进 apply」；后：「这个任务是要把导出提速。目前方案已经定了，第一部分已实现。接下来我会做剩下的部分，不需要你定什么，我直接继续。」
++- 问题报告 —— 前：「根因：adapters.py:213 的 fetch-ref stub 致 ref-drift fail-closed；phase propose / status handed-off；1.1 未勾；要不要更新 TASK.md？」；后：「发布时拿到的版本引用和实际 tag 对不上，所以发布被拦下。要改两处：解析版本引用的那一层、环境选择逻辑。修法是按 tag 精确取引用，取不到就明确报错。有个配置名会因此多出一段后缀，我直接改配置、不加兼容层，免得留两套名字。台账我会自己更新。」
++- resume —— 前：「目标 X / phase apply / 未决 2 / 建议下一步：进 apply」；后：「这个任务是要把导出提速。目前方案已经定了，第一部分已实现。接下来我会做剩下的部分。」
+ - 挂起恢复 —— 前：「等待项 → 仍未解除」；后：「还卡在测试环境的权限上，所以没法验证发布；你开通后我就接着跑。」
+diff --git a/skills/taskrail/tests/test_user_report_contract.py b/skills/taskrail/tests/test_user_report_contract.py
+index a291a0a..f445095 100644
+--- a/skills/taskrail/tests/test_user_report_contract.py
++++ b/skills/taskrail/tests/test_user_report_contract.py
+@@ -23,12 +23,12 @@ class UserReportTest(unittest.TestCase):
+ 
+     def test_report_order(self) -> None:
+         t = r(UR)
+-        idx = [t.index(k) for k in ("**影响面**", "**要改哪些地方**", "**怎么改**", "**需要你定的事**")]
++        idx = [t.index(k) for k in ("**影响面**", "**要改哪些地方**", "**怎么改**", "**我做的决定**")]
+         self.assertEqual(idx, sorted(idx))
+ 
+     def test_rules_present(self) -> None:
+         t = r(UR)
+-        for k in ("## 3. 内部词留在台账", "## 4. file:line 只作附注", "## 5. 只问用户该拍板的事",
++        for k in ("## 3. 内部词留在台账", "## 4. file:line 只作附注", "## 5. 说决定，不提问",
+                   "## 6. resume 模板", "勾 evolution 提案里的记账项", "晋升 Skill 改动前确认 diff"):
+             self.assertIn(k, t)
+ 
+@@ -56,5 +56,27 @@ class UserReportTest(unittest.TestCase):
+             self.assertLessEqual(len(r(rel).encode("utf-8")), 8192, rel)
+ 
+ 
++
++
++class TestStatementsNotQuestions(unittest.TestCase):
++    def test_default_no_questions_and_blockers_listed(self) -> None:
++        t = r(UR)
++        sec = t.split("## 5. 说决定，不提问", 1)[1].split("\n## ", 1)[0]
++        for k in ("默认不向用户提问", "只有真阻塞才停", "停的时候也用陈述句"):
++            self.assertIn(k, sec)
++
++    def test_pointers_follow_single_source(self) -> None:
++        self.assertIn("说决定，不提问", r("taskrail/references/confirm-protocol.md"))
++        self.assertIn("说决定，不提问", r("task-intent/SKILL.md"))
++        self.assertIn("自问自答", r("task-explore/references/explore-design.md"))
++        self.assertNotIn("最多一个问题", r("task-intent/references/intent.md"))
++
++    def test_contract_examples_have_no_questions(self) -> None:
++        sec = r("taskrail/references/contract.md").split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
++        for line in sec.splitlines():
++            if "后：「" in line:
++                self.assertNotRegex(line.split("后：「", 1)[1], r"[？?]")
++
++
+ if __name__ == "__main__":
+     unittest.main()

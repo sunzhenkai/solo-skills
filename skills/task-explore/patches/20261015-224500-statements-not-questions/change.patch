@@ -1,0 +1,121 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index 4265010..2212a4b 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -6,7 +6,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
+ 
+ # 任务探索
+ 
+-命令名、路径、代码、状态值与既成术语在文件里保持原文；对用户提问与汇报按「对用户说话」：[user-report.md](../taskrail/references/user-report.md)。
++命令名、路径、代码、状态值与既成术语在文件里保持原文；对用户汇报按「对用户说话」（说决定，不提问）：[user-report.md](../taskrail/references/user-report.md)。
+ 
+ 在任务不明确、周期可能会非常长、或进行复杂问题排查时，不断进行探索、询问、排查等操作。不写实现代码。端到端编排优先走 `taskrail`；本 skill 提供台账与命令细则。
+ 
+diff --git a/skills/task-explore/references/archive-reopen.md b/skills/task-explore/references/archive-reopen.md
+index 035b6c7..94e5cbe 100644
+--- a/skills/task-explore/references/archive-reopen.md
++++ b/skills/task-explore/references/archive-reopen.md
+@@ -14,7 +14,7 @@
+ - 未决条数：不要求清零，可随归档关闭，但要写明。
+ - 曾 `handed-off`：driver 进度（已完成 X/Y、是否已归档）；读不到写「进度未知」，不当作已完成；只报告，**不回写**。
+ - 指向旧路径的链接：列出，问是否改指新路径。
+-- 目标路径：**目标已存在则停止并询问，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
++- 目标路径：**目标已存在则停下并说明冲突路径，禁止覆盖；此时不得改 `TASK.md`、不得移动目录、不得改 INDEX。**
+ 
+ 拿到用户「确认关闭」的明确答复才搬；只给任务名不算确认。
+ 
+@@ -30,7 +30,7 @@
+ 
+ **动之前**：
+ 
+-- 目标路径已存在 → 停止并询问，禁止覆盖（同 archive）。
++- 目标路径已存在 → 停下并说明冲突路径，禁止覆盖（同 archive）。
+ - 子任务名与 `ongoing/` 下其它子任务重名（`{sub}-driver` 会撞）→ 列出，未定不搬。
+ - 曾 `handed-off`：报告 driver 现状，读不到写「进度未知」；driver 及其 change 不删。
+ - 拿到用户「确认 reopen」的明确答复才动。
+diff --git a/skills/task-explore/references/commands.md b/skills/task-explore/references/commands.md
+index 4beae79..f553a85 100644
+--- a/skills/task-explore/references/commands.md
++++ b/skills/task-explore/references/commands.md
+@@ -8,11 +8,11 @@
+ 2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
+ 3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
+ 4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
+-5. 绑定该任务。报告路径，询问下一步：`explore`（默认建议）还是 `chat`。不要自动开始 grill。
++5. 绑定该任务。报告路径，并说明下一步默认进 `explore`，想先随便聊就说 `chat`。不要自动开始 grill。
+ 
+ ## `explore`
+ 
+-不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始提问。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
++不断探索预期目标，委托 `grilling`。进入本命令后 **先读** [references/explore-design.md](explore-design.md)，再开始 grill（自问自答，见该文件）。未读完不要 grill。禁止调用 `grill-with-docs` / `domain-modeling`。
+ 
+ - **仅 grill**（simple / medium，经 taskrail）：只做 grilling 澄清，不强制写 glossary/ADR 全套。
+ - **grill 在意图确认之后**：`wizard/intent.md` 已确认的目标与边界不重问，grill 只追细节；冲突回 `task-intent` 纠偏。
+@@ -87,9 +87,9 @@
+ 触发强化：`design` 发现 ≥2 独立方向，或 `approve` 驳回「范围过大」时，**必须评估一次**（提示并等人/goal 确认），不静默跳过。
+ 
+ 1. 必须已绑定，绑定任务即父任务。绑定任务本身是子任务（`TASK.md` 已有 `parent:`）则停止：子任务只一层，提示改用 `approve` / `handoff` 收敛。
+-2. 缺 `{sub}` 名或一句话方向则询问；`explore` / `chat` 中发现可拆方向时只提示一次，不自动创建。
++2. 缺 `{sub}` 名就由方向推断；连一句话方向都没有才停下，说明需要它；`explore` / `chat` 中发现可拆方向时只提示一次，不自动创建。
+ 3. `{sub}` 用 kebab-case，且 **全局唯一**：扫 `ongoing/` 全树（含各父目录的子目录）无同名，冲突则换名。
+ 4. 创建 `ongoing/{parent}/{sub}/TASK.md`（用模板）：填 `parent: {parent}`，继承父完成判据中可拆部分并写子判据，目标节写该方向的子目标，现状节链接父 `TASK.md` 相关段落。
+ 5. 父 `TASK.md` 的 **子任务** 小节登记一行（无该小节则新建）：`{sub}`、一句话方向、状态、创建日期。
+ 6. `INDEX.md` Ongoing 表追加一行：任务列 `{parent}/{sub}`，路径列 `ongoing/{parent}/{sub}/`。
+-7. 绑定切换到子任务，报告路径，询问下一步（默认建议 `explore`）。父任务随时可 `resume` 回来。父任务 `status` 恒 `ongoing`、自身无独立进度；`handoff` 永不针对父（对父点名 `handoff` = 自动批量交接就绪子任务），父也永不建自己的 driver。子任务均 `handed-off` 或 `archived` 后，父才可 `archive`。
++7. 绑定切换到子任务，报告路径，并说明下一步默认进 `explore`。父任务随时可 `resume` 回来。父任务 `status` 恒 `ongoing`、自身无独立进度；`handoff` 永不针对父（对父点名 `handoff` = 自动批量交接就绪子任务），父也永不建自己的 driver。子任务均 `handed-off` 或 `archived` 后，父才可 `archive`。
+diff --git a/skills/task-explore/references/explore-design.md b/skills/task-explore/references/explore-design.md
+index 2c99488..f676b4f 100644
+--- a/skills/task-explore/references/explore-design.md
++++ b/skills/task-explore/references/explore-design.md
+@@ -9,7 +9,7 @@
+ 
+ | 形态 | 何时 | 做什么 |
+ |------|------|--------|
+-| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 追问细节、边界与约束（目标 / 做完的样子 / 不做 以 `wizard/intent.md` 确认版为准，不重问）；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
++| **仅 grill** | taskrail `tier: simple` / `medium` | 只委托 `grilling` 自问自答细节、边界与约束（目标 / 做完的样子 / 不做 以 `wizard/intent.md` 确认版为准，不重问）；纪要可落 `explore/`；不强制 glossary/ADR 全套 |
+ | **完整 explore** | `tier: complex` 或用户点名完整探索 | 下文步骤全做（含外部参照、术语/ADR） |
+ 
+ 针对任务，不断探索预期目标。**只委托 `grilling`。** 禁止调用 `grill-with-docs` 或 `domain-modeling`：它们会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突。
+@@ -18,11 +18,11 @@
+ 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
+ 3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+ **意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图；后续按 taskrail 契约「意图变更」处理判据与 phase。
+-4. 读取并遵循 `grilling`。不可用则用它的轮次格式当面问；**不要发明等价命令**，也不要改调 `grill-with-docs`。
+-5. 问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策交给用户。
++4. 读取并遵循 `grilling` 的轮次格式，但**自问自答**：每题先自己查证，再给出推荐结论并写一句理由，落 `explore/` 纪要；给用户只报结论（陈述句），不逐题提问。只有真阻塞（改完成标准或范围、线上 / 不可逆、缺只有用户能给的信息）才停下，按 [user-report.md](../../taskrail/references/user-report.md)「说决定，不提问」说清需要什么。`grilling` 不可用时同样自问自答；**不要发明等价命令**，也不要改调 `grill-with-docs`。
++5. 自问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策按推荐自己定并写理由；会改完成标准或范围的决定放进闸口，以已定决定呈现。
+ 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
+ 7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
+-8. 结束本轮时列出已澄清目标与仍开放的 frontier，并提示是否 `save`。
++8. 结束本轮时列出已定的结论与仍开放的 frontier，并说明会 `save` 到哪。
+ 
+ 术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件提示是否更新任务文档。
+ 
+diff --git a/skills/task-explore/tests/test_grill_self_answer.py b/skills/task-explore/tests/test_grill_self_answer.py
+new file mode 100644
+index 0000000..9ef7fd7
+--- /dev/null
++++ b/skills/task-explore/tests/test_grill_self_answer.py
+@@ -0,0 +1,22 @@
++"""grill 自问自答：结论给用户，只有真阻塞才停。"""
++
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++class TestGrillSelfAnswer(unittest.TestCase):
++    def test_grill_self_answers(self) -> None:
++        t = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
++        self.assertIn("**自问自答**", t)
++        self.assertIn("给用户只报结论（陈述句），不逐题提问", t)
++        self.assertIn("只有真阻塞", t)
++        self.assertNotIn("决策交给用户", t)
++        self.assertNotIn("当面问", t)
++
++
++if __name__ == "__main__":
++    unittest.main()

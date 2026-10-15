@@ -25,18 +25,22 @@ class TestTaskIntent(unittest.TestCase):
     def test_checklist_is_internal_and_in_intent_file(self) -> None:
         self.assertIn("不照着打印", self.ref)
         block = re.search(r"## 覆盖清单\n(.*?)\n\n", self.ref, re.S).group(1)
-        for f in ("要干嘛", "怎么干", "输出什么", "做完的样子", "上下文", "不做", "我的假设", "要你拍板的"):
+        for f in ("要干嘛", "怎么干", "输出什么", "做完的样子", "上下文", "不做", "我的假设", "我的决定", "需要你提供的"):
             self.assertIn(f, block)
 
     def test_user_restatement_is_natural_prose(self) -> None:
         sec = re.search(r"## 3\. 给用户的复述[^\n]*\n(.*?)\n## ", self.ref, re.S).group(1)
-        for s in ("1–3 句", "第一人称", "接下来", "最多一个问题", "不要标题、不要加粗标签"):
+        for s in ("1–3 句", "第一人称", "接下来", "不提问", "不要标题、不要加粗标签"):
             self.assertIn(s, sec)
         examples = [l for l in sec.splitlines() if l.startswith("- ") and len(l) > 40]
         self.assertGreaterEqual(len(examples), 3)
         self.assertTrue(any("写完告诉你放在哪" in e for e in examples))
         for e in examples:
             self.assertNotIn("**", e)
+        for e in sec.split("示例：", 1)[1].splitlines():
+            if e.startswith("- "):
+                self.assertNotRegex(e, r"[？?]|要不要|你看行吗")
+        self.assertTrue(any("服务你后面自己加" in e for e in examples))
         self.assertIn("不逐项列字段", self.skill)
 
     def test_explore_detailed_output_concise(self) -> None:

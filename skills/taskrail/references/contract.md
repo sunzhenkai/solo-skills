@@ -45,7 +45,7 @@ wizard → explore(+grill) → design → approve → [handoff] → propose → 
 用户在 wizard 之后改主意（或 grill / design / apply 发现与 `wizard/intent.md` 冲突）时，按序，不得跳步：
 
 1. 重跑 `task-intent`，改写 `wizard/intent.md` 并在其纠偏记录追加一行（旧版靠 git 追溯）。
-2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion`（human 逐条确认；goal 审阅收敛），记入 `TASK.md` 决策节；这是唯一合法改写，不算「用当轮叙事改写」。
+2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion`（human 逐条确认；goal 审阅收敛），记入 `TASK.md`「已做决定」；这是唯一合法改写，不算「用当轮叙事改写」。
 3. phase 回退：只改细节 → 留在当前 phase；改范围 / 判据且未 `handed-off` → 回 `wizard`（方案未冻结）或 `design`（已有设计）；已 `approve` 的须重新 approve。
 4. 已 `handed-off`：探索侧不回退，经 taskflow 开修订子 change（或修订 driver 判据快照），未勾 checkbox 按新判据重排；已交付部分写显式决策。
 
@@ -94,7 +94,7 @@ updated: YYYY-MM-DD
 - `phase` 只允许上列封闭枚举。task-explore 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，禁止写入 `phase`。
 - `phase` + 各阶段目录产物 = wizard→approve 区间的进度真相。
 - propose 之后进度只认 OpenSpec checkbox（driver / 子 change）。
-- **一本账**：`TASK.md` 是唯一任务账（目标、判据、phase、决策）；driver 只是 OpenSpec 执行记录，propose 之后的进度看其 checkbox，不在 driver 另记任务状态。`handed-off` **不等于** `done`。
+- **一本账**：`TASK.md` 是唯一任务账（目标、判据、phase、决定）；所有决定只追加到「已做决定」表（决定 / 理由 / 可逆 / 来源阶段），意图确认、grill、闸口、实现中定下的都记在这里，不分散到别的文件；driver 只是 OpenSpec 执行记录，propose 之后的进度看其 checkbox，不在 driver 另记任务状态。`handed-off` **不等于** `done`。
 - `done` 仅当完成判据成立且交付标准全过（复杂档另要求质量画像齐全、降级无 `pending`/`provisional`）。
 
 `status` 随 `phase` 走，不另设矩阵：wizard–approve（及 simple 的 apply）为 `ongoing`；handoff 后为 `handed-off`；完成门过为 `done`；归档为 `archived`；`blocked` 停在原 `phase`。
@@ -108,7 +108,7 @@ updated: YYYY-MM-DD
 | explore / design | `wizard/intent.md`（`status: confirmed` 或 `assumed`；本规则生效前的旧任务缺失不回溯）+ `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
 | design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
 | approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md 决策节已冻结）+ 判据原文；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入；`taskflow/scripts/check_handoff.py` exit 0 |
+| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md「已做决定」已冻结）+ 判据原文；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入；`taskflow/scripts/check_handoff.py` exit 0 |
 | apply | driver `tasks.md` 已由 propose 产出；simple：wizard 已定稿（`wizard/intent.md` + `criterion`） |
 | archive（探索侧） | 用户确认关闭；子任务均已结 |
 
@@ -155,13 +155,13 @@ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内�
 
 ## 对用户说话（task 系列共用，唯一出处）
 
-规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 要你定什么；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
+规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 我的决定；说决定不提问；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
 
 前后对比：
 
-- 闸口提问 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案我觉得可以定了：按中等规模处理，做完的标准是导出 5 秒内。还有一处小风险是大文件内存占用，我建议先加个上限再动手。按这个定下来吗？」
+- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。有不同意见直接说，否则我就往下做。」
 - 进度 —— 前：「driver checkbox 3/5，slice-2 apply done，gate pending」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步，预计不需要你介入。」
-- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处建议修：错误处理漏了超时、缺一条回归测试。我先把这两处补上？」
+- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：错误处理漏了超时、缺一条回归测试，我这就补上。」
 
 ## 术语（原 glossary.md）
 

@@ -93,7 +93,7 @@ Web UI 的重型门（frozen Active Instance + 三条 digest、代表页 two-pas
 | 路径（`tasks/ongoing/{slug}/` 下） | 谁写 | 用途 |
 |---|---|---|
 | `TASK.md` | taskrail | **唯一任务账**：`phase` / `confirm_mode` / `tier` / `criterion` / 决策；simple 另含「验证」节 |
-| `wizard/intent.md` | task-intent | 确认版意图：给你的口语复述原文 + 覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 拍板）+ 纠偏记录 |
+| `wizard/intent.md` | task-intent | 确认版意图：给你的口语复述原文 + 覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 决定）+ 纠偏记录 |
 | `evidence/intent/` | 探索 | 意图探索详情 |
 | `wizard/plan.md` | wizard | 方案、完成判据、流程总览、交付类别与门包 |
 | `explore/`、`design/` | task-explore | grill 纪要、设计稿（命中门包时含 `design/contract.md`） |
@@ -136,9 +136,11 @@ taskrail list                  # 列任务
 
 ## 10. FAQ
 
-- **会不会问很多？** 只在歧义改变做法或范围时问，一次最多一个、带推荐答案；能查到的不问（`task-intent/SKILL.md`）。
+- **会不会问很多？** 不会问。有歧义就按推荐直接定下来，用一句话告诉你定了什么、为什么；你不同意直接说。只有线上 / 不可逆 / 对外发送、要改完成标准、或缺了只有你能给的信息时才停，停时也会说清需要什么（`taskrail/references/user-report.md`「说决定，不提问」）。
 - **会不会满屏术语？** 不会；规则统一在契约「对用户说话」，各 skill 只引用这一处。
-- **复述会不会很长、像填表？** 不会：给你的是 1–3 句口语，最多嵌一个问题；字段清单只落在 `wizard/intent.md`，细节在 `evidence/intent/`（`task-intent/references/intent.md`）。
+- **复述会不会很长、像填表？** 不会：给你的是 1–3 句口语，不带问题；字段清单只落在 `wizard/intent.md`，细节在 `evidence/intent/`（`task-intent/references/intent.md`）。
+- **自己定的事我怎么知道？** 难回头的决定（数据结构、接口形状、存储格式、对外命名、依赖、删除或迁移数据）会单独一行告诉你「我定了 X，因为 Y」；所有决定都记在 `TASK.md`「已做决定」表里，标了能不能回头、来自哪个阶段。删数据、改共享配置、线上 / 对外动作、改完成标准、缺账号权限这几类才会停下（`taskrail/references/user-report.md`「说决定，不提问」）。
+- **grill 会追着问我吗？** 不会：grill 自问自答，只把结论告诉你；确认过的目标、做完的样子、不做也不会重来（`task-explore/references/explore-design.md`）。
 - **grill 会重复问目标吗？** 不会；确认过的目标、做完的样子、不做 不重问（`task-explore/references/explore-design.md`）。
 - **怎么算做完？** 完成门逐条机械核对，第 8 条回看 intent.md；判据不成立不算 done（`taskrail/SKILL.md`）。
 - **小改也要走全套？** 不用：simple 档定稿后直接实现 + 验证；一句话就能做完、不需要台账的，不必经 taskrail（`taskrail/references/contract.md`、`task-explore/SKILL.md`「何时不用」）。
