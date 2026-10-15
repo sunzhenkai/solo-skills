@@ -55,5 +55,11 @@ class TestTaskIntent(unittest.TestCase):
         self.assertIn("**不调用** role-based-reviewer", self.ref)
 
 
+class TestNoSelfAddedConstraints(unittest.TestCase):
+    def test_not_do_only_from_user_words(self) -> None:
+        skill = read("SKILL.md")
+        self.assertIn("「不做」只写用户原话里的限制，自己想加的写进「我的假设」", skill)
+        self.assertIn("不把宽泛目标缩窄", skill)
+
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,7 @@ class TestWizardDeliverableClass(unittest.TestCase):
         self.assertIn("](gate-packs.md)", self.wizard)
 
     def test_external_reference_forbidden_as_acceptance(self) -> None:
-        self.assertIn("验收方式禁止写「对照外部产品或参考实现」", self.wizard)
+        self.assertIn("验收方式不能只写「对照外部产品或参考实现」", self.wizard)
 
     def test_template_section(self) -> None:
         self.assertIn("## 交付类别与门包", self.wizard)

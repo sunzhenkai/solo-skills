@@ -106,5 +106,10 @@ class TestIntentRole(unittest.TestCase):
         self.assertIn("intent ↔ product", read("references/protocol.md"))
 
 
+class TestIntentNarrowingCheck(unittest.TestCase):
+    def test_intent_role_flags_added_constraints(self) -> None:
+        text = read("references/roles/intent.md")
+        self.assertIn("自加限制或缩窄目标", text)
+
 if __name__ == "__main__":
     unittest.main()

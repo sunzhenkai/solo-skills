@@ -324,3 +324,15 @@ cases:
         - 缺 Active Instance 时回 design 阶段在交付项目根建立并 freeze
       must_not:
         - 要求安装或委托 ui-template-design / ui-template-apply / ui-template-author
+
+  - id: aesthetic-visual-direction
+    kind: core
+    judge: llm
+    description: 有观感目标的 Web UI 切片先定视觉方向再实现
+    given: driver 的 Web UI 切片对应观感目标「提升设计感」
+    expect:
+      must:
+        - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
+        - 收口按 gate-packs「审美目标（不分档）」
+      must_not:
+        - 沿用框架默认样式只点缀几处颜色就收工

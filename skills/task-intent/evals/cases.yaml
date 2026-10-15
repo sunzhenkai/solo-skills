@@ -249,3 +249,15 @@ cases:
         - 类似「好，我按仓库的约定挑个合适的位置写成一份文档，内容包括……并在 README 和 taskrail 里加链接。写完告诉你放在哪。」
       must_not:
         - 出现「要干嘛：」「怎么干：」等字段标签或标题
+
+  - id: no-self-added-constraints
+    kind: core
+    judge: llm
+    description: 「不做」只来自原话，宽泛目标不缩窄
+    given: 用户说「提升设计感，多用颜色 + 图表」，没提依赖限制
+    expect:
+      must:
+        - 想避免新依赖时写进「我的假设」并说明理由
+        - 「多用颜色」按原话范围复述，不缩成只改主色
+      must_not:
+        - 在「不做」里写「不引入图表库」

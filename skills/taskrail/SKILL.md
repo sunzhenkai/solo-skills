@@ -95,11 +95,12 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**�
 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
 5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
-7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
+7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。
 
 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
 
 8. 对照 `wizard/intent.md`（若有）：「做完的样子」逐条成立，「不做」未被越界。
+9. 观感目标：异源 design 评审看改前改后截图无未解决的观感 Blocker / Major；human 再经用户看图确认（[gate-packs.md](references/gate-packs.md)「审美目标」）。
 
 `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
 

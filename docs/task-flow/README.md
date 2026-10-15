@@ -142,4 +142,5 @@ taskrail list                  # 列任务
 - **grill 会重复问目标吗？** 不会；确认过的目标、做完的样子、不做 不重问（`task-explore/references/explore-design.md`）。
 - **怎么算做完？** 完成门逐条机械核对，第 8 条回看 intent.md；判据不成立不算 done（`taskrail/SKILL.md`）。
 - **小改也要走全套？** 不用：simple 档定稿后直接实现 + 验证；一句话就能做完、不需要台账的，不必经 taskrail（`taskrail/references/contract.md`、`task-explore/SKILL.md`「何时不用」）。
+- **要求「好看点 / 有设计感」怎么验收？** 不看档位：先按内置的 frontend-design 定视觉方向、列参照页，用接近真实的演示数据截改前改后图，交给另一个模型对照评审。goal 模式下评审有大问题就自动改到没有为止；human 模式评审过了再把截图给你确认（`taskrail/references/gate-packs.md`「审美目标（不分档）」）。
 - **skill 自己会改自己吗？** 不会；只在你显式点名 skill-upgrader 时改（`skill-upgrader/SKILL.md`）。

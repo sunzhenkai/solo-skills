@@ -33,11 +33,25 @@
   - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
 - **design 评审文件（按档）**：
   - **complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
-  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
+  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。有观感目标时例外，见「审美目标（不分档）」。
 - **主观项**：视觉层次 / 密度 / 排版节奏——complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
 - **实现方法（按档）**：
   - **complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
   - **medium / simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+
+## 审美目标（不分档）
+
+用户原话里有「设计感 / 好看 / 高级 / 多用颜色」这类观感目标时，下面几条不看档位一律适用。本节是唯一出处，别处只指向这里。
+
+1. **视觉方向**：动手前读 [../../pretty-view-html/references/frontend-design/REFERENCE.md](../../pretty-view-html/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下本次选定的视觉方向：配色、字体、版式、一个特征元素。不拿框架默认样式点缀几处就收工。
+2. **天花板参照集**：按 [quality-profile.md](quality-profile.md) 的写法列参照集，不分档必写；没有质量画像的档位写在「质量属性」里。
+3. **演示数据**：截图前先准备接近真实的演示数据（足够条数、长短文本、多种状态），不在空库或一两条数据上截图。
+4. **改前 / 改后截图**：同一路由、同一视口、同一份演示数据各截一组，放进证据目录。
+5. **异源 design 评审**：派 `role-based-reviewer roles=design`，模型与实现者不同、最好更强；随附参照集、视觉方向、改前 / 改后截图。评审按参照集对观感出意见。
+6. **收口**：
+   - goal：不停下问人。评审还有没解决的观感 Blocker / Major，就按意见改、重截、再评，自动迭代；评审没有未解决的观感 Blocker / Major 才算过。每轮评审结论与截图路径记进验证记录。同一问题连续两轮没改好，按确认协议「同一验证连败两次」停下。
+   - human：异源评审通过后，把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算确认。
+7. 任一条没做到不能标 `done`，也不能用 B 类降级放行。
 
 ## 服务 / 后端
 

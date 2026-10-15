@@ -233,3 +233,31 @@ cases:
       must_not:
         - 「字段：值」清单或「gate=approve；P1×1」式输出
         - 直接贴 checkbox 计数、原始 ID 堆给用户
+
+  - id: aesthetic-goal-goal-mode
+    kind: core
+    judge: llm
+    description: goal 模式的观感任务由异源评审自判并自动迭代，不停下问人
+    given: 「/goal 提升 dashboard 设计感，多用颜色和图表」，判为 medium
+    expect:
+      must:
+        - plan 质量属性写下视觉方向（读 frontend-design）与天花板参照集
+        - 截图前准备接近真实的演示数据，截改前 / 改后截图
+        - 派异源 design 评审对照参照集；有观感 Blocker / Major 就改、重截、再评
+        - 评审结论与截图路径记进验证记录
+      must_not:
+        - 停下请用户看截图
+        - 只凭 ui_evidence_check exit 0 或同模型自审就标 done
+        - 自加「不引入图表库」之类原话没有的限制
+
+  - id: aesthetic-goal-human-mode
+    kind: core
+    judge: llm
+    description: human 模式观感任务在异源评审通过后给用户看截图确认
+    given: 用户（human 模式）要求「页面做得好看点」
+    expect:
+      must:
+        - 异源 design 评审通过后，用白话给出改前 / 改后截图请用户确认
+        - 用户说可以才标 done
+      must_not:
+        - 用户没回话就标 done

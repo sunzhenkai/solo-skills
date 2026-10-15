@@ -1,0 +1,197 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 350e7f8..dc63afa 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -95,11 +95,12 @@ design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**
+ 4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+ 5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
+ 6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+-7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。代表页修订记录不单独构成证据；digest 与 Gallery 只证明系统未漂。
++7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。
+ 
+ 完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
+ 
+ 8. 对照 `wizard/intent.md`（若有）：「做完的样子」逐条成立，「不做」未被越界。
++9. 观感目标：异源 design 评审看改前改后截图无未解决的观感 Blocker / Major；human 再经用户看图确认（[gate-packs.md](references/gate-packs.md)「审美目标」）。
+ 
+ `handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
+ 
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 49d6a13..25bf3e4 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -233,3 +233,31 @@ cases:
+       must_not:
+         - 「字段：值」清单或「gate=approve；P1×1」式输出
+         - 直接贴 checkbox 计数、原始 ID 堆给用户
++
++  - id: aesthetic-goal-goal-mode
++    kind: core
++    judge: llm
++    description: goal 模式的观感任务由异源评审自判并自动迭代，不停下问人
++    given: 「/goal 提升 dashboard 设计感，多用颜色和图表」，判为 medium
++    expect:
++      must:
++        - plan 质量属性写下视觉方向（读 frontend-design）与天花板参照集
++        - 截图前准备接近真实的演示数据，截改前 / 改后截图
++        - 派异源 design 评审对照参照集；有观感 Blocker / Major 就改、重截、再评
++        - 评审结论与截图路径记进验证记录
++      must_not:
++        - 停下请用户看截图
++        - 只凭 ui_evidence_check exit 0 或同模型自审就标 done
++        - 自加「不引入图表库」之类原话没有的限制
++
++  - id: aesthetic-goal-human-mode
++    kind: core
++    judge: llm
++    description: human 模式观感任务在异源评审通过后给用户看截图确认
++    given: 用户（human 模式）要求「页面做得好看点」
++    expect:
++      must:
++        - 异源 design 评审通过后，用白话给出改前 / 改后截图请用户确认
++        - 用户说可以才标 done
++      must_not:
++        - 用户没回话就标 done
+diff --git a/skills/taskrail/references/gate-packs.md b/skills/taskrail/references/gate-packs.md
+index 309fb86..6eb74d3 100644
+--- a/skills/taskrail/references/gate-packs.md
++++ b/skills/taskrail/references/gate-packs.md
+@@ -33,12 +33,26 @@
+   - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
+ - **design 评审文件（按档）**：
+   - **complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+-  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。
++  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。有观感目标时例外，见「审美目标（不分档）」。
+ - **主观项**：视觉层次 / 密度 / 排版节奏——complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+ - **实现方法（按档）**：
+   - **complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
+   - **medium / simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+ 
++## 审美目标（不分档）
++
++用户原话里有「设计感 / 好看 / 高级 / 多用颜色」这类观感目标时，下面几条不看档位一律适用。本节是唯一出处，别处只指向这里。
++
++1. **视觉方向**：动手前读 [../../pretty-view-html/references/frontend-design/REFERENCE.md](../../pretty-view-html/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下本次选定的视觉方向：配色、字体、版式、一个特征元素。不拿框架默认样式点缀几处就收工。
++2. **天花板参照集**：按 [quality-profile.md](quality-profile.md) 的写法列参照集，不分档必写；没有质量画像的档位写在「质量属性」里。
++3. **演示数据**：截图前先准备接近真实的演示数据（足够条数、长短文本、多种状态），不在空库或一两条数据上截图。
++4. **改前 / 改后截图**：同一路由、同一视口、同一份演示数据各截一组，放进证据目录。
++5. **异源 design 评审**：派 `role-based-reviewer roles=design`，模型与实现者不同、最好更强；随附参照集、视觉方向、改前 / 改后截图。评审按参照集对观感出意见。
++6. **收口**：
++   - goal：不停下问人。评审还有没解决的观感 Blocker / Major，就按意见改、重截、再评，自动迭代；评审没有未解决的观感 Blocker / Major 才算过。每轮评审结论与截图路径记进验证记录。同一问题连续两轮没改好，按确认协议「同一验证连败两次」停下。
++   - human：异源评审通过后，把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算确认。
++7. 任一条没做到不能标 `done`，也不能用 B 类降级放行。
++
+ ## 服务 / 后端
+ 
+ - **基准物**：接口契约（schema / 协议）+ 既有错误语义与状态码约定。
+diff --git a/skills/taskrail/references/phase-wizard.md b/skills/taskrail/references/phase-wizard.md
+index b72e5b3..76dd8b1 100644
+--- a/skills/taskrail/references/phase-wizard.md
++++ b/skills/taskrail/references/phase-wizard.md
+@@ -11,8 +11,8 @@
+ - **阻塞点与坑必须显式列出**，没有写「无」。
+ - **简洁**：半屏内；判据、流程总览、阻塞点、建议路由不可省。
+ - **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
+-- **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。
+-- **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [gate-packs.md](gate-packs.md) 写入适用门包与**基准物**；验收方式禁止写「对照外部产品或参考实现」——外部参照只是一次性输入。
++- **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。Web UI 有观感目标时，另写视觉方向与天花板参照集（[gate-packs.md](gate-packs.md)「审美目标（不分档）」）。
++- **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [gate-packs.md](gate-packs.md) 写入适用门包与**基准物**；验收方式不能只写「对照外部产品或参考实现」；外部参照可以进天花板参照集供评审对照，但不代替验收。
+ - **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
+ 
+ ## 决策收敛
+diff --git a/skills/taskrail/references/quality-profile.md b/skills/taskrail/references/quality-profile.md
+index 3d09333..8866edb 100644
+--- a/skills/taskrail/references/quality-profile.md
++++ b/skills/taskrail/references/quality-profile.md
+@@ -23,6 +23,7 @@
+ ```
+ 
+ - 五个顶层字段都要写；`角色底线` 下的 product、design、engineer 三条一条都不能省。
++- 天花板参照集不分档：用户原话有观感目标时，没有质量画像的档位也要写（落在 `wizard/plan.md`「质量属性」），见 [gate-packs.md](gate-packs.md)「审美目标（不分档）」。
+ - 质量目标含审美 / 体验等无法用确定性度量完备验收的项时（典型：UI 观感、文案气质、交互手感），design 底线还须写**天花板参照集**：把「卓越」落到可数的构成件，或列外部参照（作品、规范、既有页面各指到具体件，写清取它哪一点），写在 design 底线里、与其余底线同样可检查。实测指标与地板只声明「不低于」，替代不了参照集；写不出先走退出点「理解不够」，不以「无缺陷」默认收工。
+ - 主流程 3-7 条。超出 7 条说明范围过大，按「不做的事」收敛，不堆清单。
+ - 每条底线写成可检查的话：点出页面或状态、并发与数据量假设、以及验证方式（运行、截图、测试、启动步骤）。「高质量」「体验好」「足够健壮」这类形容词不算。
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 3fde37a..45dac7d 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -37,6 +37,11 @@ phase、status、tier、driver 名、change id、checkbox 编号与计数、门
+ 需要你定：<一个问题 + 推荐>（没有就写“不需要你定什么，我直接继续”）。
+ ```
+ 
++## 6a. 观感任务收尾
++
++- human：「界面改好了，下面是改之前和改之后的截图，用的是接近真实的演示数据。你看看效果行不行，行我就收尾。」
++- goal：「界面改了三轮，另一个模型对照参照页逐条评过，现在没有剩下的大问题；改前改后截图放在 <目录>。」
++
+ ## 7. 发出前自检
+ 
+ 第一段里不应出现：`phase` / `status` / `tier` / `-driver` / 「x.y 未勾」/ `*.py:行号` / 命令名当作下一步（如“进 apply”）/ 记账类问题。
+diff --git a/skills/taskrail/tests/test_deliverable_class_contract.py b/skills/taskrail/tests/test_deliverable_class_contract.py
+index 3943690..0b6bccb 100644
+--- a/skills/taskrail/tests/test_deliverable_class_contract.py
++++ b/skills/taskrail/tests/test_deliverable_class_contract.py
+@@ -23,7 +23,7 @@ class TestWizardDeliverableClass(unittest.TestCase):
+         self.assertIn("](gate-packs.md)", self.wizard)
+ 
+     def test_external_reference_forbidden_as_acceptance(self) -> None:
+-        self.assertIn("验收方式禁止写「对照外部产品或参考实现」", self.wizard)
++        self.assertIn("验收方式不能只写「对照外部产品或参考实现」", self.wizard)
+ 
+     def test_template_section(self) -> None:
+         self.assertIn("## 交付类别与门包", self.wizard)
+diff --git a/skills/taskrail/tests/test_aesthetic_goal_contract.py b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+new file mode 100644
+index 0000000..16eef92
+--- /dev/null
++++ b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+@@ -0,0 +1,49 @@
++"""观感目标（设计感 / 好看）不分档的收口规则：视觉方向、参照集、演示数据、改前改后截图、异源评审；goal 自判迭代，human 给人看截图。"""
++
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILLS = ROOT.parent
++
++
++def read(rel: str) -> str:
++    return (ROOT / rel).read_text(encoding="utf-8")
++
++
++class TestAestheticGoal(unittest.TestCase):
++    def setUp(self) -> None:
++        self.packs = read("references/gate-packs.md")
++
++    def test_single_source_section(self) -> None:
++        self.assertIn("## 审美目标（不分档）", self.packs)
++        for phrase in ("视觉方向", "天花板参照集", "演示数据", "改前 / 改后截图", "异源 design 评审"):
++            self.assertIn(phrase, self.packs)
++
++    def test_visual_direction_file_exists(self) -> None:
++        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", self.packs)
++        self.assertTrue((SKILLS / "pretty-view-html/references/frontend-design/REFERENCE.md").is_file())
++
++    def test_goal_iterates_without_asking_human(self) -> None:
++        self.assertIn("goal：不停下问人", self.packs)
++        self.assertIn("自动迭代", self.packs)
++        self.assertIn("没有未解决的观感 Blocker / Major 才算过", self.packs)
++
++    def test_human_confirms_screenshots(self) -> None:
++        self.assertIn("human：异源评审通过后，把改前 / 改后截图给用户看", self.packs)
++
++    def test_no_b_class_downgrade(self) -> None:
++        self.assertIn("也不能用 B 类降级放行", self.packs)
++
++    def test_pointers(self) -> None:
++        self.assertIn("「审美目标」", read("SKILL.md"))
++        self.assertIn("「审美目标（不分档）」", read("references/phase-wizard.md"))
++        self.assertIn("天花板参照集不分档", read("references/quality-profile.md"))
++        self.assertIn("观感任务收尾", read("references/user-report.md"))
++        self.assertIn("「审美目标（不分档）」", (SKILLS / "taskflow/SKILL.md").read_text(encoding="utf-8"))
++
++
++if __name__ == "__main__":
++    unittest.main()

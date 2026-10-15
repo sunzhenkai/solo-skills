@@ -66,6 +66,7 @@ propose / apply / 收尾前**先读** [references/execution-discipline.md](refer
 - 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 见 taskrail 契约「执行座位」。
 - 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
 - Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
+- 有观感目标时，实现者先读 [../pretty-view-html/references/frontend-design/REFERENCE.md](../pretty-view-html/references/frontend-design/REFERENCE.md)，按计划里的视觉方向做；收口按 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md)「审美目标（不分档）」。
 
 ---
 
