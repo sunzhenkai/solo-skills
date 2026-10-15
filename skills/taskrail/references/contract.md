@@ -69,7 +69,7 @@ tasks/
 ```
 
 - 凡经 `taskrail` 推进的任务一律建 `tasks/ongoing/{slug}/`（含简单档）。
-- 无 `tasks/` 时须先获确认再建（沿用 task-explore 纪律）。
+- 无 `tasks/` 时在仓库根直接建，一句话说明（沿用 task-explore 纪律）。
 - 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
 - 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
 - **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体落交付项目根，由交付仓自己维护（task* 的 design 阶段负责建立 / 修订并 freeze）。
@@ -159,7 +159,7 @@ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内�
 
 前后对比：
 
-- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。有不同意见直接说，否则我就往下做。」
+- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。接下来我就往下做。」
 - 进度 —— 前：「driver checkbox 3/5，slice-2 apply done，gate pending」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步，预计不需要你介入。」
 - 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：错误处理漏了超时、缺一条回归测试，我这就补上。」
 

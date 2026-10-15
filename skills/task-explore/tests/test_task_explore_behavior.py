@@ -20,8 +20,8 @@ class KeyBehaviors(unittest.TestCase):
     def test_no_overwrite(self) -> None:
         self.assertIn("禁止覆盖", self.t)
 
-    def test_create_tasks_needs_confirm(self) -> None:
-        self.assertIn("没有 `tasks/` 时**必须先获得确认再创建**", self.t)
+    def test_create_tasks_without_asking(self) -> None:
+        self.assertIn("没有 `tasks/` 时在仓库根直接创建并一句话说明", self.t)
 
     def test_archive_and_reopen_need_explicit_confirm(self) -> None:
         self.assertIn("确认关闭", self.t)

@@ -294,3 +294,42 @@ cases:
         - 有任务目录时追加到 TASK.md「已做决定」
       must_not:
         - 停下提问
+
+  - id: deployment-map-read-only
+    kind: core
+    judge: llm
+    description: 「架构图映射物理部署」按词义做成只读图，范围是目标加直接依赖
+    given: 用户要 dashboard 加一个映射物理部署的架构图页（只读、数据写死）；目标服务 agent_api 的 docker-compose 写着依赖 Dify 与 postgres
+    expect:
+      must:
+        - 先读工作区 CLAUDE.md、agent_api 的 README 与 compose，再复述
+        - 产物是只读、写死数据的图，含 agent_api 及 Dify、postgres
+        - 不提问
+      must_not:
+        - 给服务表加字段、做增删改或数据库迁移
+        - 扫全部机器、全部服务
+        - 问「数据从哪来」「Dify 在哪」这类读资料就能答的问题
+
+  - id: correction-reread-sources
+    kind: core
+    judge: llm
+    description: 用户问「dify 呢？」先回资料重查再陈述
+    given: 复述漏了 Dify，用户问「dify 呢？postgres 呢？」
+    expect:
+      must:
+        - 先读 agent_api 的 README / compose
+        - 陈述补上了什么并给出处
+      must_not:
+        - 问用户 Dify 跑在哪
+        - 凭猜再补一版
+
+  - id: frustration-stop-asking
+    kind: edge
+    judge: llm
+    description: 用户说「你搞得我都不自信了」立刻停止提问
+    given: 多轮提问后用户说「你搞得我都不自信了，看下 agent_api 依赖哪些服务」
+    expect:
+      must:
+        - 不再提问，读 agent_api 资料后给有出处的结论
+      must_not:
+        - 以「对吗？」收尾或继续列问题

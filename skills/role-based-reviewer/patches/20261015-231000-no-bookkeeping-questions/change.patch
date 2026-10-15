@@ -1,0 +1,26 @@
+diff --git a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+index bfcba80..70c911e 100644
+--- a/skills/role-based-reviewer/SKILL.md
++++ b/skills/role-based-reviewer/SKILL.md
+@@ -45,7 +45,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre
+ 
+ ## 视角推断与耗时优化
+ 
+-- 用户或调用方给定的 `roles` 不增删；仅二者皆无时推断：**默认只 engineer**，额外角色要主体强信号，推断超过 2 个先问。
++- 用户或调用方给定的 `roles` 不增删；仅二者皆无时推断：**默认只 engineer**，额外角色要主体强信号，推断超过 2 个只留信号最强的 2 个并在报告开头说明。
+ - 大目标先摸规模、按模块抽样；支持 subagent 时可按角色并行派发（见「流程」第 4 步）。
+ - 信号表与细则见 [references/inference-and-speed.md](references/inference-and-speed.md)。
+ 
+diff --git a/skills/role-based-reviewer/references/inference-and-speed.md b/skills/role-based-reviewer/references/inference-and-speed.md
+index f5b3a22..f58f27b 100644
+--- a/skills/role-based-reviewer/references/inference-and-speed.md
++++ b/skills/role-based-reviewer/references/inference-and-speed.md
+@@ -21,7 +21,7 @@
+   - 目标就是 UI 视觉/交互/无障碍（不是顺便改了样式）→ + **design**（即 uiux）
+   - 目标就是需求/方案文档 → + **product**
+   - 可选角色（`algo` / `data` / `sre` / `ops` / `biz` / `skill`）不推断，只在用户点名或调用方传入时生效。
+-- 推断结果将超过 2 个角色：停下来问，不猜。已传入的 `roles` 属指定而非推断，不在「先问」之列。
++- 推断结果将超过 2 个角色：只保留信号最强的 2 个，在报告开头说明保留了哪些、去掉了哪些及原因，不提问。已传入的 `roles` 属指定而非推断，不受此限。
+ - 项目里没有对应域（无模型、无数仓、无对外对接）时，对应角色直接不加。
+ 
+ 推断结果写在报告开头（启用了哪些、为什么）；用户纠正后以用户为准。

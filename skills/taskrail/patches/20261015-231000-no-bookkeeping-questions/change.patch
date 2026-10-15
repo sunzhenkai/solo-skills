@@ -1,0 +1,141 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index dc63afa..40b888d 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -41,9 +41,9 @@ taskrail list
+ ## 绑定与目录
+ 
+ 1. 先读 `tasks/INDEX.md`（无或漂移则按 `ongoing/`/`archive/` 重建，纪律见 task-explore）。
+-2. 无绑定：请用户 **创建**（`new`）或 **恢复**（`resume`）；确认前不进阶段。例外：本轮已点名对象；或 ongoing 仅一项且用户说「继续」。
+-3. `new`：无 `tasks/` 须先确认创建。推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`（字段见契约），落 `wizard/` 等目录按需。INDEX 追加一行。
+-4. 同名已存在：禁止覆盖；提议 resume 或换名。
++2. 无绑定：按 task-explore 绑定规则自行判定新建或恢复，一句话说出决定和理由，不提问。
++3. `new`：无 `tasks/` 就在仓库根建。推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`（字段见契约），落 `wizard/` 等目录按需。INDEX 追加一行。
++4. 同名已存在：禁止覆盖；是同一件事就 resume，否则换名。
+ 5. `resume`：读 `TASK.md` 与阶段产物；按 user-report 的 resume 模板口语汇报；从当前 `phase` 继续，不重出 wizard（除非用户点名重开）。
+ 
+ ## 主循环
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index eff85b5..2bb813f 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -300,3 +300,17 @@ cases:
+       must_not:
+         - 把这类决定埋在长句中间
+         - 为此停下等用户
++
++  - id: new-task-no-question
++    kind: core
++    judge: llm
++    description: 无绑定时自行判定新建并陈述，不提问
++    given: 仓库已有进行中任务 i18n-cleanup；用户说「$taskrail 添加 mcp 工具……」
++    expect:
++      must:
++        - 一句话陈述「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」或同等说法
++        - 记入新任务 TASK.md「已做决定」，直接进入意图确认
++      must_not:
++        - 「要我新建……还是挂到……？」式提问或列选项
++        - 「如果理解偏了请纠正」之类结尾邀请
++        - 转贴术语表或工具调用过程
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index 1e478e4..61aaa07 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -69,7 +69,7 @@ tasks/
+ ```
+ 
+ - 凡经 `taskrail` 推进的任务一律建 `tasks/ongoing/{slug}/`（含简单档）。
+-- 无 `tasks/` 时须先获确认再建（沿用 task-explore 纪律）。
++- 无 `tasks/` 时在仓库根直接建，一句话说明（沿用 task-explore 纪律）。
+ - 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
+ - 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
+ - **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体落交付项目根，由交付仓自己维护（task* 的 design 阶段负责建立 / 修订并 freeze）。
+@@ -159,7 +159,7 @@ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内
+ 
+ 前后对比：
+ 
+-- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。有不同意见直接说，否则我就往下做。」
++- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。接下来我就往下做。」
+ - 进度 —— 前：「driver checkbox 3/5，slice-2 apply done，gate pending」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步，预计不需要你介入。」
+ - 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：错误处理漏了超时、缺一条回归测试，我这就补上。」
+ 
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index b1c2d8b..6c0166d 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -16,7 +16,7 @@ taskrail / task-explore / taskflow 凡是直接给用户看的话都按本文件
+ 
+ ## 3. 内部词留在台账
+ 
+-phase、status、tier、driver 名、change id、checkbox 编号与计数、门 / 门包名、digest、criterion、slice、OpenSpec、proposal.yaml 等路径，默认只写进台账，不进对话；用户问起再给。非用不可时顺带一句白话（如「driver（交付用的总任务单）」）。不倒「字段：值」清单。
++phase、status、tier、driver 名、change id、checkbox 编号与计数、门 / 门包名、digest、criterion、slice、OpenSpec、proposal.yaml 等路径，默认只写进台账，不进对话；用户问起再给。非用不可时顺带一句白话（如「driver（交付用的总任务单）」）。不倒「字段：值」清单，也不转贴术语表、工具调用过程或读过的文件清单。
+ 
+ ## 4. file:line 只作附注
+ 
+@@ -25,7 +25,8 @@ phase、status、tier、driver 名、change id、checkbox 编号与计数、门
+ ## 5. 说决定，不提问
+ 
+ - 默认不向用户提问。有歧义或取舍，就按推荐定下来，用陈述句说出决定和一句理由，例如「这次先只做页面和数据结构，服务你后面自己加，免得跟还没修好的导入链路绑在一起」。用户不同意会自己说。
+-- 不用问号收尾，不写「要不要」「你看行吗」「对吗」。
++- 不用问号收尾，不写「要不要」「你看行吗」「对吗」；也不加「如果理解偏了请纠正」「有不同意见直接说」这类结尾邀请——用户本来就会说。
++- 建任务、恢复任务、起名、建 `tasks/` 目录、更新台账都是可回头的记账：直接做，一句话说明，例如「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」。
+ - 只有真阻塞才停：删除或迁移数据、改共享配置（别人也在用的环境、CI、共享库的配置）、线上 / 不可逆 / 对外发送的动作、要改完成标准、碰到安全底线、缺了做不下去且只有用户能给的信息（账号、权限、外部事实），以及晋升 Skill 改动前确认 diff。停的时候也用陈述句：说清停在哪、需要什么，例如「发布到线上这一步我先停下，你说『发布』我再动手」「测试环境的账号我这边没有，拿到后我接着验证，其余部分已经做完」。
+ - 不停、直接定下来说一句的：普通可回头的取舍，例如拓扑先不导入初始数据、命名、页面布局、组件怎么拆、先做哪一步。
+ - **难回头的决定**：数据结构、接口 / API 形状、库表 schema、存储格式、对外命名、选用的依赖，以及会删除或迁移数据的做法。这类不停下，但在复述、进度和完成通知里**单独一行**说出来：「我定了 X，因为 Y」，不埋在长句里，方便用户一眼看到并叫停。
+diff --git a/skills/taskrail/tests/test_no_bookkeeping_questions.py b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+new file mode 100644
+index 0000000..bb7b992
+--- /dev/null
++++ b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+@@ -0,0 +1,51 @@
++"""可回头的记账（建任务 / 恢复 / 起名 / 建 tasks/ / 更新台账 / dirty 切分支）不提问，直接做并一句话说明。"""
++
++from __future__ import annotations
++
++import re
++import unittest
++from pathlib import Path
++
++SKILLS = Path(__file__).resolve().parents[2]
++
++
++def r(rel: str) -> str:
++    return (SKILLS / rel).read_text(encoding="utf-8")
++
++
++ASK = re.compile(r"请用户(选|确认)|(?<!不)先问|询问是否|提示是否|提示创建或者恢复|先确认创建|先获确认再建|由用户三选一|停下来问|列出请用户选")
++FILES = (
++    "taskrail/SKILL.md", "taskrail/references/contract.md", "taskrail/references/user-report.md",
++    "task-explore/SKILL.md", "task-explore/references/ledger.md", "task-explore/references/commands.md",
++    "task-explore/references/approve.md", "task-explore/references/explore-design.md",
++    "task-intent/SKILL.md", "taskflow/references/driver-template.md",
++    "role-based-reviewer/SKILL.md", "role-based-reviewer/references/inference-and-speed.md",
++)
++
++
++class TestNoBookkeepingQuestions(unittest.TestCase):
++    def test_no_ask_patterns(self) -> None:
++        for rel in FILES:
++            m = ASK.search(r(rel))
++            self.assertIsNone(m, f"{rel}: {m.group(0) if m else ''}")
++
++    def test_binding_decides_and_states(self) -> None:
++        t = r("task-explore/references/ledger.md")
++        self.assertIn("新建任务 mcp-admin-tools，因为和进行中的 i18n 无关", t)
++        self.assertIn("不列选项", t)
++        self.assertIn("自行判定新建或恢复", r("taskrail/SKILL.md"))
++
++    def test_no_trailing_invitation(self) -> None:
++        self.assertIn("如果理解偏了请纠正", r("taskrail/references/user-report.md"))  # 列为禁止项
++        sec = r("taskrail/references/contract.md").split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
++        self.assertNotIn("有不同意见直接说", sec)
++
++    def test_agent_roster_dirty_tree_is_stated_blocker(self) -> None:
++        self.assertIn("说明哪些文件有未提交改动（受派方会改到用户的改动，属真阻塞）", r("agent-roster/SKILL.md"))
++
++    def test_no_noise_dump(self) -> None:
++        self.assertIn("不转贴术语表、工具调用过程", r("taskrail/references/user-report.md"))
++
++
++if __name__ == "__main__":
++    unittest.main()

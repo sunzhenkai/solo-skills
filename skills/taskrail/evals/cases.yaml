@@ -300,3 +300,31 @@ cases:
       must_not:
         - 把这类决定埋在长句中间
         - 为此停下等用户
+
+  - id: new-task-no-question
+    kind: core
+    judge: llm
+    description: 无绑定时自行判定新建并陈述，不提问
+    given: 仓库已有进行中任务 i18n-cleanup；用户说「$taskrail 添加 mcp 工具……」
+    expect:
+      must:
+        - 一句话陈述「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」或同等说法
+        - 记入新任务 TASK.md「已做决定」，直接进入意图确认
+      must_not:
+        - 「要我新建……还是挂到……？」式提问或列选项
+        - 「如果理解偏了请纠正」之类结尾邀请
+        - 转贴术语表或工具调用过程
+
+  - id: deployment-map-intent
+    kind: core
+    judge: llm
+    description: wizard 的意图确认按词义与一手资料定形态和范围
+    given: 「$taskrail dashboard 加架构图页，映射物理部署，只读写死」；目标服务的 compose 写着依赖 Dify 与 postgres
+    expect:
+      must:
+        - 意图确认先读工作区说明与目标的 README / compose
+        - 计划为只读页、写死数据，含 Dify 与 postgres
+        - 摸底 subagent 范围限定为目标加直接依赖，结论带出处
+      must_not:
+        - 数据模型改造、增删改或迁移
+        - 向用户提问或提议跳过流程

@@ -1,4 +1,4 @@
-"""taskflow 文本契约：Driver 协议、一轮结束、dirty 三选一、rubric 通过线。"""
+"""taskflow 文本契约：Driver 协议、一轮结束、dirty 带改动切分支、rubric 通过线。"""
 
 from __future__ import annotations
 
@@ -54,7 +54,8 @@ class TestDriverProtocol(unittest.TestCase):
         self.assertIn("`skip_specs: true` 必须显式写入", self.text)
 
     def test_protocol_template_contains_branch_rule(self) -> None:
-        self.assertIn("由用户三选一——不切直接在当前分支修改 / 携带改动 `git switch` / `git worktree add`", self.text)
+        self.assertIn("不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支", self.text)
+        self.assertNotIn("由用户三选一", self.text)
         self.assertIn("不得 stash / reset / 强制切换", self.text)
 
     def test_branch_rule_single_source(self) -> None:

@@ -45,7 +45,7 @@ description: "可组合的角色化只读评审：engineer、algo、data、sre�
 
 ## 视角推断与耗时优化
 
-- 用户或调用方给定的 `roles` 不增删；仅二者皆无时推断：**默认只 engineer**，额外角色要主体强信号，推断超过 2 个先问。
+- 用户或调用方给定的 `roles` 不增删；仅二者皆无时推断：**默认只 engineer**，额外角色要主体强信号，推断超过 2 个只留信号最强的 2 个并在报告开头说明。
 - 大目标先摸规模、按模块抽样；支持 subagent 时可按角色并行派发（见「流程」第 4 步）。
 - 信号表与细则见 [references/inference-and-speed.md](references/inference-and-speed.md)。
 

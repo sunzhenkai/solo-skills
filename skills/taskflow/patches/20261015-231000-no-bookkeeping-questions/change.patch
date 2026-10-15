@@ -1,0 +1,64 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 2ee6348..e8ded2d 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -91,14 +91,14 @@ cases:
+   - id: fail-closed-must-repos
+     kind: core
+     judge: deterministic
+-    description: 切分支只针对修改仓且可选；干净从默认分支最新代码切，dirty 三选一（不切直接改/带脏切换/git worktree），禁止 stash/reset/强制切换
++    description: 切分支只针对修改仓且可选；干净从默认分支最新代码切，dirty 时带着用户改动 git switch -c、不提问，禁止 stash/reset/强制切换
+     given: 准备涉及面角色为必须的修改仓并考虑切任务分支
+     expect:
+       must:
+         - task 所在仓不是修改仓时不切分支
+         - 工作树干净时先同步默认分支，再从其最新提交 git switch -c；分支已存在则 git switch
+-        - 工作树 dirty 时列出未提交路径，给出不切直接改、带脏切换、git worktree 三个选择，用户选定后执行
+-        - 用户未选择或 git 拒绝时报告该仓并等用户处理；已准备成功的仓保留现状
++        - 工作树 dirty 时不动改动，带着它们 git switch -c 到任务分支，一句话说明并记入「已做决定」
++        - 未提交改动与本任务文件重叠或 git 拒绝时停下，说明是哪些文件；已准备成功的仓保留现状
+       must_not:
+         - 自动 stash、reset 或强制切换
+         - 对建议/排除仓或非修改的 task 所在仓切分支
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 891c729..78fde05 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -40,7 +40,7 @@
+ - 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）
+ - 子 change 一律命名 `{task}-<slice>`，与本 change 同一 planning root；跨 root 时在涉及面表显式记录 root 或 store id
+ - 实现进度只认子 change 自己的 `tasks.md`；本文件的 checkbox 只在对应子 change 全勾且 `validate --strict` 通过后才勾
+-- 切任务分支只针对涉及面里角色为 `必须` 的修改仓，且本身可选；task 所在仓不是修改仓时不切。修改仓干净：先 fetch 默认分支，再从其最新提交 `git switch -c`（分支已存在则 `git switch`）。修改仓 dirty：列出未提交路径，由用户三选一——不切直接在当前分支修改 / 携带改动 `git switch` / `git worktree add` 从默认分支最新提交建独立工作树。不得 stash / reset / 强制切换。用户未选择、git 拒绝或切错仓时停下
++- 切任务分支只针对涉及面里角色为 `必须` 的修改仓，且本身可选；task 所在仓不是修改仓时不切。修改仓干净：先 fetch 默认分支，再从其最新提交 `git switch -c`（分支已存在则 `git switch`）。修改仓 dirty：不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支（git 只是带过去，文件不变），并一句话说明「你手上有未提交改动，我没动它们，带着切到了任务分支」，记入 `TASK.md`「已做决定」。未提交改动与本任务要改的文件重叠，或 git 拒绝、切错仓时才停下，说明是哪些文件
+ - 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+ - 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 说影响与待定事项，不报编号
+ 
+@@ -65,7 +65,7 @@
+ 
+ ````markdown
+ ## 1. 准备
+-- [ ] 1.1 （可选）把涉及面里角色为必须的修改仓切到任务分支：干净则从默认分支最新代码切；dirty 则列出路径，由用户在不切直接改 / 带脏切换 / git worktree 独立工作树中三选一
++- [ ] 1.1 （可选）把涉及面里角色为必须的修改仓切到任务分支：干净则从默认分支最新代码切；dirty 则带着用户改动 `git switch -c`（不动改动、不提问），与本任务文件重叠时才停
+ 
+ ## 2. 实施
+ - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index 9c8a24a..208c57d 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -1,4 +1,4 @@
+-"""taskflow 文本契约：Driver 协议、一轮结束、dirty 三选一、rubric 通过线。"""
++"""taskflow 文本契约：Driver 协议、一轮结束、dirty 带改动切分支、rubric 通过线。"""
+ 
+ from __future__ import annotations
+ 
+@@ -54,7 +54,8 @@ class TestDriverProtocol(unittest.TestCase):
+         self.assertIn("`skip_specs: true` 必须显式写入", self.text)
+ 
+     def test_protocol_template_contains_branch_rule(self) -> None:
+-        self.assertIn("由用户三选一——不切直接在当前分支修改 / 携带改动 `git switch` / `git worktree add`", self.text)
++        self.assertIn("不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支", self.text)
++        self.assertNotIn("由用户三选一", self.text)
+         self.assertIn("不得 stash / reset / 强制切换", self.text)
+ 
+     def test_branch_rule_single_source(self) -> None:

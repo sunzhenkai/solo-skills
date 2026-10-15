@@ -47,23 +47,17 @@ tasks/
 
 会话绑定 `{task-name}` + `{taskRoot}` = `tasks/ongoing/{task-name}`（`reopen` 完成前 `{taskRoot}` 仍在 archive）。绑定子任务时任务名显示为 `{parent}/{sub}`，`{taskRoot}` = `tasks/ongoing/{parent}/{sub}/`。
 
-**无 task 上下文时，应提示创建或者恢复（给出 ongoing 列表选择），在确认后进行 new/resume 命令。** 归档要拉回则走 `reopen`。不得猜测任务、不得先聊后补目录。
+**无 task 上下文时，自行判定新建还是恢复：用户这次说的和某个进行中任务是同一件事就恢复它，否则新建（slug 自拟）。一句话说出决定和理由，例如「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」，记入新任务 `TASK.md`「已做决定」，直接往下走，不提问、不列选项。** 归档要拉回则走 `reopen`。不得先聊后补目录。
 
 1. 先读 `tasks/INDEX.md` 的 Ongoing 表；无 INDEX 或发现漂移则扫 `ongoing/` 并重建。列出任务名 + 标题/一句话。无 `tasks/` 或 Ongoing 为空则说明「当前没有进行中的任务」。
-2. 请用户选择：**创建**（`new`）或 **恢复**（`resume`，从列表选）。
-3. 用户确认前不进入 `chat` / `explore` / `design` / `approve` / `decide` / `save` / `handoff` / `archive`。
+2. 对照 Ongoing 列表自行判定：同一件事 → `resume` 它；无关 → `new`；用户只说「继续」→ 恢复最近更新的那项。用户本轮已点名 `new`/`resume`/`reopen`/`handoff` 及对象时照办。
+3. 用一句话说出决定和理由，不列选项、不加「理解偏了请纠正」之类的邀请，然后直接进入下一步。
 
-例外：用户本轮已明确 `new`/`resume`/`reopen`/`handoff` 及对象。`ongoing/` 仅一项且用户说「继续/恢复」→ 可直接 `resume` 该项。
-
-同名 `ongoing/{task-name}` 已存在时，禁止覆盖；改为提议 `resume` 或换名。
+同名 `ongoing/{task-name}` 已存在时，禁止覆盖；是同一件事就 `resume`，否则换名并说明。
 
 ## 进展提示
 
-**在任务有进展时提示是否更新任务文档。** 适用于 `explore` / `chat` / `design` / `approve` / `decide` 之后出现了新目标、新发现、新决策或新缺口。
-
-- 提示一次即可，不阻断继续问答。
-- 用户同意 → 按 `save` 写回（含 INDEX）。
-- 用户点名 `save` → 直接写，不必再问。
+**在任务有进展时直接更新任务文档。** 适用于 `explore` / `chat` / `design` / `approve` / `decide` 之后出现了新目标、新发现、新决定或新缺口：按 `save` 写回（含 INDEX），一句话告知写了什么，不先问（属记账）。
 
 
 <!-- 原 ledger-write-discipline.md -->

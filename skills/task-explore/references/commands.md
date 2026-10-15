@@ -4,8 +4,8 @@
 
 ## `new`
 
-1. 若没有 `tasks/`：**询问是否在当前位置创建 `tasks/`**。未确认则停止。
-2. 推断 `{task-name}`。冲突则列出已有任务并问 resume 还是换名。在已有任务下拆子方向不属于 `new`，走 `split`。
+1. 若没有 `tasks/`：在当前仓库根直接创建，一句话说明。
+2. 推断 `{task-name}`。同名已存在：是同一件事就 resume，否则换名，一句话说明。在已有任务下拆子方向不属于 `new`，走 `split`。
 3. 创建 `tasks/ongoing/{task-name}/TASK.md`（用模板，填已知目标与 `phase`/`confirm_mode`/`tier`/`criterion` 元信息）。输入含现成方案（含上游 taskrail wizard 的流程总览方案）时，把完成判据、事实、假设、质量属性、流程总览、阻塞点、坑一并登记进「方案」小节，并可落 `wizard/plan.md`，不丢上游产物。输入里没有完成判据时不要编造。
 4. 在 `tasks/INDEX.md` 的 Ongoing 表追加一行（无 INDEX 则按模板创建或按目录重建）。
 5. 绑定该任务。报告路径，并说明下一步默认进 `explore`，想先随便聊就说 `chat`。不要自动开始 grill。
@@ -27,13 +27,13 @@
 - 用户要把方案写下来 → 转 `design`。目标仍糊 → 建议 `explore`。路径已清、要交付 → `approve` 然后 `handoff`，不要直接开一个无关名字的 driver。
 - 发现任务含多个可独立推进的方向 → 提示一次可 `expand`（别名 `split`）拆子任务，不阻断，用户确认才建。
 - 用户要看有哪些任务 → 打印 INDEX，不进入 `new`。
-- 有进展则提示是否更新任务文档。
+- 有进展则直接更新任务文档并一句话告知（记账，不先问）。
 
 ## `resume`
 
 恢复进行中的探索任务。**任务文档只读**；发现 INDEX 漂移时允许重建 `INDEX.md`，不要改 `TASK.md` / `glossary.md` / `design/`。
 
-1. 未指定名字：用 INDEX 的 Ongoing 表列出请用户选。指定了则用该名字。
+1. 未指定名字：按用户这次说的话对上 Ongoing 表里的任务；对不上就恢复最近更新的那项，一句话说明恢复了哪个。指定了则用该名字。
 2. 任务不在 `ongoing/`：先查 INDEX 的 Archived 表，再扫 `tasks/archive/`。告知已归档路径；**不要自动恢复**，拉回走 `reopen`。找不到则说明，改走 `new`。
 3. 读 `TASK.md`、`glossary.md`、`design/`（有则读索引与最新稿）。恢复子任务时先只读父 `TASK.md` 的目标与「已做决定」防方向漂移，再读子任务全套；父文档不被修改。
 4. 按 [user-report.md](../../taskrail/references/user-report.md) 的 resume 模板口语恢复：目标、做到哪、还卡着什么、接下来我做什么（白话动作，不报命令名或 phase）、我定了什么（难回头的单独一行）、真阻塞时需要什么。内部命令选择留给自己。然后等用户。

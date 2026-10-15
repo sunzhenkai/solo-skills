@@ -24,7 +24,7 @@
 7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
 8. 结束本轮时列出已定的结论与仍开放的 frontier，并说明会 `save` 到哪。
 
-术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件提示是否更新任务文档。
+术语/ADR 可当时写入任务目录；那不是对 `TASK.md` 的替代，进展仍要按主文件直接更新任务文档。
 
 ## 外部参照钩子（原 external-precedent.md）
 
@@ -133,4 +133,4 @@
 **下一步**：approve / expand / save / chat（要交付走 approve → handoff，不要直接写代码）
 ```
 
-结束后提示是否更新 `TASK.md`。
+结束后直接更新 `TASK.md` 并一句话告知。

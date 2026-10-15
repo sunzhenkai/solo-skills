@@ -75,15 +75,15 @@ class ContractTest(unittest.TestCase):
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
-    def test_missing_tasks_dir_requires_confirm(self) -> None:
-        self.assertIn("必须先获得确认再创建", self.skill)
-        self.assertIn("询问是否在当前位置创建 `tasks/`", self.skill)
-        self.assertIn("未确认则停止", self.skill)
+    def test_missing_tasks_dir_created_without_asking(self) -> None:
+        self.assertIn("没有 `tasks/` 时在仓库根直接创建并一句话说明", self.skill)
+        self.assertIn("若没有 `tasks/`：在当前仓库根直接创建", self.skill)
+        self.assertNotIn("未确认则停止", self.skill)
 
-    def test_unbound_requires_new_or_resume(self) -> None:
-        self.assertIn("应提示创建或者恢复", self.skill)
-        self.assertIn("在确认后进行 new/resume 命令", self.skill)
-        self.assertIn("用户确认前不进入", self.skill)
+    def test_unbound_decides_new_or_resume(self) -> None:
+        self.assertIn("自行判定新建或恢复，一句话说出决定和理由，不提问", self.skill)
+        self.assertNotIn("应提示创建或者恢复", self.skill)
+        self.assertNotIn("用户确认前不进入", self.skill)
 
     def test_approve_exit_handoff_not_archive(self) -> None:
         self.assertIn("下一步只写 handoff", self.approve)
@@ -216,7 +216,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("## Goal 里", self.approve)
         self.assertIn("全部按默认冻结", self.decide)
         self.assertIn("不在 goal 里时执行本节", self.decide)
-        self.assertIn("逐条请用户确认", self.decide)
+        self.assertIn("按推荐写成决定逐条列出", self.decide)
         self.assertIn("处在 goal 里时，不询问是否交接", self.handoff)
 
     def test_pending_degrade_gates_in_decide_and_handoff(self) -> None:
