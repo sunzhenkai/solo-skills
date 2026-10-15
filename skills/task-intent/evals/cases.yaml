@@ -253,7 +253,7 @@ cases:
     kind: core
     judge: llm
     description: 「不做」只来自原话，宽泛目标不缩窄
-    given: 用户说「提升设计感，多用颜色 + 图表」，没提依赖限制
+    given: 用户说「提升观感，多用颜色 + 图表」，没提依赖限制
     expect:
       must:
         - 想避免新依赖时写进「我的假设」并说明理由
@@ -261,11 +261,11 @@ cases:
       must_not:
         - 在「不做」里写「不引入图表库」
 
-  - id: topology-seed-decision
+  - id: seed-data-decision
     kind: core
     judge: llm
     description: 是否导入初始数据这类取舍直接定下，不问
-    given: 拓扑页任务，可选是否把 agent_api 拓扑导入为初始数据，导入链路尚未修好
+    given: 页面任务，可选是否导入外部服务的初始数据，导入链路尚未修好
     expect:
       must:
         - 类似「这次先只做页面和数据结构，服务你后面自己加，免得跟还没修好的导入链路绑在一起」
@@ -287,7 +287,7 @@ cases:
     kind: core
     judge: llm
     description: 复述中难回头的决定单独一句
-    given: 复述涉及新建两张表存拓扑
+    given: 复述涉及新建两张表存节点与连线
     expect:
       must:
         - 单独一句「我定了……，因为……」或同等陈述
@@ -295,41 +295,41 @@ cases:
       must_not:
         - 停下提问
 
-  - id: deployment-map-read-only
+  - id: read-only-status-map
     kind: core
     judge: llm
-    description: 「架构图映射物理部署」按词义做成只读图，范围是目标加直接依赖
-    given: 用户要 dashboard 加一个映射物理部署的架构图页（只读、数据写死）；目标服务 agent_api 的 docker-compose 写着依赖 Dify 与 postgres
+    description: 「只读现状图」按词义做，范围是目标加直接依赖
+    given: 用户要 dashboard 加一个只读写死的现状图页；目标服务 A 的 compose 写着依赖服务 B 与 C
     expect:
       must:
-        - 先读工作区 CLAUDE.md、agent_api 的 README 与 compose，再复述
-        - 产物是只读、写死数据的图，含 agent_api 及 Dify、postgres
+        - 先读工作区说明、服务 A 的 README 与 compose，再复述
+        - 产物是只读、写死数据的图，含服务 A 及 B、C
         - 不提问
       must_not:
         - 给服务表加字段、做增删改或数据库迁移
         - 扫全部机器、全部服务
-        - 问「数据从哪来」「Dify 在哪」这类读资料就能答的问题
+        - 问「数据从哪来」「B 在哪」这类读资料就能答的问题
 
   - id: correction-reread-sources
     kind: core
     judge: llm
-    description: 用户问「dify 呢？」先回资料重查再陈述
-    given: 复述漏了 Dify，用户问「dify 呢？postgres 呢？」
+    description: 用户指出漏了依赖时先回资料重查再陈述
+    given: 复述漏了服务 B，用户问「B 呢？C 呢？」
     expect:
       must:
-        - 先读 agent_api 的 README / compose
+        - 先读服务 A 的 README / compose
         - 陈述补上了什么并给出处
       must_not:
-        - 问用户 Dify 跑在哪
+        - 问用户 B 跑在哪
         - 凭猜再补一版
 
   - id: frustration-stop-asking
     kind: edge
     judge: llm
-    description: 用户说「你搞得我都不自信了」立刻停止提问
-    given: 多轮提问后用户说「你搞得我都不自信了，看下 agent_api 依赖哪些服务」
+    description: 用户显出不满时立刻停止提问
+    given: 多轮提问后用户说「你搞得我都不自信了，看下服务 A 依赖哪些」
     expect:
       must:
-        - 不再提问，读 agent_api 资料后给有出处的结论
+        - 不再提问，读服务 A 资料后给有出处的结论
       must_not:
         - 以「对吗？」收尾或继续列问题

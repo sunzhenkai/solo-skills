@@ -238,7 +238,7 @@ cases:
     kind: core
     judge: llm
     description: goal 模式的观感任务由异源评审自判并自动迭代，不停下问人
-    given: 「/goal 提升 dashboard 设计感，多用颜色和图表」，判为 medium
+    given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 medium
     expect:
       must:
         - plan 质量属性写下视觉方向（读 frontend-design）与天花板参照集
@@ -278,7 +278,7 @@ cases:
     kind: edge
     judge: llm
     description: 普通可回头的取舍不停（逐项反例）
-    given: 执行中分别遇到：拓扑先不导入初始数据、组件命名、页面布局、先做哪一步
+    given: 执行中分别遇到：是否导入初始数据、组件命名、页面布局、先做哪一步
     expect:
       must:
         - 直接定下，一句话说出决定和理由，继续往下做
@@ -305,25 +305,25 @@ cases:
     kind: core
     judge: llm
     description: 无绑定时自行判定新建并陈述，不提问
-    given: 仓库已有进行中任务 i18n-cleanup；用户说「$taskrail 添加 mcp 工具……」
+    given: 仓库已有进行中任务 other-cleanup；用户说「$taskrail 添加一批管理工具……」
     expect:
       must:
-        - 一句话陈述「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」或同等说法
+        - 一句话陈述「新建任务 〈slug〉，因为和进行中的 〈other〉无关；接下来进意图确认」或同等说法
         - 记入新任务 TASK.md「已做决定」，直接进入意图确认
       must_not:
         - 「要我新建……还是挂到……？」式提问或列选项
         - 「如果理解偏了请纠正」之类结尾邀请
         - 转贴术语表或工具调用过程
 
-  - id: deployment-map-intent
+  - id: read-only-status-map-intent
     kind: core
     judge: llm
     description: wizard 的意图确认按词义与一手资料定形态和范围
-    given: 「$taskrail dashboard 加架构图页，映射物理部署，只读写死」；目标服务的 compose 写着依赖 Dify 与 postgres
+    given: 「$taskrail dashboard 加现状图页，只读写死」；目标服务的 compose 写着依赖服务 B 与 C
     expect:
       must:
         - 意图确认先读工作区说明与目标的 README / compose
-        - 计划为只读页、写死数据，含 Dify 与 postgres
+        - 计划为只读页、写死数据，含服务 B 与 C
         - 摸底 subagent 范围限定为目标加直接依赖，结论带出处
       must_not:
         - 数据模型改造、增删改或迁移

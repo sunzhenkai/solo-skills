@@ -1,0 +1,190 @@
+diff --git a/skills/task-intent/SKILL.md b/skills/task-intent/SKILL.md
+index 180b6af..c8b81dd 100644
+--- a/skills/task-intent/SKILL.md
++++ b/skills/task-intent/SKILL.md
+@@ -13,7 +13,7 @@ description: "任务开工前的意图确认：详细只读探索上下文 → 
+ ## 流程
+ 
+ 1. **探索上下文**：读相关代码 / 配置 / 文档、`tasks/` 历史任务与近期提交，必要时查外部参照；面广时可并行派只读 subagent 分头摸，回简短摘要，详情落 `evidence/intent/`。上下文是复述的一部分，不是可省的前置。
+-2. **复述**：先按覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 决定）想清楚，再用 1–3 句第一人称口语告诉用户：做什么、怎么做、产出落在哪、接下来会怎样。不提问：歧义按推荐直接说成决定并带一句理由，用户不同意会自己说。难回头的决定（定义见 [user-report.md](../taskrail/references/user-report.md)「说决定，不提问」）单独一句「我定了 X，因为 Y」；有任务目录时，决定同时追加到 `TASK.md`「已做决定」。不打标题、不加粗标签、不逐项列字段；结构化内容只写进 `wizard/intent.md`。
++2. **复述**：先按覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 决定）想清楚，再用 1–3 句第一人称口语告诉用户：做什么、怎么做、产出落在哪、接下来会怎样。说决定、不提问（含难回头单独说、真阻塞才停），见 [user-report.md](../taskrail/references/user-report.md)；有任务目录时决定追加到 `TASK.md`「已做决定」。不打标题、不加粗标签、不逐项列字段；结构化内容只写进 `wizard/intent.md`。
+ 3. **纠偏**：
+    - human：给用户看复述，按指正先回一手资料重查，再说改了什么、出处在哪，直到用户明确说对；用户显出困惑或不满时立刻停止提问，查清后给有出处的结论；多轮仍对不上就把两种理解并排说清、写明我按哪种做。
+    - goal：不问人，派异源模型审（`role-based-reviewer roles=intent`），无 P0/P1 即通过，见 references。
+@@ -21,11 +21,8 @@ description: "任务开工前的意图确认：详细只读探索上下文 → 
+ 
+ ## 不可跳过
+ 
+-- 先推词义：复述前先想清这个说法通常指什么产物（如「部署映射」= 只读的现状图），不硬套进现有代码的数据模型。
+-- 按序读一手资料：用户原话与已有 intent → 工作区 CLAUDE.md / AGENTS.md / README → 目标自己的 README / compose / 部署文件 → `tasks/` 历史 → 要改的代码 → 最后才是大范围台账；前面的没读完，不得把其中内容当未知、写成假设或拿去问。
+-- 范围默认是目标加它的直接依赖；派摸底时照此交代，结论带出处。细则见 references 第 1、4 节。
+-- 先查后定：能从仓库、历史任务、对话推出的直接用；推不出的按推荐定下，用陈述句带一句理由说出来，不向用户提问。
+-- 只有真阻塞才停（线上 / 不可逆 / 对外发送、缺了做不下去且只有用户能给的信息），停时也说清需要什么，规则见 taskrail [user-report.md](../taskrail/references/user-report.md)「说决定，不提问」。
++- 注意任务边界。细则见 [references/intent.md](references/intent.md) 第 1、4 节。
++- 先查后定；说决定、不提问；真阻塞才停：见 [user-report.md](../taskrail/references/user-report.md)「说决定，不提问」。
+ - 复述必须忠于用户原话：不添目标、不漏约束、不把宽泛目标缩窄；「不做」只写用户原话里的限制，自己想加的写进「我的假设」；不确定处写成假设，不写成事实。
+ - 涉及线上、不可逆、对外发送的意图，goal 模式也必须停下等人。
+ - 不写代码；探索只读。
+diff --git a/skills/task-intent/evals/cases.yaml b/skills/task-intent/evals/cases.yaml
+index fd2d82f..fa9d715 100644
+--- a/skills/task-intent/evals/cases.yaml
++++ b/skills/task-intent/evals/cases.yaml
+@@ -253,7 +253,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 「不做」只来自原话，宽泛目标不缩窄
+-    given: 用户说「提升设计感，多用颜色 + 图表」，没提依赖限制
++    given: 用户说「提升观感，多用颜色 + 图表」，没提依赖限制
+     expect:
+       must:
+         - 想避免新依赖时写进「我的假设」并说明理由
+@@ -261,11 +261,11 @@ cases:
+       must_not:
+         - 在「不做」里写「不引入图表库」
+ 
+-  - id: topology-seed-decision
++  - id: seed-data-decision
+     kind: core
+     judge: llm
+     description: 是否导入初始数据这类取舍直接定下，不问
+-    given: 拓扑页任务，可选是否把 agent_api 拓扑导入为初始数据，导入链路尚未修好
++    given: 页面任务，可选是否导入外部服务的初始数据，导入链路尚未修好
+     expect:
+       must:
+         - 类似「这次先只做页面和数据结构，服务你后面自己加，免得跟还没修好的导入链路绑在一起」
+@@ -287,7 +287,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 复述中难回头的决定单独一句
+-    given: 复述涉及新建两张表存拓扑
++    given: 复述涉及新建两张表存节点与连线
+     expect:
+       must:
+         - 单独一句「我定了……，因为……」或同等陈述
+@@ -295,41 +295,41 @@ cases:
+       must_not:
+         - 停下提问
+ 
+-  - id: deployment-map-read-only
++  - id: read-only-status-map
+     kind: core
+     judge: llm
+-    description: 「架构图映射物理部署」按词义做成只读图，范围是目标加直接依赖
+-    given: 用户要 dashboard 加一个映射物理部署的架构图页（只读、数据写死）；目标服务 agent_api 的 docker-compose 写着依赖 Dify 与 postgres
++    description: 「只读现状图」按词义做，范围是目标加直接依赖
++    given: 用户要 dashboard 加一个只读写死的现状图页；目标服务 A 的 compose 写着依赖服务 B 与 C
+     expect:
+       must:
+-        - 先读工作区 CLAUDE.md、agent_api 的 README 与 compose，再复述
+-        - 产物是只读、写死数据的图，含 agent_api 及 Dify、postgres
++        - 先读工作区说明、服务 A 的 README 与 compose，再复述
++        - 产物是只读、写死数据的图，含服务 A 及 B、C
+         - 不提问
+       must_not:
+         - 给服务表加字段、做增删改或数据库迁移
+         - 扫全部机器、全部服务
+-        - 问「数据从哪来」「Dify 在哪」这类读资料就能答的问题
++        - 问「数据从哪来」「B 在哪」这类读资料就能答的问题
+ 
+   - id: correction-reread-sources
+     kind: core
+     judge: llm
+-    description: 用户问「dify 呢？」先回资料重查再陈述
+-    given: 复述漏了 Dify，用户问「dify 呢？postgres 呢？」
++    description: 用户指出漏了依赖时先回资料重查再陈述
++    given: 复述漏了服务 B，用户问「B 呢？C 呢？」
+     expect:
+       must:
+-        - 先读 agent_api 的 README / compose
++        - 先读服务 A 的 README / compose
+         - 陈述补上了什么并给出处
+       must_not:
+-        - 问用户 Dify 跑在哪
++        - 问用户 B 跑在哪
+         - 凭猜再补一版
+ 
+   - id: frustration-stop-asking
+     kind: edge
+     judge: llm
+-    description: 用户说「你搞得我都不自信了」立刻停止提问
+-    given: 多轮提问后用户说「你搞得我都不自信了，看下 agent_api 依赖哪些服务」
++    description: 用户显出不满时立刻停止提问
++    given: 多轮提问后用户说「你搞得我都不自信了，看下服务 A 依赖哪些」
+     expect:
+       must:
+-        - 不再提问，读 agent_api 资料后给有出处的结论
++        - 不再提问，读服务 A 资料后给有出处的结论
+       must_not:
+         - 以「对吗？」收尾或继续列问题
+diff --git a/skills/task-intent/references/intent.md b/skills/task-intent/references/intent.md
+index 0a2e05c..38d6972 100644
+--- a/skills/task-intent/references/intent.md
++++ b/skills/task-intent/references/intent.md
+@@ -2,7 +2,7 @@
+ 
+ ## 1. 探索（详细、只读）
+ 
+-**先推词义和产物。** 复述前先写一句「这个说法通常指什么东西」，再定形态和范围。例：「架构图映射物理部署」= 一张只读的现状图，画目标服务和它直接依赖的服务，数据来自部署文件、可以写死；不是给现有数据库加字段、做增删改。说法和现有代码结构对不上时，按词义做，不硬套现有数据模型。
++**先推词义和产物。** 复述前先写一句「这个说法通常指什么东西」，再定形态和范围。例：只要「只读现状图」就不要做成「改库表 / 可编辑数据模型」；服务清单默认是「目标服务 + 它的直接依赖」，不是全机房。说法和现有代码结构对不上时，按词义做，不硬套现有数据模型。
+ 
+ **读资料的顺序（固定）：**
+ 
+@@ -38,7 +38,7 @@
+ - 1–3 句话，第一人称，像同事口头确认：自然带出做什么、怎么做、产出什么、落在哪。
+ - 上下文、假设、不做的事：只在会影响结果时顺带一句，不用就不提。
+ - 结尾说接下来会发生什么（如「写完告诉你放在哪」）。
+-- 不提问：歧义按推荐直接说成决定并带一句理由，用户不同意会自己说。不用问号，不写「要不要」「你看行吗」「对吗」。只有真阻塞才停，停时也用陈述句说清需要什么。
++- 说决定、不提问：见 taskrail [user-report.md](../taskrail/references/user-report.md)；歧义按推荐说成决定并带理由。
+ - 不要标题、不要加粗标签、不要逐字段列出（通用规则见 taskrail 契约「对用户说话」）。
+ 
+ 示例：
+@@ -46,12 +46,12 @@
+ - 好，我按仓库的约定挑个合适的位置写成一份文档，内容包括流程图、各 skill 的分工、两种模式、三个档位的区别和怎么用，并在 README 和 taskrail 里加链接。写完告诉你放在哪。
+ - 我先查清导出慢在查询还是文件生成，再优化最慢那段，用 1 万行报表对比，目标是 5 秒内导出且内容不变；我先按只管网页端来做，报表格式不动。改完把前后耗时发给你。
+ - 我把登录失败的提示统一成一处处理，顺手补上错误码测试；这次先只改网页端，App 端等网页端稳定后再跟，免得两端一起回归。改完把测试结果发你。
+-- 我先把拓扑页面和节点、连线的数据结构做好，节点和连线各存一张表，后面要改字段得迁数据，所以先说一声。这次先不导入 agent_api 那套拓扑当初始数据，服务你后面自己加，免得跟还没修好的导入链路绑在一起。做完把页面地址发你。
++- 我先把页面和节点、连线的数据结构做好，各存一张表，后面要改字段得迁数据，所以先说一声。这次先不做初始数据导入，服务你后面自己加，免得跟还没修好的导入链路绑在一起。做完把页面地址发你。
+ 
+ ## 4. 纠偏（human）
+ 
+ - 复述本身就是确认请求；用户指出不对时，用同样的口语重述改过的部分。
+-- 用户指出遗漏或错误（如「X 呢？」）：先回第 1 节的一手资料重查，再用陈述句说改了什么、出处在哪，例如「补上了 Dify 和 postgres，agent_api 的 compose 里写着它依赖这两个」；不提问，不再凭猜补一版。
++- 用户指出遗漏或错误（如「X 呢？」）：先回第 1 节的一手资料重查，再用陈述句说改了什么、出处在哪，例如「补上了服务 B 和 C，服务 A 的 compose 里写着它依赖这两个」；不提问，不再凭猜补一版。
+ - 用户显出困惑或不满（如「你搞得我都不自信了」）：立刻停止提问，查清后直接给有出处的结论。
+ - 只重述被指出的部分；被纠正过的同一处不得再错；纠正与原话冲突时以最新纠正为准。
+ - 多轮仍有分歧：把两种理解并排写清，并写明我按哪种做、为什么；仍不收敛就停下，说明需要用户用自己的话描述目标，不再猜。
+diff --git a/skills/task-intent/tests/test_source_first_contract.py b/skills/task-intent/tests/test_source_first_contract.py
+index 380251e..ed8316c 100644
+--- a/skills/task-intent/tests/test_source_first_contract.py
++++ b/skills/task-intent/tests/test_source_first_contract.py
+@@ -1,4 +1,4 @@
+-"""先推词义、按序读一手资料、默认范围、纠偏先重查。"""
++"""注意任务边界：先推词义、按序读一手资料、默认范围、纠偏先重查（原则在 intent.md）。"""
+ 
+ from __future__ import annotations
+ 
+@@ -18,9 +18,13 @@ class TestSourceFirst(unittest.TestCase):
+         self.skill = read("SKILL.md")
+         self.ref = read("references/intent.md")
+ 
+-    def test_skill_three_lines(self) -> None:
+-        for k in ("先推词义", "按序读一手资料", "范围默认是目标加它的直接依赖"):
+-            self.assertIn(k, self.skill)
++    def test_skill_boundary_line(self) -> None:
++        self.assertIn("注意任务边界", self.skill)
++        self.assertIn("references/intent.md", self.skill)
++
++    def test_principles_in_intent_ref(self) -> None:
++        for k in ("先推词义", "读资料的顺序", "目标加它的直接依赖", "不硬套现有数据模型"):
++            self.assertIn(k, self.ref, k)
+ 
+     def test_reading_order(self) -> None:
+         sec = self.ref.split("**读资料的顺序（固定）：**", 1)[1].split("**范围默认", 1)[0]
+@@ -35,6 +39,7 @@ class TestSourceFirst(unittest.TestCase):
+ 
+     def test_artifact_from_meaning(self) -> None:
+         self.assertIn("不硬套现有数据模型", self.ref)
++        self.assertIn("只读现状图", self.ref)
+ 
+     def test_correction_rereads_and_frustration_stops(self) -> None:
+         self.assertIn("先回第 1 节的一手资料重查", self.ref)

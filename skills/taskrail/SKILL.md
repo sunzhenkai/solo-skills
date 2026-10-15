@@ -41,7 +41,7 @@ taskrail list
 ## 绑定与目录
 
 1. 先读 `tasks/INDEX.md`（无或漂移则按 `ongoing/`/`archive/` 重建，纪律见 task-explore）。
-2. 无绑定：按 task-explore 绑定规则自行判定新建或恢复，一句话说出决定和理由，不提问。
+2. 无绑定：按 task-explore 绑定规则自行判定新建或恢复并陈述（见 [user-report.md](references/user-report.md)）。
 3. `new`：无 `tasks/` 就在仓库根建。推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`（字段见契约），落 `wizard/` 等目录按需。INDEX 追加一行。
 4. 同名已存在：禁止覆盖；是同一件事就 resume，否则换名。
 5. `resume`：读 `TASK.md` 与阶段产物；按 user-report 的 resume 模板口语汇报；从当前 `phase` 继续，不重出 wizard（除非用户点名重开）。

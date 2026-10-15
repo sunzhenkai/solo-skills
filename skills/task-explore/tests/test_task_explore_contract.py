@@ -81,7 +81,8 @@ class ContractTest(unittest.TestCase):
         self.assertNotIn("未确认则停止", self.skill)
 
     def test_unbound_decides_new_or_resume(self) -> None:
-        self.assertIn("自行判定新建或恢复，一句话说出决定和理由，不提问", self.skill)
+        self.assertIn("自行判定新建或恢复，一句话说出决定和理由", self.skill)
+        self.assertIn("user-report.md", self.skill)
         self.assertNotIn("应提示创建或者恢复", self.skill)
         self.assertNotIn("用户确认前不进入", self.skill)
 

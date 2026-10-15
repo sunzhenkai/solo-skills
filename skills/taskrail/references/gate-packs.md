@@ -41,7 +41,7 @@
 
 ## 审美目标（不分档）
 
-用户原话里有「设计感 / 好看 / 高级 / 多用颜色」这类观感目标时，下面几条不看档位一律适用。本节是唯一出处，别处只指向这里。
+用户原话里有观感类目标时，下面几条不看档位一律适用。本节是唯一出处，别处只指向这里。
 
 1. **视觉方向**：动手前读 [../../pretty-view-html/references/frontend-design/REFERENCE.md](../../pretty-view-html/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下本次选定的视觉方向：配色、字体、版式、一个特征元素。不拿框架默认样式点缀几处就收工。
 2. **天花板参照集**：按 [quality-profile.md](quality-profile.md) 的写法列参照集，不分档必写；没有质量画像的档位写在「质量属性」里。

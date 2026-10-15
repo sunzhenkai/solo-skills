@@ -18,7 +18,7 @@
 
 | 模式 | 行为 |
 |------|------|
-| human | 闸口把推荐写成已定的决定（带理由）呈现，等人说「继续」或指出要改哪条后放行；不提问 |
+| human | 闸口把推荐写成已定的决定（带理由）呈现，等人说「继续」或指出要改哪条后放行（说决定见 [user-report.md](user-report.md)） |
 | goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `references/intent.md`（无 P0/P1） |
 
 永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。

@@ -29,7 +29,7 @@ class UserReportTest(unittest.TestCase):
     def test_rules_present(self) -> None:
         t = r(UR)
         for k in ("## 3. 内部词留在台账", "## 4. file:line 只作附注", "## 5. 说决定，不提问",
-                  "## 6. resume 模板", "勾 evolution 提案里的记账项", "晋升 Skill 改动前确认 diff"):
+                  "## 6. resume 模板", "勾 evolution 记账项", "晋升 Skill 改动前确认 diff"):
             self.assertIn(k, t)
 
     def test_resume_template_has_no_ledger_fields(self) -> None:
@@ -62,12 +62,13 @@ class TestStatementsNotQuestions(unittest.TestCase):
     def test_default_no_questions_and_blockers_listed(self) -> None:
         t = r(UR)
         sec = t.split("## 5. 说决定，不提问", 1)[1].split("\n## ", 1)[0]
-        for k in ("默认不向用户提问", "只有真阻塞才停", "停的时候也用陈述句"):
+        for k in ("默认陈述", "真阻塞才停", "难回头单独说", "唯一真源"):
             self.assertIn(k, sec)
 
     def test_pointers_follow_single_source(self) -> None:
-        self.assertIn("说决定，不提问", r("taskrail/references/confirm-protocol.md"))
-        self.assertIn("说决定，不提问", r("task-intent/SKILL.md"))
+        self.assertIn("说决定", r("taskrail/references/confirm-protocol.md"))
+        self.assertIn("说决定", r("task-intent/SKILL.md"))
+        self.assertIn("user-report.md", r("task-intent/SKILL.md"))
         self.assertIn("自问自答", r("task-explore/references/explore-design.md"))
         self.assertNotIn("最多一个问题", r("task-intent/references/intent.md"))
 

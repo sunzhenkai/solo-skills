@@ -1,4 +1,4 @@
-"""先推词义、按序读一手资料、默认范围、纠偏先重查。"""
+"""注意任务边界：先推词义、按序读一手资料、默认范围、纠偏先重查（原则在 intent.md）。"""
 
 from __future__ import annotations
 
@@ -18,9 +18,13 @@ class TestSourceFirst(unittest.TestCase):
         self.skill = read("SKILL.md")
         self.ref = read("references/intent.md")
 
-    def test_skill_three_lines(self) -> None:
-        for k in ("先推词义", "按序读一手资料", "范围默认是目标加它的直接依赖"):
-            self.assertIn(k, self.skill)
+    def test_skill_boundary_line(self) -> None:
+        self.assertIn("注意任务边界", self.skill)
+        self.assertIn("references/intent.md", self.skill)
+
+    def test_principles_in_intent_ref(self) -> None:
+        for k in ("先推词义", "读资料的顺序", "目标加它的直接依赖", "不硬套现有数据模型"):
+            self.assertIn(k, self.ref, k)
 
     def test_reading_order(self) -> None:
         sec = self.ref.split("**读资料的顺序（固定）：**", 1)[1].split("**范围默认", 1)[0]
@@ -35,6 +39,7 @@ class TestSourceFirst(unittest.TestCase):
 
     def test_artifact_from_meaning(self) -> None:
         self.assertIn("不硬套现有数据模型", self.ref)
+        self.assertIn("只读现状图", self.ref)
 
     def test_correction_rereads_and_frustration_stops(self) -> None:
         self.assertIn("先回第 1 节的一手资料重查", self.ref)

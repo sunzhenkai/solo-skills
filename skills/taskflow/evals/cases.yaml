@@ -329,7 +329,7 @@ cases:
     kind: core
     judge: llm
     description: 有观感目标的 Web UI 切片先定视觉方向再实现
-    given: driver 的 Web UI 切片对应观感目标「提升设计感」
+    given: driver 的 Web UI 切片对应观感类目标
     expect:
       must:
         - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现

@@ -66,7 +66,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
 布局、`INDEX.md`、绑定与进展提示的细则在 [references/ledger.md](references/ledger.md)，写台账或绑定前先读。不可跳过的要点：
 
 - 没有 `tasks/` 时在仓库根直接创建并一句话说明；同名 `ongoing/{task-name}` 已存在时禁止覆盖，是同一件事就 `resume`，否则换名。
-- **无 task 上下文时，自行判定新建或恢复，一句话说出决定和理由，不提问**（细则见 ledger.md「绑定」）。 不得猜测任务、不得先聊后补目录。
+- **无 task 上下文时，自行判定新建或恢复，一句话说出决定和理由**（细则见 ledger.md「绑定」；说决定、不提问见 [user-report.md](../taskrail/references/user-report.md)）。不得猜测任务、不得先聊后补目录。
 - 单任务真相只在 `{taskRoot}/TASK.md`；`INDEX.md` 是派生索引，不是第二份真相。产物只写绑定的 `{taskRoot}`，不写 `docs/design/`。
 
 ## 命令门禁

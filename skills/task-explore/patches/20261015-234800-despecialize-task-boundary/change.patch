@@ -1,0 +1,75 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index 1a62893..de1e088 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -66,7 +66,7 @@ description: "探索台账命令集（explore / design / approve / expand / hand
+ 布局、`INDEX.md`、绑定与进展提示的细则在 [references/ledger.md](references/ledger.md)，写台账或绑定前先读。不可跳过的要点：
+ 
+ - 没有 `tasks/` 时在仓库根直接创建并一句话说明；同名 `ongoing/{task-name}` 已存在时禁止覆盖，是同一件事就 `resume`，否则换名。
+-- **无 task 上下文时，自行判定新建或恢复，一句话说出决定和理由，不提问**（细则见 ledger.md「绑定」）。 不得猜测任务、不得先聊后补目录。
++- **无 task 上下文时，自行判定新建或恢复，一句话说出决定和理由**（细则见 ledger.md「绑定」；说决定、不提问见 [user-report.md](../taskrail/references/user-report.md)）。不得猜测任务、不得先聊后补目录。
+ - 单任务真相只在 `{taskRoot}/TASK.md`；`INDEX.md` 是派生索引，不是第二份真相。产物只写绑定的 `{taskRoot}`，不写 `docs/design/`。
+ 
+ ## 命令门禁
+diff --git a/skills/task-explore/references/explore-design.md b/skills/task-explore/references/explore-design.md
+index b550fab..f5f6f97 100644
+--- a/skills/task-explore/references/explore-design.md
++++ b/skills/task-explore/references/explore-design.md
+@@ -18,7 +18,7 @@
+ 2. 先读 `TASK.md`、已有 `glossary.md` 与 `design/`。
+ 3. `TASK.md` **方案** 小节已有上游方案（含 taskrail wizard 的流程总览方案）时，已对上出处的事实与已知步骤照原样复核，不重问。方案里的假设仍是假设。grill 只针对未覆盖的预期目标、成功标准、质量目标、范围、约束与未知。会改方案走向的未知，先读并做完 [external-precedent.md](../../taskrail/references/external-precedent.md)，再问剩下的决策。方案随后按 explore / design 结论更新回该小节。
+ **意图已定**：经 taskrail 且 `wizard/intent.md` 为 `confirmed` / `assumed` 时，其「你要的是 / 做完的样子 / 不做」视为已定，grill 不重问；只问细节、边界、术语与约束。grill 中发现与确认版冲突：停下回 `task-intent` 纠偏，不在 grill 里改写意图；后续按 taskrail 契约「意图变更」处理判据与 phase。
+-4. 读取并遵循 `grilling` 的轮次格式，但**自问自答**：每题先自己查证，再给出推荐结论并写一句理由，落 `explore/` 纪要，定下的决定追加到 `TASK.md`「已做决定」；给用户只报结论（陈述句），不逐题提问。只有真阻塞（改完成标准或范围、线上 / 不可逆、缺只有用户能给的信息）才停下，按 [user-report.md](../../taskrail/references/user-report.md)「说决定，不提问」说清需要什么。`grilling` 不可用时同样自问自答；**不要发明等价命令**，也不要改调 `grill-with-docs`。
++4. 读取并遵循 `grilling` 的轮次格式，但**自问自答**：每题先自己查证，再给出推荐结论并写一句理由，落 `explore/` 纪要，定下的决定追加到 `TASK.md`「已做决定」；给用户只报结论。说决定、真阻塞才停：见 [user-report.md](../../taskrail/references/user-report.md)。`grilling` 不可用时同样自问自答；禁令（不调 `grill-with-docs` / `domain-modeling`、不发明等价命令）见本节开头。
+ 5. 自问的是**预期目标、成功标准、质量目标、范围、约束、未知**。质量目标含观感 / 性能 / 可靠性等维度；不可确定性度量的（典型：UI 观感、体验手感）追问验收方式或参照。事实自己查，决策按推荐自己定并写理由；会改完成标准或范围的决定放进闸口，以已定决定呈现。
+ 6. 发现任务含多个可独立推进的方向时，**提示一次**可 `expand`/`split` 拆子任务，不阻断、不自动创建；用户确认后走 `expand`。
+ 7. 术语结晶时由本 skill 写入 `{taskRoot}/glossary.md`；独立决策写入 `{taskRoot}/design/adr-<slug>.md`。禁止写仓库根 `CONTEXT.md`、`docs/adr/`。质量目标（含观感 / 体验类）的澄清结论写入 `explore/` 纪要，供 design 阶段质量画像草稿吸收，不另起文档。
+diff --git a/skills/task-explore/references/ledger.md b/skills/task-explore/references/ledger.md
+index 5edf8c7..3155e40 100644
+--- a/skills/task-explore/references/ledger.md
++++ b/skills/task-explore/references/ledger.md
+@@ -47,7 +47,7 @@ tasks/
+ 
+ 会话绑定 `{task-name}` + `{taskRoot}` = `tasks/ongoing/{task-name}`（`reopen` 完成前 `{taskRoot}` 仍在 archive）。绑定子任务时任务名显示为 `{parent}/{sub}`，`{taskRoot}` = `tasks/ongoing/{parent}/{sub}/`。
+ 
+-**无 task 上下文时，自行判定新建还是恢复：用户这次说的和某个进行中任务是同一件事就恢复它，否则新建（slug 自拟）。一句话说出决定和理由，例如「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」，记入新任务 `TASK.md`「已做决定」，直接往下走，不提问、不列选项。** 归档要拉回则走 `reopen`。不得先聊后补目录。
++**无 task 上下文时，自行判定新建还是恢复：同一件事就恢复，否则新建（slug 自拟）。一句话说出决定和理由，记入 `TASK.md`「已做决定」，直接往下走；说决定、不提问见 [user-report.md](../../taskrail/references/user-report.md)。** 归档要拉回则走 `reopen`。不得先聊后补目录。
+ 
+ 1. 先读 `tasks/INDEX.md` 的 Ongoing 表；无 INDEX 或发现漂移则扫 `ongoing/` 并重建。列出任务名 + 标题/一句话。无 `tasks/` 或 Ongoing 为空则说明「当前没有进行中的任务」。
+ 2. 对照 Ongoing 列表自行判定：同一件事 → `resume` 它；无关 → `new`；用户只说「继续」→ 恢复最近更新的那项。用户本轮已点名 `new`/`resume`/`reopen`/`handoff` 及对象时照办。
+diff --git a/skills/task-explore/tests/test_grill_self_answer.py b/skills/task-explore/tests/test_grill_self_answer.py
+index 9ef7fd7..049ddd1 100644
+--- a/skills/task-explore/tests/test_grill_self_answer.py
++++ b/skills/task-explore/tests/test_grill_self_answer.py
+@@ -1,4 +1,4 @@
+-"""grill 自问自答：结论给用户，只有真阻塞才停。"""
++"""grill 自问自答：结论给用户；说决定见 user-report。"""
+ 
+ from __future__ import annotations
+ 
+@@ -12,8 +12,9 @@ class TestGrillSelfAnswer(unittest.TestCase):
+     def test_grill_self_answers(self) -> None:
+         t = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
+         self.assertIn("**自问自答**", t)
+-        self.assertIn("给用户只报结论（陈述句），不逐题提问", t)
+-        self.assertIn("只有真阻塞", t)
++        self.assertIn("给用户只报结论", t)
++        self.assertIn("user-report.md", t)
++        self.assertIn("说决定", t)
+         self.assertNotIn("决策交给用户", t)
+         self.assertNotIn("当面问", t)
+ 
+diff --git a/skills/task-explore/tests/test_task_explore_contract.py b/skills/task-explore/tests/test_task_explore_contract.py
+index 70780e6..df1e8b2 100644
+--- a/skills/task-explore/tests/test_task_explore_contract.py
++++ b/skills/task-explore/tests/test_task_explore_contract.py
+@@ -81,7 +81,8 @@ class ContractTest(unittest.TestCase):
+         self.assertNotIn("未确认则停止", self.skill)
+ 
+     def test_unbound_decides_new_or_resume(self) -> None:
+-        self.assertIn("自行判定新建或恢复，一句话说出决定和理由，不提问", self.skill)
++        self.assertIn("自行判定新建或恢复，一句话说出决定和理由", self.skill)
++        self.assertIn("user-report.md", self.skill)
+         self.assertNotIn("应提示创建或者恢复", self.skill)
+         self.assertNotIn("用户确认前不进入", self.skill)
+ 

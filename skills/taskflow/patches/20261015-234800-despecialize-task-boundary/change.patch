@@ -1,0 +1,26 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index e8ded2d..bd36696 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -329,7 +329,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 有观感目标的 Web UI 切片先定视觉方向再实现
+-    given: driver 的 Web UI 切片对应观感目标「提升设计感」
++    given: driver 的 Web UI 切片对应观感类目标
+     expect:
+       must:
+         - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 78fde05..e7daf7a 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -65,7 +65,7 @@
+ 
+ ````markdown
+ ## 1. 准备
+-- [ ] 1.1 （可选）把涉及面里角色为必须的修改仓切到任务分支：干净则从默认分支最新代码切；dirty 则带着用户改动 `git switch -c`（不动改动、不提问），与本任务文件重叠时才停
++- [ ] 1.1 （可选）把涉及面里角色为必须的修改仓切到任务分支：干净则从默认分支最新代码切；dirty 则带着用户改动 `git switch -c`（不动改动；说决定见 user-report），与本任务文件重叠时才停
+ 
+ ## 2. 实施
+ - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过

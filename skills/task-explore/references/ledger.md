@@ -47,7 +47,7 @@ tasks/
 
 会话绑定 `{task-name}` + `{taskRoot}` = `tasks/ongoing/{task-name}`（`reopen` 完成前 `{taskRoot}` 仍在 archive）。绑定子任务时任务名显示为 `{parent}/{sub}`，`{taskRoot}` = `tasks/ongoing/{parent}/{sub}/`。
 
-**无 task 上下文时，自行判定新建还是恢复：用户这次说的和某个进行中任务是同一件事就恢复它，否则新建（slug 自拟）。一句话说出决定和理由，例如「新建任务 mcp-admin-tools，因为和进行中的 i18n 无关；接下来进意图确认」，记入新任务 `TASK.md`「已做决定」，直接往下走，不提问、不列选项。** 归档要拉回则走 `reopen`。不得先聊后补目录。
+**无 task 上下文时，自行判定新建还是恢复：同一件事就恢复，否则新建（slug 自拟）。一句话说出决定和理由，记入 `TASK.md`「已做决定」，直接往下走；说决定、不提问见 [user-report.md](../../taskrail/references/user-report.md)。** 归档要拉回则走 `reopen`。不得先聊后补目录。
 
 1. 先读 `tasks/INDEX.md` 的 Ongoing 表；无 INDEX 或发现漂移则扫 `ongoing/` 并重建。列出任务名 + 标题/一句话。无 `tasks/` 或 Ongoing 为空则说明「当前没有进行中的任务」。
 2. 对照 Ongoing 列表自行判定：同一件事 → `resume` 它；无关 → `new`；用户只说「继续」→ 恢复最近更新的那项。用户本轮已点名 `new`/`resume`/`reopen`/`handoff` 及对象时照办。

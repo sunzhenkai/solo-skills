@@ -31,9 +31,14 @@ class TestNoBookkeepingQuestions(unittest.TestCase):
 
     def test_binding_decides_and_states(self) -> None:
         t = r("task-explore/references/ledger.md")
-        self.assertIn("新建任务 mcp-admin-tools，因为和进行中的 i18n 无关", t)
-        self.assertIn("不列选项", t)
+        self.assertIn("自行判定新建还是恢复", t)
+        self.assertIn("user-report.md", t)
+        self.assertIn("「已做决定」", t)
         self.assertIn("自行判定新建或恢复", r("taskrail/SKILL.md"))
+        # 抽象原则句在真源
+        ur = r("taskrail/references/user-report.md")
+        self.assertIn("说决定，不提问", ur)
+        self.assertIn("不列选项", ur)
 
     def test_no_trailing_invitation(self) -> None:
         self.assertIn("如果理解偏了请纠正", r("taskrail/references/user-report.md"))  # 列为禁止项
