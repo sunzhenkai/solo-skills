@@ -120,7 +120,7 @@ updated: YYYY-MM-DD
 - **永不派出**：闸口（确认协议）、危险退出、面向用户的提问与选项。
 - 派出时交代清楚目标、输入、写入范围与产出位置；apply 的实现者输入引用 taskflow `implementer-isolation`。
 - Worker 详情落盘，只回简短摘要（结论 / 落盘路径 / 未决）；转述给用户时按「对用户说话」；主会话不回灌工具轨迹、不转贴全文。产物缺失则停在当前 `phase`。
-- `TASK.md` 的 `phase` / `status` / `driver` 仅编排者写；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
+- `TASK.md` 的 `phase` / `status` / `driver` 仅编排者写（属记账：编排者直接更新，不向用户请示）；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
 
 ## 确认闸口（封闭）
 
@@ -155,12 +155,7 @@ Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内�
 
 ## 对用户说话（task 系列共用，唯一出处）
 
-凡是直接给用户看的话——意图复述、闸口提问、进度与状态、交接 / 完成通知、评审结论摘要、subagent 摘要转述——都按这几条；落盘的内部文件与证据（`TASK.md`、`intent.md`、driver、评审文件）可以保持结构化。
-
-- 像同事说话：第一人称、完整句子，先说结论或要用户做什么，再说原因。
-- 内部术语能不用就不用；非用不可时顺带一句白话（如「driver（交付用的总任务单）」「完成判据（怎样算做完）」）。tier、criterion、gate、slice、OpenSpec、phase 等不裸露。
-- 不倒「字段：值」清单、不贴原始 ID 或路径堆；路径只在用户要去看时给。
-- 有问题就问一个，带上推荐；结尾说清接下来会发生什么。
+规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 要你定什么；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
 
 前后对比：
 
