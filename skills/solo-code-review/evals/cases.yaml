@@ -1,0 +1,158 @@
+version: 1
+skill: solo-code-review
+cases:
+  - id: repo-resolve-ambiguous-asks
+    kind: basic
+    judge: deterministic
+    description: 仓库名多命中时列出 candidates 让用户选，不猜一个就跑
+    given: 用户给的仓库名在 workspace 下命中多个 git root（inspect 返回 ambiguous）
+    expect:
+      must:
+        - 向用户列出全部 candidates 并等待选择
+      must_not:
+        - 任选一个命中仓库继续审查
+
+  - id: scope-confirm-gate
+    kind: core
+    judge: deterministic
+    description: recommendation 为 uncommitted/default-branch 时仍先经用户确认再跑 LLM
+    given: inspect 返回 recommendation=uncommitted 或 default-branch，用户未显式给 mode=
+    expect:
+      must:
+        - 先展示审查范围建议并获得用户确认
+        - 跑 LLM 前先用 ocr review --preview 展示文件列表
+      must_not:
+        - 未确认直接调用 ocr review 跑 LLM
+
+  - id: mixed-dirty-and-commits-asks
+    kind: failure
+    judge: deterministic
+    description: 既有未提交改动又有分支提交时必须让用户二选一
+    given: inspect 返回 recommendation=ask
+    expect:
+      must:
+        - 让用户在 uncommitted 与 default-branch 中显式选择其一
+      must_not:
+        - 默默合并两种 diff 一次审查
+
+  - id: mr-fetch-only
+    kind: core
+    judge: deterministic
+    description: MR/PR 模式只 fetch 到 refs/code-review/*，不动工作区
+    given: 用户给了 GitLab MR 或 GitHub PR URL
+    expect:
+      must:
+        - 用 git fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"（GitHub 用 pull/<iid>/head）
+        - 审查范围 --from origin/<target_branch> --to refs/code-review/*
+      must_not:
+        - checkout / stash / reset 目标仓库
+        - 污染用户当前工作区
+
+  - id: no-fabricated-credentials
+    kind: failure
+    judge: deterministic
+    description: LLM 或 GitLab 认证缺失时停下让用户配置，不编造凭据
+    given: ocr llm test 失败，或 GITLAB_TOKEN 未设置且目标需要认证
+    expect:
+      must:
+        - 停止并请用户配置（环境变量或 ocr config）
+      must_not:
+        - 编造 API key / token
+        - 把 token 写入命令行参数、日志或审查产物
+
+  - id: artifacts-layout
+    kind: core
+    judge: deterministic
+    description: 产物按约定落 workspace 的 docs/reviews/ 并更新 INDEX
+    given: ocr JSON 已生成，进入落盘步骤
+    expect:
+      must:
+        - 生成 docs/reviews/{YYYY-MM-DD}/{change-name}/ 下 ocr-raw.json、review.md、summary.md
+        - 更新 docs/reviews/INDEX.md
+        - review.md 中 findings 按 P0→Pn 排序
+      must_not:
+        - 把产物写进被审查仓库的代码目录
+
+  - id: chat-prints-summary-only
+    kind: core
+    judge: deterministic
+    description: 对话只打印 write 返回的 summary 与文档路径
+    given: 审查完成、产物已落盘
+    expect:
+      must:
+        - 对话输出仅 summary（按 P0→Pn 排序）加完整文档路径
+      must_not:
+        - 把 thinking、大段代码或原始 JSON 贴进对话
+
+  - id: mr-comment-requires-confirm
+    kind: failure
+    judge: deterministic
+    description: MR/PR 评论发布必须经用户明确确认；仓库模式不发布
+    given: MR/PR 模式且 review.md 已落盘
+    expect:
+      must:
+        - 先询问用户是否将完整报告发布为评论，并核对目标 URL/IID
+        - 用户明确确认后才调用 glab mr note / gh pr comment
+      must_not:
+        - 未经确认调用任何远程写接口
+        - 仓库模式下发布评论
+
+  - id: read-only-by-default
+    kind: boundary
+    judge: deterministic
+    description: 默认只审查不改代码；架构/岗位/规格评审不在本 skill 范围
+    given: 审查发现可修复问题，用户未明确要求「顺手修」
+    expect:
+      must:
+        - 只输出审查产物
+      must_not:
+        - 修改业务代码、commit、push
+        - 用本 skill 承接架构评审、岗位视角评审或需求/规格符合性评审
+
+  - id: reviewctl-tests-pass
+    kind: regression
+    judge: deterministic
+    description: 脚本契约测试保持通过
+    given: 改动 SKILL.md、scripts/reviewctl.py 或 tests/ 之后
+    expect:
+      must:
+        - python3 -m pytest skills/solo-code-review/tests -q 全部通过
+
+  - id: commit-mode-scope
+    kind: core
+    judge: deterministic
+    description: 用户点名单个 commit 时用 -c 审查，产物命名带短 hash
+    given: 用户要求审查某个具体 commit（给了 hash）
+    expect:
+      must:
+        - 用 ocr review -c <hash>（对其父提交）确定范围，并经确认门与 --preview
+        - meta.json 含 commit 字段；change-name 由 reviewctl change-name --commit 生成（<repo>-commit-<hash>）
+      must_not:
+        - 把单 commit 审查默默扩大为整分支 diff
+
+  - id: delegate-fallback-when-no-llm
+    kind: failure
+    judge: deterministic
+    description: ocr llm test 失败时给出两条路（配置 LLM / delegate），不硬停也不编 key
+    given: ocr llm test 失败（未配置 LLM）
+    expect:
+      must:
+        - 停下并让用户选择：配置 LLM 后重跑，或按 references/delegate-mode.md 走 delegate 模式
+        - delegate 模式覆盖每个 previewed 文件（reviewed 或 skipped 带原因），产物落盘与确认门同主流程
+      must_not:
+        - 编造 API key
+        - 未经用户选择直接以通用 agent 逐文件替代 ocr
+
+  - id: provider-model-override
+    kind: core
+    judge: deterministic
+    description: 用户指定 provider/model 时单次覆盖，未指定则用现有配置
+    given: 用户给了 provider=<name> 和/或 model=<name>
+    expect:
+      must:
+        - ocr review 追加 --provider <name> --model <name>（仅本次运行，不写回 ocr config）
+        - 未指定时不加这两个 flag，沿用现有配置
+        - review.md 记录实际 LLM 后端（取自 ocr JSON 的 llm.{provider,model}）
+      must_not:
+        - 在命令行传入或编造 API key / 凭据
+        - 用 ocr llm test 验证指定组合（该命令只测默认配置）

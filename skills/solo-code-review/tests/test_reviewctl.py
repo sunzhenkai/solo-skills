@@ -93,10 +93,66 @@ class ReviewctlTests(unittest.TestCase):
             rc.change_name(repo_basename="service", mode="mr", mr_iid=88, title="Fix timeout"),
             "service-mr-88-fix-timeout",
         )
+        self.assertEqual(
+            rc.change_name(repo_basename="service", mode="commit", commit="abc1234def"),
+            "service-commit-abc1234def",
+        )
         self.assertEqual(rc.classify_priority("SQL injection in query builder"), "P0")
         self.assertEqual(rc.classify_priority("nil deref on empty payload"), "P1")
         self.assertEqual(rc.classify_priority("missing test for retry path"), "P2")
         self.assertEqual(rc.classify_priority("rename helper for clarity"), "P3")
+
+    def test_severity_mapping_beats_heuristic(self) -> None:
+        comments = rc.normalize_comments(
+            {
+                "comments": [
+                    {"path": "a.go", "content": "rename helper for clarity", "severity": "critical"},
+                    {"path": "b.go", "content": "SQL injection in query builder", "severity": "low"},
+                    {"path": "c.go", "content": "rename helper for clarity"},
+                    {"path": "d.go", "content": "whatever", "priority": "P1", "severity": "low"},
+                ]
+            }
+        )
+        by_path = {c["path"]: c["priority"] for c in comments}
+        self.assertEqual(by_path["a.go"], "P0")
+        self.assertEqual(by_path["b.go"], "P3")
+        self.assertEqual(by_path["c.go"], "P3")
+        self.assertEqual(by_path["d.go"], "P1")
+        self.assertEqual([c["priority"] for c in comments], ["P0", "P1", "P3", "P3"])
+
+    def test_write_review_commit_mode(self) -> None:
+        ocr = {
+            "status": "complete",
+            "session_id": "delegate-20261016-120000",
+            "summary": {"files_reviewed": 1, "comments": 1},
+            "comments": [
+                {"path": "a.go", "content": "SQL injection", "severity": "critical", "start_line": 1, "end_line": 2},
+            ],
+            "warnings": ["b.go: skipped, binary file"],
+        }
+        meta = {"repo": "group/service", "mode": "commit", "date": "2026-10-16", "branch": "main", "commit": "abc1234", "default_branch": "main"}
+        result = rc.write_review(self.tmp, ocr, meta)
+        self.assertEqual(result["change_name"], "service-commit-abc1234")
+        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
+        self.assertIn("commit: abc1234", review)
+        self.assertIn("- Commit：`abc1234`", review)
+        self.assertIn("delegate-20261016-120000", review)
+        self.assertIn("### P0", review)
+        self.assertIn("b.go: skipped, binary file", review)
+        self.assertNotIn("- LLM：", review)
+
+    def test_write_review_records_llm_backend(self) -> None:
+        ocr = {
+            "status": "complete",
+            "session_id": "s1",
+            "llm": {"provider": "anthropic", "model": "claude-opus-4-6"},
+            "summary": {"files_reviewed": 1, "comments": 0},
+            "comments": [],
+        }
+        meta = {"repo": "group/service", "mode": "default-branch", "date": "2026-10-16", "branch": "feat", "from": "origin/main", "to": "HEAD", "default_branch": "main"}
+        result = rc.write_review(self.tmp, ocr, meta)
+        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
+        self.assertIn("- LLM：`anthropic` / `claude-opus-4-6`", review)
 
     def test_write_review_sorted_summary(self) -> None:
         ocr = {

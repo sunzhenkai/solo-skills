@@ -1,0 +1,530 @@
+diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
+index e18076c..83b0c2d 100644
+--- a/skills/solo-code-review/SKILL.md
++++ b/skills/solo-code-review/SKILL.md
+@@ -1,50 +1,45 @@
+ ---
+ id: solo-code-review
+ name: solo-code-review
+-description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
++description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
+ license: MIT
+ ---
+ 
+ # solo-code-review
+ 
+-用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎使用已配置的 `ocr` 命令，不要用通用 agent 逐文件替代。
++用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎用 `ocr`：LLM 已配置时跑 `ocr review`；未配置时走 delegate 模式（见「前置」），由 OCR 做文件筛选与规则解析、当前 agent 执行审查。
+ 
+-不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。
++不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
+ 
+ ## 调用
+ 
+ ```text
+-/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
++/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [change-name=<slug>]
+ /solo-code-review <GitLab/GitHub MR 或 PR URL>
+ ```
+ 
+-可选：业务背景（commit/MR 说明、需求一句话）→ 传给 `ocr --background`。
++可选：业务背景（commit/MR 说明、需求一句话）→ 传 `ocr -b`；成篇需求文档给 `-B <markdown路径>`；需要调审查深度时加 `effort=low|medium|high`（映射 `--effort`）。
+ 
+ ## MUST 先读取并执行
+ 
+ 1. 本文件全文。
+-2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)，`--root` 指向审查 workspace 根目录。
+-
+-```bash
+-python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> inspect --repo <name-or-path>
+-python3 <skill-root>/scripts/reviewctl.py parse-mr --url '<url>'
+-python3 <skill-root>/scripts/reviewctl.py write --ocr-json /tmp/ocr.json --meta-json /tmp/meta.json
+-```
++2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)（子命令 `inspect` / `parse-mr` / `change-name` / `write`），`--root` 指向审查 workspace 根目录，用法见下文各步。
+ 
+ ## 前置
+ 
+ ```bash
+-which ocr || echo "NOT INSTALLED"
++which ocr && ocr --version || echo "NOT INSTALLED"
+ ocr llm test
+ ```
+ 
+-未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。`ocr llm test` 失败则停下来，让用户配置 LLM（环境变量或 `ocr config`），**禁止编造 API key**。
++未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
+ 
+-GitLab 自建实例认证：
++`ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
+ 
+-- 优先使用环境变量 `GITLAB_TOKEN`，不要把 token 写入命令行参数、日志或审查产物。
+-- 调用 `glab` 时映射为：`GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；GitLab API 需要 token 具备 `api` scope。
+-- 若 `GITLAB_TOKEN` 未设置且目标需要认证，停止并请用户配置该变量；禁止编造或输出 token。
++1. 配置 LLM（环境变量或 `ocr config`）后重跑。
++2. delegate 模式：读取并按 [references/delegate-mode.md](references/delegate-mode.md) 执行，审查由当前 agent 的 LLM 完成，产物与确认门同主流程。
++
++GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope），调 `glab` 映射为 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；token 不写入命令行参数、日志或审查产物；未设置且目标需要认证时停止并请用户配置，禁止编造或输出 token。
+ 
+ ## 流程
+ 
+@@ -63,9 +58,9 @@ GitLab 自建实例认证：
+ | `uncommitted` | 仅工作区脏 | 建议 workspace 审查；**仍须用户确认** |
+ | `default-branch` | 干净且相对默认分支有提交 | 建议 `--from <comparison_ref> --to HEAD`；**仍须用户确认** |
+ | `ask` | 既有未提交又有分支提交 | **必须**让用户选其一，禁止默默合并两种 diff |
+-| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接或其它 ref |
++| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接、单个 commit 或其它 ref |
+ 
+-用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
++用户点名**单个 commit** → mode=commit，范围 `-c <hash>`（对其父提交），确认与预览同下。用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
+ 
+ **MR/PR 模式**：
+ 
+@@ -89,30 +84,28 @@ git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
+ 
+ ### 3. 跑 ocr
+ 
+-始终：`--audience agent --format json --repo <git_root_abs>`，有背景就加 `-b`。stdout 重定向到文件，禁止 `head`/`tail` 截断。
++始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景就加 `-b`/`-B`。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）。中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
+ 
+-```bash
+-# 未提交
+-ocr review --audience agent --format json --repo <abs> -b "<background>" > /tmp/ocr.json 2>/tmp/ocr.err
+-# 相对默认分支 / MR / PR
+-ocr review --audience agent --format json --repo <abs> -b "<background>" \
+-  --from <from> --to <to> > /tmp/ocr.json 2>/tmp/ocr.err
+-```
++| mode | 追加范围 flag |
++|---|---|
++| `uncommitted` | （无，默认工作区） |
++| `commit` | `-c <hash>` |
++| `default-branch` / MR / PR | `--from <from> --to <to>` |
+ 
+ 先看 exit code 与 `/tmp/ocr.err`。JSON `status=skipped` 视为无审查对象，不是失败。
+ 
+ ### 4. 分级并落盘
+ 
+-读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。可先用 `reviewctl` 启发式，**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
++读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。`reviewctl` 自动分级次序：显式 `priority` > `severity` 映射（critical/high/medium/low → P0~P3）> 内容启发式；**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
+ 
+-`change-name`：用户指定优先；否则 `reviewctl change-name`。日期使用运行当天的 `YYYY-MM-DD`。
++`change-name`：用户指定优先；否则 `reviewctl change-name`（mode=commit 时带 `--commit <hash>`）。日期使用运行当天的 `YYYY-MM-DD`。
+ 
+ ```bash
+ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
+   --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
+ ```
+ 
+-`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
++`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
+ 
+ 产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
+ 
+@@ -130,15 +123,15 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
+ 
+ > 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
+ 
+-在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口。确认时再次核对目标 URL/IID 与待发布文件；用户拒绝、未确认或目标不明确时，只保留本地报告，不发布评论。用户确认后，以 `review.md` 的完整内容发布一条评论，并在结果中报告成功或失败。仓库模式不询问，也不发布评论。
++在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口；确认时再次核对目标 URL/IID 与待发布文件。用户拒绝或未确认 → 只保留本地报告。确认后以 `review.md` 完整内容发布一条评论并报告成败。仓库模式不询问，也不发布评论。
+ 
+ ### 6. 对用户只打印总结
+ 
+-对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径。不要把 `thinking`、大段代码、原始 JSON 贴进对话。无 findings 时打印 `No findings.` + 文档链接。
++对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径；`thinking`、大段代码、原始 JSON 不进对话。无 findings 时打印 `No findings.` + 文档链接。需要浏览器回放或分享时用 `ocr session export <session-id>` 生成离线 HTML（含源码摘录，按仓库同等保密）。
+ 
+ ## 边界
+ 
+-- 默认不改业务代码、不 commit、不 push、不在 MR/PR 上发评论；远程评论必须经过上一步的明确确认。用户明确要求「顺手修」才可改代码。
++- 默认不改业务代码、不 commit、不 push；MR/PR 远程评论以第 5 节确认门为准。用户明确要求「顺手修」才可改代码。
+ - 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
+ - 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
+ - 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
+diff --git a/skills/solo-code-review/evals/cases.yaml b/skills/solo-code-review/evals/cases.yaml
+index b51ff52..cf6521e 100644
+--- a/skills/solo-code-review/evals/cases.yaml
++++ b/skills/solo-code-review/evals/cases.yaml
+@@ -117,3 +117,28 @@ cases:
+     expect:
+       must:
+         - python3 -m pytest skills/solo-code-review/tests -q 全部通过
++
++  - id: commit-mode-scope
++    kind: core
++    judge: deterministic
++    description: 用户点名单个 commit 时用 -c 审查，产物命名带短 hash
++    given: 用户要求审查某个具体 commit（给了 hash）
++    expect:
++      must:
++        - 用 ocr review -c <hash>（对其父提交）确定范围，并经确认门与 --preview
++        - meta.json 含 commit 字段；change-name 由 reviewctl change-name --commit 生成（<repo>-commit-<hash>）
++      must_not:
++        - 把单 commit 审查默默扩大为整分支 diff
++
++  - id: delegate-fallback-when-no-llm
++    kind: failure
++    judge: deterministic
++    description: ocr llm test 失败时给出两条路（配置 LLM / delegate），不硬停也不编 key
++    given: ocr llm test 失败（未配置 LLM）
++    expect:
++      must:
++        - 停下并让用户选择：配置 LLM 后重跑，或按 references/delegate-mode.md 走 delegate 模式
++        - delegate 模式覆盖每个 previewed 文件（reviewed 或 skipped 带原因），产物落盘与确认门同主流程
++      must_not:
++        - 编造 API key
++        - 未经用户选择直接以通用 agent 逐文件替代 ocr
+diff --git a/skills/solo-code-review/references/delegate-mode.md b/skills/solo-code-review/references/delegate-mode.md
+new file mode 100644
+index 0000000..b73e504
+--- /dev/null
++++ b/skills/solo-code-review/references/delegate-mode.md
+@@ -0,0 +1,76 @@
++# delegate 模式（OCR 未配置 LLM 时）
++
++OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败且用户选择 delegate。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有「跑 ocr」这一步被替换。
++
++## 步骤
++
++### D1. 预览审查范围
++
++```bash
++ocr delegate preview --format json --repo <git_root_abs> [--from <ref> --to <ref>] [-c <hash>] [--exclude <patterns>]
++```
++
++输出含 `mode`（workspace / range / commit）、ref 元数据（`from` / `to` / `commit` / `merge_base`）、`reviewable_files[]`（path、status、insertions、deletions）与 `excluded_files[]`（含排除原因）。把 `reviewable_files` 展示给用户确认（等同主流程的 `--preview` 确认门）。
++
++### D2. 取规则
++
++```bash
++ocr delegate rule --format json --repo <git_root_abs> <path1> <path2> ...
++```
++
++输出按规则内容分组（`groups[]`）：共享同一规则的文件归为一组。大变更可按批取规则。
++
++### D3. 逐文件取 diff 并审查
++
++对 `reviewable_files` 建 checklist，以 `(path, status)` 为身份（workspace 模式下同一路径可能出现两次：staged 删除后 untracked 重建）。Git 命令一律 `--no-pager --no-ext-diff --no-textconv --no-color`：
++
++```bash
++# range 模式（用 preview 输出的 merge_base）
++git --no-pager diff --no-ext-diff --no-textconv --no-color <merge_base>..<to> -- "<path>"
++# commit 模式
++git --no-pager show --no-ext-diff --no-textconv --no-color <commit> -- "<path>"
++# workspace 模式（tracked）
++git --no-pager diff --no-ext-diff --no-textconv --no-color HEAD -- "<path>"
++# workspace 模式的 untracked 新文件：整文件都是新代码，直接读
++cat "<path>"
++```
++
++上下文按需补：`git log --oneline -- <path>`、`git blame -- <path>`、`git show <ref>:<path>`。大 diff 加 `--output=<绝对路径>` 写到仓库外，读完即删。
++
++每个文件按其规则组的 checklist 审查，可用 Read/Grep 等工具取更多上下文；标记 `reviewed`，或 `skipped` 加具体原因。发现一个高严重度问题后继续审完，不提前停。
++
++### D4. 组装 comments JSON
++
++每条 comment 字段：
++
++| 字段 | 类型 | 必填 | 说明 |
++|---|---|---|---|
++| `path` | string | 是 | 仓库相对路径 |
++| `content` | string | 是 | 问题描述 |
++| `start_line` / `end_line` | integer | 否 | 新文件中的行号；都为 0 表示未定位 |
++| `category` | enum | 否 | bug / security / performance / maintainability / test / style / documentation / other |
++| `severity` | enum | 否 | critical / high / medium / low |
++
++组装成与 `ocr review --format json` 同构的对象写入 `/tmp/ocr.json`：
++
++```json
++{
++  "status": "complete",
++  "session_id": "delegate-<YYYYMMDD-HHMMSS>",
++  "message": "delegate review: <n> finding(s) across <m> file(s)",
++  "summary": {"files_reviewed": <m>, "comments": <n>},
++  "comments": [...]
++}
++```
++
++`summary.files_reviewed` 用实际 reviewed 数；skipped 文件在 `warnings[]` 里逐条写 `path: reason`。severity 会被 `reviewctl` 自动映射为 P0~P3（critical→P0、high→P1、medium→P2、low→P3），仍可按主流程规则覆盖。
++
++### D5. 回到主流程
++
++从主流程「4. 分级并落盘」继续：`reviewctl write` 落 `docs/reviews/`、MR/PR 评论确认门、对话只打印 summary。边界不变：默认不改代码，不 checkout/stash/reset 目标仓。
++
++## 覆盖与止损
++
++- 每个 previewed 文件必须有归宿：reviewed 或 skipped（带原因），覆盖情况写进总结的 message。
++- 疑似误报直接丢弃，不写进 comments。
++- `--format json` 报 `unknown flag`（CLI < v1.9.0）：改用 text 输出取文件清单与规则，保留 mode/ref/规则信息继续；其余错误报告后停止，不换路重试。
+diff --git a/skills/solo-code-review/scripts/reviewctl.py b/skills/solo-code-review/scripts/reviewctl.py
+index 0f1e25d..849e36b 100644
+--- a/skills/solo-code-review/scripts/reviewctl.py
++++ b/skills/solo-code-review/scripts/reviewctl.py
+@@ -50,6 +50,12 @@ P2_RE = re.compile(
+     r"(error handling|missing test|缺少测试|可维护|资源泄露|timeout|重试|P2)",
+     re.I,
+ )
++SEVERITY_TO_PRIORITY = {
++    "critical": "P0",
++    "high": "P1",
++    "medium": "P2",
++    "low": "P3",
++}
+ 
+ 
+ class ReviewError(Exception):
+@@ -303,11 +309,13 @@ def slugify(text: str, max_len: int = 48) -> str:
+     return (out or "change")[:max_len].rstrip("-")
+ 
+ 
+-def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "") -> str:
++def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "", commit: str = "") -> str:
+     base = slugify(repo_basename, 32)
+     if mode == "mr" and mr_iid is not None:
+         extra = slugify(title, 24) if title else ""
+         return f"{base}-mr-{mr_iid}" + (f"-{extra}" if extra else "")
++    if mode == "commit" and commit:
++        return f"{base}-commit-{slugify(commit, 12)}"
+     if mode == "uncommitted":
+         return f"{base}-{slugify(branch or 'wip', 24)}-uncommitted"
+     if mode == "default-branch":
+@@ -351,7 +359,11 @@ def normalize_comments(ocr: dict[str, Any]) -> list[dict[str, Any]]:
+         comment = dict(item)
+         pri = str(comment.get("priority") or "").upper()
+         if pri not in PRIORITY_ORDER:
+-            comment["priority"] = classify_priority(str(comment.get("content") or ""))
++            sev = str(comment.get("severity") or "").strip().lower()
++            if sev in SEVERITY_TO_PRIORITY:
++                comment["priority"] = SEVERITY_TO_PRIORITY[sev]
++            else:
++                comment["priority"] = classify_priority(str(comment.get("content") or ""))
+         else:
+             comment["priority"] = pri
+         out.append(comment)
+@@ -376,6 +388,7 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
+         f"date: {meta.get('date', '')}",
+         f"change_name: {meta.get('change_name', '')}",
+         f"branch: {meta.get('branch', '')}",
++        f"commit: {meta.get('commit', '')}",
+         f"from: {meta.get('from', '')}",
+         f"to: {meta.get('to', '')}",
+         f"mr: {meta.get('mr_url', '')}",
+@@ -391,6 +404,8 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
+         f"- 范围：`{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
+         f"- 分支：`{meta.get('branch', '')}`（默认 `{meta.get('default_branch', '')}`）",
+     ]
++    if meta.get("commit"):
++        lines.append(f"- Commit：`{meta['commit']}`")
+     if meta.get("mr_url"):
+         lines.append(f"- Merge Request：{meta['mr_url']}")
+     summary = ocr.get("summary") or {}
+@@ -496,6 +511,7 @@ def write_review(work_root: Path, ocr: dict[str, Any], meta: dict[str, Any]) ->
+         branch=str(meta.get("branch") or ""),
+         mr_iid=meta.get("mr_iid"),
+         title=str(meta.get("title") or ""),
++        commit=str(meta.get("commit") or ""),
+     )
+     meta = {**meta, "date": day, "change_name": name}
+     out_dir = work_root / "docs" / "reviews" / day / name
+@@ -548,6 +564,7 @@ def main(argv: list[str] | None = None) -> int:
+     p_name.add_argument("--branch", default="")
+     p_name.add_argument("--mr-iid", type=int, default=None)
+     p_name.add_argument("--title", default="")
++    p_name.add_argument("--commit", default="")
+ 
+     p_write = sub.add_parser("write")
+     p_write.add_argument("--ocr-json", required=True)
+@@ -575,6 +592,7 @@ def main(argv: list[str] | None = None) -> int:
+                 branch=args.branch,
+                 mr_iid=args.mr_iid,
+                 title=args.title,
++                commit=args.commit,
+             )
+             return emit({"ok": True, "change_name": name})
+         if args.cmd == "write":
+diff --git a/skills/solo-code-review/tests/test_reviewctl.py b/skills/solo-code-review/tests/test_reviewctl.py
+index 99de1a5..b111d10 100644
+--- a/skills/solo-code-review/tests/test_reviewctl.py
++++ b/skills/solo-code-review/tests/test_reviewctl.py
+@@ -93,11 +93,53 @@ class ReviewctlTests(unittest.TestCase):
+             rc.change_name(repo_basename="service", mode="mr", mr_iid=88, title="Fix timeout"),
+             "service-mr-88-fix-timeout",
+         )
++        self.assertEqual(
++            rc.change_name(repo_basename="service", mode="commit", commit="abc1234def"),
++            "service-commit-abc1234def",
++        )
+         self.assertEqual(rc.classify_priority("SQL injection in query builder"), "P0")
+         self.assertEqual(rc.classify_priority("nil deref on empty payload"), "P1")
+         self.assertEqual(rc.classify_priority("missing test for retry path"), "P2")
+         self.assertEqual(rc.classify_priority("rename helper for clarity"), "P3")
+ 
++    def test_severity_mapping_beats_heuristic(self) -> None:
++        comments = rc.normalize_comments(
++            {
++                "comments": [
++                    {"path": "a.go", "content": "rename helper for clarity", "severity": "critical"},
++                    {"path": "b.go", "content": "SQL injection in query builder", "severity": "low"},
++                    {"path": "c.go", "content": "rename helper for clarity"},
++                    {"path": "d.go", "content": "whatever", "priority": "P1", "severity": "low"},
++                ]
++            }
++        )
++        by_path = {c["path"]: c["priority"] for c in comments}
++        self.assertEqual(by_path["a.go"], "P0")
++        self.assertEqual(by_path["b.go"], "P3")
++        self.assertEqual(by_path["c.go"], "P3")
++        self.assertEqual(by_path["d.go"], "P1")
++        self.assertEqual([c["priority"] for c in comments], ["P0", "P1", "P3", "P3"])
++
++    def test_write_review_commit_mode(self) -> None:
++        ocr = {
++            "status": "complete",
++            "session_id": "delegate-20261016-120000",
++            "summary": {"files_reviewed": 1, "comments": 1},
++            "comments": [
++                {"path": "a.go", "content": "SQL injection", "severity": "critical", "start_line": 1, "end_line": 2},
++            ],
++            "warnings": ["b.go: skipped, binary file"],
++        }
++        meta = {"repo": "group/service", "mode": "commit", "date": "2026-10-16", "branch": "main", "commit": "abc1234", "default_branch": "main"}
++        result = rc.write_review(self.tmp, ocr, meta)
++        self.assertEqual(result["change_name"], "service-commit-abc1234")
++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
++        self.assertIn("commit: abc1234", review)
++        self.assertIn("- Commit：`abc1234`", review)
++        self.assertIn("delegate-20261016-120000", review)
++        self.assertIn("### P0", review)
++        self.assertIn("b.go: skipped, binary file", review)
++
+     def test_write_review_sorted_summary(self) -> None:
+         ocr = {
+             "status": "success",
+diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
+new file mode 100644
+index 0000000..d2ca9f3
+--- /dev/null
++++ b/skills/solo-code-review/tests/test_skill_contract.py
+@@ -0,0 +1,126 @@
++"""solo-code-review 文本契约测试：校验 SKILL.md 与 references 的门禁、落点与硬闸。"""
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8")
++
++
++class ScopeConfirmGateTest(unittest.TestCase):
++    def test_confirm_gate_table_present(self) -> None:
++        self.assertIn("确定审查范围（确认门）", SKILL)
++        for rec in ("uncommitted", "default-branch", "ask", "nothing"):
++            self.assertIn(f"| `{rec}` |", SKILL)
++
++    def test_mixed_changes_must_ask(self) -> None:
++        self.assertIn("**必须**让用户选其一，禁止默默合并两种 diff", SKILL)
++
++    def test_preview_before_llm(self) -> None:
++        self.assertIn("仍要先 `ocr review --preview` 展示文件列表再跑 LLM", SKILL)
++
++
++class CommitModeTest(unittest.TestCase):
++    def test_commit_mode_declared(self) -> None:
++        self.assertIn("mode=uncommitted|default-branch|commit", SKILL)
++        self.assertIn("`-c <hash>`", SKILL)
++
++    def test_change_name_carries_commit(self) -> None:
++        self.assertIn("mode=commit 时带 `--commit <hash>`", SKILL)
++        self.assertIn("mode=commit 加 `commit`（短 hash）", SKILL)
++
++
++class DelegateModeTest(unittest.TestCase):
++    def test_llm_failure_offers_delegate(self) -> None:
++        self.assertIn("`ocr llm test` 失败时停下，让用户在两条路里选一条", SKILL)
++        self.assertIn("delegate 模式", SKILL)
++        self.assertIn("references/delegate-mode.md", SKILL)
++
++    def test_no_fabricated_key(self) -> None:
++        self.assertIn("禁止编造 API key", SKILL)
++
++    def test_delegate_steps_and_schema(self) -> None:
++        for cmd in ("ocr delegate preview --format json", "ocr delegate rule --format json"):
++            self.assertIn(cmd, DELEGATE)
++        for field in ("path", "content", "start_line", "severity", "category"):
++            self.assertIn(f"`{field}`", DELEGATE)
++
++    def test_delegate_coverage_mandatory(self) -> None:
++        self.assertIn("reviewed 或 skipped（带原因）", DELEGATE)
++
++    def test_delegate_returns_to_main_flow(self) -> None:
++        self.assertIn("4. 分级并落盘", DELEGATE)
++        self.assertIn("产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致", DELEGATE)
++
++
++class FetchOnlyTest(unittest.TestCase):
++    def test_mr_fetch_only(self) -> None:
++        self.assertIn("**只 fetch，不 checkout、不 stash**", SKILL)
++        self.assertIn("refs/code-review/mr-<iid>", SKILL)
++        self.assertIn("refs/code-review/pr-<iid>", SKILL)
++
++    def test_no_checkout_in_boundaries(self) -> None:
++        self.assertIn("不 `checkout` / `stash` / `reset` 目标仓", SKILL)
++
++
++class ArtifactTest(unittest.TestCase):
++    def test_output_paths(self) -> None:
++        self.assertIn("docs/reviews/{YYYY-MM-DD}/{change-name}/", SKILL)
++        for name in ("ocr-raw.json", "review.md", "summary.md", "INDEX.md"):
++            self.assertIn(name, SKILL)
++
++    def test_native_output_flag(self) -> None:
++        self.assertIn("-o /tmp/ocr.json", SKILL)
++
++    def test_summary_only_chat(self) -> None:
++        self.assertIn("对话输出 **仅** `write` 返回的 `summary`", SKILL)
++
++
++class CommentConfirmGateTest(unittest.TestCase):
++    def test_remote_write_requires_confirm(self) -> None:
++        self.assertIn("MR/PR 评论确认门", SKILL)
++        self.assertIn("在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment`", SKILL)
++
++    def test_repo_mode_never_publishes(self) -> None:
++        self.assertIn("仓库模式不询问，也不发布评论", SKILL)
++
++
++class CredentialTest(unittest.TestCase):
++    def test_gitlab_token_via_env(self) -> None:
++        self.assertIn("GITLAB_TOKEN=\"$GITLAB_TOKEN\" glab", SKILL)
++        self.assertIn("token 不写入命令行参数、日志或审查产物", SKILL)
++        self.assertIn("禁止编造或输出 token", SKILL)
++
++
++class OcrFlagsTest(unittest.TestCase):
++    def test_core_flags_always(self) -> None:
++        self.assertIn("--audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json", SKILL)
++
++    def test_optional_flags_documented(self) -> None:
++        for flag in ("--effort", "--exclude", "--max-tokens-budget", "--resume"):
++            self.assertIn(flag, SKILL)
++
++    def test_background_file(self) -> None:
++        self.assertIn("-B <markdown路径>", SKILL)
++
++
++class BoundaryTest(unittest.TestCase):
++    def test_scan_out_of_scope(self) -> None:
++        self.assertIn("无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill", SKILL)
++
++    def test_read_only_default(self) -> None:
++        self.assertIn("默认只审查、不改代码", SKILL)
++        self.assertIn("用户明确要求「顺手修」才可改代码", SKILL)
++
++
++class InjectionTest(unittest.TestCase):
++    def test_self_evolution_pointer(self) -> None:
++        self.assertIn("## 自进化", SKILL)
++        self.assertIn("evals/cases.yaml", SKILL)
++        self.assertIn("单次失败不直接改本文件", SKILL)
++
++
++if __name__ == "__main__":
++    unittest.main()

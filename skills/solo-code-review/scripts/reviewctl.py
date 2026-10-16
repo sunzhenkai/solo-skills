@@ -50,6 +50,12 @@ P2_RE = re.compile(
     r"(error handling|missing test|缺少测试|可维护|资源泄露|timeout|重试|P2)",
     re.I,
 )
+SEVERITY_TO_PRIORITY = {
+    "critical": "P0",
+    "high": "P1",
+    "medium": "P2",
+    "low": "P3",
+}
 
 
 class ReviewError(Exception):
@@ -303,11 +309,13 @@ def slugify(text: str, max_len: int = 48) -> str:
     return (out or "change")[:max_len].rstrip("-")
 
 
-def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "") -> str:
+def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "", commit: str = "") -> str:
     base = slugify(repo_basename, 32)
     if mode == "mr" and mr_iid is not None:
         extra = slugify(title, 24) if title else ""
         return f"{base}-mr-{mr_iid}" + (f"-{extra}" if extra else "")
+    if mode == "commit" and commit:
+        return f"{base}-commit-{slugify(commit, 12)}"
     if mode == "uncommitted":
         return f"{base}-{slugify(branch or 'wip', 24)}-uncommitted"
     if mode == "default-branch":
@@ -351,7 +359,11 @@ def normalize_comments(ocr: dict[str, Any]) -> list[dict[str, Any]]:
         comment = dict(item)
         pri = str(comment.get("priority") or "").upper()
         if pri not in PRIORITY_ORDER:
-            comment["priority"] = classify_priority(str(comment.get("content") or ""))
+            sev = str(comment.get("severity") or "").strip().lower()
+            if sev in SEVERITY_TO_PRIORITY:
+                comment["priority"] = SEVERITY_TO_PRIORITY[sev]
+            else:
+                comment["priority"] = classify_priority(str(comment.get("content") or ""))
         else:
             comment["priority"] = pri
         out.append(comment)
@@ -376,6 +388,7 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
         f"date: {meta.get('date', '')}",
         f"change_name: {meta.get('change_name', '')}",
         f"branch: {meta.get('branch', '')}",
+        f"commit: {meta.get('commit', '')}",
         f"from: {meta.get('from', '')}",
         f"to: {meta.get('to', '')}",
         f"mr: {meta.get('mr_url', '')}",
@@ -391,6 +404,8 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
         f"- 范围：`{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
         f"- 分支：`{meta.get('branch', '')}`（默认 `{meta.get('default_branch', '')}`）",
     ]
+    if meta.get("commit"):
+        lines.append(f"- Commit：`{meta['commit']}`")
     if meta.get("mr_url"):
         lines.append(f"- Merge Request：{meta['mr_url']}")
     summary = ocr.get("summary") or {}
@@ -399,6 +414,9 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
             f"- OCR：files={summary.get('files_reviewed', '?')} comments={summary.get('comments', len(comments))} "
             f"elapsed={summary.get('elapsed', '?')} session=`{ocr.get('session_id', '')}`"
         )
+    llm = ocr.get("llm") or {}
+    if llm.get("provider") or llm.get("model"):
+        lines.append(f"- LLM：`{llm.get('provider', '?')}` / `{llm.get('model', '?')}`")
     if ocr.get("message"):
         lines.append(f"- OCR message：{ocr['message']}")
     lines += ["", "## 统计", "", tally_line, "", "## Findings（完整）", ""]
@@ -496,6 +514,7 @@ def write_review(work_root: Path, ocr: dict[str, Any], meta: dict[str, Any]) -> 
         branch=str(meta.get("branch") or ""),
         mr_iid=meta.get("mr_iid"),
         title=str(meta.get("title") or ""),
+        commit=str(meta.get("commit") or ""),
     )
     meta = {**meta, "date": day, "change_name": name}
     out_dir = work_root / "docs" / "reviews" / day / name
@@ -548,6 +567,7 @@ def main(argv: list[str] | None = None) -> int:
     p_name.add_argument("--branch", default="")
     p_name.add_argument("--mr-iid", type=int, default=None)
     p_name.add_argument("--title", default="")
+    p_name.add_argument("--commit", default="")
 
     p_write = sub.add_parser("write")
     p_write.add_argument("--ocr-json", required=True)
@@ -575,6 +595,7 @@ def main(argv: list[str] | None = None) -> int:
                 branch=args.branch,
                 mr_iid=args.mr_iid,
                 title=args.title,
+                commit=args.commit,
             )
             return emit({"ok": True, "change_name": name})
         if args.cmd == "write":

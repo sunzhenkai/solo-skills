@@ -1,0 +1,221 @@
+diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
+index 83b0c2d..81ebaa1 100644
+--- a/skills/solo-code-review/SKILL.md
++++ b/skills/solo-code-review/SKILL.md
+@@ -14,11 +14,11 @@ license: MIT
+ ## 调用
+ 
+ ```text
+-/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [change-name=<slug>]
++/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [provider=<name>] [model=<name>] [change-name=<slug>]
+ /solo-code-review <GitLab/GitHub MR 或 PR URL>
+ ```
+ 
+-可选：业务背景（commit/MR 说明、需求一句话）→ 传 `ocr -b`；成篇需求文档给 `-B <markdown路径>`；需要调审查深度时加 `effort=low|medium|high`（映射 `--effort`）。
++可选：业务背景 → `-b`（一句话）/ `-B <md路径>`（成篇文档）；审查深度 `effort=low|medium|high`；LLM 后端 `provider=<name>` + `model=<name>`（单次覆盖，不给则用现有 `ocr config`；内置清单 `ocr llm providers`）。
+ 
+ ## MUST 先读取并执行
+ 
+@@ -34,6 +34,8 @@ ocr llm test
+ 
+ 未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
+ 
++`ocr llm test` 只验证**默认配置**（无 `--provider/--model` 参数）。用户指定 provider/model 时：先用 `ocr llm providers` 核对名称；凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 `ocr review` 报错即停下请用户配置，禁止编造 API key。
++
+ `ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
+ 
+ 1. 配置 LLM（环境变量或 `ocr config`）后重跑。
+@@ -62,29 +64,11 @@ GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope
+ 
+ 用户点名**单个 commit** → mode=commit，范围 `-c <hash>`（对其父提交），确认与预览同下。用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
+ 
+-**MR/PR 模式**：
+-
+-1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
+-2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
+-3. 取源/目标分支：
+-   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
+-   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
+-4. **只 fetch，不 checkout、不 stash**：
+-
+-```bash
+-git -C <git_root_abs> fetch origin
+-# GitLab
+-git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
+-# GitHub
+-git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
+-```
+-
+-5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
+-6. `ocr review --preview` 后确认再跑 LLM。
++**MR/PR 模式**：按 [references/mr-mode.md](references/mr-mode.md) 执行（parse-mr → 定位本地仓 → glab/gh 取分支 → **只 fetch 到 `refs/code-review/mr-<iid>` / `pr-<iid>`，不 checkout、不 stash** → `--preview` 确认后跑 LLM）。
+ 
+ ### 3. 跑 ocr
+ 
+-始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景就加 `-b`/`-B`。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）。中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
++始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景加 `-b`/`-B`；用户指定 LLM 后端加 `--provider <name> --model <name>`（单次覆盖，不给用现有配置）。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）；中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
+ 
+ | mode | 追加范围 flag |
+ |---|---|
+@@ -105,7 +89,7 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
+   --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
+ ```
+ 
+-`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
++`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。LLM 后端无需手填：`reviewctl write` 从 ocr JSON 的 `llm.{provider,model}` 读出写进 `review.md`（以 OCR 实跑值为准）。
+ 
+ 产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
+ 
+diff --git a/skills/solo-code-review/evals/cases.yaml b/skills/solo-code-review/evals/cases.yaml
+index cf6521e..269027e 100644
+--- a/skills/solo-code-review/evals/cases.yaml
++++ b/skills/solo-code-review/evals/cases.yaml
+@@ -142,3 +142,17 @@ cases:
+       must_not:
+         - 编造 API key
+         - 未经用户选择直接以通用 agent 逐文件替代 ocr
++
++  - id: provider-model-override
++    kind: core
++    judge: deterministic
++    description: 用户指定 provider/model 时单次覆盖，未指定则用现有配置
++    given: 用户给了 provider=<name> 和/或 model=<name>
++    expect:
++      must:
++        - ocr review 追加 --provider <name> --model <name>（仅本次运行，不写回 ocr config）
++        - 未指定时不加这两个 flag，沿用现有配置
++        - review.md 记录实际 LLM 后端（取自 ocr JSON 的 llm.{provider,model}）
++      must_not:
++        - 在命令行传入或编造 API key / 凭据
++        - 用 ocr llm test 验证指定组合（该命令只测默认配置）
+diff --git a/skills/solo-code-review/references/delegate-mode.md b/skills/solo-code-review/references/delegate-mode.md
+index b73e504..9cdff0f 100644
+--- a/skills/solo-code-review/references/delegate-mode.md
++++ b/skills/solo-code-review/references/delegate-mode.md
+@@ -2,6 +2,8 @@
+ 
+ OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败且用户选择 delegate。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有「跑 ocr」这一步被替换。
+ 
++delegate 模式下 `--provider/--model` 不适用（OCR 侧不调 LLM，审查用当前 agent 的模型）；`review.md` 的 LLM 行留空或标注 `delegate`。
++
+ ## 步骤
+ 
+ ### D1. 预览审查范围
+diff --git a/skills/solo-code-review/references/mr-mode.md b/skills/solo-code-review/references/mr-mode.md
+new file mode 100644
+index 0000000..ba4e14d
+--- /dev/null
++++ b/skills/solo-code-review/references/mr-mode.md
+@@ -0,0 +1,21 @@
++# MR/PR 模式细则
++
++入口与门禁在 SKILL.md「流程」；本文件是步骤细则。
++
++1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
++2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
++3. 取源/目标分支：
++   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
++   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
++4. **只 fetch，不 checkout、不 stash**：
++
++```bash
++git -C <git_root_abs> fetch origin
++# GitLab
++git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
++# GitHub
++git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
++```
++
++5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
++6. `ocr review --preview` 后确认再跑 LLM。用户指定了 `provider=` / `model=` 时同样透传 `--provider/--model`（见 SKILL.md「调用」与「跑 ocr」）。
+diff --git a/skills/solo-code-review/scripts/reviewctl.py b/skills/solo-code-review/scripts/reviewctl.py
+index 849e36b..66d2a1e 100644
+--- a/skills/solo-code-review/scripts/reviewctl.py
++++ b/skills/solo-code-review/scripts/reviewctl.py
+@@ -414,6 +414,9 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
+             f"- OCR：files={summary.get('files_reviewed', '?')} comments={summary.get('comments', len(comments))} "
+             f"elapsed={summary.get('elapsed', '?')} session=`{ocr.get('session_id', '')}`"
+         )
++    llm = ocr.get("llm") or {}
++    if llm.get("provider") or llm.get("model"):
++        lines.append(f"- LLM：`{llm.get('provider', '?')}` / `{llm.get('model', '?')}`")
+     if ocr.get("message"):
+         lines.append(f"- OCR message：{ocr['message']}")
+     lines += ["", "## 统计", "", tally_line, "", "## Findings（完整）", ""]
+diff --git a/skills/solo-code-review/tests/test_reviewctl.py b/skills/solo-code-review/tests/test_reviewctl.py
+index b111d10..f0924c7 100644
+--- a/skills/solo-code-review/tests/test_reviewctl.py
++++ b/skills/solo-code-review/tests/test_reviewctl.py
+@@ -139,6 +139,20 @@ class ReviewctlTests(unittest.TestCase):
+         self.assertIn("delegate-20261016-120000", review)
+         self.assertIn("### P0", review)
+         self.assertIn("b.go: skipped, binary file", review)
++        self.assertNotIn("- LLM：", review)
++
++    def test_write_review_records_llm_backend(self) -> None:
++        ocr = {
++            "status": "complete",
++            "session_id": "s1",
++            "llm": {"provider": "anthropic", "model": "claude-opus-4-6"},
++            "summary": {"files_reviewed": 1, "comments": 0},
++            "comments": [],
++        }
++        meta = {"repo": "group/service", "mode": "default-branch", "date": "2026-10-16", "branch": "feat", "from": "origin/main", "to": "HEAD", "default_branch": "main"}
++        result = rc.write_review(self.tmp, ocr, meta)
++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
++        self.assertIn("- LLM：`anthropic` / `claude-opus-4-6`", review)
+ 
+     def test_write_review_sorted_summary(self) -> None:
+         ocr = {
+diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
+index d2ca9f3..03601da 100644
+--- a/skills/solo-code-review/tests/test_skill_contract.py
++++ b/skills/solo-code-review/tests/test_skill_contract.py
+@@ -7,6 +7,7 @@ from pathlib import Path
+ ROOT = Path(__file__).resolve().parents[1]
+ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+ DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8")
++MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
+ 
+ 
+ class ScopeConfirmGateTest(unittest.TestCase):
+@@ -57,9 +58,12 @@ class DelegateModeTest(unittest.TestCase):
+ 
+ class FetchOnlyTest(unittest.TestCase):
+     def test_mr_fetch_only(self) -> None:
+-        self.assertIn("**只 fetch，不 checkout、不 stash**", SKILL)
+-        self.assertIn("refs/code-review/mr-<iid>", SKILL)
+-        self.assertIn("refs/code-review/pr-<iid>", SKILL)
++        self.assertIn("**只 fetch，不 checkout、不 stash**", MR)
++        self.assertIn("refs/code-review/mr-<iid>", MR)
++        self.assertIn("refs/code-review/pr-<iid>", MR)
++        # SKILL.md 正文保留门禁要点并指向细则
++        self.assertIn("references/mr-mode.md", SKILL)
++        self.assertIn("不 checkout、不 stash", SKILL)
+ 
+     def test_no_checkout_in_boundaries(self) -> None:
+         self.assertIn("不 `checkout` / `stash` / `reset` 目标仓", SKILL)
+@@ -103,7 +107,22 @@ class OcrFlagsTest(unittest.TestCase):
+             self.assertIn(flag, SKILL)
+ 
+     def test_background_file(self) -> None:
+-        self.assertIn("-B <markdown路径>", SKILL)
++        self.assertIn("-B <md路径>", SKILL)
++
++    def test_provider_model_override(self) -> None:
++        self.assertIn("[provider=<name>] [model=<name>]", SKILL)
++        self.assertIn("--provider <name> --model <name>", SKILL)
++        self.assertIn("单次覆盖", SKILL)
++
++    def test_llm_test_only_default_config(self) -> None:
++        self.assertIn("只验证**默认配置**", SKILL)
++        self.assertIn("ocr llm providers", SKILL)
++
++    def test_llm_recorded_from_ocr_json(self) -> None:
++        self.assertIn("llm.{provider,model}", SKILL)
++
++    def test_delegate_no_provider_model(self) -> None:
++        self.assertIn("`--provider/--model` 不适用", DELEGATE)
+ 
+ 
+ class BoundaryTest(unittest.TestCase):

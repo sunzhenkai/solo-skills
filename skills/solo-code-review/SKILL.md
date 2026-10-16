@@ -1,50 +1,47 @@
 ---
 id: solo-code-review
 name: solo-code-review
-description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
+description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
 license: MIT
 ---
 
 # solo-code-review
 
-用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎使用已配置的 `ocr` 命令，不要用通用 agent 逐文件替代。
+用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎用 `ocr`：LLM 已配置时跑 `ocr review`；未配置时走 delegate 模式（见「前置」），由 OCR 做文件筛选与规则解析、当前 agent 执行审查。
 
-不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。
+不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
 
 ## 调用
 
 ```text
-/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
+/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [provider=<name>] [model=<name>] [change-name=<slug>]
 /solo-code-review <GitLab/GitHub MR 或 PR URL>
 ```
 
-可选：业务背景（commit/MR 说明、需求一句话）→ 传给 `ocr --background`。
+可选：业务背景 → `-b`（一句话）/ `-B <md路径>`（成篇文档）；审查深度 `effort=low|medium|high`；LLM 后端 `provider=<name>` + `model=<name>`（单次覆盖，不给则用现有 `ocr config`；内置清单 `ocr llm providers`）。
 
 ## MUST 先读取并执行
 
 1. 本文件全文。
-2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)，`--root` 指向审查 workspace 根目录。
-
-```bash
-python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> inspect --repo <name-or-path>
-python3 <skill-root>/scripts/reviewctl.py parse-mr --url '<url>'
-python3 <skill-root>/scripts/reviewctl.py write --ocr-json /tmp/ocr.json --meta-json /tmp/meta.json
-```
+2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)（子命令 `inspect` / `parse-mr` / `change-name` / `write`），`--root` 指向审查 workspace 根目录，用法见下文各步。
 
 ## 前置
 
 ```bash
-which ocr || echo "NOT INSTALLED"
+which ocr && ocr --version || echo "NOT INSTALLED"
 ocr llm test
 ```
 
-未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。`ocr llm test` 失败则停下来，让用户配置 LLM（环境变量或 `ocr config`），**禁止编造 API key**。
+未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
 
-GitLab 自建实例认证：
+`ocr llm test` 只验证**默认配置**（无 `--provider/--model` 参数）。用户指定 provider/model 时：先用 `ocr llm providers` 核对名称；凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 `ocr review` 报错即停下请用户配置，禁止编造 API key。
 
-- 优先使用环境变量 `GITLAB_TOKEN`，不要把 token 写入命令行参数、日志或审查产物。
-- 调用 `glab` 时映射为：`GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；GitLab API 需要 token 具备 `api` scope。
-- 若 `GITLAB_TOKEN` 未设置且目标需要认证，停止并请用户配置该变量；禁止编造或输出 token。
+`ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
+
+1. 配置 LLM（环境变量或 `ocr config`）后重跑。
+2. delegate 模式：读取并按 [references/delegate-mode.md](references/delegate-mode.md) 执行，审查由当前 agent 的 LLM 完成，产物与确认门同主流程。
+
+GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope），调 `glab` 映射为 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；token 不写入命令行参数、日志或审查产物；未设置且目标需要认证时停止并请用户配置，禁止编造或输出 token。
 
 ## 流程
 
@@ -63,56 +60,36 @@ GitLab 自建实例认证：
 | `uncommitted` | 仅工作区脏 | 建议 workspace 审查；**仍须用户确认** |
 | `default-branch` | 干净且相对默认分支有提交 | 建议 `--from <comparison_ref> --to HEAD`；**仍须用户确认** |
 | `ask` | 既有未提交又有分支提交 | **必须**让用户选其一，禁止默默合并两种 diff |
-| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接或其它 ref |
+| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接、单个 commit 或其它 ref |
 
-用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
+用户点名**单个 commit** → mode=commit，范围 `-c <hash>`（对其父提交），确认与预览同下。用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
 
-**MR/PR 模式**：
-
-1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
-2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
-3. 取源/目标分支：
-   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
-   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
-4. **只 fetch，不 checkout、不 stash**：
-
-```bash
-git -C <git_root_abs> fetch origin
-# GitLab
-git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
-# GitHub
-git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
-```
-
-5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
-6. `ocr review --preview` 后确认再跑 LLM。
+**MR/PR 模式**：按 [references/mr-mode.md](references/mr-mode.md) 执行（parse-mr → 定位本地仓 → glab/gh 取分支 → **只 fetch 到 `refs/code-review/mr-<iid>` / `pr-<iid>`，不 checkout、不 stash** → `--preview` 确认后跑 LLM）。
 
 ### 3. 跑 ocr
 
-始终：`--audience agent --format json --repo <git_root_abs>`，有背景就加 `-b`。stdout 重定向到文件，禁止 `head`/`tail` 截断。
+始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景加 `-b`/`-B`；用户指定 LLM 后端加 `--provider <name> --model <name>`（单次覆盖，不给用现有配置）。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）；中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
 
-```bash
-# 未提交
-ocr review --audience agent --format json --repo <abs> -b "<background>" > /tmp/ocr.json 2>/tmp/ocr.err
-# 相对默认分支 / MR / PR
-ocr review --audience agent --format json --repo <abs> -b "<background>" \
-  --from <from> --to <to> > /tmp/ocr.json 2>/tmp/ocr.err
-```
+| mode | 追加范围 flag |
+|---|---|
+| `uncommitted` | （无，默认工作区） |
+| `commit` | `-c <hash>` |
+| `default-branch` / MR / PR | `--from <from> --to <to>` |
 
 先看 exit code 与 `/tmp/ocr.err`。JSON `status=skipped` 视为无审查对象，不是失败。
 
 ### 4. 分级并落盘
 
-读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。可先用 `reviewctl` 启发式，**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
+读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。`reviewctl` 自动分级次序：显式 `priority` > `severity` 映射（critical/high/medium/low → P0~P3）> 内容启发式；**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
 
-`change-name`：用户指定优先；否则 `reviewctl change-name`。日期使用运行当天的 `YYYY-MM-DD`。
+`change-name`：用户指定优先；否则 `reviewctl change-name`（mode=commit 时带 `--commit <hash>`）。日期使用运行当天的 `YYYY-MM-DD`。
 
 ```bash
 python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
   --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
 ```
 
-`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
+`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。LLM 后端无需手填：`reviewctl write` 从 ocr JSON 的 `llm.{provider,model}` 读出写进 `review.md`（以 OCR 实跑值为准）。
 
 产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
 
@@ -130,15 +107,19 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
 
 > 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
 
-在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口。确认时再次核对目标 URL/IID 与待发布文件；用户拒绝、未确认或目标不明确时，只保留本地报告，不发布评论。用户确认后，以 `review.md` 的完整内容发布一条评论，并在结果中报告成功或失败。仓库模式不询问，也不发布评论。
+在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口；确认时再次核对目标 URL/IID 与待发布文件。用户拒绝或未确认 → 只保留本地报告。确认后以 `review.md` 完整内容发布一条评论并报告成败。仓库模式不询问，也不发布评论。
 
 ### 6. 对用户只打印总结
 
-对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径。不要把 `thinking`、大段代码、原始 JSON 贴进对话。无 findings 时打印 `No findings.` + 文档链接。
+对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径；`thinking`、大段代码、原始 JSON 不进对话。无 findings 时打印 `No findings.` + 文档链接。需要浏览器回放或分享时用 `ocr session export <session-id>` 生成离线 HTML（含源码摘录，按仓库同等保密）。
 
 ## 边界
 
-- 默认不改业务代码、不 commit、不 push、不在 MR/PR 上发评论；远程评论必须经过上一步的明确确认。用户明确要求「顺手修」才可改代码。
+- 默认不改业务代码、不 commit、不 push；MR/PR 远程评论以第 5 节确认门为准。用户明确要求「顺手修」才可改代码。
 - 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
 - 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
 - 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
+
+## 自进化
+
+执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
