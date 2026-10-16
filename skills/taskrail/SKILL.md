@@ -53,7 +53,7 @@ taskrail list
 
 **approve 出口**：唯一下一步是 handoff，细则只在契约「approve 出口与交接」。
 
-**命中才读**：Web UI → [references/ui-delivery.md](references/ui-delivery.md)；多 worker 并行 → `taskflow/references/multi-worker.md`；一个目标里有多个独立方向 → `task-explore/references/large-scope.md`。
+**命中才读**（均从这里直接打开）：Web UI → [references/ui-delivery.md](references/ui-delivery.md)；多 worker 并行 → [multi-worker.md](../taskflow/references/multi-worker.md)；一个目标里有多个独立方向 → [large-scope.md](../task-explore/references/large-scope.md)；full 档选型 / 外部集成 → [references/external-precedent.md](references/external-precedent.md)；质量画像 / 降级分级 / 验收打分或门包类别名 → [references/quality-appendix.md](references/quality-appendix.md)；交接步骤 → [handoff.md](../task-explore/references/handoff.md)。
 
 ## 完成
 

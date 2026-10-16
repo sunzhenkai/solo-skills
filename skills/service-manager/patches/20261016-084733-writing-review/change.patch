@@ -1,0 +1,107 @@
+diff --git a/skills/service-manager/SKILL.md b/skills/service-manager/SKILL.md
+index b9f6e52..a90d668 100644
+--- a/skills/service-manager/SKILL.md
++++ b/skills/service-manager/SKILL.md
+@@ -47,41 +47,6 @@ description: 项目服务管理：从 Makefile、package.json、docker-compose 
+ - 缓存损坏 → 直接重新 discover。
+ - `.service-manager.md` 禁止密钥明文；可写「见 `.env` / 某环境变量名」。
+ 
+----
+-
+-## Self-evolution
+-
+-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
+-
+-```text
+-<skill-dir>/
+-├── SKILL.md
+-├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准
+-└── experience/    # 真实失败 / 成功 / 规律
+-```
+-
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。没有真实案例时不要编造 `examples/` 条目。
+-
+-### Examples
+-
+-执行复杂任务前：检查 `examples/`；有相关案例则优先复用；没有则按上文正常执行。
+-
+-### Evaluation
+-
+-任务完成前对照相关 `evals/`（见 `evals/cases.yaml`）。优先确定性 Eval；失败则先修输出再交卷。
+-
+-### Experience
+-
+-仅在失败、用户纠正、明显成功、新方法或可复用经验时写入 `experience/`。不记 trivial；不伪造；不写密钥/内部 URL。单次失败 → `failures/`；规律需至少两次证据 → `patterns/`。
+-
+-### Evolution
+-
+-仅当 Experience 暴露可复用稳定模式时才改本 Skill。禁止单次失败直接改 `SKILL.md`。
+-
+-实际更新生产 `SKILL.md` 时：
++## 自进化
+ 
+-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-2. 若改动来自**真实执行经验**：优先委托 `skill-upgrader` 的 `evolve` 模式（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
+-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`<skill-dir>/patches/`），仍须先提案再应用。
+-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
++经验沉淀（`examples/` / `evals/cases.yaml` / `experience/`）与正文演进走 `skill-upgrader`，单次失败不直接改本文件。
+diff --git a/skills/service-manager/references/commands.md b/skills/service-manager/references/commands.md
+index 83a4cca..c3077fa 100644
+--- a/skills/service-manager/references/commands.md
++++ b/skills/service-manager/references/commands.md
+@@ -11,6 +11,8 @@
+ - 读 `.service-manager.md`（若有）与缓存，或 discover；表格：name、source、command、port、运行状态。
+ - 缓存命中时说明「来自缓存」；源文件 mtime 变了则先重新 discover。
+ 
++做完的标志：表格每行都有 name、source、command、port、运行状态（未知写「待确认」）。
++
+ ### start `<name>` 或 `@<profile>`
+ 
+ **缺 name 时**：
+@@ -40,6 +42,8 @@
+    失败 → tail 项目隔离日志，写踩坑；profile 输出成员汇总，不隐藏已成功成员。
+ 8. 成功 → 按冲突规则同步 `.service-manager.md`（含实际 bind / 是否热更新 / recipe 生效结果，若适用）。
+ 
++做完的标志：第 7 步就绪验证全部满足并已写回 `runs`；或失败已附日志尾、踩坑已写。
++
+ ### stop `<name>`
+ 
+ 1. **compose**：在对应 cwd 用同一 `compose_file` 执行 `docker compose stop <name>`，清理 `runs`。
+@@ -49,15 +53,23 @@
+ 5. pid/pgid/容器都对不上 → 不猜杀，列候选请用户确认。
+ 6. 新坑立刻写入 `.service-manager.md`。
+ 
++做完的标志：目标进程组 / 容器已退出、端口已释放、`runs` 已清理；对不上的已列候选交用户。
++
+ ### restart `<name>` 或 `@<profile>`
+ 
+ `stop` 后 `start`；复用已有命令，不重新 discover（除非 start 失败需再探索）。缺 name 时规则同 start；`@<profile>` 对成员逐个 stop 后 start。
+ 
++做完的标志：stop 与 start 各自的标志都满足。
++
+ ### status `[name]`
+ 
+ 按「运行状态判定」输出：running / starting / stopped / port_busy，以及 pid/pgid 或 container、端口、启动时长。
+ 
++做完的标志：每个目标服务都给出四态之一及其证据（pid/pgid 或 container、端口）。
++
+ ### logs `<name>` `[行数]`
+ 
+ - 原生：`tail -n <行数, 默认 50> ~/.cache/service-manager/logs/<ph>/<name>.log`（旧路径仅回退）。
+ - compose：`docker compose -f <compose_file> logs --tail <行数> <name>`。
++
++做完的标志：输出了指定行数的日志尾，并注明日志路径。
+diff --git a/skills/service-manager/tests/gate_lines.txt b/skills/service-manager/tests/gate_lines.txt
+index 5a4ae68..9fa6b32 100644
+--- a/skills/service-manager/tests/gate_lines.txt
++++ b/skills/service-manager/tests/gate_lines.txt
+@@ -22,7 +22,4 @@ start / restart 开发/测试原生服务时，**默认不改监听配置**（
+ **服务访问方式**：对 running/starting 给出入口。本机优先 `http://127.0.0.1:<port>`（或文档中的 path/HTTPS）；若已确认监听 `0.0.0.0`，可补充局域网可用 `http://<主机IP>:<port>`；仅绑本机则如实写；未知 →「待确认」；失败 →「不可用」并指日志。
+ **绝不** kill 无关进程；身份不匹配或仅端口冲突时停下来问用户。
+ `.service-manager.md` 禁止密钥明文；可写「见 `.env` / 某环境变量名」。
+-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。没有真实案例时不要编造 `examples/` 条目。
+-仅当 Experience 暴露可复用稳定模式时才改本 Skill。禁止单次失败直接改 `SKILL.md`。
+-不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
+-若改动来自**真实执行经验**：优先委托 `skill-upgrader` 的 `evolve` 模式（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
++经验沉淀（`examples/` / `evals/cases.yaml` / `experience/`）与正文演进走 `skill-upgrader`，单次失败不直接改本文件。

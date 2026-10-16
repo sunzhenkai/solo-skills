@@ -11,6 +11,8 @@
 - 读 `.service-manager.md`（若有）与缓存，或 discover；表格：name、source、command、port、运行状态。
 - 缓存命中时说明「来自缓存」；源文件 mtime 变了则先重新 discover。
 
+做完的标志：表格每行都有 name、source、command、port、运行状态（未知写「待确认」）。
+
 ### start `<name>` 或 `@<profile>`
 
 **缺 name 时**：
@@ -40,6 +42,8 @@
    失败 → tail 项目隔离日志，写踩坑；profile 输出成员汇总，不隐藏已成功成员。
 8. 成功 → 按冲突规则同步 `.service-manager.md`（含实际 bind / 是否热更新 / recipe 生效结果，若适用）。
 
+做完的标志：第 7 步就绪验证全部满足并已写回 `runs`；或失败已附日志尾、踩坑已写。
+
 ### stop `<name>`
 
 1. **compose**：在对应 cwd 用同一 `compose_file` 执行 `docker compose stop <name>`，清理 `runs`。
@@ -49,15 +53,23 @@
 5. pid/pgid/容器都对不上 → 不猜杀，列候选请用户确认。
 6. 新坑立刻写入 `.service-manager.md`。
 
+做完的标志：目标进程组 / 容器已退出、端口已释放、`runs` 已清理；对不上的已列候选交用户。
+
 ### restart `<name>` 或 `@<profile>`
 
 `stop` 后 `start`；复用已有命令，不重新 discover（除非 start 失败需再探索）。缺 name 时规则同 start；`@<profile>` 对成员逐个 stop 后 start。
+
+做完的标志：stop 与 start 各自的标志都满足。
 
 ### status `[name]`
 
 按「运行状态判定」输出：running / starting / stopped / port_busy，以及 pid/pgid 或 container、端口、启动时长。
 
+做完的标志：每个目标服务都给出四态之一及其证据（pid/pgid 或 container、端口）。
+
 ### logs `<name>` `[行数]`
 
 - 原生：`tail -n <行数, 默认 50> ~/.cache/service-manager/logs/<ph>/<name>.log`（旧路径仅回退）。
 - compose：`docker compose -f <compose_file> logs --tail <行数> <name>`。
+
+做完的标志：输出了指定行数的日志尾，并注明日志路径。

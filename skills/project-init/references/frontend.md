@@ -1,6 +1,6 @@
 # 前端
 
-本 reference 只在栈为 `frontend` 时读取。分层与建议以 `SKILL.md` 前端表为准；这里只写怎么落地。用户点名 Vue / CRA 等则不要套本文件。
+本 reference 只在栈为 `frontend` 时读取，是前端分层与落地的唯一出处。用户点名 Vue / CRA 等则不要套本文件。
 
 本 reference 有两条路径，**一次只走一条**：
 
@@ -10,6 +10,26 @@
 两条路径共用同一分层与包管理器约定，只换项目骨架、Build 与服务端承担者。**禁止 Vite 与 Next 并存**（例如在 Next 项目里再塞一份 Vite 配置）。
 
 **工具命令优先**：先跑 `pnpm create vite` / `create-next-app` / `shadcn init`。官方 CLI 可用时不要手写 `package.json`、Vite / Next 或 Tailwind 配置来「等价生成」。CLI 缺失时先按 `SKILL.md` 询问是否补齐。
+
+## 分层
+
+「建议」列决定 init 是否默认装入（见下节）。
+
+| 层 | 选择 | 建议 |
+| ---- | ------ | ------ |
+| Language | TypeScript | 必选 |
+| UI Framework | React | 必选 |
+| Build | Vite | 默认（Vite 路径） |
+| Build / Framework | Next.js | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由；承担构建与服务端） |
+| CSS | Tailwind CSS | 默认 |
+| UI | shadcn/ui | 强烈推荐 |
+| Server State | TanStack Query | 推荐 |
+| Client State | Zustand | 推荐 |
+| Validation | Zod | 推荐 |
+| Form | React Hook Form | 需要表单再用 |
+| API Contract | OpenAPI / Zod | 强烈推荐 |
+| E2E | Playwright | 必选 |
+| Unit | Vitest | 推荐 |
 
 ## 建议 → init 行为
 

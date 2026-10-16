@@ -36,7 +36,7 @@ class ContractTest(unittest.TestCase):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
     def test_loads_references_on_demand(self) -> None:
-        self.assertIn("不要预加载其它 Stage", self.skill)
+        self.assertIn("其它 Stage 进入时再读", self.skill)
         self.assertIn("确认 Track 之后读", self.skill)
         self.assertNotIn("| Simple | Medium | Complex |", self.skill)
 

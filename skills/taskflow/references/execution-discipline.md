@@ -24,4 +24,4 @@ Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支�
 - 证据与当前代码一致（换代码后旧证据作废，重跑受影响部分）。
 - [done.md](../../taskrail/references/done.md) 全过。
 
-`openspec archive` 报未勾时先回填真实状态或保持未勾，**不用 `--yes` 盖过去**：归档后记录不可回改，未勾齐就不归档。
+`openspec archive` 报未勾时先回填真实状态或保持未勾，勾齐再归档：归档后记录不可回改，未勾齐就不归档（`--yes` 不用来盖过未勾项）。

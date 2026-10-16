@@ -1,14 +1,15 @@
 ---
 id: lark-cli
 name: lark-cli
-description: "飞书 / Lark CLI 路由器：按意图用 `lark-cli skills read` 按需加载官方 lark-* 正文（嵌在 CLI 二进制里，不要落盘到 ~/.agents/skills）。用于消息、日历、文档、多维表格、任务、邮箱、审批等飞书操作。仅在用户点名 lark-cli / 飞书 CLI，或明确要操作飞书业务时使用；不要预加载全部上游 skill。"
+description: "飞书 / Lark CLI 路由器：按意图用 `lark-cli skills read` 按需加载官方 lark-* 正文，做消息、日历、文档、多维表格、任务、审批等飞书操作（手动点名使用）。"
+disable-model-invocation: true
 ---
 
 # lark-cli（飞书 CLI 路由器）
 
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
 
-本 skill 是**薄路由器**：只负责选 id、再向 CLI 取正文。官方 skill 嵌在 `lark-cli` 二进制里，与 CLI 版本同步，**不要**安装到 `~/.agents/skills` 或各 agent 的 skills 目录。
+本 skill 是**薄路由器**：只负责选 id、再向 CLI 取正文。官方 skill 嵌在 `lark-cli` 二进制里，与 CLI 版本同步，运行时只经 CLI 读取（不装进 `~/.agents/skills` 或各 agent 的 skills 目录）。
 
 源：[larksuite/cli/skills](https://github.com/larksuite/cli/tree/main/skills)（仅供对照，运行时以 CLI 内嵌为准）。
 
@@ -16,7 +17,7 @@ description: "飞书 / Lark CLI 路由器：按意图用 `lark-cli skills read` 
 
 1. **门 1 · 收窄触发**：用户点名本 skill /「飞书 CLI」/ `lark-cli`，或明确要操作飞书业务（发消息、查日程、改文档、多维表格等）。闲聊「飞书是什么」不加载。
 2. **门 2 · 先路由再读**：对照 [catalog](references/catalog.md) 选定**一个**业务 skill；意图不清时先问，不猜。
-3. **门 3 · 按需加载**（用 Shell 跑 CLI，**不要**用 Read 去读 `~/.agents/skills`）：
+3. **门 3 · 按需加载**（用 Shell 跑 CLI 读取正文）：
    - 认证/配置/登录/权限 → 只 `lark-cli skills read lark-shared`
    - 业务操作 → 先 `lark-cli skills read lark-shared`，再 `lark-cli skills read <id>`
    - **禁止**一次读多个业务 skill；上游 `references/` 仅在其正文要求时再 `lark-cli skills read <id>/<path>`

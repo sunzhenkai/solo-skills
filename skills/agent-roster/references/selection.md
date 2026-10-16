@@ -4,7 +4,7 @@
 
 调用方点名了 Role、又没写 Endpoint 时，先解析这个 Role 的默认 Endpoint。`verdict: use` 走上面的快速路径，`verdict: ask` 停下来问。调用方没点名 Role 时，跳过本节，按下一节自行选人。
 
-约定名字是 developer、planner、reviewer、code-reviewer、designer，一句话语义见 [references/roles.md](roles.md)。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。本 skill 引用的仓级文档（CONTEXT.md、docs/adr/）只在源仓存在，安装副本不随分发。
+约定名字是 developer、planner、reviewer、code-reviewer、designer，一句话语义见 `roles.md`。调用方可以点自己加的名字。不从任务正文推断该用哪个 Role。本 skill 引用的仓级文档（CONTEXT.md、docs/adr/）只在源仓存在，安装副本不随分发。
 
 ```bash
 python3 <skill-dir>/scripts/resolve_role.py <role-id>
@@ -41,7 +41,7 @@ python3 <skill-dir>/scripts/resolve_role.py --write <role-id> <host>/<kind>
 
 运行位置只有 `SKILL.md`、`references/`、`scripts/`、`examples/` 的字节副本，写进去的东西会在下次同步时消失；`experience/`、`evals/`、`patches/` 连复制都不会发生。所以一条规律要真正生效，必须固化进本文件正文或 `routing.md`——`patterns/` 只是素材，`evals/` 只在源仓库改正文时用来验收。
 
-格式见 [references/endpoint-schema.md](endpoint-schema.md) 与 [references/trace-format.md](trace-format.md)。
+格式见 `endpoint-schema.md` 与 `trace-format.md`。
 
 references 按当前步骤按需加载，不要预先全读：委派前读 `delegation-contract.md`，写/改画像时读 `endpoint-schema.md`，写 Trace 时读 `trace-format.md`，解析 Role 时读 `roles.md`。
 

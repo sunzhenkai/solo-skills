@@ -21,32 +21,31 @@ class FrontmatterContract(unittest.TestCase):
         self.assertIn("name: commit-push", frontmatter)
         self.assertIn("description:", frontmatter)
 
-    def test_description_has_negative_trigger(self) -> None:
-        self.assertIn("仅查看变更/diff 或需要逐文件评审时不用本 skill", "\n".join(self.lines))
+    def test_description_positive_and_boundary_in_body(self) -> None:
+        text = "\n".join(self.lines)
+        front = text.split("---", 2)[1]
+        self.assertNotIn("不用本 skill", front)
+        self.assertIn("只看 diff 或逐文件评审交给 `solo-code-review`", text)
 
 
 class SafetyProtocolContract(unittest.TestCase):
     def setUp(self) -> None:
         self.text = SKILL_MD.read_text(encoding="utf-8")
 
-    def test_never_touch_git_config(self) -> None:
-        self.assertIn("- **不要** 修改 git config", self.text)
+    def test_safe_default_sentence(self) -> None:
+        self.assertIn("## 安全默认", self.text)
+        self.assertIn("安全默认：沿用现有 git config 与 hooks；路径级暂存；每次新建 commit；普通 `git push`", self.text)
+        self.assertIn("以下情况先确认——用户明确要求才做，并先说明风险", self.text)
 
-    def test_never_skip_hooks(self) -> None:
-        self.assertIn("**不要** 跳过 hooks（`--no-verify` 等）", self.text)
+    def test_confirm_gates_kept(self) -> None:
+        confirm = self.text.split("以下情况先确认", 1)[1].split("\n## ", 1)[0]
+        for gate in ("`push --force`", "hard reset", "`main`/`master`", "`commit --amend`",
+                     "`--no-verify`", "修改 git config", "`.env`、`credentials.json`"):
+            self.assertIn(gate, confirm)
 
-    def test_never_force_push_default_branch(self) -> None:
-        self.assertIn("**不要** force push 到 `main`/`master`；若用户要求则警告", self.text)
-
-    def test_hook_failure_creates_new_commit_not_amend(self) -> None:
-        self.assertIn("hook 失败：修问题后 **新建** commit，不要 amend", self.text)
-        self.assertIn("**避免** `commit --amend`", self.text)
-
-    def test_secret_like_files_not_committed(self) -> None:
-        self.assertIn("疑似密钥文件（`.env`、`credentials.json` 等）不要提交", self.text)
-
-    def test_destructive_commands_require_explicit_request(self) -> None:
-        self.assertIn("**不要** 用破坏性命令（`push --force`、hard reset 等），除非用户明确要求", self.text)
+    def test_amend_conditions_and_hook_failure(self) -> None:
+        self.assertIn("HEAD 由你在本会话创建、尚未 push、amend 非因 hook 失败", self.text)
+        self.assertIn("hook 失败时修好问题后 **新建** commit", self.text)
 
 
 class ScaleRoutingContract(unittest.TestCase):
@@ -68,7 +67,7 @@ class ScaleRoutingContract(unittest.TestCase):
         self.assertIn("git diff HEAD", self.text)
 
     def test_large_change_never_full_diff_first(self) -> None:
-        self.assertIn("禁止**一上来对整库跑完整 `git diff`", self.text)
+        self.assertIn("从统计入手、按路径抽样", self.text)
         self.assertIn("只对**核心逻辑文件**抽样", self.text)
         self.assertIn("git diff HEAD --stat", self.text)
 
@@ -111,28 +110,31 @@ class PushGateContract(unittest.TestCase):
         self.assertIn("- 目标是共享远程（生产、预发、共享分支）或默认分支：推送前单独向用户确认", self.text)
 
     def test_push_rejected_never_force(self) -> None:
-        self.assertIn("若无上游或被拒绝，说明原因并停下，不要强推", self.text)
+        self.assertIn("若无上游或被拒绝，说明原因并停下，等用户决定", self.text)
 
 
 
 class ConflictFlowContract(unittest.TestCase):
     def setUp(self) -> None:
         self.text = SKILL_MD.read_text(encoding="utf-8")
+        self.ref = (SKILL_ROOT / "references" / "conflicts.md").read_text(encoding="utf-8")
 
-    def test_conflict_section_exists(self) -> None:
+    def test_conflict_section_points_one_level(self) -> None:
         self.assertIn("## 处理冲突", self.text)
+        self.assertIn("](references/conflicts.md)", self.text)
 
     def test_conflict_types_are_routed(self) -> None:
-        self.assertIn("**追加型**", self.text)
-        self.assertIn("**语义型**", self.text)
-        self.assertIn("**危险型**", self.text)
+        for kind in ("**追加型**", "**语义型**", "**危险型**"):
+            self.assertIn(kind, self.text)
+            self.assertIn(kind, self.ref)
 
     def test_conflict_inventory_uses_script(self) -> None:
-        self.assertIn("scripts/commit_push_context.sh --conflicts", self.text)
+        self.assertIn("scripts/commit_push_context.sh --conflicts", self.ref)
 
     def test_conflict_verification_steps(self) -> None:
-        self.assertIn("git ls-files -u", self.text)
-        self.assertIn("git diff --check", self.text)
+        for s in ("git ls-files -u", "git diff --check"):
+            self.assertIn(s, self.text)
+            self.assertIn(s, self.ref)
 
     def test_conflict_does_not_bypass_push_gate(self) -> None:
         self.assertIn("冲突处理不会自动获得推送授权", self.text)

@@ -20,7 +20,7 @@ class TaskflowContractTest(unittest.TestCase):
         t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
         self.assertIn("## Driver 协议", t)
         self.assertIn("skip_specs: true", t)
-        self.assertIn("不要写 `tasks.md`", t)
+        self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
 
     def test_serial_default(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")

@@ -22,19 +22,19 @@ my-skill/
 └── patches/          # 本轮与后续审计记录（本模式创建的首轮 patch 即在此）
 ```
 
-目录模板、Eval schema、注入正文见（均只读一层）：
+目录模板、Eval schema、注入指针（SKILL.md 已逐个直链）：
 
-- [layout.md](layout.md) — 复制清单
-- [evals.md](evals.md) — 抽取规则与 schema
-- [skill-injection.md](skill-injection.md) — 追加到目标 SKILL.md 的原文
-- [examples-README.md](examples-README.md) / [evals-README.md](evals-README.md) / [experience-README.md](experience-README.md) / [cases.template.yaml](cases.template.yaml) — 复制源
-- [patch-protocol.md](patch-protocol.md) — 本轮 patch 记录格式
+- `layout.md` — 复制清单
+- `evals.md` — 抽取规则与 schema
+- `skill-injection.md` — 追加到目标 SKILL.md 的一句指针
+- `examples-README.md` / `evals-README.md` / `experience-README.md` / `cases.template.yaml` — 复制源
+- `patch-protocol.md` — 本轮 patch 记录格式
 
 ### Preserve the original Skill
 
 完整读取现有 `SKILL.md`（及其声明要读的 `references/` / `scripts/`）。不要为了自进化破坏原有行为；不要重写无关段落。
 
-幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有同等「Self-evolution」段落则不要再贴一份。
+幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有指向 skill-upgrader 的自进化指针（或旧版「Self-evolution」段落）就保留现状，只留一处。
 
 若三目录与注入均已齐全 → `decision: already-upgraded`，不写无意义空 patch。
 
@@ -43,9 +43,9 @@ my-skill/
 1. **examples/** — 仅 README 与约定；无真实成功案例不编造。
 2. **evals/** — `README.md` + `cases.yaml`；从原文抽可验证标准；优先确定性 Eval。
 3. **experience/** — README + `failures/` `successes/` `patterns/`（空目录 `.gitkeep`）；不伪造历史。
-4. **SKILL.md** — 末尾追加与 [skill-injection.md](skill-injection.md) 一致的正文（只替换 `<skill-dir>`）；不改写语气或删减门禁。
+4. **SKILL.md** — 末尾追加与 `skill-injection.md` 一致的一句指针；原文语气与门禁保持不变。
 
-细节清单见 [layout.md](layout.md)。
+细节清单见 `layout.md`。
 
 ### Evolution Criteria（写入目标后的行为约束）
 

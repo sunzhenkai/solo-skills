@@ -47,6 +47,9 @@ class ContractTest(unittest.TestCase):
     def test_gate_and_stacks(self) -> None:
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("显式", text)
+        self.assertIn("**算触发**（白名单", text)
+        self.assertNotIn("不算触发", text)
+        self.assertNotIn("⭐", text)
         self.assertIn("python-api", text)
         self.assertIn("frontend", text)
         self.assertIn("FastAPI", text)
@@ -76,12 +79,14 @@ class ContractTest(unittest.TestCase):
             "Ruff",
         ):
             self.assertIn(needle, skill)
+            self.assertIn(needle, py)
+        self.assertIn("| 层 | 选择 | 建议 |", py)
         self.assertIn("fastapi[standard]", py)
         self.assertIn("sqlalchemy", py.lower())
         self.assertIn("需要后台任务再用", skill)
         self.assertIn("startproject", py)
         self.assertIn("rest_framework", py)
-        self.assertIn("不要把所有备选都装上", py)
+        self.assertIn("只装所选层", py)
 
     def test_frontend_layers(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -98,6 +103,8 @@ class ContractTest(unittest.TestCase):
             "Next.js",
         ):
             self.assertIn(needle, skill)
+            self.assertIn(needle, fe)
+        self.assertIn("| 层 | 选择 | 建议 |", fe)
         self.assertIn("需要表单再用", fe)
         self.assertIn("playwright", fe.lower())
         self.assertIn("vitest", fe.lower())

@@ -55,7 +55,16 @@ class SkillMdTextContract(unittest.TestCase):
         self.assertIn("只豁免逐字命中行，豁免项以计数展示", self.text)
 
     def test_forbidden_to_remove_rules_for_approval(self) -> None:
-        self.assertIn("**禁止**为了给某个 skill 放行而删规则或放宽关键词", self.text)
+        self.assertIn("规则集保持原样放行", self.text)
+        self.assertIn("等用户针对该条明确豁免后再继续安装", self.text)
+
+    def test_cli_and_false_positives_disclosed_one_level(self) -> None:
+        for ref in ("references/cli.md", "references/known-false-positives.md"):
+            self.assertIn(f"]({ref})", self.text)
+            self.assertTrue((SKILL_ROOT / ref).is_file())
+        cli = (SKILL_ROOT / "references" / "cli.md").read_text(encoding="utf-8")
+        self.assertIn("以 `npx skills --help`", cli)
+        self.assertIn("裸 `npx skills update` 会进入交互询问", cli)
 
     def test_audit_surface_equals_install_surface(self) -> None:
         self.assertIn("审计面=安装面", self.text)

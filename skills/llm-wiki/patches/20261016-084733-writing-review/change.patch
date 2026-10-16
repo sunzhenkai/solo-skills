@@ -1,0 +1,117 @@
+diff --git a/skills/llm-wiki/SKILL.md b/skills/llm-wiki/SKILL.md
+index 4f72dd8..4b12a4a 100644
+--- a/skills/llm-wiki/SKILL.md
++++ b/skills/llm-wiki/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: llm-wiki
+ name: llm-wiki
+-description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki：把源文档摄入 typed 页面、按引用回答、重组结构并做健康检查。文件系统为真相源，不依赖 llmwiki 服务或 MCP。在用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。不用于项目 spec 镜像或代码探索。
++description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。
+ ---
+ 
+ # LLM Wiki（本地文档）
+@@ -19,20 +19,20 @@ description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki
+ - 不探索或修改业务源码（交给 `code-explore`）。
+ - 不编辑 `raw/` 中的源材料。
+ - 不自动 commit / push / sync 安装。
+-- 不要创建 `.llmwiki/`、`.obsidian/` 或任何应用私有目录。
++- 工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
+ 
+ ## 阶段
+ 
+ 用户点名 `{{slash:llm-wiki}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
+ 
+-| 阶段 | 何时 | 写入 |
+-|------|------|------|
+-| `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 |
+-| `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 |
+-| `ingest` | 把文件、粘贴文本或对话编进 wiki | 确认范围后写 `wiki/` |
+-| `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 |
+-| `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 |
+-| `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 |
++| 阶段 | 何时 | 写入 | 做完的标志 |
++|------|------|------|------------|
++| `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 | 已按真实 `ls` 报出目标、结构、覆盖与缺口 |
++| `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
++| `ingest` | 把文件、粘贴文本或对话编进 wiki | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
++| `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 | 回答逐条带出处，未覆盖处明说「wiki 尚未覆盖」 |
++| `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
++| `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
+ 
+ ## 绑定 `WIKI_ROOT`
+ 
+@@ -59,7 +59,7 @@ description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki
+ 
+ ## 加载
+ 
+-进入阶段后 **只读该阶段详情**，不要预加载其它 reference。
++进入阶段后 **只读该阶段详情**，其它 reference 等用到时再读。
+ 
+ | 阶段 | 进入时读取 |
+ |------|------------|
+diff --git a/skills/llm-wiki/references/layout.md b/skills/llm-wiki/references/layout.md
+index 42fc5ac..9ddab39 100644
+--- a/skills/llm-wiki/references/layout.md
++++ b/skills/llm-wiki/references/layout.md
+@@ -52,7 +52,7 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
+ 1. 确认 `{WIKI_ROOT}` 与研究/知识范围一句话。
+ 2. 按下方脚手架创建骨架：`purpose.md`、`rules.md`、`raw/sources/`、`raw/assets/`、typed `wiki/` 子目录、三份系统页、`wiki/templates/`。
+ 3. **领养已有文档**：原文件复制（或经确认后移动）到 `raw/sources/`，不要在原地改成 wiki 页。随后转 `ingest`。
+-4. 不要创建 `.llmwiki/`、`.obsidian/` 或任何应用私有目录。
++4. 只建上述纯 Markdown 骨架，不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
+ 5. 绑定工作区，追加 log：`## [YYYY-MM-DD] init | 工作区初始化`。
+ 
+ ### 脚手架
+diff --git a/skills/llm-wiki/references/organize.md b/skills/llm-wiki/references/organize.md
+index feee41b..ef5a716 100644
+--- a/skills/llm-wiki/references/organize.md
++++ b/skills/llm-wiki/references/organize.md
+@@ -6,7 +6,7 @@
+ 
+ ## 步骤
+ 
+-1. 跑 lint，按真实输出描述结构；不要编造 `wiki/entity/` 或 `wiki/skills/`。
++1. 跑 lint，按真实输出描述结构；只描述 lint 实际报出的目录（如没有 `wiki/entity/`、`wiki/skills/` 就不提）。
+ 2. 识别：重复页、孤立页、错位、实体-概念耦合、缺失反链。
+ 3. 给出方案（合并 / 移动 / 补链 / 拆名）。确认前不改。
+ 4. 执行前读所有受影响页。合并必须保留双方独有信息。
+diff --git a/skills/llm-wiki/tests/test_llm_wiki_contract.py b/skills/llm-wiki/tests/test_llm_wiki_contract.py
+index 3ba6949..596d8e9 100644
+--- a/skills/llm-wiki/tests/test_llm_wiki_contract.py
++++ b/skills/llm-wiki/tests/test_llm_wiki_contract.py
+@@ -39,7 +39,7 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("不启动 llmwiki 应用", self.skill)
+         self.assertNotIn("Call the MCP", self.skill)
+         self.assertNotIn(".llmwiki/index.db", self.skill)
+-        self.assertIn("不要创建 `.llmwiki/`", self.skill)
++        self.assertIn("工作区只含纯 Markdown 目录", self.skill)
+ 
+     def test_raw_is_readonly(self) -> None:
+         self.assertIn("`raw/` 只读", self.skill)
+@@ -80,21 +80,21 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_phase_loaded_on_demand(self) -> None:
+         self.assertIn("只读该阶段详情", self.skill)
+-        self.assertIn("不要预加载其它 reference", self.skill)
++        self.assertIn("其它 reference 等用到时再读", self.skill)
+         self.assertIn("references/layout.md", self.skill)
+         self.assertIn("references/organize.md", self.skill)
+ 
+     def test_guide_and_init_live_in_layout(self) -> None:
+         self.assertIn("## `guide`", self.layout)
+         self.assertIn("真实 `ls`", self.layout)
+-        self.assertIn("不要创建 `.llmwiki/`", self.layout)
++        self.assertIn("只建上述纯 Markdown 骨架", self.layout)
+         guide = self.skill.split("## `guide`", 1)[1].split("## ", 1)[0]
+         self.assertNotIn("缺哪个就说哪个", guide)
+ 
+     def test_organize_procedure_lives_in_reference(self) -> None:
+         organize = self.skill.split("## `organize`", 1)[1].split("## ", 1)[0]
+-        self.assertNotIn("不要编造 `wiki/entity/`", organize)
+-        self.assertIn("不要编造 `wiki/entity/`", self.organize)
++        self.assertNotIn("只描述 lint 实际报出的目录", organize)
++        self.assertIn("只描述 lint 实际报出的目录", self.organize)
+         self.assertIn("确认前不改", self.organize)
+ 
+ 

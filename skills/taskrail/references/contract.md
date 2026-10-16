@@ -140,3 +140,6 @@ wizard 定稿、design 定稿、approve、危险操作前。一律按 [confirm-p
 | driver | OpenSpec change `{slug}-driver`，只编排子 change `{slug}-<slice>` |
 | 真阻塞 | 必须停下等用户的情况，清单只在 [user-report.md](user-report.md) 第 5 节 |
 | 授权 | 用户明确接受某个已点名的动作；单独「继续」不算对危险动作的授权 |
+| 台账（ledger） | `tasks/` 下单任务 `TASK.md` + 派生 `INDEX.md`；文件名里的 `ledger` 指它 |
+| 交接（handoff） | approve 之后转给 taskflow 的**动作**，产出交接载荷；不是 phase |
+| grill | explore 阶段的自问自答拷问，只追细节、不重问意图 |

@@ -19,7 +19,7 @@ sunzhenkai 的第一方 Agent Skills 集合（公开仓，MIT）：任务流编�
 python3 -m pytest skills -q               # 全部测试（秒级）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
 
-make check-style    # 输出风格检查（意图复述字段齐全；SKILL.md >8KB 等只告警）
+make check-style    # 输出风格检查（意图复述字段齐全；SKILL.md >8KB、description 过长、引用链超一层、禁令词偏多只告警）
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
 make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
@@ -31,10 +31,12 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 
 每个 skill 自包含，目录相对各自根：
 
-- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description`）。description 决定触发时机，要写清「何时使用 / 何时不用」。
+- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description`）。description 是常驻上下文的触发指针，只写正向的 WHAT + WHEN：关键词前置，每个真分支一个触发词，不写「何时不用」；与相邻 skill 的边界放正文一句。
+- 主要靠用户点名触发、且没有别的 skill 自动调用的，frontmatter 设 `disable-model-invocation: true`，description 改成给人读的一行摘要。
+- SKILL.md 只从正文一层直链 `references/` 等文件，不经中间文件再跳。
 - `references/`：按需加载的细则。`scripts/`：**只依赖 Python 3 标准库**，不引第三方包。
 - `agents/`：部分 skill 携带的第三方 agent 配置（如 `openai.yaml`），可选。
-- `tests/`：stdlib unittest 写的**文本契约测试**——校验 SKILL.md 与 references 里的阶段门禁、落点、禁令等文本约束，不模拟执行。改正文后必须过测试。
+- `tests/`：stdlib unittest 写的**文本契约测试**——校验 SKILL.md 与 references 里的阶段门禁、落点、硬闸等文本约束，不模拟执行；断言优先锚定正向行为句，而非「不要 / 禁止」字面。改正文后必须过测试。
 - `evals/`：声明式案例（`cases.yaml`），无自动 runner，供人工 / agent 评审。
 - `examples/` `experience/` `patches/` `evolutions/`：示例、经验、变更审计。
 
@@ -42,7 +44,7 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 
 - 结构缺失（无 `examples/` / `evals/` / `experience/`）先走 **skill-upgrader** 一次性升级结构。
 - 基于真实执行经验改正文走 **skill-upgrader 的 `evolve` 模式**（原 skill-evolver）：仅显式触发，**禁止自动进化**（一次失败 / 一次用户纠正都不足以改 skill）；先展示 Evolution Proposal，用户确认后才写 `evolutions/<date-slug>/`（proposal.yaml + decision.md + eval.md + 候选稿）。
-- 变更留审计痕迹：`patches/`（proposal + change.patch + result）或 `evolutions/`，不要直接编辑正文绕过。
+- 变更留审计痕迹：每次改某个 skill 的正文或配套，就在该 skill 下新建 `patches/<YYYYMMDD-HHMMSS>-<slug>/`（proposal.md + change.patch + result.md），或走 `evolutions/`。`patches/` 有变更即补：skill 第一次被改时随该次变更创建，不预建空目录。
 
 ## 外部依赖（不在本仓）
 
@@ -65,13 +67,15 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 - 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
 - 三件套：`taskrail` + `task-explore` + `taskflow`。
 - 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由另一个模型按 `task-intent/references/intent.md` 第 5 节清单代审）；explore 的 grill 在其后，只追细节不重问意图。
+- 跨 skill 常用词统一：**台账**（ledger，持久记账文件：task 系列的 `TASK.md`/`INDEX.md`、repo-manager 的 `.repo-manager.md`）、**交接**（handoff，动作；agent-roster 的 Handoff 指受派方的产出文件）、**grill**（自问自答拷问，trouble-grill 用于排查）。新文本沿用这三个词，不另造同义词。
 - 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 
 ## Skill 设计原则
 
 - **通用性优先**：skill 面向一类问题而非一个具体场景。通过机制（协议、阶段门禁、契约）解决问题，避免为单一案例特例化；遇到具体需求时先问「这类问题的一般解是什么」。
 - **SKILL.md 体量**：单个 `SKILL.md` 宜控制在约 8KB 以内（`make check-style` 超限告警，不阻断）——正文只留触发、路由、不可跳过的门禁要点与指针，模板、逐条细则与例外下沉到 `references/`，按命令/阶段按需加载。
-- **可自进化**：skill 不是一次性文本，而是随真实执行经验持续改进的资产。改进走 skill-upgrader 的 `evolve`（正文演进）与 `update` / `self-upgrade`（修订 / 结构升级）链路，经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。
+- **可自进化**：skill 随真实执行经验改进，链路统一由 skill-upgrader 承担（`evolve` 正文演进、`update` / `self-upgrade` 修订与结构升级），经验沉淀在 `experience/`、变更留痕在 `patches/` / `evolutions/`。各 skill 正文不复制自进化样板，需要时只留一句指向 skill-upgrader 的指针。
+- **正向表述**：正文写目标行为；确需硬闸（不可逆、安全）时保留，并配一句正向的安全默认。
 
 ## 公开仓纪律
 

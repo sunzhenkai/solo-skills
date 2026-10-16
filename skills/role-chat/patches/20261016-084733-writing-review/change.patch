@@ -1,0 +1,39 @@
+diff --git a/skills/role-chat/SKILL.md b/skills/role-chat/SKILL.md
+index c268e5d..31c6f9a 100644
+--- a/skills/role-chat/SKILL.md
++++ b/skills/role-chat/SKILL.md
+@@ -1,7 +1,8 @@
+ ---
+ id: role-chat
+ name: role-chat
+-description: "多视角对话陪练：金融从业人员、软件开发工程师、架构工程师、产品经理、英语陪练等角色按需切换或组合作答。仅在用户点名 role-chat、写出 roles=、或明确叫某个角色视角时启用；普通问答不要自动加载。"
++description: "多视角对话陪练：金融、开发、架构、产品、英语陪练等角色按需切换或组合作答（手动点名 role-chat 或写 roles= 使用）。"
++disable-model-invocation: true
+ ---
+ 
+ # 多视角对话
+diff --git a/skills/role-chat/tests/test_role_chat_contract.py b/skills/role-chat/tests/test_role_chat_contract.py
+index 02d054d..7ca061d 100644
+--- a/skills/role-chat/tests/test_role_chat_contract.py
++++ b/skills/role-chat/tests/test_role_chat_contract.py
+@@ -39,8 +39,8 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_description_declares_manual_trigger_only(self) -> None:
+         fm = _frontmatter(_skill())
+-        self.assertIn("仅在用户点名", fm)
+-        self.assertIn("不要自动加载", fm)
++        self.assertIn("disable-model-invocation: true", fm)
++        self.assertIn("手动点名", fm)
+         # 占位符只在正文渲染，写进 frontmatter 会让 sync 的残留校验失败。
+         self.assertNotIn("{{slash:", fm)
+ 
+@@ -94,7 +94,8 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_only_installable_and_dev_dirs_present(self) -> None:
+         entries = {path.name for path in ROOT.iterdir()}
+-        self.assertEqual(entries, {"SKILL.md", "references", "tests"})
++        # patches/ 是变更审计目录（AGENTS.md：有变更即补），不进安装面。
++        self.assertEqual(entries - {"patches"}, {"SKILL.md", "references", "tests"})
+ 
+     def test_runtime_allowlist_compatibility(self) -> None:
+         import os

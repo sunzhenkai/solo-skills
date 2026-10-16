@@ -1,7 +1,7 @@
 ---
 id: llm-wiki
 name: llm-wiki
-description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki：把源文档摄入 typed 页面、按引用回答、重组结构并做健康检查。文件系统为真相源，不依赖 llmwiki 服务或 MCP。在用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。不用于项目 spec 镜像或代码探索。
+description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。
 ---
 
 # LLM Wiki（本地文档）
@@ -19,20 +19,20 @@ description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki�
 - 不探索或修改业务源码（交给 `code-explore`）。
 - 不编辑 `raw/` 中的源材料。
 - 不自动 commit / push / sync 安装。
-- 不要创建 `.llmwiki/`、`.obsidian/` 或任何应用私有目录。
+- 工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
 
 ## 阶段
 
 用户点名 `{{slash:llm-wiki}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
 
-| 阶段 | 何时 | 写入 |
-|------|------|------|
-| `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 |
-| `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 |
-| `ingest` | 把文件、粘贴文本或对话编进 wiki | 确认范围后写 `wiki/` |
-| `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 |
-| `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 |
-| `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 |
+| 阶段 | 何时 | 写入 | 做完的标志 |
+|------|------|------|------------|
+| `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 | 已按真实 `ls` 报出目标、结构、覆盖与缺口 |
+| `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
+| `ingest` | 把文件、粘贴文本或对话编进 wiki | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
+| `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 | 回答逐条带出处，未覆盖处明说「wiki 尚未覆盖」 |
+| `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+| `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
 
 ## 绑定 `WIKI_ROOT`
 
@@ -59,7 +59,7 @@ description: 在本地 Markdown 工作区整理并维护可累积的知识 wiki�
 
 ## 加载
 
-进入阶段后 **只读该阶段详情**，不要预加载其它 reference。
+进入阶段后 **只读该阶段详情**，其它 reference 等用到时再读。
 
 | 阶段 | 进入时读取 |
 |------|------------|

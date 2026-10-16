@@ -28,8 +28,8 @@ patch 必须：只含 proposal 声明的改动；上下文足以精确应用；�
 若用户其实要自进化结构，切回模式门禁，改走 `self-upgrade`，不要在 `update` 里偷偷加 `examples/` `evals/` `experience/`。
 最终目标：把静态 `SKILL.md` 升级成能从真实执行积累经验、并以 Eval 驱动改进的 Skill。**升级本身的文件写入也必须经 patch 应用**，不要直接 `mkdir`/写生产文件。
 完整读取现有 `SKILL.md`（及其声明要读的 `references/` / `scripts/`）。不要为了自进化破坏原有行为；不要重写无关段落。
-幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有同等「Self-evolution」段落则不要再贴一份。
-**SKILL.md** — 末尾追加与 [link] 一致的正文（只替换 `<skill-dir>`）；不改写语气或删减门禁。
+幂等：若 `examples/` `evals/` `experience/` 已存在，保留已有文件；只补缺失的 README / 空目录 / 注入段落。已有 `evals/cases.yaml` 不覆盖，只追加从原文抽出且尚未覆盖的 case。已有指向 skill-upgrader 的自进化指针（或旧版「Self-evolution」段落）就保留现状，只留一处。
+**SKILL.md** — 末尾追加与 `skill-injection.md` 一致的一句指针；原文语气与门禁保持不变。
 实际改生产正文：经验驱动走本 skill 的 `evolve` 模式（`evolutions/`）；显式修订走 `update` 模式（`patches/`）。禁止单次失败直接改 `SKILL.md`。
 修改 Skill 时不要直接覆盖原意而不留记录。本 skill 以 `patches/<id>/` 作为审计与版本线索；有 Git 时同时依赖 Git 历史。
 不删除仍在生效的安全/门禁规则（除非 `update` 且用户确认该规则本身有害）
@@ -52,7 +52,7 @@ patch 必须：只含 proposal 声明的改动；上下文足以精确应用；�
 日后写案例用 `example-case.md` / `experience-entry.md` 的字段，不要在升级时生成假条目。
 `status` 在 proposal 中保持 `proposed`，最终状态写入 `result.md`，不要回写历史提案。
 找不到 Git 仓库根时不得伪造 apply；停止并交由用户处理。
-改生产正文：先出提案并经用户确认，再走 `skill-upgrader` 的 `evolve` 模式（`evolutions/`）或 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
 未过门禁不得进入本 skill 的分析、patch、晋升。
 **禁止自动进化**：普通任务完成、一次失败、一次用户纠正，都不足以自行改 Skill。

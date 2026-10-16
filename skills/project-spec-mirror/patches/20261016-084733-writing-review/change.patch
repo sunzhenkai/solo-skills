@@ -1,0 +1,85 @@
+diff --git a/skills/project-spec-mirror/SKILL.md b/skills/project-spec-mirror/SKILL.md
+index a042595..8be101a 100644
+--- a/skills/project-spec-mirror/SKILL.md
++++ b/skills/project-spec-mirror/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: project-spec-mirror
+ name: project-spec-mirror
+-description: 创建或增量维护项目的双读者 spec 镜像：briefing 给人扫读架构与业务流，agent spec 用 OpenSpec 形态写可换栈复现的功能契约。Git 源按 commit 更新。在用户要求 project spec 镜像、spec 孪生、可读规格、功能复现 spec 时使用。不用于 OpenSpec change、实现代码或只读问答；用户要求图表时委托 archify。
++description: 创建或增量维护项目的双读者 spec 镜像：briefing 给人扫读架构与业务流，agent spec 用 OpenSpec 形态写可换栈复现的功能契约，Git 源按 commit 更新。用户要求 project spec 镜像、spec 孪生、可读规格、功能复现 spec 时使用。
+ compatibility: Requires Python 3.10+; Git is required for commit-diff updates. Requested diagrams additionally require Node.js and an installed archify skill.
+ ---
+ 
+@@ -24,6 +24,8 @@ stdout 只输出 JSON。退出码：0 成功，1 硬失败，2 需确认。看
+ 
+ ## 非目标
+ 
++边界：OpenSpec change 走 OpenSpec 流程，实现代码与只读问答走对应流程；用户要图表时委托 archify。
++
+ - 不写入目标仓 `openspec/`。Agent 契约在 `spec_root/agent/specs/`。
+ - 不改目标源码、测试、构建；不自动 commit / push。
+ - 密钥与凭据值写 `<REDACTED>`（含 `AppKey` / `SecretKey` / token / password）。
+@@ -43,7 +45,7 @@ stdout 只输出 JSON。退出码：0 成功，1 硬失败，2 需确认。看
+ 
+ ## 禁写（briefing）
+ 
+-禁止源文件表、方法逐步走读（「完整逻辑」/ full logic）、语言/包管理器版本、compose/端口/启动命令。
++镜像只写可观察行为与约束；源文件表、方法逐步走读（「完整逻辑」/ full logic）、语言/包管理器版本、compose/端口/启动命令留在源码与配置里，不进镜像。
+ 
+ ## Agent spec 形态
+ 
+@@ -66,7 +68,7 @@ stdout 只输出 JSON。退出码：0 成功，1 硬失败，2 需确认。看
+ | 目标就是 cwd 所在仓（或 `--in-project` 且仍是该仓） | `<host>/spec/` |
+ | 否则 | `<cwd>/spec/<project>/` |
+ 
+-`spec/` 不存在则 `init` 无 `--confirm` 时退出 2。已占用且无 `.mirror.json` 禁止覆盖。
++`spec/` 不存在则 `init` 无 `--confirm` 时退出 2。已占用且无 `.mirror.json` 视为外来目录：保持原样、退出 2（禁止覆盖）。
+ 
+ ## 阶段
+ 
+diff --git a/skills/project-spec-mirror/experience/README.md b/skills/project-spec-mirror/experience/README.md
+index 9608eb3..76ee5ab 100644
+--- a/skills/project-spec-mirror/experience/README.md
++++ b/skills/project-spec-mirror/experience/README.md
+@@ -2,7 +2,7 @@
+ 
+ 供 Skill 维护者记录真实执行中的失败、成功与可复用规律。不要记录 trivial information。
+ 
+-普通 project spec 镜像任务不得自动写入本目录；只有用户明确要求维护或演进本 Skill 时，才由当前仓库约定的维护流程创建记录和生产变更。
++普通 project spec 镜像任务只读本目录；只有用户明确要求维护或演进本 Skill 时，才由当前仓库约定的维护流程创建记录和生产变更。
+ 
+ ```text
+ failures/  → 失败案例
+diff --git a/skills/project-spec-mirror/tests/test_project_spec_mirror_contract.py b/skills/project-spec-mirror/tests/test_project_spec_mirror_contract.py
+index b1d7a2a..fb84403 100644
+--- a/skills/project-spec-mirror/tests/test_project_spec_mirror_contract.py
++++ b/skills/project-spec-mirror/tests/test_project_spec_mirror_contract.py
+@@ -55,7 +55,7 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("Git 源按 commit 更新", skill)
+         self.assertNotIn("## Self-evolution", skill)
+         self.assertNotIn("skill-upgrader", skill)
+-        self.assertIn("普通 project spec 镜像任务不得自动写入", experience)
++        self.assertIn("普通 project spec 镜像任务只读本目录", experience)
+ 
+     def test_reference_files_exist(self) -> None:
+         for rel in (
+@@ -87,7 +87,8 @@ class ContractTest(unittest.TestCase):
+         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+         layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
+         self.assertIn("禁写", skill)
+-        self.assertIn("禁止源文件表", skill)
++        self.assertIn("镜像只写可观察行为与约束", skill)
++        self.assertIn("源文件表", skill)
+         self.assertIn("方法逐步走读", skill)
+         self.assertIn("完整逻辑", skill)
+         self.assertIn("待 build", layout)
+@@ -131,7 +132,7 @@ class ContractTest(unittest.TestCase):
+         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("不自动 commit / push", skill)
+         self.assertIn("<REDACTED>", skill)
+-        self.assertIn("禁止覆盖", skill)
++        self.assertIn("保持原样、退出 2", skill)
+         self.assertIn("外来仓", skill)
+ 
+     def test_facets_are_opt_in(self) -> None:

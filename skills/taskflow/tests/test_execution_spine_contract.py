@@ -9,7 +9,8 @@ DISC = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf
 
 class ExecutionSpineTest(unittest.TestCase):
     def test_no_yes_flag(self) -> None:
-        self.assertIn("不用 `--yes`", DISC)
+        self.assertIn("勾齐再归档", DISC)
+        self.assertIn("未勾齐就不归档", DISC)
 
     def test_done_pointer(self) -> None:
         self.assertIn("done.md", DISC)

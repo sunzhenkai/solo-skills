@@ -55,7 +55,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("Git 源按 commit 更新", skill)
         self.assertNotIn("## Self-evolution", skill)
         self.assertNotIn("skill-upgrader", skill)
-        self.assertIn("普通 project spec 镜像任务不得自动写入", experience)
+        self.assertIn("普通 project spec 镜像任务只读本目录", experience)
 
     def test_reference_files_exist(self) -> None:
         for rel in (
@@ -87,7 +87,8 @@ class ContractTest(unittest.TestCase):
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         layout = (SKILL_ROOT / "references" / "layout.md").read_text(encoding="utf-8")
         self.assertIn("禁写", skill)
-        self.assertIn("禁止源文件表", skill)
+        self.assertIn("镜像只写可观察行为与约束", skill)
+        self.assertIn("源文件表", skill)
         self.assertIn("方法逐步走读", skill)
         self.assertIn("完整逻辑", skill)
         self.assertIn("待 build", layout)
@@ -131,7 +132,7 @@ class ContractTest(unittest.TestCase):
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("不自动 commit / push", skill)
         self.assertIn("<REDACTED>", skill)
-        self.assertIn("禁止覆盖", skill)
+        self.assertIn("保持原样、退出 2", skill)
         self.assertIn("外来仓", skill)
 
     def test_facets_are_opt_in(self) -> None:

@@ -7,8 +7,8 @@
 | `examples-README.md` | `<skill>/examples/README.md` |
 | `evals-README.md` | `<skill>/evals/README.md` |
 | `experience-README.md` | `<skill>/experience/README.md` |
-| `cases.template.yaml` | `<skill>/evals/cases.yaml`（再按 [evals.md](evals.md) 填 cases） |
-| `skill-injection.md` | 追加到 `<skill>/SKILL.md` 末尾，把 `<skill-dir>` 换成实际目录 |
+| `cases.template.yaml` | `<skill>/evals/cases.yaml`（再按 `evals.md` 填 cases） |
+| `skill-injection.md` | 追加到 `<skill>/SKILL.md` 末尾（一句指针，原样追加） |
 
 空目录各放 `.gitkeep`：
 

@@ -1,0 +1,19 @@
+diff --git a/skills/task-intent/SKILL.md b/skills/task-intent/SKILL.md
+index 7de4de8..29a296e 100644
+--- a/skills/task-intent/SKILL.md
++++ b/skills/task-intent/SKILL.md
+@@ -1,12 +1,12 @@
+ ---
+ id: task-intent
+ name: task-intent
+-description: "任务开工前的意图确认：详细只读探索上下文 → 一份简洁清晰的「意图复述」（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设）→ 纠偏到用户说对（goal 模式由异源模型代审）。由 taskrail wizard 第 1 步委派；用户点名 task-intent 或说「先确认你理解对了没」时也可用。一句话能说清的小改、纯问答、已有确认意图的 resume 不要用。"
++description: "任务开工前的意图确认：只读探索上下文 → 简洁的「意图复述」（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设）→ 纠偏到用户说对（goal 模式由异源模型代审）。由 taskrail wizard 第 1 步委派；用户点名 task-intent 或说「先确认你理解对了没」时使用。"
+ ---
+ 
+ # 任务意图确认
+ 
+-先对齐「要干嘛、怎么干、输出什么」，再动手。探索要详细，输出要简洁。细则、模板与示例见 [references/intent.md](references/intent.md)。
++适用于需要先对齐理解的任务；一句话能说清的小改、纯问答、已有确认意图的 resume 直接进入下一步。先对齐「要干嘛、怎么干、输出什么」，再动手。探索要详细，输出要简洁。细则、模板与示例见 [references/intent.md](references/intent.md)。
+ 
+ 产出：`{taskRoot}/wizard/intent.md`（无任务目录时只在对话里给复述）；探索详情落 `{taskRoot}/evidence/intent/`。确认后的「输出什么 · 做完的样子」是 `criterion` 的起草来源，下游不得无声改写。
+ 

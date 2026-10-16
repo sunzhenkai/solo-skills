@@ -1,31 +1,29 @@
 ---
 id: skills-store
 name: skills-store
-description: "用 vercel-labs/skills（npx skills）发现、搜索、安装、移除、更新 Agent Skills。用户提及 skills store、技能商店、安装 skill、搜索 skill、npx skills、skills.sh 时使用。安装/移除/更新必须明确指定项目目录或全局。外部 skill 安装前必须做安全审计。"
+description: "用 npx skills（vercel-labs/skills）搜索、安装、移除、更新 Agent Skills，外部 skill 安装前做安全审计。用户提及 skills store、技能商店、安装或搜索 skill、npx skills、skills.sh 时使用。"
 ---
 
 # 技能商店
 
-面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
+面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
 
-通过 [vercel-labs/skills](https://github.com/vercel-labs/skills) CLI 管理 Agent Skills。入口：`npx skills`（无需全局安装）。发现目录：https://skills.sh/
+通过 [vercel-labs/skills](https://github.com/vercel-labs/skills) CLI 管理 Agent Skills，入口 `npx skills`（无需全局安装），发现目录 https://skills.sh/ 。命令、参数与用户说法→动作映射见 [references/cli.md](references/cli.md)，参数以 `npx skills --help` 为准。
 
-## 硬性规则：作用域
+## 作用域
 
-**安装、移除、更新前必须确认作用域**。用户未指定时先问清，禁止默认猜测。
+安装、移除、更新都要落在明确的作用域上：用户说了就照用户的；没说时先问清项目还是全局（这是写入位置，猜错要返工）。
 
 | 作用域 | 含义 | 标志 |
 |--------|------|------|
 | **项目**（当前目录） | 写入当前项目 `./<agent>/skills/`，可随仓库共享 | 不加 `-g`；update 用 `-p` |
 | **全局** | 写入用户目录 `~/.../skills/`，跨项目可用 | `-g` / `--global` |
 
-执行前用一句话复述作用域，例如：「将安装到**当前项目**」或「将安装到**全局**」。
-
-非交互环境（CI / 明确指令）加 `-y`，避免卡住。
+执行前用一句话复述作用域，例如「将安装到**当前项目**」。非交互环境加 `-y`。
 
 ## 硬性规则：外部 Skill 安全审计
 
-**凡来源非本仓库 `skills/` 的安装与更新，必须先审计，再安装。** 禁止跳过。
+**凡来源非本仓库 `skills/` 的安装与更新，一律先审计、再安装。**
 
 | 场景 | 是否审计 |
 |------|----------|
@@ -93,23 +91,11 @@ bash "$AUDIT" "$AUDIT_DIR/src/<skill-path>"
 | `1` | 有警告 | **暂停**，向用户展示 findings，**必须**获得明确同意（如「仍要安装」） |
 | `2` | 有阻断项 | **停止安装**；逐条复核（见下），说明原因，建议换来源或自行审查后改本地安装 |
 
-向用户报告审计摘要时包含：规则名、文件、行号、片段；**不要**复读可能含密钥的完整匹配内容。
+向用户报告审计摘要时给规则名、文件、行号与截断片段；可能含密钥的完整匹配内容只留在本地。
 
-**复核通道（阻断项）**：脚本靠关键词正则命中，判不出上下文，误报是常态。`exit 2` 时 **MUST** 打开每处命中读原文，逐条给出「真风险 / 误报」的判断与依据，再交用户决定。判为误报也 **不得**自行安装：必须由用户明确豁免该条后才继续。**禁止**为了给某个 skill 放行而删规则或放宽关键词——那只会让下一个 skill 漏检。安装当场不得改脚本。过宽 token、误把纯文本当二进制这类精度修复，走本 Skill 的更新流程。
+**复核通道（阻断项）**：脚本靠关键词正则命中，判不出上下文，误报是常态。`exit 2` 时 **MUST** 打开每处命中读原文，逐条给出「真风险 / 误报」的判断与依据，再交用户决定。判为误报时，等用户针对该条明确豁免后再继续安装。规则集保持原样放行：**禁止**为了给某个 skill 放行而删规则或放宽关键词——那只会让下一个 skill 漏检；过宽 token、误把纯文本当二进制这类精度修复，另走本 Skill 的更新流程（skill-upgrader）。已知误报对照 [references/known-false-positives.md](references/known-false-positives.md)。
 
-已知误报（复核时优先对照）：
-
-| 命中规则 | 典型误报来源 |
-|----------|--------------|
-| `jailbreak_role` | MIT LICENSE 正文的 `without limitation`。该分支现只放过 `limitation` 后缀，其余 `without … limit` 与 `no restrictions` 仍阻断 |
-| `browser_session` | 前端代码里的 `localStorage`、`document.cookie`。文档写「不记录 cookie」应跳过 |
-| `credential_paths` | 清单里的 `.env` + `README` 曾因 `README` 命中 `read`；现要求独立单词 `read`/`cat`/`source`。`~/.ssh` 分支现排除 `~/.ssh/config`（非密钥配置）；私钥路径仍由 `/\.ssh/id_` 兜底。个人环境的路径特例不进共享规则集，走被审 skill 的 `.audit-allow` |
-| `eval_external` | Markdown 反引号 + 单词 Eval 不是 `eval $(curl …)` |
-| `internal_url` | JSON Schema `$id` 的 `https://*.local/schemas/…`、文档里的 `localhost` 开发地址不是内网主机 |
-| `binary_in_skill` | 真正的 ELF / Mach-O / PE32 / shared object。带 shebang 的纯文本脚本不再报 |
-| `sudo_usage` / `force_push` 等 | 安全规范类 skill 在讲反面例子（脚本已尝试按「禁止/不要/avoid/不记录」跳过，但覆盖不全） |
-
-**审计范围与豁免**：审计面=安装面。`patches/`、`evals/`、`experience/`、`evolutions/` 是 authoring 数据、不进 runtime bundle，不扫描。被审 skill 可在根下放 `.audit-allow` 豁免自指文本（skill 文档逐字讲解规则样例、审计工具自身源码必然自命中）：每行 `规则|相对路径|snippet 的 ERE`，规则与路径可写 `*`，snippet 字段为 `*` 表示该路径全豁免；只豁免逐字命中行，豁免项以计数展示。`.audit-allow` 随 skill 内容 hash 入锁，改动可审计。**禁止**用豁免绕过真发现——豁免只收编自指文本，新内容一律照常上报。
+**审计范围与豁免**：审计面=安装面。`patches/`、`evals/`、`experience/`、`evolutions/` 是 authoring 数据、不进 runtime bundle，不扫描。被审 skill 可在根下放 `.audit-allow` 豁免自指文本（skill 文档逐字讲解规则样例、审计工具自身源码必然自命中）：每行 `规则|相对路径|snippet 的 ERE`，规则与路径可写 `*`，snippet 字段为 `*` 表示该路径全豁免；只豁免逐字命中行，豁免项以计数展示。`.audit-allow` 随 skill 内容 hash 入锁，改动可审计。豁免只收编自指文本，新内容一律照常上报。
 
 **`-s '*'` / `--all` 批量安装**：应对**每个** skill 子目录分别审计；任一阻断则整批中止，除非用户明确只要通过项。
 
@@ -117,180 +103,25 @@ bash "$AUDIT" "$AUDIT_DIR/src/<skill-path>"
 
 #### 步骤 5：正式安装
 
-审计通过且 scope 已确认后：
-
-```bash
-npx skills add <source> -s <skill-name> -y          # 项目
-npx skills add <source> -s <skill-name> -g -a cursor -y   # 全局 + agent
-```
-
-## 命令入口
-
-```bash
-npx skills <command> [options]
-```
-
-不确定版本或参数时先跑：`npx skills --help`。
-
-## 工作流
-
-### 1. 搜索 / 发现
-
-```bash
-npx skills find <keyword>
-npx skills find <keyword> --owner <github-owner>
-npx skills add <owner/repo> --list          # 只列出仓库内技能，不安装
-```
-
-向用户展示：名称、来源、简要说明；需要安装时再进入**安全审计 + 安装**流程。
-
-### 2. 安装（add）
-
-**必须：作用域 + 安全审计（见上）。**
-
-```bash
-# 项目（当前目录）
-npx skills add <source> -s <skill-name> -y
-npx skills add <source> -s <skill-name> -a cursor -y
-
-# 全局
-npx skills add <source> -s <skill-name> -g -y
-npx skills add <source> -s <skill-name> -g -a cursor -y
-```
-
-`<source>` 可为：`owner/repo`、GitHub/GitLab URL、git URL、本地路径、仓库内某 skill 的 tree URL。
-
-常用选项：
-
-| 选项 | 说明 |
-|------|------|
-| `-g` | 全局安装 |
-| `-s <name>` | 指定 skill（可多次；`'*'` 表示全部） |
-| `-a <agent>` | 目标 agent（如 `cursor`、`claude-code`；`'*'` 表示全部） |
-| `-l` | 仅列出，不安装 |
-| `-y` | 跳过确认 |
-| `--copy` | 复制而非 symlink |
-| `--all` | 等价 `--skill '*' --agent '*' -y`（**高风险，须逐 skill 审计**） |
-
-安装后用 `list` 核对。
-
-### 3. 列出已安装
-
-```bash
-npx skills list              # 项目
-npx skills ls -g             # 全局
-npx skills ls -a cursor
-npx skills ls --json
-```
-
-### 4. 移除（remove）
-
-**必须带作用域。**
-
-```bash
-# 项目
-npx skills remove <skill-name> -y
-
-# 全局
-npx skills remove <skill-name> -g -y
-
-# 指定 agent
-npx skills remove <skill-name> -a cursor -y
-npx skills remove <skill-name> -g -a cursor -y
-```
-
-| 选项 | 说明 |
-|------|------|
-| `-g` | 从全局移除 |
-| `-a <agent>` | 限定 agent（`'*'` = 全部） |
-| `-s '*'` / `--all` | 批量清空（慎用，先确认） |
-| `-y` | 跳过确认 |
-
-### 5. 更新（update）
-
-**必须带作用域**（`-p` 项目 / `-g` 全局）。**更新前对上游新版本重新走安全审计。**
-
-```bash
-npx skills update -p -y                    # 当前项目全部
-npx skills update -g -y                    # 全局全部
-npx skills update <skill-name> -p -y
-npx skills update <skill-name> -g -y
-```
-
-不要用无作用域的裸 `npx skills update`（会交互询问）。
-
-### 6. 临时使用（不安装）
-
-```bash
-npx skills use <owner/repo>@<skill-name>
-npx skills use <owner/repo> --skill <skill-name>
-```
-
-只读生成 prompt，不写入 skills 目录；若用户随后要求安装，仍须审计。
-
-## Agent 名速查（常用）
-
-| Agent | `--agent` |
-|-------|-----------|
-| Cursor | `cursor` |
-| Codex | `codex` |
-| OpenCode | `opencode` |
-| Kiro CLI | `kiro-cli` |
-| Pi | `pi` |
-| ZCode | `zcode` |
-
-完整列表见上游 README 或 `npx skills --help`。
+审计通过（或用户已逐条豁免）且作用域已确认后，按 [references/cli.md](references/cli.md) 执行 `npx skills add`，装完 `list` 核对。`update` 同样先对上游新版本重新审计；`remove` 同样带作用域。
 
 ## 与本仓库 agents 同步的关系
 
 本仓库共享 skills 真相源在 `skills/`，由 dotfiles 编目（`dotf agents -c`）同步到共享的 `~/.agents/skills/`。
 
-- **skills-store 安装的第三方 skill**：落在各 agent 的 project/global skills 目录，**不**自动进入 `skills/`。
-- 若要把技能纳入本仓库统一真相源：先审计通过，再按需拷贝或改写到 `skills/<id>/`，然后 sync。
-- 不要手改由 sync 生成的 `~/.agents/skills/` 下的文件。
+- **skills-store 安装的第三方 skill** 落在各 agent 的 project/global skills 目录，**不**自动进入 `skills/`。
+- 要纳入本仓库统一真相源：先审计通过，再拷贝或改写到 `skills/<id>/`，然后 sync。
+- `~/.agents/skills/` 由 sync 生成，改动回源仓 `skills/` 再同步。
 
-## 执行清单
+## 执行清单（做完的标志）
 
 ```
 - [ ] 已确认操作：find / add / list / remove / update / use
 - [ ] add / update 外部来源：已临时拉取并完成 audit-skill.sh
-- [ ] 阻断项已拒绝；警告项已获用户明确确认
+- [ ] 阻断项已拒绝或逐条豁免；警告项已获用户明确确认
 - [ ] add / remove / update 已明确：项目 或 全局
-- [ ] 需要时已指定 -a <agent> 与 -s <skill>
-- [ ] 非交互加 -y
+- [ ] 需要时已指定 -a <agent> 与 -s <skill>；非交互加 -y
 - [ ] 临时目录已清理；执行后 list 核对并告知用户路径含义
 ```
 
-## 示例对话映射
-
-| 用户意图 | 动作 |
-|----------|------|
-| 「搜 typescript 相关 skill」 | `npx skills find typescript` |
-| 「装到当前项目」 | 临时克隆 → 审计 → `npx skills add <src> -s <name> -y` |
-| 「全局安装给 cursor」 | 临时克隆 → 审计 → `npx skills add <src> -s <name> -g -a cursor -y` |
-| 「删掉全局的 xxx」 | `npx skills remove xxx -g -y` |
-| 「更新当前目录的 skills」 | 对新版本审计 → `npx skills update -p -y` |
-| 「装哪个？项目还是全局？」未说清 | **先问**，再审计与安装 |
-| 审计有 BLOCK | **拒绝安装**，说明规则与位置 |
-| 审计仅有 WARN | 展示摘要，等用户确认 |
-
----
-
-## Self-evolution
-
-本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
-
-```text
-skills/skills-store/
-├── SKILL.md
-├── examples/      # 经过验证的优秀执行案例
-├── evals/         # 可验证成功标准（cases.yaml）
-└── experience/    # 真实失败 / 成功 / 规律
-```
-
-自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
-
-- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
-- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
-- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
-- 改生产正文：先出提案并经用户确认，再走 `skill-upgrader` 的 `evolve` 模式（`evolutions/`）或 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
+经验沉淀与正文演进走 `skill-upgrader`。

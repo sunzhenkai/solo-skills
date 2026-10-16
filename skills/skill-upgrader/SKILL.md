@@ -1,7 +1,7 @@
 ---
 id: skill-upgrader
 name: skill-upgrader
-description: "以可审计 patch 更新任意已有 Skill，或将其升级为自进化（examples/evals/experience）。用户点名 skill-upgrader、要求改 Skill 正文、或升级为自更新时使用；入口先做模式门禁。不要在从零写 Skill 时自动套用。也承接原 skill-evolver：用户点名 skill-evolver、要求根据执行经验进化/改进已有 Skill 时走 evolve 模式（仅显式触发，不要在每次任务结束后自动改 Skill）。"
+description: "以可审计 patch 更新已有 Skill（update）、升级为自进化结构（self-upgrade），或按真实执行经验进化正文（evolve，原 skill-evolver）。用户点名 skill-upgrader / skill-evolver、要求改已有 Skill 正文，或其他 skill 需要走 patches/ 审计时使用。"
 ---
 
 # Skill Upgrader
@@ -89,7 +89,12 @@ update / self-upgrade 共用 7 步（模式门禁与定位 → 提案 → 风险
 
 ## 模式：self-upgrade
 
-选定 `self-upgrade` 后读 [references/self-upgrade.md](references/self-upgrade.md)（保留原文、组装内容、Evolution Criteria）。
+选定 `self-upgrade` 后读 [references/self-upgrade.md](references/self-upgrade.md)（保留原文、组装内容、Evolution Criteria）。组装时用到的文件都从这里直接打开：
+
+- 复制清单 [references/layout.md](references/layout.md)；Eval 抽取规则与 schema [references/evals.md](references/evals.md)
+- 追加到目标 SKILL.md 的一句指针 [references/skill-injection.md](references/skill-injection.md)
+- 复制源 [references/examples-README.md](references/examples-README.md) / [references/evals-README.md](references/evals-README.md) / [references/experience-README.md](references/experience-README.md) / [references/cases.template.yaml](references/cases.template.yaml)
+- 日后条目格式 [references/example-case.md](references/example-case.md) / [references/experience-entry.md](references/experience-entry.md)
 
 ## Versioning
 

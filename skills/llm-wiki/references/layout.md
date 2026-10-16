@@ -52,7 +52,7 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
 1. 确认 `{WIKI_ROOT}` 与研究/知识范围一句话。
 2. 按下方脚手架创建骨架：`purpose.md`、`rules.md`、`raw/sources/`、`raw/assets/`、typed `wiki/` 子目录、三份系统页、`wiki/templates/`。
 3. **领养已有文档**：原文件复制（或经确认后移动）到 `raw/sources/`，不要在原地改成 wiki 页。随后转 `ingest`。
-4. 不要创建 `.llmwiki/`、`.obsidian/` 或任何应用私有目录。
+4. 只建上述纯 Markdown 骨架，不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
 5. 绑定工作区，追加 log：`## [YYYY-MM-DD] init | 工作区初始化`。
 
 ### 脚手架

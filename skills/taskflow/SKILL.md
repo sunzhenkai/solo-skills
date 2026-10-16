@@ -41,7 +41,7 @@ exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自
 
 1. 由描述归纳 kebab-case `{task}`（描述为空才问）。
 2. `openspec new change {task}-driver --goal "<任务描述原文>"`。
-3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；不写 `tasks.md`。
+3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；`tasks.md` 留给 propose。
 
 ## 执行
 

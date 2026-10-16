@@ -47,41 +47,6 @@ description: 项目服务管理：从 Makefile、package.json、docker-compose �
 - 缓存损坏 → 直接重新 discover。
 - `.service-manager.md` 禁止密钥明文；可写「见 `.env` / 某环境变量名」。
 
----
+## 自进化
 
-## Self-evolution
-
-本 Skill 具备经验积累、评估与持续进化能力。目录（均相对本 Skill 根目录）：
-
-```text
-<skill-dir>/
-├── SKILL.md
-├── examples/      # 经过验证的优秀执行案例
-├── evals/         # 可验证成功标准
-└── experience/    # 真实失败 / 成功 / 规律
-```
-
-不要为了自进化而破坏上文已规定的目标、流程、工具用法、输出与约束。没有真实案例时不要编造 `examples/` 条目。
-
-### Examples
-
-执行复杂任务前：检查 `examples/`；有相关案例则优先复用；没有则按上文正常执行。
-
-### Evaluation
-
-任务完成前对照相关 `evals/`（见 `evals/cases.yaml`）。优先确定性 Eval；失败则先修输出再交卷。
-
-### Experience
-
-仅在失败、用户纠正、明显成功、新方法或可复用经验时写入 `experience/`。不记 trivial；不伪造；不写密钥/内部 URL。单次失败 → `failures/`；规律需至少两次证据 → `patterns/`。
-
-### Evolution
-
-仅当 Experience 暴露可复用稳定模式时才改本 Skill。禁止单次失败直接改 `SKILL.md`。
-
-实际更新生产 `SKILL.md` 时：
-
-1. 不要直接覆盖原文；记录 version / change / reason / evidence / evaluation。有 Git 则优先靠 Git diff 留历史。
-2. 若改动来自**真实执行经验**：优先委托 `skill-upgrader` 的 `evolve` 模式（`evolutions/` → 验证 → 晋升），不要本 Skill 自己改生产稿。
-3. 若只是结构/规则的显式修订且环境有 `skill-upgrader`：走其 `update` 模式（`<skill-dir>/patches/`），仍须先提案再应用。
-4. 未展示 Proposal 并获得用户确认前，不改生产 Skill。
+经验沉淀（`examples/` / `evals/cases.yaml` / `experience/`）与正文演进走 `skill-upgrader`，单次失败不直接改本文件。

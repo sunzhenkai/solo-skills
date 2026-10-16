@@ -1,8 +1,32 @@
 # Python API
 
-本 reference 只在栈为 `python-api` 时读取。分层与建议以 `SKILL.md` Python 表为准；这里只写怎么落地。先选层并得到用户确认的最终方案，再执行**与所选 Web Framework 匹配**的路径，不要把所有备选都装上。
+本 reference 只在栈为 `python-api` 时读取，是 Python 分层与落地的唯一出处。先选层并得到用户确认的最终方案，再执行**与所选 Web Framework 匹配**的那一条路径，只装所选层（不要把所有备选都装上）。
 
 **工具命令优先**：项目骨架用 `uv init`、`uv add`、`django-admin startproject` 等官方命令生成。官方 CLI 可用时不要从零手搓 `pyproject.toml` 与完整目录树。CLI 缺失时先按 `SKILL.md` 询问是否补齐。
+
+## 分层
+
+「建议」列决定 init 是否默认装入（见下节）。
+
+| 层 | 选择 | 建议 |
+| ---- | ------ | ------ |
+| Web Framework | FastAPI | 默认 |
+| Web Framework | Django | 特定场景再用（Admin / MTV / Django 全家桶） |
+| Web Framework | Flask | 用户点名 |
+| Web Framework | Litestar | 用户点名 |
+| API / Validation | Pydantic | 必选（非 Django 路径） |
+| API / Validation | OpenAPI | 必选 |
+| API / Validation | SQLModel | 需要模型与 schema 一体再用 |
+| ORM | SQLAlchemy | 默认（非 Django） |
+| ORM | Django ORM | 随 Django |
+| ORM | Tortoise ORM | 用户点名 |
+| Async / Runtime | asyncio · uvicorn · anyio | FastAPI / Litestar 默认 |
+| Background Jobs | Celery · Dramatiq · ARQ | 需要后台任务再用 |
+| Testing | pytest · httpx | 必选 |
+| Testing | Playwright | 需要浏览器 E2E 再用 |
+| Tooling | uv | 默认包管理 |
+| Tooling | Ruff | 推荐 |
+| Tooling | mypy / pyright | 推荐 |
 
 ## 建议 → init 行为
 

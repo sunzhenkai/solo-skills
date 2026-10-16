@@ -38,6 +38,39 @@ class OutputStyleTest(unittest.TestCase):
         self.assertFalse(any("要干嘛" in e for e in errs))
         self.assertFalse(any("对用户说话" in e for e in errs))  # 临时目录无 contract，不报
 
+    def test_lint_warns_desc_chain_ban(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            s = Path(tmp) / "skills"
+            d = s / "demo"
+            (d / "references").mkdir(parents=True)
+            body = "\n".join(["不要做 A。禁止做 B。"] * 6)
+            (d / "SKILL.md").write_text(
+                "---\nname: demo\ndescription: " + "x" * 320 + "\n---\n\n"
+                "细则见 [a](references/a.md)。\n" + body + "\n",
+                encoding="utf-8",
+            )
+            (d / "references" / "a.md").write_text("再看 [b](b.md)。\n", encoding="utf-8")
+            (d / "references" / "b.md").write_text("b\n", encoding="utf-8")
+            _, warns = chk.run(s)
+        self.assertTrue(any("description 320" in w for w in warns))
+        self.assertTrue(any("引用链超一层" in w and "references/b.md" in w for w in warns))
+        self.assertTrue(any("禁令词" in w for w in warns))
+
+    def test_lint_quiet_on_clean_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            s = Path(tmp) / "skills"
+            d = s / "demo"
+            (d / "references").mkdir(parents=True)
+            (d / "SKILL.md").write_text(
+                "---\nname: demo\ndescription: >-\n  Does X. Use when Y.\n---\n\n"
+                "见 [a](references/a.md) 与 [b](references/b.md)。\n",
+                encoding="utf-8",
+            )
+            (d / "references" / "a.md").write_text("[b](b.md)\n", encoding="utf-8")
+            (d / "references" / "b.md").write_text("b\n", encoding="utf-8")
+            _, warns = chk.run(s)
+        self.assertEqual(warns, [])
+
 
 if __name__ == "__main__":
     unittest.main()

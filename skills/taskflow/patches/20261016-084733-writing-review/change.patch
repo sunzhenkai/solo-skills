@@ -1,0 +1,63 @@
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 256360c..7ef2079 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -41,7 +41,7 @@ exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自
+ 
+ 1. 由描述归纳 kebab-case `{task}`（描述为空才问）。
+ 2. `openspec new change {task}-driver --goal "<任务描述原文>"`。
+-3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；不写 `tasks.md`。
++3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；`tasks.md` 留给 propose。
+ 
+ ## 执行
+ 
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 3e040b3..586e9fc 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -6,7 +6,7 @@
+ 
+ `skip_specs: true` 必须显式写入：driver 无 spec 增量，不写这行会让 `openspec validate --strict` 失败；写了之后 `openspec status --change {task}-driver --json` 中 specs 为 `skipped`。
+ 
+-**不要写 `tasks.md`。** 它留给 propose 阶段：stock `openspec-propose` 只处理未完成的 artifact，脚手架把 tasks 写满会让它空转，留出空缺才会读 proposal 并按协议产出登记了子 change 的 `tasks.md`。这也是协议必须写在 proposal 而不是别处的原因——`openspec instructions apply --json` 的 `contextFiles` 保证 proposal 必然被读到。
++**脚手架把 `tasks.md` 留给 propose 阶段**：stock `openspec-propose` 只处理未完成的 artifact，脚手架把 tasks 写满会让它空转，留出空缺才会读 proposal 并按协议产出登记了子 change 的 `tasks.md`。这也是协议必须写在 proposal 而不是别处的原因——`openspec instructions apply --json` 的 `contextFiles` 保证 proposal 必然被读到。
+ 
+ ### driver `proposal.md` 模板
+ 
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index 026cc52..c82e641 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -24,4 +24,4 @@ Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支
+ - 证据与当前代码一致（换代码后旧证据作废，重跑受影响部分）。
+ - [done.md](../../taskrail/references/done.md) 全过。
+ 
+-`openspec archive` 报未勾时先回填真实状态或保持未勾，**不用 `--yes` 盖过去**：归档后记录不可回改，未勾齐就不归档。
++`openspec archive` 报未勾时先回填真实状态或保持未勾，勾齐再归档：归档后记录不可回改，未勾齐就不归档（`--yes` 不用来盖过未勾项）。
+diff --git a/skills/taskflow/tests/test_execution_spine_contract.py b/skills/taskflow/tests/test_execution_spine_contract.py
+index 0f33949..6414062 100644
+--- a/skills/taskflow/tests/test_execution_spine_contract.py
++++ b/skills/taskflow/tests/test_execution_spine_contract.py
+@@ -9,7 +9,8 @@ DISC = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf
+ 
+ class ExecutionSpineTest(unittest.TestCase):
+     def test_no_yes_flag(self) -> None:
+-        self.assertIn("不用 `--yes`", DISC)
++        self.assertIn("勾齐再归档", DISC)
++        self.assertIn("未勾齐就不归档", DISC)
+ 
+     def test_done_pointer(self) -> None:
+         self.assertIn("done.md", DISC)
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index c2046bc..4e68ff9 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -20,7 +20,7 @@ class TaskflowContractTest(unittest.TestCase):
+         t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
+         self.assertIn("## Driver 协议", t)
+         self.assertIn("skip_specs: true", t)
+-        self.assertIn("不要写 `tasks.md`", t)
++        self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
+ 
+     def test_serial_default(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")

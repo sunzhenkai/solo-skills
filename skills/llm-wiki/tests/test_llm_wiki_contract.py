@@ -39,7 +39,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不启动 llmwiki 应用", self.skill)
         self.assertNotIn("Call the MCP", self.skill)
         self.assertNotIn(".llmwiki/index.db", self.skill)
-        self.assertIn("不要创建 `.llmwiki/`", self.skill)
+        self.assertIn("工作区只含纯 Markdown 目录", self.skill)
 
     def test_raw_is_readonly(self) -> None:
         self.assertIn("`raw/` 只读", self.skill)
@@ -80,21 +80,21 @@ class ContractTest(unittest.TestCase):
 
     def test_phase_loaded_on_demand(self) -> None:
         self.assertIn("只读该阶段详情", self.skill)
-        self.assertIn("不要预加载其它 reference", self.skill)
+        self.assertIn("其它 reference 等用到时再读", self.skill)
         self.assertIn("references/layout.md", self.skill)
         self.assertIn("references/organize.md", self.skill)
 
     def test_guide_and_init_live_in_layout(self) -> None:
         self.assertIn("## `guide`", self.layout)
         self.assertIn("真实 `ls`", self.layout)
-        self.assertIn("不要创建 `.llmwiki/`", self.layout)
+        self.assertIn("只建上述纯 Markdown 骨架", self.layout)
         guide = self.skill.split("## `guide`", 1)[1].split("## ", 1)[0]
         self.assertNotIn("缺哪个就说哪个", guide)
 
     def test_organize_procedure_lives_in_reference(self) -> None:
         organize = self.skill.split("## `organize`", 1)[1].split("## ", 1)[0]
-        self.assertNotIn("不要编造 `wiki/entity/`", organize)
-        self.assertIn("不要编造 `wiki/entity/`", self.organize)
+        self.assertNotIn("只描述 lint 实际报出的目录", organize)
+        self.assertIn("只描述 lint 实际报出的目录", self.organize)
         self.assertIn("确认前不改", self.organize)
 
 

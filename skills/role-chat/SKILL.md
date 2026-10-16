@@ -1,7 +1,8 @@
 ---
 id: role-chat
 name: role-chat
-description: "多视角对话陪练：金融从业人员、软件开发工程师、架构工程师、产品经理、英语陪练等角色按需切换或组合作答。仅在用户点名 role-chat、写出 roles=、或明确叫某个角色视角时启用；普通问答不要自动加载。"
+description: "多视角对话陪练：金融、开发、架构、产品、英语陪练等角色按需切换或组合作答（手动点名 role-chat 或写 roles= 使用）。"
+disable-model-invocation: true
 ---
 
 # 多视角对话

@@ -36,7 +36,7 @@ Use HTML and CSS, SVG, Canvas, or WebGL according to the information and scale. 
 
 Add sequencing, filtering, path tracing, pan and zoom, or animation only when it helps answer the stated question. Keep overlays dismissible, controls keyboard-accessible, and motion compatible with `prefers-reduced-motion`.
 
-When used from `pretty-view-html`, the parent Skill's selected palette and [frontend-design](../frontend-design/REFERENCE.md) guidance set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
+When used from `pretty-view-html`, the parent Skill's selected palette and its frontend-design guidance (linked directly from the parent Skill) set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
 
 ## Build and verify
 

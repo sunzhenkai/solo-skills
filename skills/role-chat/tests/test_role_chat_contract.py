@@ -39,8 +39,8 @@ class ContractTest(unittest.TestCase):
 
     def test_description_declares_manual_trigger_only(self) -> None:
         fm = _frontmatter(_skill())
-        self.assertIn("仅在用户点名", fm)
-        self.assertIn("不要自动加载", fm)
+        self.assertIn("disable-model-invocation: true", fm)
+        self.assertIn("手动点名", fm)
         # 占位符只在正文渲染，写进 frontmatter 会让 sync 的残留校验失败。
         self.assertNotIn("{{slash:", fm)
 
@@ -94,7 +94,8 @@ class ContractTest(unittest.TestCase):
 
     def test_only_installable_and_dev_dirs_present(self) -> None:
         entries = {path.name for path in ROOT.iterdir()}
-        self.assertEqual(entries, {"SKILL.md", "references", "tests"})
+        # patches/ 是变更审计目录（AGENTS.md：有变更即补），不进安装面。
+        self.assertEqual(entries - {"patches"}, {"SKILL.md", "references", "tests"})
 
     def test_runtime_allowlist_compatibility(self) -> None:
         import os

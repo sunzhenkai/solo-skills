@@ -1,14 +1,14 @@
 ---
 id: agent-roster
 name: agent-roster
-description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅长什么），并据此把一件事委派给合适的 agent 执行、回收产出、留下可复用案例。用于需要让另一个 agent 定计划、做评审或实施，也用于登记、探测、查询可用 agent；调用方点名 Role 且未写 Endpoint 时，用该 Role 的默认 Endpoint。也承接原 agent-roster-flow：按 Stage 编排跨 agent 任务（理解、定方案、方案评审、实现、可选代码评审、收尾），用于多 agent 工作流、跨 agent 分步选人、每步选 Endpoint 和模型时走 flow 模式。普通单次修复不要加载 flow。不实现被委派 agent 自身的能力。
+description: 跨机器 agent 名册与委派。用于把定计划、评审或实施委派给另一个 agent（点名 Role 时用其默认 Endpoint）；登记、探测、查询可用 agent；按 Stage 编排多 agent 工作流（flow 模式，原 agent-roster-flow）。
 ---
 
 # Agent Roster
 
 ## flow 模式（原 agent-roster-flow）
 
-使用者要按 Stage 串起多 agent 工作流（每段确认 Endpoint + Model 或 human，执行才委派）时，读 [references/flow.md](references/flow.md)；否则不加载。
+使用者要按 Stage 串起多 agent 工作流（每段确认 Endpoint + Model 或 human，执行才委派）时，读 [references/flow.md](references/flow.md)；普通单次委派或修复走下方完整顺序即可。
 
 ## 一次委派的完整顺序
 
@@ -27,25 +27,24 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 
 使用者明确指定唯一 Endpoint 且任务线性时，只读 `routing.md`、该 Endpoint 画像和相关 Trace，不枚举其他候选；画像缺失或不可用时回到完整路由。`decision.md` 可压缩为指定来源、可用性证据、权限、Handoff，但「为什么选它」仍须可复用；acpx、权限、回收与留痕门禁不变。
 
-## 角色：点了名就用默认 Endpoint
+## 按需读取（均从本文件直链）
 
-点了 Role 且未写 Endpoint、或要按数据选人时，先读 [references/selection.md](references/selection.md)（角色默认 Endpoint、数据位置、路由规则）。
+| 何时 | 读 |
+|------|----|
+| 点了 Role 未写 Endpoint、按数据选人、找名册 / 画像 / Trace / Run 位置、完整路由 | [references/selection.md](references/selection.md)；角色对照 [references/roles.md](references/roles.md) |
+| 委派契约、受控执行、受限清单与降级 | [references/delegation-contract.md](references/delegation-contract.md) |
+| 第 5 步写 Trace、第 6 步固化、登记 / 探测 / 更新名册 | [references/maintenance.md](references/maintenance.md)；格式 [references/trace-format.md](references/trace-format.md)、[references/endpoint-schema.md](references/endpoint-schema.md) |
+| flow 模式各阶段 | 入口 [references/flow.md](references/flow.md)；术语 [references/flow-context.md](references/flow-context.md)；Track 确认后 [references/flow-tracks.md](references/flow-tracks.md)；进入 Stage 读 [references/flow-stages.md](references/flow-stages.md) 对应节；新建 / 恢复 Flow [references/flow-spine.md](references/flow-spine.md)；写模型清单 [references/flow-models-yaml.md](references/flow-models-yaml.md) |
 
-## 数据在哪
-
-名册、画像、Trace、Run 目录的位置见 [references/selection.md](references/selection.md)。
-
-## 路由：选谁
-
-完整路由（读 routing.md、画像、Trace，选谁与为什么）见 [references/selection.md](references/selection.md)。
+点了 Role 就用它的默认 Endpoint（见「不变量」）。
 
 ## 委派：怎么派
 
-委派通过一层适配契约发出，本 skill 不绑定具体执行器。契约字段、命令形态、受限清单与降级步骤见 [references/delegation-contract.md](./references/delegation-contract.md)；受控执行有入口脚本 `scripts/delegate.py`（run 目录 + decision.md + timeout 兜底一条命令），状态判定用 `scripts/run_status.py`。
+委派通过一层适配契约发出，本 skill 不绑定具体执行器。契约字段、命令形态、受限清单与降级步骤见 [references/delegation-contract.md](references/delegation-contract.md)；受控执行有入口脚本 `scripts/delegate.py`（run 目录 + decision.md + timeout 兜底一条命令），状态判定用 `scripts/run_status.py`。
 
 受派方只能是名册里的 Endpoint。Orchestrator 不是其中任何一个——即使自己正跑在被选中的那个 Agent Kind 上，也必须按契约把任务发出去，不能由自己顶上。「交给 codex 做实施」说的是委派路径，不是执行者身份；把两者混为一谈，这次委派就等于没有发生，既没有 Run 痕迹，也没有可复现的选人依据。
 
-正式委派必须**受控执行**：Endpoint+模型组合无 L3 成功记录时先冒烟；`timeout` 必填；启动时写 `run-dir/status.json` 并记录 PID，状态判定用 `scripts/run_status.py <run-id>`，不用 `pgrep` 或肉眼读事件流（细节见 [references/delegation-contract.md](./references/delegation-contract.md)「受控执行」）。
+正式委派必须**受控执行**：Endpoint+模型组合无 L3 成功记录时先冒烟；`timeout` 必填；启动时写 `run-dir/status.json` 并记录 PID，状态判定用 `scripts/run_status.py <run-id>`，不用 `pgrep` 或肉眼读事件流（细节见 [references/delegation-contract.md](references/delegation-contract.md)「受控执行」）。
 
 默认执行器是 `acpx`。**每次**委派前都检查它是否在 PATH——上一次委派怎么走不构成本次的依据：
 
@@ -77,18 +76,6 @@ description: 维护跨机器的 agent 端点名册（谁在哪台机器上、擅
 - **跑完了但产出不对** → 不要重发。先判断是 prompt 没说清还是人选错了：前者改 prompt 重来，后者回到路由重选，并在 `decision.md` 末尾追加一句改判说明——不要改写原来那段理由。
 
 三类都要写 Trace，且要在 Trace 里写明是哪一类。「超时了」不是教训，「这个 Endpoint 在这类任务上会超时」才是。
-
-## 留痕：什么时候写 Trace
-
-第 5 步写 Trace 的条件与格式见 [references/maintenance.md](references/maintenance.md)。
-
-## 固化：什么时候把案例变成规则
-
-第 6 步固化门槛与提案流程见 [references/maintenance.md](references/maintenance.md)。
-
-## 名册维护
-
-登记、探测、更新名册时读 [references/maintenance.md](references/maintenance.md)。
 
 ## 不变量
 

@@ -1,0 +1,13 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index c419955..3d40083 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -13,7 +13,7 @@ description: "探索台账命令：explore / design / approve / handoff，由 ta
+ | 命令 | 做什么 | 进入时读 |
+ |------|--------|----------|
+ | `explore` | grill 自问自答：补细节、边界、约束 | [references/explore-design.md](references/explore-design.md) |
+-| `design` | 在 `{taskRoot}/design/` 写方案 | [references/explore-design.md](references/explore-design.md)；落盘时读 [references/templates.md](references/templates.md) |
++| `design` | 在 `{taskRoot}/design/` 写方案 | [references/explore-design.md](references/explore-design.md)；落盘时读 [references/templates.md](references/templates.md)；要写设计依据 / 对比表时读 [references/design-detail.md](references/design-detail.md)，其中质量底线按 [quality-appendix.md](../taskrail/references/quality-appendix.md) |
+ | `approve` | 自查 + 闸口 + 冻结 | [references/approve.md](references/approve.md) |
+ | `handoff` | 交接给 taskflow，转 `handed-off` | [references/handoff.md](references/handoff.md) |
+ 

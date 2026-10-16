@@ -1,7 +1,7 @@
 # skills-store 自扫描豁免。三类自指内容：
 # 1. 审计工具自身源码：PATTERNS 规则定义表与注释必然逐字枚举威胁模式，整文件豁免；
 #    该文件内容的真实管控是 solo-skills 的 code review 与 lock 锁定的 revision。
-# 2. SKILL.md「已知误报」参考表：逐行讲解各规则的典型误报，仅豁免锚点逐字命中的行，
+# 2. references/known-false-positives.md 已知误报参考表：逐行讲解各规则的典型误报，仅豁免锚点逐字命中的行，
 #    表外新增同类文本照常上报。
 # 3. 契约测试里的检测样本：tests/test_skills_store_contract.py 整份是「必须被本脚本
 #    命中」的威胁样本字符串（rm -rf /、~/.env、假 api_key、eval $(curl …)），
@@ -12,7 +12,7 @@
 # 锚点须落在其中。`#` 为注释。
 *|scripts/audit-skill.sh|*
 *|tests/test_skills_store_contract.py|*
-jailbreak_role|SKILL.md|MIT LICENSE 正文的
-credential_paths|SKILL.md|现要求独立单词
-eval_external|SKILL.md|Markdown 反引号
+jailbreak_role|references/known-false-positives.md|MIT LICENSE 正文的
+credential_paths|references/known-false-positives.md|现要求独立单词
+eval_external|references/known-false-positives.md|Markdown 反引号
 hardcoded_secret|SKILL.md|const token = preparedCacheDirectories

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """面向人的输出风格检查（只依赖标准库）。
 
-1. SKILL.md 超过 8192 字节：告警（指导线，不阻断）。
+1. SKILL.md 告警（指导线，不阻断）：
+   - 超过 8192 字节；
+   - description 超过 300 字符（常驻上下文，应只留 WHAT + WHEN 的真分支）；
+   - 引用链超一层：SKILL.md 直链的文件再链到 SKILL.md 未直链的同 skill 文件；
+   - 禁令词密度高：「不要 / 禁止 / 不得 …」≥8 处且每 KB ≥2.5 处（应改正向表述，硬闸配正向句）。
 2. task-intent references/intent.md：
    - `wizard/intent.md` 模板的「覆盖清单」缺字段 → ERROR（落盘文件的结构约束）；
    - 「给用户的复述」示例出现标题 / 加粗标签 / 字段名开头 → 告警（应为自然口语）；
@@ -16,6 +20,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LIMIT = 8192
+DESC_LIMIT = 300
+BAN = re.compile(r"不要|禁止|不得|严禁|切勿|不准|\*\*不\*\*")
+BAN_MIN, BAN_PER_KB = 8, 2.5
+LINK = re.compile(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)")
 FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "我的决定")
 QUESTION = re.compile(r"[？?]|要不要|你看行吗|对吗")
 CHECKLIST = re.compile(r"## 覆盖清单\n(.*?)\n\n", re.S)
@@ -28,6 +36,71 @@ def check_sizes(skills: Path) -> list[str]:
         n = len(f.read_bytes())
         if n > LIMIT:
             warns.append(f"{f.relative_to(skills.parent)}: SKILL.md {n} B > {LIMIT} B")
+    return warns
+
+
+def split_frontmatter(text: str) -> tuple[str, str]:
+    if not text.startswith("---"):
+        return "", text
+    parts = text.split("\n---", 1)
+    if len(parts) < 2:
+        return "", text
+    return parts[0][3:], parts[1].split("\n", 1)[1] if "\n" in parts[1] else ""
+
+
+def description(front: str) -> str:
+    lines = front.splitlines()
+    for i, line in enumerate(lines):
+        if not line.startswith("description:"):
+            continue
+        val = line[len("description:"):].strip()
+        if val in (">", ">-", "|", "|-", ">+", "|+"):
+            block = []
+            for nxt in lines[i + 1:]:
+                if nxt and not nxt.startswith((" ", "\t")):
+                    break
+                block.append(nxt.strip())
+            return " ".join(b for b in block if b)
+        return val.strip("\"'")
+    return ""
+
+
+def links(path: Path) -> set[Path]:
+    if not path.is_file():
+        return set()
+    text = path.read_text(encoding="utf-8")
+    out = set()
+    for target in LINK.findall(text):
+        if "://" in target:
+            continue
+        out.add((path.parent / target).resolve())
+    return out
+
+
+def check_skill_lint(skills: Path) -> list[str]:
+    warns = []
+    for f in sorted(skills.glob("*/SKILL.md")):
+        rel = f.relative_to(skills.parent)
+        text = f.read_text(encoding="utf-8")
+        front, body = split_frontmatter(text)
+        desc = description(front)
+        if len(desc) > DESC_LIMIT:
+            warns.append(f"{rel}: description {len(desc)} 字符 > {DESC_LIMIT}")
+        n = len(BAN.findall(body))
+        per_kb = n * 1024 / max(len(body.encode()), 1)
+        if n >= BAN_MIN and per_kb >= BAN_PER_KB:
+            warns.append(f"{rel}: 禁令词 {n} 处（{per_kb:.1f}/KB），改正向表述，硬闸配正向句")
+        root = f.parent.resolve()
+        direct = links(f)
+        deep = set()
+        for d in direct:
+            if root not in d.parents or d.name == "SKILL.md":
+                continue
+            for d2 in links(d):
+                if root in d2.parents and d2 not in direct and d2 != f.resolve() and d2.is_file():
+                    deep.add(d2.relative_to(root).as_posix())
+        if deep:
+            warns.append(f"{rel}: 引用链超一层（SKILL.md 未直链）：{', '.join(sorted(deep)[:5])}")
     return warns
 
 
@@ -69,7 +142,7 @@ def check_plain_talk(path: Path) -> list[str]:
 
 
 def run(skills: Path) -> tuple[list[str], list[str]]:
-    warns = check_sizes(skills)
+    warns = check_sizes(skills) + check_skill_lint(skills)
     errs, w2 = check_intent(skills / "task-intent" / "references" / "intent.md")
     errs += check_plain_talk(skills / "taskrail" / "references" / "contract.md")
     return errs, warns + w2
