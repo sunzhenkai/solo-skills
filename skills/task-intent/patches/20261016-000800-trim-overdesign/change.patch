@@ -1,0 +1,330 @@
+diff --git a/skills/task-intent/SKILL.md b/skills/task-intent/SKILL.md
+index c8b81dd..7de4de8 100644
+--- a/skills/task-intent/SKILL.md
++++ b/skills/task-intent/SKILL.md
+@@ -16,18 +16,17 @@ description: "任务开工前的意图确认：详细只读探索上下文 → 
+ 2. **复述**：先按覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 决定）想清楚，再用 1–3 句第一人称口语告诉用户：做什么、怎么做、产出落在哪、接下来会怎样。说决定、不提问（含难回头单独说、真阻塞才停），见 [user-report.md](../taskrail/references/user-report.md)；有任务目录时决定追加到 `TASK.md`「已做决定」。不打标题、不加粗标签、不逐项列字段；结构化内容只写进 `wizard/intent.md`。
+ 3. **纠偏**：
+    - human：给用户看复述，按指正先回一手资料重查，再说改了什么、出处在哪，直到用户明确说对；用户显出困惑或不满时立刻停止提问，查清后给有出处的结论；多轮仍对不上就把两种理解并排说清、写明我按哪种做。
+-   - goal：不问人，派异源模型审（`role-based-reviewer roles=intent`），无 P0/P1 即通过，见 references。
+-4. **落盘**：确认版写 `wizard/intent.md`，`status: confirmed`（goal 审不过时 `assumed` + 显式降级）。
++   - goal：不问人，派另一个模型按 references 第 5 节的审查清单审，无 P0/P1 即通过。
++4. **落盘**：确认版写 `wizard/intent.md`，`status: confirmed`（goal 两轮审不过时 `assumed`，剩余发现写进假设）。
+ 
+ ## 不可跳过
+ 
+ - 注意任务边界。细则见 [references/intent.md](references/intent.md) 第 1、4 节。
+ - 先查后定；说决定、不提问；真阻塞才停：见 [user-report.md](../taskrail/references/user-report.md)「说决定，不提问」。
+ - 复述必须忠于用户原话：不添目标、不漏约束、不把宽泛目标缩窄；「不做」只写用户原话里的限制，自己想加的写进「我的假设」；不确定处写成假设，不写成事实。
+-- 涉及线上、不可逆、对外发送的意图，goal 模式也必须停下等人。
+ - 不写代码；探索只读。
+ - 用户没回话不算确认。
+ 
+ ## 何时跳过
+ 
+-（taskrail 契约引用本节，唯一真源。）simple 档且用户原话已含明确目标与完成标准（一句话能描述改动）：不做大范围探索，直接出简短复述。resume 已有 `wizard/intent.md` 且 `status: confirmed` 或 `assumed` 时不重做；human 模式下 `assumed` 只补说一次「我按这个理解继续」。
++`skip` 档且用户原话已含明确目标与完成标准（一句话能描述改动）：不做大范围探索，直接出简短复述。resume 已有 `wizard/intent.md` 且 `status: confirmed` 或 `assumed` 时不重做；human 模式下 `assumed` 只补说一次「我按这个理解继续」。
+diff --git a/skills/task-intent/evals/cases.yaml b/skills/task-intent/evals/cases.yaml
+index fa9d715..5791200 100644
+--- a/skills/task-intent/evals/cases.yaml
++++ b/skills/task-intent/evals/cases.yaml
+@@ -5,7 +5,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 模糊目标不提问，按推荐说成决定
+-    given: 用户说「把导出弄快点」，medium
++    given: 用户说「把导出弄快点」
+     expect:
+       must:
+         - 1–3 句第一人称口语复述，自然带出做什么 / 怎么做 / 产出落点 / 下一步
+@@ -18,7 +18,7 @@ cases:
+     kind: basic
+     judge: llm
+     description: 清晰小改不做大范围探索
+-    given: simple，用户说「把按钮文案 提交 改成 保存」
++    given: skip 档，用户说「把按钮文案 提交 改成 保存」
+     expect:
+       must:
+         - 直接出简短复述请确认
+@@ -29,7 +29,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 上下文进 intent.md，影响结果时才进口语复述
+-    given: medium 任务
++    given: full 档任务
+     expect:
+       must:
+         - intent.md 覆盖清单写明现状 / 约束 / 已有工作并给证据路径
+@@ -52,7 +52,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 探索详细、输出简洁
+-    given: complex 任务
++    given: full 档任务
+     expect:
+       must:
+         - 详情落 evidence/intent/
+@@ -64,7 +64,7 @@ cases:
+     kind: basic
+     judge: llm
+     description: 面广时并行只读摸底
+-    given: complex 跨多个模块
++    given: full 档，跨多个模块
+     expect:
+       must:
+         - 并行派只读 subagent，回简短摘要
+@@ -178,7 +178,7 @@ cases:
+     given: confirm_mode=goal
+     expect:
+       must:
+-        - 调用 role-based-reviewer roles=intent 并指定异源 model
++        - 派与执行者不同的模型按 intent.md 第 5 节清单审
+         - 随附原话、复述、探索摘要
+       must_not:
+         - 向用户提问
+@@ -212,7 +212,7 @@ cases:
+     given: 无可用异源模型
+     expect:
+       must:
+-        - 不调用 role-based-reviewer，登记显式降级后自审，假设标把握低
++        - 写明派不出的原因，按同一清单自审，假设标把握低
+       must_not:
+         - 静默同源自审不登记
+ 
+diff --git a/skills/task-intent/references/intent.md b/skills/task-intent/references/intent.md
+index 38d6972..065a3eb 100644
+--- a/skills/task-intent/references/intent.md
++++ b/skills/task-intent/references/intent.md
+@@ -23,7 +23,6 @@
+ - **约束**：技术约束、接口与兼容性、时间或资源限制、用户原话里的禁止项。
+ - **已有工作**：`tasks/` 下相关任务与 ADR、近期提交、已有方案或失败尝试。
+ - **歧义**：原话里哪些词有多种读法、哪种读法会改变做法。
+-- **外部参照**（按需）：选型 / 集成 / 协议对接时看一眼业界做法。
+ 
+ 面广时可并行派只读 subagent 分头摸（交代目标、输入、只读、详情落 `evidence/intent/<主题>.md`），只回简短摘要（结论 + 证据路径 + 未决）。主会话不转贴全文。
+ 
+@@ -39,11 +38,11 @@
+ - 上下文、假设、不做的事：只在会影响结果时顺带一句，不用就不提。
+ - 结尾说接下来会发生什么（如「写完告诉你放在哪」）。
+ - 说决定、不提问：见 taskrail [user-report.md](../taskrail/references/user-report.md)；歧义按推荐说成决定并带理由。
+-- 不要标题、不要加粗标签、不要逐字段列出（通用规则见 taskrail 契约「对用户说话」）。
++- 不要标题、不要加粗标签、不要逐字段列出。
+ 
+ 示例：
+ 
+-- 好，我按仓库的约定挑个合适的位置写成一份文档，内容包括流程图、各 skill 的分工、两种模式、三个档位的区别和怎么用，并在 README 和 taskrail 里加链接。写完告诉你放在哪。
++- 好，我按仓库的约定挑个合适的位置写成一份文档，内容包括流程图、各 skill 的分工、两种模式、两个档位的区别和怎么用，并在 README 和 taskrail 里加链接。写完告诉你放在哪。
+ - 我先查清导出慢在查询还是文件生成，再优化最慢那段，用 1 万行报表对比，目标是 5 秒内导出且内容不变；我先按只管网页端来做，报表格式不动。改完把前后耗时发给你。
+ - 我把登录失败的提示统一成一处处理，顺手补上错误码测试；这次先只改网页端，App 端等网页端稳定后再跟，免得两端一起回归。改完把测试结果发你。
+ - 我先把页面和节点、连线的数据结构做好，各存一张表，后面要改字段得迁数据，所以先说一声。这次先不做初始数据导入，服务你后面自己加，免得跟还没修好的导入链路绑在一起。做完把页面地址发你。
+@@ -57,14 +56,24 @@
+ - 多轮仍有分歧：把两种理解并排写清，并写明我按哪种做、为什么；仍不收敛就停下，说明需要用户用自己的话描述目标，不再猜。
+ - 用户没回话不算确认。
+ 
+-## 5. 代审（goal）
++## 5. 代审（goal）与审查清单
+ 
+-调用：`role-based-reviewer roles=intent mode=review model=<与执行者不同、最好更强的模型>`，随附用户原话、复述、探索摘要。
++goal 不问人：派与执行者不同、最好更强的模型（`model=` 或 agent-roster `endpoint=`），随附用户原话、复述、探索摘要，按下面清单审。派不出时写明原因，主会话按同一清单自审，所有假设标「把握低」。
+ 
+-- 可用性由本 skill 先判断：异源模型不可用时**不调用** role-based-reviewer，按 taskrail 确认协议登记显式降级（写明原因），主会话按下列维度自审，并把所有假设标「把握低」。
+-- 审查维度：忠实（不添目标、不漏约束）、可检查、假设是否合理、范围是否清楚、上下文是否支撑「怎么干」。
+-- 通过：无 P0/P1。不通过：按发现修订再审，最多两轮；仍不过则剩余发现写入显式降级，`status: assumed`，继续推进。
+-- 线上、不可逆、对外发送相关的意图：一律停下等人。
++审查清单（P0 / P1 挡路，P2 不挡）：
++
++1. P0 **添目标**：复述里有原话和摸底都推不出的目标或范围。
++2. P0 **漏约束**：原话里的限制 / 禁止 / 期限没进「不做」或「做完的样子」。
++3. P0 **自加限制或缩窄**：「不做」里有原话推不出的限制，或把宽泛目标缩小了，且没标成假设。
++4. P0 **形态不符词义**：说法的通常含义与复述的产物形态对不上（如「只读图」被做成「改库表」）。
++5. P0 **该查没查**：能从一手资料查到的内容被写成假设、未知或拿去问用户（指出能回答它的文件）。
++6. P1 **不可检查**：「做完的样子」两个独立执行者会判出不同结论。
++7. P1 **范围失当**：漏了目标的直接依赖，或扩进无关范围。
++8. P1 **上下文不撑做法 / 假设失当**：做法违反已知约束；会改范围的假设没标「把握低」。
++
++不审：文风、实现方案是否最优、需求本身是否合理。
++
++无 P0 / P1 即通过；不过就修订再审，最多两轮，仍不过则剩余发现写进「我的假设」，`status: assumed`，继续推进。线上、不可逆、对外发送相关的意图一律停下等人。
+ 
+ ## 6. `wizard/intent.md`
+ 
+@@ -91,7 +100,7 @@ reviewer: <human | 模型名>
+ 
+ 意图中途变更时直接改写本文件并在纠偏记录追加一行（git 可追溯旧版），流程见 taskrail 契约「意图变更」。
+ 
+-## 7. 结构化示例（`wizard/intent.md` 的覆盖清单，medium）
++## 7. 结构化示例（`wizard/intent.md` 的覆盖清单）
+ 
+ 用户原话：「把导出功能弄快点」；给用户的复述即第 3 节第二条示例。
+ 
+diff --git a/skills/task-intent/tests/test_source_first_contract.py b/skills/task-intent/tests/test_source_first_contract.py
+index ed8316c..5177a49 100644
+--- a/skills/task-intent/tests/test_source_first_contract.py
++++ b/skills/task-intent/tests/test_source_first_contract.py
+@@ -1,55 +1,32 @@
+-"""注意任务边界：先推词义、按序读一手资料、默认范围、纠偏先重查（原则在 intent.md）。"""
+-
++"""source-first / 注意任务边界。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+-SKILLS = ROOT.parent
+-
+-
+-def read(rel: str) -> str:
+-    return (ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestSourceFirst(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.skill = read("SKILL.md")
+-        self.ref = read("references/intent.md")
++INTENT = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+ 
+-    def test_skill_boundary_line(self) -> None:
+-        self.assertIn("注意任务边界", self.skill)
+-        self.assertIn("references/intent.md", self.skill)
+ 
+-    def test_principles_in_intent_ref(self) -> None:
+-        for k in ("先推词义", "读资料的顺序", "目标加它的直接依赖", "不硬套现有数据模型"):
+-            self.assertIn(k, self.ref, k)
++class SourceFirstTest(unittest.TestCase):
++    def test_boundary_label(self) -> None:
++        self.assertIn("注意任务边界", SKILL)
+ 
+-    def test_reading_order(self) -> None:
+-        sec = self.ref.split("**读资料的顺序（固定）：**", 1)[1].split("**范围默认", 1)[0]
+-        keys = ("用户原话", "CLAUDE.md", "compose", "`tasks/`", "要改的代码", "更大范围的台账")
+-        idx = [sec.index(k) for k in keys]
+-        self.assertEqual(idx, sorted(idx))
+-        self.assertIn("不得把其中能查到的内容当成未知、写成假设或拿去问用户", self.ref)
++    def test_word_sense_first(self) -> None:
++        self.assertIn("先推词义", INTENT)
+ 
+-    def test_scope_and_citation(self) -> None:
+-        self.assertIn("目标加它的直接依赖", self.ref)
+-        self.assertIn("每条结论带出处", self.ref)
++    def test_read_order(self) -> None:
++        self.assertIn("读资料的顺序", INTENT)
+ 
+-    def test_artifact_from_meaning(self) -> None:
+-        self.assertIn("不硬套现有数据模型", self.ref)
+-        self.assertIn("只读现状图", self.ref)
++    def test_scope_default(self) -> None:
++        self.assertIn("目标加它的直接依赖", INTENT)
+ 
+-    def test_correction_rereads_and_frustration_stops(self) -> None:
+-        self.assertIn("先回第 1 节的一手资料重查", self.ref)
+-        self.assertIn("立刻停止提问", self.ref)
+-        self.assertIn("立刻停止提问", self.skill)
++    def test_correction_reread(self) -> None:
++        self.assertIn("先回第 1 节的一手资料重查", INTENT)
+ 
+-    def test_intent_reviewer_checks(self) -> None:
+-        t = (SKILLS / "role-based-reviewer/references/roles/intent.md").read_text(encoding="utf-8")
+-        for k in ("🔴 产物形态与词义不符", "🔴 该查没查", "🟡 范围失当"):
+-            self.assertIn(k, t)
++    def test_user_report_source_first(self) -> None:
++        ur = (ROOT.parent / "taskrail" / "references" / "user-report.md").read_text(encoding="utf-8")
++        self.assertIn("先查资料，能查到的不问", ur)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/task-intent/tests/test_task_intent_contract.py b/skills/task-intent/tests/test_task_intent_contract.py
+index 54159bd..54d5cd6 100644
+--- a/skills/task-intent/tests/test_task_intent_contract.py
++++ b/skills/task-intent/tests/test_task_intent_contract.py
+@@ -1,69 +1,35 @@
+-"""task-intent 行为契约（只测关键行为，不锁措辞）。"""
+-
++"""task-intent：注意任务边界、覆盖清单、goal 清单真源。"""
+ from __future__ import annotations
+-
+-import re
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+-def read(rel: str) -> str:
+-    return (ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestTaskIntent(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.skill = read("SKILL.md")
+-        self.ref = read("references/intent.md")
+-
+-    def test_frontmatter_and_single_reference(self) -> None:
+-        self.assertTrue(self.skill.startswith("---\nid: task-intent\nname: task-intent\n"))
+-        self.assertEqual([p.name for p in (ROOT / "references").glob("*.md")], ["intent.md"])
+-
+-    def test_checklist_is_internal_and_in_intent_file(self) -> None:
+-        self.assertIn("不照着打印", self.ref)
+-        block = re.search(r"## 覆盖清单\n(.*?)\n\n", self.ref, re.S).group(1)
+-        for f in ("要干嘛", "怎么干", "输出什么", "做完的样子", "上下文", "不做", "我的假设", "我的决定", "需要你提供的"):
+-            self.assertIn(f, block)
+-
+-    def test_user_restatement_is_natural_prose(self) -> None:
+-        sec = re.search(r"## 3\. 给用户的复述[^\n]*\n(.*?)\n## ", self.ref, re.S).group(1)
+-        for s in ("1–3 句", "第一人称", "接下来", "不提问", "不要标题、不要加粗标签"):
+-            self.assertIn(s, sec)
+-        examples = [l for l in sec.splitlines() if l.startswith("- ") and len(l) > 40]
+-        self.assertGreaterEqual(len(examples), 3)
+-        self.assertTrue(any("写完告诉你放在哪" in e for e in examples))
+-        for e in examples:
+-            self.assertNotIn("**", e)
+-        for e in sec.split("示例：", 1)[1].splitlines():
+-            if e.startswith("- "):
+-                self.assertNotRegex(e, r"[？?]|要不要|你看行吗")
+-        self.assertTrue(any("服务你后面自己加" in e for e in examples))
+-        self.assertIn("不逐项列字段", self.skill)
++class IntentContractTest(unittest.TestCase):
++    def test_note_task_boundary(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("注意任务边界", skill)
+ 
+-    def test_explore_detailed_output_concise(self) -> None:
+-        for s in ("现状", "约束", "已有工作", "evidence/intent/"):
+-            self.assertIn(s, self.ref)
+-        self.assertIn("简洁", self.skill)
++    def test_intent_detail_has_checklist(self) -> None:
++        text = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
++        self.assertIn("## 5. 代审（goal）与审查清单", text)
++        for s in ("添目标", "漏约束", "自加限制", "形态不符", "该查没查"):
++            self.assertIn(s, text)
+ 
+-    def test_safety_lines(self) -> None:
+-        self.assertIn("忠于用户原话", self.skill)
+-        self.assertIn("goal 模式也必须停下等人", self.skill)
+-        self.assertIn("没回话不算确认", self.skill)
++    def test_cover_fields(self) -> None:
++        text = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
++        for f in ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "我的决定"):
++            self.assertIn(f, text)
+ 
+-    def test_goal_review_and_fallback(self) -> None:
+-        self.assertIn("roles=intent", self.ref)
+-        self.assertIn("无 P0/P1", self.ref)
+-        self.assertIn("**不调用** role-based-reviewer", self.ref)
++    def test_points_user_report(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("user-report.md", skill)
+ 
++    def test_skip_rule(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("`skip` 档", skill)
+ 
+-class TestNoSelfAddedConstraints(unittest.TestCase):
+-    def test_not_do_only_from_user_words(self) -> None:
+-        skill = read("SKILL.md")
+-        self.assertIn("「不做」只写用户原话里的限制，自己想加的写进「我的假设」", skill)
+-        self.assertIn("不把宽泛目标缩窄", skill)
+ 
+ if __name__ == "__main__":
+     unittest.main()

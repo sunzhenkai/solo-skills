@@ -8,7 +8,7 @@
 - `{{slash:role-based-reviewer}} roles=engineer,sre mode=review 服务与部署变更`
 - `{{slash:role-based-reviewer}} mode=review`：未指定 `roles` 时默认 engineer（受门 2）
 
-- 工作流调用：`roles=product,design,engineer mode=review` 并随附完成判据 / 质量画像 / 显式降级 / 审与不审范围（不增删角色、不反问）
+- 工作流调用：`roles=product,design,engineer mode=review` 并随附完成判据 / 审与不审范围 / 运行态证据（不增删角色、不反问）
 - 异源评审调用：`roles=design mode=review model=<与实现不同的模型>`；跨端点：`roles=product,design,engineer mode=review endpoint=<host>/<kind>`
 
 ## 视角推断（受门 2 约束）

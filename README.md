@@ -8,9 +8,9 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；simple 直接实现 + 验证（不建 driver）；medium 的 explore 仅为 grill；medium / complex 经 handoff 走 OpenSpec；human/goal 确认协议（原 task-confirm，已并入）；`tasks/` 可恢复 |
-| `task-intent` | **开工前意图确认**：详细探索上下文 → 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步；字段清单只进 intent.md）→ 纠偏到确认（goal 由异源模型经 `role-based-reviewer roles=intent` 代审）；由 taskrail wizard 第 1 步委派 |
-| `task-explore` | 探索台账与命令能力（explore/design/approve/expand/handoff 等命令；`TASK.md.phase` 只许契约枚举） |
+| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；档位 skip（直接实现 + 验证）/ full（经 handoff 走 OpenSpec）；human/goal 两种确认模式；按完成清单收口；`tasks/` 可恢复 |
+| `task-intent` | **开工前意图确认**：详细探索上下文 → 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步；字段清单只进 intent.md）→ 纠偏到确认（goal 由另一个模型按清单代审）；由 taskrail wizard 第 1 步委派 |
+| `task-explore` | explore / design / approve / handoff（`TASK.md.phase` 只许契约枚举） |
 | `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
 
@@ -75,8 +75,7 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-> 有 `tasks/` 任务目录时**禁止**调用 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
-> Web UI：medium/complex 须交付项目根 frozen `design-system/v1` Active Instance（由 task* 的 design 阶段在交付仓内建立，不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
+> Web UI 交付细则见 `skills/taskrail/references/ui-delivery.md`（不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
 
 ### 一键安装（Makefile）
 

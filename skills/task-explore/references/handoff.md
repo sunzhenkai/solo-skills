@@ -1,41 +1,32 @@
-# handoff 阶段
+# handoff：交接给 taskflow
 
-进入本阶段后执行。未绑定则先回到 `SKILL.md` 的绑定规则。
+把 `tasks/ongoing/{slug}` 交给 `{slug}-driver`。不写代码、不归档、不搬目录、不清绑定。之后交付进度只认 taskflow checkbox。goal 里不问是否交接，approve 收敛就直接做。
 
-把 **探索任务**（`tasks/ongoing/{task-name}`）交接给 **taskflow 任务**（`{task-name}-driver`）。交付进度之后只认 taskflow checkbox。本阶段 **不写实现代码**，不发明 openspec 等价命令。交接后探索任务转入 `handed-off`：**不归档、不搬目录、不清绑定**；`phase` 置为 `propose`。`handed-off` 只表示账本已换，不表示 goal 或交付完成。
+## 前提
 
-处在 goal 里时，不询问是否交接。`approve` 的审阅已包含交接且已收敛时，本阶段直接执行。批量失败不向用户列选项，停并报告。「降级未确认」除外：门禁 4 要的是用户确认，审阅收敛不放行。
-
-## 目标推断（自动）
-
-按绑定对象确定交接目标，无需用户逐项指定：
-
-- 绑定子任务 → 交接该子任务（driver 名 `{sub}-driver`）。
-- 绑定父任务 → 父是纯伞不可交接；自动扫描其子任务，批量交接所有「已 `approve`（或兼容旧 `decide`）且未 `handed-off`」的子任务。未批准的子任务跳过并列入报告，不阻塞其余。
-- 父任务无子任务 → 停止，提示 `expand`/`split` 拆分或 `new` 另建任务；**不得建 `{parent}-driver`**。
-- 批量交接中任一子任务失败 → **立即停止**剩余交接；已成功的不回滚，失败原因和建议的重试做法写入报告，停在这里等用户处理。
-
-## 单任务交接门禁
-
-1. 该任务已批准：`approve/APPROVED.md` 存在，或 `TASK.md` **决策** 小节已写明采纳方案。没有则打断，先 `approve`（兼容旧流程时先 `decide`）。（父任务批量交接时逐个子任务检查；不满足的子任务按「跳过」处理并列入报告，不整体打断。）
-2. driver change 名 = 任务 slug + `-driver`（子任务为 `{sub}-driver`），不得从描述重新归纳成别的名字。在同一 planning root 下检查 driver 是否已存在：已存在则不要新建，把现有路径写入交接段，视为脚手架已就绪。
-3. 任务已是 `handed-off` 且 driver 已存在：报告 driver 路径并保持状态不变，不重复交接。
-4. 显式降级原文快照里确认状态为 `pending` 的条目为 0。仍有 `pending` 就停在本门禁，**不创建 driver**，把阻塞原因写成「降级未确认」并列出条目；只有用户点名接受该项、或明确说按降级表全部确认后才继续。上游没给降级表时本条视为满足，不编造降级。
-5. 命中交付类别门包时：`design/contract.md` 的契约文件指针与证据计划已就绪，且指针所指的契约本体已在目标仓存在（目标仓 = taskflow 涉及面表中角色为 `必须` 的修改仓；不存在则停在本门禁，先回 `design` 补，不创建 driver）；门包与契约指针随交接入 driver `proposal.md`（只写指针，不复制契约本体）。
-6. **Web UI**：`design/contract.md` 含 Active Instance 根路径与 contract / binding / projection 三条 digest；三条 digest 写入 driver `proposal.md`（验证记录或涉及面表）；medium/complex 须仍为 frozen 且与仓库一致；simple adopt-only 须附已确认显式降级原文。不把 tokens / primitive 本体复制进 `tasks/` 或 driver。
+1. 已批准：`approve/APPROVED.md` 存在，或「已做决定」写明采纳方案。没有就先 approve。
+2. driver 名固定 `{slug}-driver`（子任务 `{sub}-driver`）。已存在就复用，不新建。
+3. 已 `handed-off` 且 driver 存在：报告 driver 路径，不重复交接。
 
 ## 步骤
 
-1. 有未写入进展则先按 `save` 写回。
-2. 在 `TASK.md` 写 **交接** 小节（`## 交接`）：固定行 `- 交付类别：`、`- 适用门包：`（无交付产出写「不适用」/「无」）；Web UI 另写 `- Active Instance 根路径：`、`- contract digest：`、`- binding digest：`、`- projection digest：`——这些行由 taskflow 入口门 `check_handoff.py` 机械核对；再写 driver 名、采纳方案、`design/` 与 `approve/APPROVED.md` 指针、可带进实现的未决；上游（taskrail 确认协议 / 复杂档）含质量画像时，把「方案」小节的质量画像与显式降级原文快照**逐字复制**进交接段，不是引用路径。
-3. 读取并遵循 `taskflow` 的脚手架（`taskflow-new`）。「方案」含完成判据时，`--goal` 用目标 + 该完成判据原文 + 已采纳方案。没有完成判据时，`--goal` 用目标 + 已采纳方案。上游含质量画像与显式降级时，`--goal` 再逐字附上这两份原文快照。有流程总览时（`wizard/plan.md` 或「方案」小节），把流程总览原文快照写入 driver 的 `proposal.md`（可与 `--goal` 同份材料），不换成指向 `tasks/` 的路径或小节指针。不要只丢一句含糊摘要。载荷优先取自 `approve/APPROVED.md` 与 `wizard/plan.md`（若有）。决策小节没有采纳方案且无 APPROVED.md 时停在门禁 1，不创建 driver。命中门包时，`--goal` 再附交付类别、适用门包与基准物；门包与契约文件指针写入 driver `proposal.md`（涉及面表或验证记录），不把契约本体复制进 `tasks/`。Web UI 时再附 Active Instance 根路径与三条 digest（及 simple adopt-only 降级原文若适用）。
-4. 按 taskflow 写入 driver 的 `.openspec.yaml`（`skip_specs: true`）和 `proposal.md`（含逐字 Driver 协议）。**不要写 `tasks.md`。**
-5. taskflow / openspec 不可用，或无法确定 planning root：停下报告可选项，**保持探索任务在 `ongoing/`、状态不变**，已写的交接段可保留。
-6. 收尾：`TASK.md` 的 `status` 改为 `handed-off`（之后跑 `taskflow/scripts/check_handoff.py <root> <slug>` 须 exit 0，否则回本节补齐），`phase` 改为 `propose`，写入 `handed-off` 日期与 `driver` 名；INDEX 行一句话更新为 `已交接：… → {task-name}-driver`（**行留在 Ongoing 表**）；保留会话绑定。`handoff` 是命令不是 phase，禁止把 `phase` 写成 `handoff`。
-7. 桥接 stock `openspec-propose`（方案已定时选继续已有 change；未定时先 `openspec-explore`）。之后不要在 `tasks/` 里勾交付进度。
+1. 有未写回的进展先写回 `TASK.md`。
+2. 写 `TASK.md`「## 交接」节，只放**指针与判据**，不复制方案、画像或降级原文：
 
-## 父任务批量交接
+   ```text
+   - 交付类别：<Web UI / 服务 / 数据 / 部署 / 文档 Skill / 不适用>
+   - 适用门包：<quality-appendix.md 的类别名 / ui-delivery.md / 无>
+   - 完成判据：<criterion 原文>
+   - 方案：design/<topic>.md（@<git 短 hash，可选>）
+   - 批准：approve/APPROVED.md
+   - 带进实现的未决：<列表或无>
+   - driver：{slug}-driver
+   ```
 
-1. 扫描子任务，筛出「已 approve（或兼容 decide）未 handed-off」集合；为空则打断，报告每个子任务的状态与所缺条件。
-2. 按上方单任务流程逐个交接；每个子任务独立 driver `{sub}-driver`，父任务**不建** driver。任一失败即停（见「目标推断」）。
-3. 全部完成后：父 `TASK.md` 的子任务登记表逐行更新状态与 driver 路径；INDEX 父行一句话聚合子任务状态（如「3 子任务：2 已交接、1 设计中」）；报告每个子任务的交接结果。
+   Web UI 另加 [ui-delivery.md](../../taskrail/references/ui-delivery.md)「交接行」四行。
+3. 按 `taskflow` 脚手架建 driver：`--goal` = 目标 + `criterion` 原文 + 上面的方案 / 批准路径。按 [driver-template.md](../../taskflow/references/driver-template.md) 写 `.openspec.yaml`（`skip_specs: true`）与 `proposal.md`；**不写 `tasks.md`**。
+4. `TASK.md`：`status: handed-off`、`phase: propose`、`driver`、`handed-off` 日期；INDEX 行改为 `已交接：… → {slug}-driver`（留在 Ongoing 表）。
+5. 跑 `python3 taskflow/scripts/check_handoff.py <root> <slug>`，exit 0 才算交接成立；不过就按它的输出补交接节再跑。
+6. 桥接 stock `openspec-propose`（选继续已有 change）。
+
+taskflow / openspec 不可用、或定不了 planning root：停下说明缺什么，任务保持 `ongoing` 不变。

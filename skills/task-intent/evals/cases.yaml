@@ -5,7 +5,7 @@ cases:
     kind: core
     judge: llm
     description: 模糊目标不提问，按推荐说成决定
-    given: 用户说「把导出弄快点」，medium
+    given: 用户说「把导出弄快点」
     expect:
       must:
         - 1–3 句第一人称口语复述，自然带出做什么 / 怎么做 / 产出落点 / 下一步
@@ -18,7 +18,7 @@ cases:
     kind: basic
     judge: llm
     description: 清晰小改不做大范围探索
-    given: simple，用户说「把按钮文案 提交 改成 保存」
+    given: skip 档，用户说「把按钮文案 提交 改成 保存」
     expect:
       must:
         - 直接出简短复述请确认
@@ -29,7 +29,7 @@ cases:
     kind: core
     judge: llm
     description: 上下文进 intent.md，影响结果时才进口语复述
-    given: medium 任务
+    given: full 档任务
     expect:
       must:
         - intent.md 覆盖清单写明现状 / 约束 / 已有工作并给证据路径
@@ -52,7 +52,7 @@ cases:
     kind: core
     judge: llm
     description: 探索详细、输出简洁
-    given: complex 任务
+    given: full 档任务
     expect:
       must:
         - 详情落 evidence/intent/
@@ -64,7 +64,7 @@ cases:
     kind: basic
     judge: llm
     description: 面广时并行只读摸底
-    given: complex 跨多个模块
+    given: full 档，跨多个模块
     expect:
       must:
         - 并行派只读 subagent，回简短摘要
@@ -178,7 +178,7 @@ cases:
     given: confirm_mode=goal
     expect:
       must:
-        - 调用 role-based-reviewer roles=intent 并指定异源 model
+        - 派与执行者不同的模型按 intent.md 第 5 节清单审
         - 随附原话、复述、探索摘要
       must_not:
         - 向用户提问
@@ -212,7 +212,7 @@ cases:
     given: 无可用异源模型
     expect:
       must:
-        - 不调用 role-based-reviewer，登记显式降级后自审，假设标把握低
+        - 写明派不出的原因，按同一清单自审，假设标把握低
       must_not:
         - 静默同源自审不登记
 

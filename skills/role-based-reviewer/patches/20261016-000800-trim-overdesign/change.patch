@@ -1,0 +1,566 @@
+diff --git a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+index 70c911e..69a32e3 100644
+--- a/skills/role-based-reviewer/SKILL.md
++++ b/skills/role-based-reviewer/SKILL.md
+@@ -1,77 +1,45 @@
+ ---
+ id: role-based-reviewer
+ name: role-based-reviewer
+-description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、skill、intent。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles + 审阅边界结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
++description: "可组合的角色化只读评审：engineer、algo、data、sre、ops、biz、product、design（别名 uiux）、qa、skill、intent。仅在用户显式点名（/role-based-reviewer）、指定 roles=、明确要求按岗位/多角色视角，或上游工作流以 mode=review + 完整 roles 结构化调用时使用。普通「看看代码」「帮我 review」不要自动加载。"
+ ---
+ 
+ # 角色化评审
+ 
+-面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文，不要逐词硬翻。
++面向用户默认简体中文；命令名、路径、代码、状态值保持原文。
+ 
+-`mode=ask`：按岗位回答问题、标明证据与下游建议。  
+-`mode=review`：真正做多视角审查，输出分级发现；默认目标为当前工作区变更。
++- `mode=ask`：按岗位回答问题，标明证据与下游建议。
++- `mode=review`：多视角审查，输出分级发现；默认目标为当前工作区变更。
+ 
+-本身不改代码、不落盘、不替代实现类 skill。用户要求修复时再动手。
++只读：不改代码、不落盘。用户要求修复时再动手。
+ 
+-## 三道门禁（防误触、防角色膨胀、防吹毛求疵）
++## 三道门
+ 
+-未过门禁不得进入本 skill 的预加载与分角色审查。
+-
+-1. **门 1 · 收窄触发**：仅下列情况使用；否则当普通问答/常规审查处理，不加载本 skill。
+-   - 用户点名本 skill，或发出 `{{slash:role-based-reviewer}}`
+-   - 用户写出 `roles=` / 岗位短名（如「用 algo 看」「engineer+sre review」）
+-   - 用户明确要求按岗位、多角色、跨职能视角看问题
+-   **不算触发**：单独的「看看这段」「帮我 review」「有没有 bug」「审查一下 diff」——没有岗位意图时不要自动进来。
+-   - 上游编排型工作流以结构化参数调用，且 `mode=review` 与完整合法的角色集 `roles=` 齐备；审阅边界输入（完成判据、质量画像 / 角色底线、显式降级清单、命中交付类别门包时的门包与运行态证据、本环节「审」与「不审」的范围）应尽量齐备——边界缺项（含门包缺失、运行态证据缺失）不构成拒审理由，但须按已有边界审查、报告开头写明缺哪一块、对受影响条目标注未验证，不得把缺项当通过。满足上述条件时承认其为正当调用方，按传入角色执行；角色集由调用方按任务适用面给定，数量随任务变，不算角色膨胀。
+-2. **门 2 · 角色确认**：未指定 `roles` 时默认只开 **engineer**。其它角色必须有**强信号**才加（见下节）；一次推断将超过 2 个角色时，先列出候选问用户，禁止静默堆视角。文件名/目录沾边（有 CSS、有 Dockerfile、有 `model` 字样）不够。
+-   - 调用方传入完整 `roles=` 属「已指定」而非推断：照单执行，不列候选、不反问，即使角色数超过 2 个。用户当轮显式点名的 `roles` 优先于传入值；两者都不增删。
+-3. **门 3 · 发现克制**：`mode=review` 默认只报 **Blocker** 与 **Major**。Minor / Suggestion 仅在用户要求「仔细 / 全面 / 含风格」时输出。不确定的不当 Blocker；没有问题就说没有，不为每个角色凑一条。
++1. **触发要窄**：用户点名本 skill / `{{slash:role-based-reviewer}}`、写出 `roles=` 或岗位短名、明确要多角色视角，或上游以 `mode=review` + 完整 `roles=` 调用。单独的「看看这段」「帮我 review」「有没有 bug」不算。上游给的审阅边界（判据、审与不审、证据）缺项不拒审：按已有边界审，报告开头写明缺哪块，受影响条目标「未验证」。
++2. **角色要少**：未指定 `roles` 时只开 `engineer`；其它角色要主体强信号（文件名沾边不够）；推断超过 2 个只留信号最强的 2 个并在报告开头说一句。调用方或用户给定的 `roles` 照单执行，不增删。
++3. **发现要克制**：默认只报 Blocker 与 Major；Minor / Suggestion 仅在用户要求「仔细 / 全面」时给。拿不准不当 Blocker；没问题就说没有，不为每个角色凑一条。
+ 
+ ## 输入
+ 
+-- `roles=<逗号分隔角色>`：可选。合法值：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`、`intent`（仅调用方显式传入，审意图复述）。
+-- `mode=<ask|review>`：可选，默认 `ask`。已过门 1 且用户说评审 / review / 审查时视为 `review`。
+-- `<问题或变更范围>`：可选。`mode=review` 且未给范围时，默认当前工作区 `git diff`（仍受门 2：不要因此自动加角色）。
+-- `审阅边界输入`：仅工作流调用方需要。随附完成判据原文、质量画像 / 角色底线、显式降级清单、本环节「审」与「不审」的范围。质量目标含审美 / 体验等无法用确定性度量完备验收的项时，角色底线里还须带天花板参照集（把「卓越」落成可数构成件或外部参照）。命中交付类别门包时还须附门包（见 taskrail 门包表）与运行态证据（起服务 + 截图 / 录屏 / 断言输出）。缺项时只按已有判据审查，并在报告开头写明缺哪一块，不擅自扩大到「不审」列里的内容。
+-- `产物状态`：`mode=review` 时由调用方给出所审产物的状态标识（提交号，或未提交时的 dirty 摘要）；未给时评审自行取自工作区并在报告「依据状态」注明取得方式。报告与 findings 只对该状态有效。
+-- `model=<模型名>`：可选。subagent 派发时显式指定评审所用模型（异源评审用）；不指定则模型继承调用方。
+-- `endpoint=<agent-roster 端点>`：可选。经 agent-roster 委派该端点的 agent 执行评审，Handoff / 回收按 agent-roster 契约；与 `model` 同给时，`model` 作建议、端点自行解析时以其为准。
+-
+-示例与工作流 / 异源调用样例见 [references/inference-and-speed.md](references/inference-and-speed.md)。
+-
+-## MUST 先读取
+-
+-[references/protocol.md](references/protocol.md)（约束、预加载、输出骨架、角色边界）。
++- `roles=<逗号分隔>`：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`、`intent`（仅调用方显式传入，清单见 [references/roles/intent.md](references/roles/intent.md)）。
++- `mode=<ask|review>`：默认 `ask`；用户说评审 / review / 审查时为 `review`。
++- 范围：未给时默认当前 `git diff`。
++- 审阅边界（上游调用时）：判据原文、「审 / 不审」范围、运行态证据（截图 / 断言输出）、观感任务的参照与截图。
++- 产物状态：提交号或未提交改动摘要；未给就自取并在报告注明。
++- `model=` / `endpoint=`：可选。`endpoint` 经 agent-roster 委派；仅 `model` 时按角色派本机 subagent 并指定模型；都不给就自己审。指定了却都派不出时停下报告调用方，不静默改成同源自审。
+ 
+-## 视角推断与耗时优化
+-
+-- 用户或调用方给定的 `roles` 不增删；仅二者皆无时推断：**默认只 engineer**，额外角色要主体强信号，推断超过 2 个只留信号最强的 2 个并在报告开头说明。
+-- 大目标先摸规模、按模块抽样；支持 subagent 时可按角色并行派发（见「流程」第 4 步）。
+-- 信号表与细则见 [references/inference-and-speed.md](references/inference-and-speed.md)。
++示例与调用样例见 [references/inference-and-speed.md](references/inference-and-speed.md)。
+ 
+ ## 流程
+ 
+-1. 过三道门禁。未过门 1 则不要按本 skill 执行。解析 `mode`、`roles` 与可选的 `model` / `endpoint`；未指定角色时按上节推断，受门 2 约束。
+-2. 对每个生效角色，按 [protocol 预加载节](references/protocol.md) 加载上下文（含生效角色的 `references/roles/<role>.md`，计入文件预算）。跨角色复用同一文件，合计宜控制在约 6 个文件（建议，非硬线）。`mode=review` 另遵循耗时优化。
+-3. `mode=ask`：按角色输出独立结论、证据、边界与下游建议。
+-4. `mode=review`：按角色输出独立 findings，标注严重级别与 `path:line`；共享对象上标主责 / 协作 / 冲突。**派发策略**：`model` / `endpoint` 都不给时，本 skill 自己完成审查；给了任一参数则按参数派发——`endpoint` 经 agent-roster 委派该端点的 agent（选人、Handoff、回收按 agent-roster 契约），仅 `model` 时本机 subagent 按角色并行派发并显式指定该模型；派发结果仍按 protocol 输出骨架汇总去重。两者皆不可用（无 subagent 能力 / 名册无端点）时 MUST 停下报告调用方，禁止静默降级为同源自审（例外：调用方已判定不可用、未调用本 skill 并自行登记降级，如 task-intent goal 自审）。
+-5. 合并时只去重「同一证据支持的同一风险」；不得把不同角色的结论混写成无归属意见。
+-6. 下一步默认只推荐一个主责动作；确需并行时写明独立任务与先后关系。
+-
+-## 严重级别（`mode=review`）
++1. 过三道门，解析 `mode` / `roles` / `model` / `endpoint`。
++2. 先读 [references/protocol.md](references/protocol.md)，对每个生效角色加载 `references/roles/<role>.md`；跨角色复用文件，合计宜约 6 个文件。大目标先摸规模再抽样。
++3. `ask`：按角色给结论、证据、边界与下游建议。
++4. `review`：按角色给 findings，带严重级别与 `path:line`；Blocker / Major 用稳定编号 `F-n`。只合并「同一证据支持的同一风险」，不混写成无归属意见。
++5. 下一步默认只推荐一个主责动作。
+ 
+-Blocker / Major 默认报，Minor / Suggestion 仅在要求仔细审查时给（门 3）；定义见 [references/severity.md](references/severity.md)。
++严重级别定义见 [references/severity.md](references/severity.md)。
+ 
+ ## 输出
+ 
+-骨架见 [protocol 输出骨架节](references/protocol.md)。多角色 review 至少包含：
+-
+-- 依据状态：所审产物的状态标识（提交号 / dirty 摘要）与审阅边界齐备性（缺项逐条写明）
+-- 生效角色及选择依据
+-- 每个角色独立的 findings / 证据 / 下游建议；Blocker / Major 带稳定编号（供调用方处置台账引用）
+-- 共享风险的主责与协作角色
+-- 未覆盖项与降级建议（含未覆盖原因、建议处置与工具不可用时的替代方法与能力边界）
+-- 未知项、角色间分歧（如有）
+-- 统一的下一步与总结置信度
+-
+-报告只对「依据状态」所标识的产物有效；产物变更后受影响的 findings 作废重审。findings 的处置（`fixed` / `accepted-recorded`）由调用方记录，本 skill 不代替调用方判收敛。
++骨架见 protocol「输出骨架」。review 至少有：依据状态（产物状态 + 边界缺项）、生效角色及依据、各角色 findings 与证据、共享风险的主责、未覆盖项、下一步与置信度。报告只对所标产物状态有效；findings 的处置（`fixed` / `accepted-recorded`）由调用方记录，本 skill 不代判收敛。
+diff --git a/skills/role-based-reviewer/references/inference-and-speed.md b/skills/role-based-reviewer/references/inference-and-speed.md
+index f58f27b..4355105 100644
+--- a/skills/role-based-reviewer/references/inference-and-speed.md
++++ b/skills/role-based-reviewer/references/inference-and-speed.md
+@@ -8,7 +8,7 @@
+ - `{{slash:role-based-reviewer}} roles=engineer,sre mode=review 服务与部署变更`
+ - `{{slash:role-based-reviewer}} mode=review`：未指定 `roles` 时默认 engineer（受门 2）
+ 
+-- 工作流调用：`roles=product,design,engineer mode=review` 并随附完成判据 / 质量画像 / 显式降级 / 审与不审范围（不增删角色、不反问）
++- 工作流调用：`roles=product,design,engineer mode=review` 并随附完成判据 / 审与不审范围 / 运行态证据（不增删角色、不反问）
+ - 异源评审调用：`roles=design mode=review model=<与实现不同的模型>`；跨端点：`roles=product,design,engineer mode=review endpoint=<host>/<kind>`
+ 
+ ## 视角推断（受门 2 约束）
+diff --git a/skills/role-based-reviewer/references/protocol.md b/skills/role-based-reviewer/references/protocol.md
+index 45fb132..27c9f5f 100644
+--- a/skills/role-based-reviewer/references/protocol.md
++++ b/skills/role-based-reviewer/references/protocol.md
+@@ -1,12 +1,6 @@
+ # 评审协议（约束 / 预加载 / 输出骨架 / 角色边界）
+ 
+-原 constraints、preload-protocol、brief-protocol、role-vocabulary 四个文件合并于此，内容未改。
+-
+-## 约束（原 constraints.md）
+-
+-<!-- 原标题：核心约束 -->
+-
+-`role-based-reviewer` 的共享约束、命令边界、角色协作与结尾巴块。
++## 约束
+ 
+ ### 核心约束
+ 
+@@ -17,20 +11,11 @@
+ - **不越界**：不审查目标范围外的文件，除非它是理解目标所必需的上下文
+ - **用户要求实现/固化/提案时**：只给角色化上下文与下一步建议，引导到现有执行 skill（见下表），本 skill 不代做
+ 
+-### 命令边界
+-
+-| | engineer | algo | data | sre | ops | biz | product | design | qa | skill |
+-|---|---|---|---|---|---|---|---|---|---|---|
+-| 视角 | 在线实现、性能、调用链 | 模型/策略/实验 | 管道、数仓、口径 | 集群、监控、发布 | 业务配置、灰度、运营流程 | 对外对接、多租户 | 需求与 spec | 交互流程、可用性、无障碍、状态覆盖、微文案、视觉一致性 | 可测性与回归 | 触发面、协议一致性、可执行性 |
+-| 典型下游 | `task-explore`、`taskflow`、`service-manager` | `task-explore`、`taskflow` | `task-explore`、`taskflow` | `service-manager`、部署/CI 相关约定 | 运营手册 / 配置变更流程 | 协议/对接文档 | `task-explore`、`taskflow`、OpenSpec（若项目有） | `task-explore`（design 阶段） | 测试与回归计划 | `skill-creator`、`skill-upgrader`（含 `evolve`） |
+-| 运行态上下文 | 按需 | 否 | 否 | 按需 | 按需 | 否 | 否 | 否 | 否 | 否 |
+-| 输出 | RoleBrief / 审查报告 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 | 同左 |
+-
+-本 skill **不调用**其他 skill 的内部逻辑；在输出里写清「下一步建议执行哪个 skill」，由用户/主 agent 触发。项目里没有对应 skill 时，写清动作本身，不要编造不存在的 skill 名。
++下游建议只写「建议执行哪个 skill / 动作」，由用户或主 agent 触发；项目里没有对应 skill 时写动作本身，不编造 skill 名。
+ 
+ ### 多角色协作
+ 
+-- `roles` 可指定 1 个或多个；未指定时默认 **engineer**，其它角色须强信号或用户确认（门 2）
++- `roles` 可指定 1 个或多个；未指定时默认 **engineer**，其它角色须强信号（门 2）
+ - 每个角色保留独立证据与 findings，不得合并成无归属结论
+ - 共享对象按下方 redirect 与 「角色职责边界」节 的主问题归属定主责，其余为协作
+ - 下一步默认只选主责角色的一个动作；并行时拆任务并注明依赖
+@@ -70,9 +55,7 @@
+ 
+ 末尾 MUST 给出「下一步」（主责动作 / 是否需要运行态上下文 / 是否跨角色 redirect）。
+ 
+-## 预加载（原 preload-protocol.md）
+-
+-<!-- 原标题：预加载协议 -->
++## 预加载
+ 
+ 按角色加载**当前仓库里实际存在**的上下文。路径不存在就跳过，不要编造或追逐死链。
+ 
+@@ -103,11 +86,9 @@
+ - 不要把本 skill 写成「全库扫描器」
+ - 外部仓库、未克隆路径、文档里的死链：标为 unknown，不假装已读
+ 
+-## 输出骨架（原 brief-protocol.md）
+-
+-<!-- 原标题：输出骨架 -->
++## 输出骨架
+ 
+-单角色用 RoleBrief；多角色或 `mode=review` 用聚合骨架，并保留每个角色的独立结论。骨架用于落盘与上游工作流；直接给用户看的摘要用口语转述（结论先行、术语白话），见 taskrail 契约「对用户说话」。
++单角色用 RoleBrief；多角色或 `mode=review` 用聚合骨架，并保留每个角色的独立结论。骨架用于落盘与上游工作流；直接给用户看的摘要用口语转述（结论先行、术语白话），见 taskrail `references/user-report.md`。
+ 
+ ### RoleBrief（`mode=ask`）
+ 
+@@ -143,7 +124,7 @@
+ <目标与边界，一句话>
+ 
+ ### 依据状态
+-<产物状态：<提交号 / dirty 摘要>（来源：<调用方提供 / 评审自取>）；审阅边界齐备性：<门包 / 画像 / 降级原文 / 运行态证据 / 审与不审——逐项标「齐」或缺哪一块>>
++<产物状态：<提交号 / dirty 摘要>（来源：<调用方提供 / 评审自取>）；审阅边界齐备性：<判据 / 运行态证据 / 参照 / 审与不审——逐项标「齐」或缺哪一块>>
+ 
+ ### 启用视角
+ <角色列表 + 推断依据>
+@@ -183,18 +164,16 @@
+ - **结论绑定**：每条 finding MUST 有 `path:line` 或符号/调用关系
+ - **状态绑定**：报告 MUST 在「依据状态」写明所审产物状态；换产物后受影响 findings 作废重审，不沿用旧结论
+ - **编号稳定**：Blocker / Major 按 `F-<n>` 编号且在同一轮内稳定；调用方以该编号登记处置（`fixed` / `accepted-recorded`），本 skill 不代记处置、不代判收敛
+-- **缺项不担保**：边界缺项（门包、运行态证据、参照集）时不得据此得出超越已审范围的结论；缺项写进「依据状态」并在结论后注明覆盖度受限
++- **缺项不担保**：边界缺项（判据、运行态证据、参照）时不得据此得出超越已审范围的结论；缺项写进「依据状态」并在结论后注明覆盖度受限
+ - **建议而非执行**：下游 skill 是建议；本 skill 不代为调用
+ - **简洁**：上下文已够就直接给结论，不必为填满模板而注水
+ - **去重**：跨角色同一风险只保留一条分级发现，并标明主责角色；视角明细里仍可各写各的关注点
+ - **无问题就说无**：不要为凑分级而发明 findings
+ - **默认不报毛刺**：Minor / Suggestion 受门 3 约束；风格、命名偏好、可选重构不进默认报告
+ 
+-## 角色职责边界（原 role-vocabulary.md）
+-
+-**核心角色**：`engineer`、`product`、`design`、`qa`、`intent`（可推断或常用）。**可选角色**：`algo`、`data`、`sre`、`ops`、`biz`、`skill`——只在用户点名或调用方（如门包）传入时生效，不参与推断。
++## 角色职责边界
+ 
+-<!-- 原标题：角色职责边界 -->
++**核心角色**：`engineer`、`product`、`design`、`qa`、`intent`（仅调用方传入）。**可选角色**：`algo`、`data`、`sre`、`ops`、`biz`、`skill`——只在用户点名或调用方（如门包）传入时生效，不参与推断。
+ 
+ 可组合角色的职责、主问题归属与「我只管 X，不管 Y」。短名用于 `roles=`；`role-<name>` 只表示视角，不是独立 skill。
+ 
+@@ -218,23 +197,7 @@
+ 
+ ### 共享对象归属
+ 
+-同一模块按**主问题**归主责，不能只看目录名：
+-
+-| 对象类型 | 可用性/性能/发版 | 效果/策略 | 数据/口径 | 体验 | 可测性 |
+-|---------|-----------------|----------|----------|------|--------|
+-| 在线服务代码 | **engineer** | — | — | — | qa |
+-| 推理 / 排序 | engineer | **algo** | — | — | qa |
+-| 模型分发 | — | algo（效果） | **data**（管道） | — | — |
+-| 特征 / 样本 | — | algo（质量） | **data**（管道） | — | — |
+-| 事件追踪 | engineer（在线） | — | **data**（流与口径） | — | — |
+-| 功能开关 / 运营规则 | — | — | — | — | — |
+-| 同上（配置语义） | — | — | — | ops 主责 | — |
+-| 同上（代码缺陷） | **engineer** | — | — | — | qa |
+-| 部署 / 重启 / 探针 | **sre** | — | — | — | — |
+-| UI 实现 | engineer | — | — | **design** | qa |
+-| 需求 / spec | — | — | — | product | — |
+-
+-`功能开关`：配置语义与灰度节奏归 **ops**；开关代码缺陷归 **engineer**；下发通道与集群漂移归 **sre**。
++同一模块按**主问题**归主责，不只看目录名：可用性 / 性能 / 发版 → engineer；效果 / 策略 → algo；管道 / 口径 → data；部署 / 探针 → sre；业务配置 / 灰度节奏 → ops；体验 → design；可测性 → qa；需求 → product。
+ 
+ ### 组合规则
+ 
+@@ -242,4 +205,4 @@
+ - 各角色的优先锚点、核心检查清单、下游建议、跨角色 redirect 在 `references/roles/<role>.md`，仅角色生效时加载；本文件只管职责边界与归属
+ - 服务/目录名不能单独决定主责，必须按上表问题维度归属
+ - 多角色 review 中，表内加粗角色是风险 owner；其他命中角色只补充检查点与证据
+-- 未指定 `roles` 时默认 engineer；一次启用超过 2 个角色须用户确认（门 2）
++- 未指定 `roles` 时默认 engineer；推断超过 2 个只留最强 2 个（门 2）
+diff --git a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+index b532505..243c36a 100644
+--- a/skills/role-based-reviewer/references/roles/design.md
++++ b/skills/role-based-reviewer/references/roles/design.md
+@@ -16,8 +16,8 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ## 调用范围与速度
+ 
+-- **何时全量扫**：taskrail 门包对 **complex** Web UI 必载本角色时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
+-- **何时只扫 floor（保速度）**：审阅边界写明 `tier=simple` / adopt-only / 「非主表面 / 文案微调 / 单控件修复」时，**只报 quality floor 的 🔴 条**（破坏性确认、键盘可达、focus 可见）与直接相关的 🔴；其余 🟡 / ⚪ 默认不扫，最多作 Suggestion。不为此启动服务、截图或跑 `ui_evidence_check`。
++- **何时全量扫**：观感交付或调用方要求完整审时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
++- **何时只扫 floor（保速度）**：审阅边界写明 adopt-only / 「非主表面 / 文案微调 / 单控件修复」时，**只报 quality floor 的 🔴 条**（破坏性确认、键盘可达、focus 可见）与直接相关的 🔴；其余 🟡 / ⚪ 默认不扫，最多作 Suggestion。不为此启动服务、截图或跑 `ui_evidence_check`。
+ - **非 Web UI 交付**：调用方未点名 design 时不要主动扩权；点名了同样按边界裁剪范围。
+ 
+ ### 1. 交互流程
+diff --git a/skills/role-based-reviewer/references/roles/intent.md b/skills/role-based-reviewer/references/roles/intent.md
+index 0ea9c34..7d90b00 100644
+--- a/skills/role-based-reviewer/references/roles/intent.md
++++ b/skills/role-based-reviewer/references/roles/intent.md
+@@ -1,45 +1,3 @@
+ # 意图复述审查（`intent`）
+ 
+-角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker（对应 P0）/ 🟡 Major（P1）/ ⚪ 默认不报（P2），拿不准降一级。只由调用方显式传入（典型：`task-intent` 的 goal 模式），不参与视角推断。
+-
+-## 优先锚点
+-
+-用户原话（最高真源）、意图复述、探索摘要。只读这三样；不读实现、不扩大到方案评审。
+-
+-## 核心检查清单
+-
+-每条附命中判据；判据不满足则不报。
+-
+-1. 🔴 添加目标：复述出现用户原话与摸底都推不出的目标或范围。
+-   命中判据：指出复述中一句话，原话与探索摘要中均无来源。
+-2. 🔴 漏掉约束：用户原话里的限制 / 禁止 / 期限没进「不做」或「做完的样子」。
+-   命中判据：引用原话片段，复述中无对应。
+-3. 🟡 不可检查：「做完的样子」无法被检查（形容词收工、无参照）。
+-   命中判据：两个独立执行者对是否完成会给出不同判断。
+-4. 🟡 上下文不支撑做法：「怎么干」与「上下文」里的现状 / 约束矛盾。
+-   命中判据：指出一条约束或现状，按复述的做法会违反它。
+-5. 🟡 假设失当：会改变做法或范围的假设未标「把握低」或未升级为「要你拍板的」。
+-   命中判据：指出一条假设，换一种读法会导致不同的交付范围。
+-6. ⚪ 措辞：术语未释义、复述冗长难扫读。
+-7. 🔴 自加限制或缩窄目标：「不做」里有原话推不出的限制，或把宽泛目标缩成明显更小的范围，且没标成假设。
+-   命中判据：引用「不做」或「做完的样子」一句，原话无来源或原话范围更大。
+-8. 🔴 产物形态与词义不符：说法的通常含义与复述的产物形态对不上（产物 ≠ 词义，如「只读图」被做成「改库表」）。
+-   命中判据：写出该说法的通常含义，并指出复述中与之矛盾的一句。
+-9. 🔴 该查没查：能从一手资料查到的内容，被写成假设、未知或拿去问用户。
+-   命中判据：指出复述或提问中的一句，并给出能回答它的文件位置。
+-10. 🟡 范围失当：漏了目标的直接依赖，或扩进了与目标无关的范围（范围漏 / 扩）。
+-   命中判据：指出漏掉或多出的一项，并给出依赖关系的出处。
+-
+-## 输出
+-
+-在 protocol 输出骨架之外另给：`结论：通过 / 不通过`（无 🔴/🟡 即通过）、每条发现带「要改的地方」。
+-
+-## 不算问题
+-
+-- 文风偏好、同义改写。
+-- 实现方案是否最优（→ product / engineer，且不在本环节）。
+-- 用户原话本身的需求合理性（复述只需忠实，不评需求）。
+-
+-## 跨角色 redirect
+-
+-见 [protocol.md](../protocol.md)「角色间 redirect」表中含 `intent` 的行（唯一真源，本文件不复述）。
++本角色的审查清单只在 [task-intent references/intent.md](../../../task-intent/references/intent.md) 第 5 节，本文件不复述。仅调用方显式传入 `roles=intent` 时生效，不参与视角推断；锚点只读用户原话、意图复述、探索摘要。输出另给「结论：通过 / 不通过」（无 Blocker / Major 即通过）。
+diff --git a/skills/role-based-reviewer/tests/test_review_output_contract.py b/skills/role-based-reviewer/tests/test_review_output_contract.py
+index f25e955..d5d8f38 100644
+--- a/skills/role-based-reviewer/tests/test_review_output_contract.py
++++ b/skills/role-based-reviewer/tests/test_review_output_contract.py
+@@ -1,88 +1,31 @@
+-"""role-based-reviewer 契约（20261011 轮）：输出绑定产物状态、findings 编号与未覆盖降级建议。"""
+-
++"""评审输出骨架：依据状态、稳定编号、不代判收敛。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++PROTO = (ROOT / "references" / "protocol.md").read_text(encoding="utf-8")
+ 
+ 
+-class TestStructuredBoundaryContract(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-
+-    def test_gate_one_lists_gate_pack_and_runtime_evidence(self) -> None:
+-        self.assertIn("命中交付类别门包时的门包与运行态证据", self.text)
+-
+-    def test_missing_boundary_not_grounds_for_refusal(self) -> None:
+-        self.assertIn("边界缺项（含门包缺失、运行态证据缺失）不构成拒审理由", self.text)
+-        self.assertIn("不得把缺项当通过", self.text)
+-
+-    def test_input_accepts_artifact_state(self) -> None:
+-        self.assertIn("- `产物状态`：`mode=review` 时由调用方给出所审产物的状态标识", self.text)
+-        self.assertIn("报告与 findings 只对该状态有效", self.text)
+-
+-
+-class TestOutputContract(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-        cls.brief = (ROOT / "references" / "protocol.md").read_text(encoding="utf-8")
+-
+-    def test_skill_requires_binding_state_line(self) -> None:
+-        self.assertIn("依据状态：所审产物的状态标识（提交号 / dirty 摘要）与审阅边界齐备性", self.text)
+-
+-    def test_skill_requires_stable_ids(self) -> None:
+-        self.assertIn("Blocker / Major 带稳定编号（供调用方处置台账引用）", self.text)
+-
+-    def test_skill_forbids_claiming_convergence(self) -> None:
+-        self.assertIn("findings 的处置（`fixed` / `accepted-recorded`）由调用方记录，本 skill 不代替调用方判收敛", self.text)
+-
+-    def test_brief_has_binding_state_section(self) -> None:
+-        self.assertIn("## 依据状态", self.brief)
+-        self.assertIn("审阅边界齐备性", self.brief)
+-
+-    def test_brief_findings_numbered(self) -> None:
+-        self.assertIn("- F-1 [角色] 问题描述", self.brief)
+-
+-    def test_brief_uncovered_becomes_downgrade_advice(self) -> None:
+-        self.assertIn("## 未覆盖项与降级建议", self.brief)
+-        self.assertIn("建议处置（按调用方的「未覆盖即降级」登记，含 A/B 定级）", self.brief)
+-
+-    def test_brief_field_conventions(self) -> None:
+-        for kept in ("**状态绑定**", "**编号稳定**", "**缺项不担保**"):
+-            self.assertIn(kept, self.brief)
+-
+-    def test_existing_conventions_intact(self) -> None:
+-        for kept in (
+-            "**结论绑定**：每条 finding MUST 有 `path:line`",
+-            "**建议而非执行**",
+-            "**无问题就说无**",
+-            "**默认不报毛刺**",
+-        ):
+-            self.assertIn(kept, self.brief)
+-
+-
+-class TestTriggerAndGatesIntact(unittest.TestCase):
++class ReviewOutputTest(unittest.TestCase):
++    def test_binding_state(self) -> None:
++        self.assertIn("依据状态", SKILL)
++        self.assertIn("## 依据状态", PROTO)
+ 
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++    def test_stable_ids(self) -> None:
++        self.assertTrue("F-n" in SKILL or "F-" in PROTO)
++        self.assertIn("F-1", PROTO)
+ 
+-    def test_gates_kept(self) -> None:
+-        for kept in ("三道门禁", "收窄触发", "角色确认", "发现克制", "默认只开 **engineer**"):
+-            self.assertIn(kept, self.text)
++    def test_no_claim_convergence(self) -> None:
++        self.assertIn("不代判收敛", SKILL)
+ 
+-    def test_no_silent_downgrade_rule_kept(self) -> None:
+-        self.assertIn("禁止静默降级为同源自审", self.text)
++    def test_roles_enum(self) -> None:
++        self.assertIn("intent", SKILL)
++        self.assertIn("design", SKILL)
+ 
+-    def test_roles_enum_kept(self) -> None:
+-        for role in ("engineer", "design", "product", "sre", "skill"):
+-            self.assertIn(f"`{role}`", self.text)
++    def test_missing_boundary_not_refusal(self) -> None:
++        self.assertTrue("缺项不拒审" in SKILL or "不拒审" in SKILL)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index 14491a2..c030661 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -1,115 +1,41 @@
+-"""role-based-reviewer 文本契约：三道门禁与角色文件的「判据 + 不算问题」结构。"""
+-
++"""role-based-reviewer：三道门、intent 指针、design 速度节。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+-def read(rel: str) -> str:
+-    return (ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestGates(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.text = read("SKILL.md")
+-
+-    def test_three_gates_present(self) -> None:
+-        self.assertIn("三道门禁", self.text)
+-        self.assertIn("收窄触发", self.text)
+-        self.assertIn("角色确认", self.text)
+-        self.assertIn("发现克制", self.text)
+-
+-    def test_default_engineer_only(self) -> None:
+-        self.assertIn("默认只开 **engineer**", self.text)
+-
+-    def test_roles_enum_unchanged(self) -> None:
+-        for role in (
+-            "engineer",
+-            "algo",
+-            "data",
+-            "sre",
+-            "ops",
+-            "biz",
+-            "product",
+-            "design",
+-            "qa",
+-            "skill",
+-            "intent",
+-        ):
+-            self.assertIn(f"`{role}`", self.text)
+-
+-
+-class TestRoleFilesStructure(unittest.TestCase):
+-    """加厚角色：判据 + 不算问题 + redirect（第一批 engineer/qa/product，第二批 algo/data/sre/ops/biz/design，第三批 skill）。"""
++class RbrContractTest(unittest.TestCase):
++    def test_three_gates(self) -> None:
++        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("## 三道门", text)
++        self.assertIn("触发要窄", text)
++        self.assertIn("角色要少", text)
++        self.assertIn("发现要克制", text)
+ 
+-    THICKENED_FULL = ("engineer", "qa", "product", "algo", "data", "sre", "ops", "biz", "skill", "intent")
++    def test_default_engineer(self) -> None:
++        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("只开 `engineer`", text)
+ 
+-    def test_thickened_roles_have_criteria(self) -> None:
+-        for role in self.THICKENED_FULL:
+-            text = read(f"references/roles/{role}.md")
+-            self.assertIn("命中判据", text, role)
+-            self.assertIn("## 不算问题", text, role)
+-            self.assertIn("## 跨角色 redirect", text, role)
+-            self.assertIn("## 优先锚点", text, role)
++    def test_intent_is_pointer(self) -> None:
++        intent = (ROOT / "references" / "roles" / "intent.md").read_text(encoding="utf-8")
++        self.assertIn("task-intent/references/intent.md", intent)
++        self.assertIn("第 5 节", intent)
++        self.assertNotIn("自加限制或缩窄目标", intent)  # 清单已下沉
+ 
+-    def test_thickened_roles_keep_level_marks(self) -> None:
+-        for role in self.THICKENED_FULL:
+-            text = read(f"references/roles/{role}.md")
+-            self.assertIn("🔴", text, role)
+-            self.assertIn("🟡", text, role)
+-
+-    def test_design_has_speed_scope_section(self) -> None:
+-        text = read("references/roles/design.md")
++    def test_design_speed_section(self) -> None:
++        text = (ROOT / "references" / "roles" / "design.md").read_text(encoding="utf-8")
+         self.assertIn("## 调用范围与速度", text)
+-        self.assertIn("何时只扫 floor（保速度）", text)
+-        self.assertIn("tier=simple", text)
+-
+-    def test_design_has_ceiling_reference_section(self) -> None:
+-        text = read("references/roles/design.md")
+-        self.assertIn("## 天花板参照集", text)
+-        self.assertIn("不受下面「不算问题」节", text)
+-
+-    def test_design_has_not_a_problem_section(self) -> None:
+-        # design 已有完整判据清单，第二批只补「不算问题」小节。
+-        text = read("references/roles/design.md")
+-        self.assertIn("## 不算问题", text)
+-        self.assertIn("## 跨角色 redirect", text)
+-
+-    def test_engineer_checks_structure_rationale(self) -> None:
+-        text = read("references/roles/engineer.md")
+-        self.assertIn("结构选择的依据", text)
+-        self.assertIn("具体变化点或重复点", text)
+-        self.assertIn("模式命名", text)
+-
+-
+-class TestRedirectSingleSource(unittest.TestCase):
+-    """角色文件的「跨角色 redirect」只留指针，边界表唯一真源在 constraints.md。"""
+-
+-    def test_roles_point_to_constraints(self) -> None:
+-        table = read("references/protocol.md")
+-        for f in sorted((ROOT / "references" / "roles").glob("*.md")):
+-            text = f.read_text(encoding="utf-8")
+-            sec = text.split("## 跨角色 redirect", 1)[1].split("\n## ", 1)[0]
+-            self.assertNotIn("↔", sec, f.name)
+-            self.assertIn("](../protocol.md)", sec, f.name)
+-            self.assertRegex(table, rf"\| (\w+ ↔ {f.stem}|{f.stem} ↔ \w+) \|", f.name)
+-
++        self.assertNotIn("tier=simple", text)
+ 
+-class TestIntentRole(unittest.TestCase):
+-    def test_intent_role_contract(self) -> None:
+-        text = read("references/roles/intent.md")
+-        for s in ("用户原话", "无 🔴/🟡 即通过", "上下文不支撑做法", "不参与视角推断"):
+-            self.assertIn(s, text)
+-        self.assertIn("intent ↔ product", read("references/protocol.md"))
++    def test_no_silent_downgrade(self) -> None:
++        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("不静默改成同源自审", text)
+ 
++    def test_skill_under_8kb(self) -> None:
++        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
+ 
+-class TestIntentNarrowingCheck(unittest.TestCase):
+-    def test_intent_role_flags_added_constraints(self) -> None:
+-        text = read("references/roles/intent.md")
+-        self.assertIn("自加限制或缩窄目标", text)
+ 
+ if __name__ == "__main__":
+     unittest.main()

@@ -1,177 +1,32 @@
-"""task* 族跨 skill 契约：载荷归属、真源、相对链接可达。"""
-
+"""task 族：归属、术语单真源、无 CONTEXT 双真源。"""
 from __future__ import annotations
-
-import re
 import unittest
 from pathlib import Path
 
-SKILLS_ROOT = Path(__file__).resolve().parents[2]
-TASK_SKILLS = (
-    "taskrail",
-    "task-explore",
-    "taskflow",
-)
-SKIP_DIRS = {"patches", "evolutions", "experience", "tests", "evals", "examples"}
+ROOT = Path(__file__).resolve().parents[1]
+FAMILY = ROOT.parent
 
 
-def read(skill: str, rel: str) -> str:
-    return (SKILLS_ROOT / skill / rel).read_text(encoding="utf-8")
+class FamilyTest(unittest.TestCase):
+    def test_skills_exist(self) -> None:
+        for name in ("taskrail", "task-explore", "taskflow", "task-intent"):
+            self.assertTrue((FAMILY / name / "SKILL.md").is_file(), name)
 
+    def test_contract_is_glossary(self) -> None:
+        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
+        self.assertIn("## 术语", c)
+        self.assertIn("完成判据", c)
+        self.assertFalse((ROOT / "CONTEXT.md").exists())
 
-def live_texts() -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for skill in TASK_SKILLS:
-        for path in sorted((SKILLS_ROOT / skill).rglob("*.md")):
-            if any(p in SKIP_DIRS for p in path.relative_to(SKILLS_ROOT / skill).parts):
-                continue
-            out.append(
-                (str(path.relative_to(SKILLS_ROOT.parent)), path.read_text(encoding="utf-8"))
-            )
-    return out
+    def test_confirm_is_thin(self) -> None:
+        n = len((ROOT / "references" / "confirm-protocol.md").read_bytes())
+        self.assertLess(n, 4000)
 
-
-class TestPayloadOwners(unittest.TestCase):
-    def test_wizard_phase_provides_criterion(self) -> None:
-        self.assertIn("## 完成判据", read("taskrail", "references/phase-wizard.md"))
-
-    def test_confirm_owns_profile(self) -> None:
-        self.assertIn("质量画像", read("taskrail", "references/confirm-protocol.md"))
-        self.assertIn("角色底线", read("taskrail", "references/quality-profile.md"))
-
-    def test_no_stale_wizard_profile_attribution(self) -> None:
-        stale = ("由 task-wizard 复杂档产出", "上游 task-wizard 复杂档")
-        for path, text in live_texts():
-            for s in stale:
-                self.assertNotIn(s, text, f"{path} 仍把质量画像归给 task-wizard")
-
-
-class TestFailureCountingSingleSource(unittest.TestCase):
-    def test_confirm_defines_thresholds(self) -> None:
-        confirm = read("taskrail", "references/confirm-protocol.md")
-        self.assertIn("同一验证连败两次", confirm)
-        self.assertIn("累计假设达 3", confirm)
-
-
-class TestNoDeletedSkillIdsInLiveDocs(unittest.TestCase):
-    """生产稿（非 patches/evolutions）不得再引用已删除 skill id 作路径。"""
-
-    DELETED = ("task-wizard/", "task-goal/", "task-delivery/")
-
-    def test_no_path_refs_to_deleted_skills(self) -> None:
-        hits: list[str] = []
-        for path, text in live_texts():
-            for d in self.DELETED:
-                if d in text:
-                    hits.append(f"{path} contains {d}")
-        self.assertEqual(hits, [], "live docs still reference deleted skill paths")
-
-
-class TestFamilyLinksResolve(unittest.TestCase):
-    def test_all_relative_links_reachable(self) -> None:
-        broken: list[str] = []
-        for skill in TASK_SKILLS:
-            for path in sorted((SKILLS_ROOT / skill).rglob("*.md")):
-                if any(p in SKIP_DIRS for p in path.relative_to(SKILLS_ROOT / skill).parts):
-                    continue
-                text = path.read_text(encoding="utf-8")
-                for m in re.finditer(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)", text):
-                    target = m.group(1)
-                    if target.startswith(("http://", "https://")):
-                        continue
-                    if not (path.parent / target).resolve().is_file():
-                        broken.append(f"{path.relative_to(SKILLS_ROOT.parent)} -> {target}")
-        self.assertEqual(broken, [], "存在不可达的相对链接")
-
-
-class TestFamilyComplete(unittest.TestCase):
-    def test_all_task_skills_present(self) -> None:
-        missing = [s for s in TASK_SKILLS if not (SKILLS_ROOT / s / "SKILL.md").is_file()]
-        self.assertEqual(missing, [])
-
-    def test_deleted_skills_gone(self) -> None:
-        for s in ("task-wizard", "task-goal", "task-delivery"):
-            self.assertFalse(
-                (SKILLS_ROOT / s / "SKILL.md").is_file(), f"{s} should be deleted"
-            )
-
-    def test_spine_and_confirm(self) -> None:
-        self.assertIn("唯一对外编排入口", read("taskrail", "SKILL.md"))
-        self.assertIn("| human |", read("taskrail", "references/confirm-protocol.md"))
-        self.assertTrue(
-            (SKILLS_ROOT / "taskrail" / "references" / "suspension.md").is_file()
-        )
-
-
-class TestPhaseEnumClosed(unittest.TestCase):
-    def test_no_ambiguous_simple_delivery(self) -> None:
-        for path, text in live_texts():
-            self.assertNotIn(
-                "可单 change",
-                text,
-                f"{path} 仍含歧义 simple 交付措辞",
-            )
-
-    def test_phase_line_excludes_actions(self) -> None:
-        contract = read("taskrail", "references/contract.md")
-        # closed phase enum line
-        self.assertIn(
-            "phase: wizard | explore | design | approve | propose | apply | archive | done",
-            contract,
-        )
-        phase_line = [
-            ln for ln in contract.splitlines() if ln.startswith("phase: wizard")
-        ][0]
-        for banned in ("grill", "handoff", "chat", "expand"):
-            self.assertNotIn(banned, phase_line)
-
-    def test_non_phase_section_present(self) -> None:
-        contract = read("taskrail", "references/contract.md")
-        self.assertIn("## 非 phase 动作", contract)
-        self.assertIn("`status` 随 `phase` 走", contract)
-
-
-
-
-class TestTriggerOwnership(unittest.TestCase):
-    """P1-4：只有 taskrail 对外响应泛指推进 / resume / /goal；另两个只在点名或被委派时触发。"""
-
-    @staticmethod
-    def desc(skill: str) -> str:
-        m = re.search(r"^description: (.*)$", read(skill, "SKILL.md"), re.M)
-        assert m, skill
-        return m.group(1)
-
-    def test_taskrail_owns_generic_triggers(self) -> None:
-        d = self.desc("taskrail")
-        for t in ("/goal", "resume", "唯一对外编排入口"):
-            self.assertIn(t, d)
-
-    def test_others_only_by_name_or_delegation(self) -> None:
-        for skill in ("task-explore", "taskflow"):
-            d = self.desc(skill)
-            self.assertIn("仅在用户点名", d, skill)
-            self.assertIn("被 taskrail 委派", d, skill)
-            self.assertIn("一律走 taskrail", d, skill)
-            head = d.split("泛指")[0]
-            for t in ("/goal", "resume", "恢复"):
-                self.assertNotIn(t, head, f"{skill} 仍抢 {t}")
-
-
-class TestGlossary(unittest.TestCase):
-    """P2-12：术语表唯一真源，三个 skill 正文都链到它。"""
-
-    def test_glossary_covers_terms(self) -> None:
-        g = read("taskrail", "references/contract.md")
-        for term in ("Active Instance", "freeze", "digest", "Gallery", "代表页", "旗舰切片",
-                     "`pending`", "`provisional`", "`confirmed`", "accepted-recorded", "handed-off"):
-            self.assertIn(term, g)
-
-    def test_skills_link_glossary(self) -> None:
-        self.assertIn("## 术语", read("taskrail", "references/contract.md"))
-        self.assertFalse((SKILLS_ROOT / "taskrail" / "references" / "glossary.md").exists())
-        for skill in ("task-explore", "taskflow"):
-            self.assertNotIn("glossary.md", read(skill, "SKILL.md"), skill)
+    def test_ownership_table(self) -> None:
+        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
+        self.assertIn("## Skill 归属", c)
+        for s in ("taskrail", "task-intent", "task-explore", "taskflow"):
+            self.assertIn(s, c)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 slug: demo-list
 status: handed-off
 phase: propose
-tier: medium
+tier: full
 confirm_mode: human
 criterion: "列表页在 1280x800 与 375x812 下四态可用，axe 无 serious/critical，焦点全程可见"
 driver: "demo-list-driver"
@@ -21,7 +21,7 @@ driver: "demo-list-driver"
 
 ## 交接
 - 交付类别：Web UI
-- 适用门包：gate-packs.md「Web UI」
+- 适用门包：ui-delivery.md
 - Active Instance 根路径：design-system/v1
 - contract digest：sha256:1f3a0c
 - binding digest：sha256:2b7d41

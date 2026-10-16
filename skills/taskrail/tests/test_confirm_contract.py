@@ -1,91 +1,34 @@
-"""确认协议（taskrail/references/confirm-protocol.md，原 task-confirm）契约：双模式确认、审阅与退出点。"""
-
+"""确认协议薄契约：两种模式 + 真阻塞不停审阅放行。"""
 from __future__ import annotations
-
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class ContractTest(unittest.TestCase):
+class ConfirmContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
-        cls.profile = (ROOT / "references" / "quality-profile.md").read_text(
-            encoding="utf-8"
-        )
-
-    def test_frontmatter(self) -> None:
-        self.assertEqual(ROOT.name, "taskrail")
-        self.assertTrue(self.skill.startswith("# 确认协议（taskrail）"))
-        self.assertFalse((ROOT.parent / "task-confirm").exists())
+        cls.text = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
+        cls.ur = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
 
     def test_dual_mode(self) -> None:
-        self.assertIn("| human |", self.skill)
-        self.assertIn("| goal |", self.skill)
-        self.assertIn("不列选项", self.skill)
+        self.assertIn("human", self.text)
+        self.assertIn("goal", self.text)
+        self.assertIn("另一个模型", self.text)
 
-    def test_human_gate_requires_recommend(self) -> None:
-        self.assertIn("## human 闸口呈现（强制）", self.skill)
-        self.assertIn("只列问题、不写推荐", self.skill)
-        self.assertIn("按推荐", self.skill)
-        self.assertIn("human 与 goal 均必填", self.skill)
-        self.assertIn("或缺推荐默认", self.skill)
+    def test_true_blocker_not_auto(self) -> None:
+        self.assertIn("真阻塞", self.text)
+        self.assertIn("不放行真阻塞", self.text.replace("**", ""))
 
-    def test_trigger_is_single_source(self) -> None:
-        self.assertIn("单一真源", self.skill)
-        self.assertIn("/goal", self.skill)
+    def test_points_to_user_report(self) -> None:
+        self.assertIn("user-report.md", self.text)
+        self.assertIn("说决定，不提问", self.ur)
 
-    def test_review_severity(self) -> None:
-        self.assertIn("**P0**", self.skill)
-        self.assertIn("**P1**", self.skill)
-        self.assertIn("**P2**", self.skill)
-
-    def test_exit_points(self) -> None:
-        for tag in (
-            "理解不够",
-            "审阅不通过",
-            "降级未确认",
-            "线上动作",
-            "泄密",
-            "同一验证连败两次",
-        ):
-            self.assertIn(tag, self.skill)
-
-    def test_no_orchestration(self) -> None:
-        self.assertIn("不定档位", self.skill)
-        self.assertIn("不改 `TASK.md.phase`", self.skill)
-
-    def test_quality_profile_present(self) -> None:
-        self.assertIn("角色底线", self.profile)
-        self.assertIn("显式降级", self.profile)
-        self.assertIn("天花板参照集", self.profile)
-
-    def test_auth_section(self) -> None:
-        self.assertIn("## 授权", self.skill)
-
-    def test_migrated_assets(self) -> None:
-        for rel in (
-            "references/suspension.md",
-        ):
-            self.assertTrue((ROOT / rel).is_file(), rel)
-
-
-
-    def test_legacy_assets_removed(self) -> None:
-        self.assertNotIn("legacy", self.skill)
-        self.assertFalse((ROOT / "references" / "legacy").exists())
-        self.assertFalse((ROOT / "scripts" / "goal_transition.py").exists())
-
-
-    def test_human_walkcheck_and_named_review(self) -> None:
-        self.assertIn("human 强制走查（wizard 定稿 / approve）", self.skill)
-        self.assertIn("human 点名派审", self.skill)
-        self.assertIn("wizard 定稿与 approve 时的流程总览", self.skill)
-        self.assertIn("走查：<通过|失败|不适用>", self.skill)
-        self.assertIn("wizard 定稿 / approve 点名派审", self.skill)
-        self.assertIn("方案/流程总览闸口", self.skill)
+    def test_no_suspension_five_tuple(self) -> None:
+        self.assertFalse((ROOT / "references" / "suspension.md").exists())
+        self.assertNotIn("挂起五元组", self.text)
+        self.assertNotIn("五元组", self.ur)
 
 
 if __name__ == "__main__":

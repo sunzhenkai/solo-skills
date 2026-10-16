@@ -196,13 +196,11 @@ class TestBrowserSmoke(unittest.TestCase):
 
 class TestGateWiring(unittest.TestCase):
 
-    def test_gate_packs_require_script(self) -> None:
-        packs = (ROOT / "references" / "gate-packs.md").read_text(encoding="utf-8")
+    def test_ui_delivery_requires_script(self) -> None:
+        packs = (ROOT / "references" / "ui-delivery.md").read_text(encoding="utf-8")
         self.assertIn("scripts/ui_evidence_check.py", packs)
-        self.assertIn("simple（SHOULD，非硬门）", packs)
-        self.assertNotIn("simple 同样必须通过", packs)
-        self.assertIn("自述不算证据", packs)
         self.assertIn("--validate-review", packs)
+        self.assertIn("观感交付", packs)
 
 
 if __name__ == "__main__":

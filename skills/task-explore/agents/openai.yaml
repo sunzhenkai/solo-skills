@@ -1,4 +1,4 @@
 interface:
   display_name: "任务探索"
-  short_description: "目标不明或长周期任务的探索、问答、设计与归档；文档留在当前任务目录"
-  default_prompt: "用 $task-explore 在任务不明确、周期很长或需要排查时建立任务上下文。默认 chat；可 new / explore / resume / design / save / archive。设计写入当前任务的 design/，不要写到 docs/design。"
+  short_description: "已确认意图之后的 explore / design / approve / handoff；文档留在当前任务目录"
+  default_prompt: "用 $task-explore 推进已绑定的任务：explore（grill 自问自答）/ design / approve / handoff。设计写入当前任务的 design/。端到端推进与恢复走 taskrail。"

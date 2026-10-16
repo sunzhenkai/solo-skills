@@ -1,0 +1,1165 @@
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 4affd30..256360c 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -1,90 +1,54 @@
+ ---
+ id: taskflow
+ name: taskflow
+-description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成多个 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。仅在用户点名 taskflow / taskflow-new / 某个 `{task}-driver`、或被 taskrail 委派时使用；泛指的推进、resume、/goal 一律走 taskrail。"
++description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。仅在用户点名 taskflow / taskflow-new / 某个 `{task}-driver`、或被 taskrail 委派时使用；泛指的推进、resume、/goal 一律走 taskrail。"
+ ---
+ 
+ # taskflow
+ 
+-向用户报进度、状态与结论时按「对用户说话」：[user-report.md](../taskrail/references/user-report.md)，不倒 checkbox 计数与字段。
++面向用户默认简体中文；对用户报进度按 [user-report.md](../taskrail/references/user-report.md)，不报 checkbox 计数与字段。
+ 
+-面向用户默认使用简体中文；命令、路径、代码、状态值与既成术语保持原文。
+-
+-一个任务 = 一个 driver change `{task}-driver`。实现拆成若干子 change `{task}-<slice>`，与 driver 同一 planning root；跨 root 时在 driver 涉及面表里显式记录 root 或 store id。共享 `{task}` 前缀让 `openspec list` 直接看出归属，不需要额外元数据。
+-
+-**进度只有 checkbox 一种真相。** 不建 `tasks/` 台账、不写索引文件、不引入编号体系；唯一脚本是只读入口门 `scripts/check_handoff.py`。术语见 [taskrail 契约「术语」节](../taskrail/references/contract.md)。
++一个任务 = 一个 driver change `{task}-driver`，实现拆成子 change `{task}-<slice>`（同一 planning root；跨 root 时在 driver 涉及面表记录）。**进度只有 checkbox 一种真相**：不另建台账、索引或编号。术语见 [taskrail 契约「术语」](../taskrail/references/contract.md)。
+ 
+ ## 阶段路由
+ 
+ | 阶段 | 入口 | 参数 |
+ |------|------|------|
+-| 立项 | 本文件「脚手架」小节（command `taskflow-new`） | 任务描述 |
+-| 澄清 | stock skill `openspec-explore` | `{task}-driver` |
+-| 提案 | stock skill `openspec-propose` | `{task}-driver` |
+-| 实施 | stock skill `openspec-apply-change` | `{task}-driver` |
+-| 归档 | stock skill `openspec-archive-change` | `{task}-driver`（只归档 driver 自身） |
+-
+-taskflow 只提供 `taskflow-new` 一个 command，四个阶段一律复用 stock skill，不另造等价命令。
++| 立项 | 本文件「脚手架」（command `taskflow-new`） | 任务描述 |
++| 提案 | stock `openspec-propose` | `{task}-driver` |
++| 实施 | stock `openspec-apply-change` | `{task}-driver` |
++| 归档 | stock `openspec-archive-change` | `{task}-driver`（只归档 driver 自身） |
+ 
+-## 委托契约
++方案未定时先 stock `openspec-explore`。只提供 `taskflow-new` 一个 command，其余复用 stock skill。
+ 
+-`openspec-*` skill 默认由 `dotf agents -c` 装到全局 `~/.agents/skills`（`openspec init --tools agents`），**不是每个仓都自带**。委托前确认当前 agent 环境能读到它们；不可用就在同一条回复里给全可选项与推荐项——跑 `dotf agents -c` / `openspec init --tools agents` 装到全局，或改用 openspec CLI 直调——用户选完即继续，不反复停，**不要自行发明等价命令**。
++委托时必须在 driver 的 planning root 下执行，并显式给出 change name `{task}-driver`；缺任一项不委托。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
+ 
+-可用时，委托必须同时具备两项绑定：**在 driver 的 planning root 下执行**，并**显式给出 change name `{task}-driver`**。缺任一项不得委托——openspec CLI 只认 cwd 最近的 `openspec/`，无绑定会写错位置或反问用户选 change。无法确定时停下报告。
++## 入口门
+ 
+-## 入口门（强制）
+-
+-`taskflow-new`、以及任何创建 `{task}-driver` 或子 change 的动作，**第一步**必须在工作区根跑：
++创建 `{task}-driver` 或子 change 前，第一步在工作区根跑：
+ 
+ ```bash
+ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
+ ```
+ 
+-它核对 `tasks/ongoing/<slug>/TASK.md`：`status: handed-off`、`phase` ∈ propose / apply / archive / done，且「## 交接」节带「交付类别」「适用门包」（Web UI 另带 Active Instance 根路径与三条 digest）。exit 非 0 → **拒绝建 driver**，回复用户改走 `taskrail`（approve → handoff），不自行补写 TASK.md 绕过。
++exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自己补写 `TASK.md` 绕过。核对项只在脚本里。
+ 
+-- **逃生口**：仅当用户明确说「不走 taskrail 直接建 driver」时，把 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 写入该任务 TASK.md 元信息再跑（脚本以 BYPASS 放行并警告）；无 TASK.md 时先建最小 TASK.md 承载这一行。agent 不得自写或推断该确认；BYPASS 下门包视为未覆盖，按 taskrail 确认协议「未覆盖即降级」登记。
+-- **派给编码 agent 的提示词**：必须由交接载荷生成——判据原文、交付类别、适用门包条目、证据要求、契约指针（Web UI 含三条 digest 与 `ui_evidence_check` manifest / report 要求）逐项带上；禁止手写省略 UI / 验收的自由提示词。缺载荷 = 入口门不过。
++用户明确说「不走 taskrail 直接建 driver」时，由用户确认后在 `TASK.md` 元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 再跑（脚本以 BYPASS 放行）；agent 不自己写这一行。
+ 
+ ## 脚手架
+ 
+-`taskflow-new {任务描述}` 在入口门通过后固定三步，不多做：
++`taskflow-new {任务描述}`，入口门通过后三步：
+ 
+-1. 由任务描述归纳 kebab-case 的 `{task}`（Agent 自己归纳，不追问用户；描述确实为空时才问「要做什么？」）。
++1. 由描述归纳 kebab-case `{task}`（描述为空才问）。
+ 2. `openspec new change {task}-driver --goal "<任务描述原文>"`。
+-3. 在该 change 的 `.openspec.yaml` 补 `skip_specs: true`，再按下方模板写 `proposal.md`。
+-
+-`skip_specs` 的原因、**不要写 `tasks.md`**（留给 propose）、driver `proposal.md` 逐字模板（含固定的 **Driver 协议** 块）、脚手架输出、propose 阶段 `tasks.md` 骨架与 simple 单切片：动手前**先读** [references/driver-template.md](references/driver-template.md)。Driver 协议块逐字写入，不改写、不精简。
+-
+-## 纪律
++3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；不写 `tasks.md`。
+ 
+-propose / apply / 收尾前**先读** [references/execution-discipline.md](references/execution-discipline.md)。要点（细则与例外只在该文件）：
++## 执行
+ 
+-- 进度只认 checkbox：子 change 记实现、driver 记编排；driver 实施项只在子 change 全勾且 `openspec validate --strict` 通过后勾。不另建账本。
+-- 一轮结束只有三种情况（以 Driver 协议块为准）；「需要用户决策」按 [../taskrail/references/suspension.md](../taskrail/references/suspension.md) 挂起五元组呈现，不依赖的条目继续。
+-- 新发现的降级按 [../taskrail/references/quality-profile.md](../taskrail/references/quality-profile.md) 定级：A 类 `pending` 停等用户；B 类 `provisional` 到用户在场点追认。
+-- 归档前逐条跑「收尾机械校核」；禁止 `--yes` 掩盖未勾。最终验收按 [references/acceptance-rubric.md](references/acceptance-rubric.md)，回归按 [references/delivery-quality-loop.md](references/delivery-quality-loop.md)。
+-- 并行：旗舰先行、同类失败升级、改共享面必广播。派 worker 见 taskrail 契约「执行座位」。
+-- 实现者输入：按 [references/implementer-isolation.md](references/implementer-isolation.md)；命中 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md) 时必带契约文件 / 门包 / 证据要求。
+-- Web UI 切片消费 frozen Active Instance、按代表页 two-pass 实现；完成 = `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0。
+-- 有观感目标时，实现者先读 [../pretty-view-html/references/frontend-design/REFERENCE.md](../pretty-view-html/references/frontend-design/REFERENCE.md)，按计划里的视觉方向做；收口按 [../taskrail/references/gate-packs.md](../taskrail/references/gate-packs.md)「审美目标（不分档）」。
+-
+----
+-
+-## Self-evolution
+-
+-本 Skill 从真实执行中积累经验，并按 Eval 验证改进。目录（均相对本 Skill 根目录）：
+-
+-```text
+-skills/taskflow/
+-├── SKILL.md
+-├── examples/      # 经过验证的优秀执行案例
+-├── evals/         # 可验证成功标准（cases.yaml）
+-└── experience/    # 真实失败 / 成功 / 规律
+-```
++propose / apply / 收尾前读 [references/execution-discipline.md](references/execution-discipline.md)。默认**串行**：一次做一个子 change，做完勾 checkbox 再下一个。
+ 
+-自进化不改变上文已规定的目标、流程、工具用法、输出与约束。
++- 派给实现者的输入由交接载荷生成：判据原文、交付类别、要产出的证据、指针；不手写省略验收的自由提示词。
++- 完成按 [done.md](../taskrail/references/done.md)。
++- Web UI → [ui-delivery.md](../taskrail/references/ui-delivery.md)；多 worker 并行 → [references/multi-worker.md](references/multi-worker.md)。
+ 
+-- 执行复杂任务前先查 `examples/`，有相关成功案例就复用；没有就按正文执行，不编造案例。
+-- 任务完成前对照 `evals/cases.yaml` 验证关键输出；Eval 失败先修输出，不带着失败交卷。
+-- 完成后遇失败、用户纠正、明显成功或新的有效方法才写入 `experience/`：单次失败进 `failures/`，重复规律进 `patterns/`（至少两次同类证据）。不记 trivial 信息，不伪造条目，不写密钥 / 内部 URL / 凭据。
+-- 改生产正文：先出提案并经用户确认，再走 `skill-upgrader` 的 `evolve` 模式（`evolutions/`）或 `update` 模式（`patches/`）；禁止由单次失败直接改 `SKILL.md`。
++经验积累与 evals 不在运行路径上，见 [references/self-evolution.md](references/self-evolution.md)。
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index bd36696..ca9a542 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -189,36 +189,6 @@ cases:
+       must_not:
+         - 脚手架阶段把 tasks 写满
+ 
+-  - id: delivery-quality-loop-three-way-triage
+-    kind: core
+-    judge: deterministic
+-    description: 复杂交付收尾按三层验证执行，失败先归因为 skill gap / implementation bug / acceptance gap
+-    given: driver 进入收尾段，或大改之后需要回归
+-    expect:
+-      must:
+-        - 静态门 / 窄切片 / 全链路三层有先后，窄切片先行、全链路只跑一次
+-        - 失败归因为 skill gap、implementation bug 或 acceptance gap 之一
+-        - skill gap 走 patches/ 出可审计 patch；修复后只重跑受影响切片再跑全链路
+-      must_not:
+-        - 一上来铺全量功能而不先跑窄切片
+-        - 不做归因就笼统说「再改改」
+-        - 与改动无关地全量重跑图安心
+-
+-  - id: acceptance-rubric-thresholds
+-    kind: core
+-    judge: deterministic
+-    description: 最终验收按五维 rubric 给结论，无未处置 Blocker/Major 才通过
+-    given: driver 收尾，准备回填验收标准
+-    expect:
+-      must:
+-        - 五维为功能闭环、UI/UX、工程质量、画像一致性、证据
+-        - UI/UX 拆信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项
+-        - 无未处置 Blocker / Major、判据逐条有证据；UI/UX 任一子项为 0 不通过
+-        - 先证据后打分，评分主体按 product / design / engineer 分工
+-      must_not:
+-        - 缺分或缺证据仍勾验收标准 checkbox
+-        - 用实现者自评代替对应岗位评分
+-
+   - id: normal-delivery-input-context
+     kind: core
+     judge: deterministic
+@@ -248,35 +218,6 @@ cases:
+         - 把质量画像、验收 rubric 或期望页面清单写进实现者 prompt
+         - 靠私聊提示词传递未写进需求原文的期望
+ 
+-  - id: rubric-not-second-ledger
+-    kind: failure
+-    judge: deterministic
+-    description: rubric 分数与证据不得成为 checkbox 之外的第二份完成度
+-    given: 复杂交付已完成评分并记录证据
+-    expect:
+-      must:
+-        - 进度仍只认 driver 与子 change 的 checkbox
+-        - 分数与证据写入验证记录，用于结论而非替代进度
+-      must_not:
+-        - 用五维分数或证据清单推断未勾 checkbox 已完成
+-        - 另建完成度、暂缓或分支状态台账
+-
+-  - id: web-ui-apply-consumes-active-instance
+-    kind: core
+-    judge: deterministic
+-    description: Web UI 切片消费 frozen Active Instance；无 Active Instance 不得直接铺页
+-    given: 交付类别为 Web UI，driver 进入实施段
+-    expect:
+-      must:
+-        - UI 切片消费 frozen Active Instance 或已确认 adopt-only，代表页 two-pass 先行
+-        - 先按 frontend-design 实现并修订一条主流程代表页，其余表面从其壳层与字阶长出
+-        - 实现者输入携带三条 digest；证据优先 ui_evidence_check report 与 Gallery
+-        - 改 DS 本体回 design 修订 Active Instance 并重新 freeze 后刷新 digest
+-      must_not:
+-        - 无 Active Instance 且无已确认 adopt-only 降级时直接生成业务页
+-        - 在 apply 内改 core tokens/pattern
+-
+-
+   - id: entry-gate-handoff-pass
+     kind: core
+     judge: deterministic
+@@ -333,6 +274,6 @@ cases:
+     expect:
+       must:
+         - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
+-        - 收口按 gate-packs「审美目标（不分档）」
++        - 收口按 taskrail done.md「观感验收」
+       must_not:
+         - 沿用框架默认样式只点缀几处颜色就收工
+diff --git a/skills/taskflow/references/acceptance-rubric.md b/skills/taskflow/references/acceptance-rubric.md
+deleted file mode 100644
+index adb46ec..0000000
+--- a/skills/taskflow/references/acceptance-rubric.md
++++ /dev/null
+@@ -1,64 +0,0 @@
+-# 验收 rubric
+-
+-复杂交付的最终验收按本文件评分。评分是给结论用的，不代替 checkbox 进度；进度仍只认 checkbox。
+-
+-## 评分主体与顺序
+-
+-- 先交证据，再由对应岗位打分；实现者自评只作输入，不算通过线。
+-- 打分 MUST 经 `role-based-reviewer` 结构化调用（`mode=review` + 完整 `roles=` + 审阅边界；边界列举以 taskrail 确认协议 审阅节为准：完成判据、质量画像 / 角色底线、显式降级原文、门包与运行态证据、审与不审），另附 `wizard/intent.md`（若有）供核对「做完的样子」与「不做」。退普通 subagent 须写明不可用原因，否则按 taskrail 确认协议 退出点「评审降级未记录」不放行。
+-- 角色由交付类别门包（[../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md)）确定，不得少于该表「必载评审」：功能闭环与画像一致性由 `product` 评；UI/UX 由 `design` 评；工程质量由 `engineer` 评；其余类别按其门包。
+-- 评分先套门包：**可自动化门**任一失败 → 对应维度不通过（UI 类别为 UI/UX 维度）；**未覆盖条目**按显式降级计，A 类未确认不得计为通过。
+-- Web UI：可自动化门对齐 Active Instance validate / `scan_design_constraints`（或等价）与门包 token/无障碍/状态/结构断言；运行态优先 `ui_evidence_check` current-build 证据；主观项（视觉层级等）MUST 指到 Gallery 或 `core/tokens.yaml` 可指认件，否则只记 Suggestion。
+-- 复杂档交付验收 SHOULD 异源（`model=` 与实现者不同，或 `endpoint=` 走名册）。
+-- 三方结论不一致时保留各自意见，按影响面决定优先级，不取平均掩盖分歧。
+-
+-## 五维评分
+-
+-| 维度 | 3 分 | 2 分 | 通过线 |
+-|------|------|------|--------|
+-| 功能闭环 | 主流程全通，失败路径可用 | 主流程通但有未处理边界 | ≥2 |
+-| UI/UX | 信息架构、视觉层级、关键状态、反馈、无障碍、响应式均可检查 | 可用但个别子项不足 | ≥2 |
+-| 工程质量 | 测试、错误边界、启动说明齐 | 测试或启动说明有缺口 | ≥2 |
+-| 画像一致性 | 实现逐条对得上质量画像 | 只有已确认且记录的降级 | 无未确认偏差 |
+-| 证据 | 截图或导出日志 + 可复现命令 | 证据部分缺失 | 全部齐 |
+-
+-通过条件：无未处置 Blocker / Major，判据与画像逐条有证据，任一维度或 UI/UX 子项明显缺失（0 分）不通过。五维分数是给结论用的参考（SHOULD 给出），不设均值硬线。
+-
+-## UI/UX 六子项
+-
+-| 子项 | 关注点 |
+-|------|--------|
+-| 信息架构 | 入口、层级、导航与信息组织是否清楚 |
+-| 视觉层级 | 主次、间距、排版、对比是否成体系 |
+-| 关键状态 | 空、加载、错误、无权限、无结果是否都有交代 |
+-| 反馈 | 操作成功/失败/进行中有明确且及时的反馈 |
+-| 无障碍 | 焦点管理、键盘可达、对比度、语义与替代文本 |
+-| 响应式 | 常见窄屏与桌面布局都能用，不靠压缩硬塞 |
+-
+-UI/UX 六个子项逐项给结论；任一子项为 0 则不通过。
+-
+-## Web UI 证据前置
+-
+-交付类别为 Web UI 时，UI/UX 维度评分前必须已有（任一缺失 UI/UX 记 0，不通过）：
+-
+-- 最新代码上的 `taskrail/scripts/ui_evidence_check.py` `report.json`，exit 0（多视口截图、axe WCAG 2.2 AA、焦点走查、四态）；
+-- design 评审文件：`roles: design`、reviewer ≠ implementer、指向该 report，`--validate-review` exit 0。
+-
+-六子项打分由评审文件给出并引用 report 中的截图 / 违规条目；实现者自评与「源码已修订」不计分。
+-
+-## 目标为「优秀 UI/UX」时
+-
+-- 设计底线逐条通过。
+-- 截图评审无 Major 级问题。
+-- 不满足就按实测分数记录，不用「已经不错了」放行。
+-
+-## 与画像、rubric 的关系
+-
+-- 质量画像定义这个任务应该做到什么；rubric 定义做成什么样算过关。
+-- 画像字段缺失、底线没有验证方式时，先补画像，不用 rubric 评分顶替。
+-- 有降级时，A 类先经用户确认再评分；B 类可按 `provisional` 临时确认的范围评分并标注「待追认」；未确认（A 类 `pending`，或 B 类既无确认也无 `provisional`）不得计为通过。
+-
+-## 记录
+-
+-- 每维写分数、证据与扣分理由，不写「整体良好」这类无法复核的结论。
+-- 分数与证据写进 driver `proposal.md` 的验证记录，或任务约定的验收记录位置。
+diff --git a/skills/taskflow/references/delivery-quality-loop.md b/skills/taskflow/references/delivery-quality-loop.md
+deleted file mode 100644
+index bdf8732..0000000
+--- a/skills/taskflow/references/delivery-quality-loop.md
++++ /dev/null
+@@ -1,75 +0,0 @@
+-# 交付质量闭环
+-
+-本文件规定复杂交付怎么验证，不规定做什么功能；进度仍只认 checkbox，本文件不建第二份账本。
+-
+-## 什么时候用
+-
+-- 复杂交付（taskflow driver 编排的任务）在收尾段执行。
+-- 单个子 change 的改动面较大、或跨前后端与数据层时，也可在子 change 内先跑一轮窄切片。
+-
+-## 三层验证
+-
+-| 层 | 目的 | 什么时候跑 |
+-|----|------|------------|
+-| 静态门 | 规则/契约是否落地，秒级到分钟级 | 每次改动规则或契约之后 |
+-| 窄切片 | 用一个最小闭环暴露流程与实现缺口 | 首次实现或大改之后 |
+-| 全链路 | 跨切片一致性、数据层、导航与整体验收 | 收尾段，只跑一次 |
+-
+-窄切片先行：不要一上来铺全量功能，先跑通一个能从头走到尾的最小闭环，再扩展。
+-
+-**契约前置**：首次实现或大改之前，先冻结共享面契约（接口、类型、primitive、目录与命名、样板切片）并落成仓库内的契约文件；并行派发只允许发生在契约冻结之后；冻结后仍需变更时走 SKILL.md「并行执行」的共享面广播纪律。Web UI：共享面契约 = 交付项目根 frozen `design-system/v1` Active Instance（三条 digest）；页面实现直接消费 Active Instance，不另起散文契约。
+-
+-**旗舰切片**：交付类别命中 [../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md) 门包、且属首次实现或大改（无可复用样板）时，先只做一个旗舰切片——把该类交付的代表面做到全量（含门包要求的可自动化门与运行态证据），经门包「必载专家能力」评审通过后才铺开；旗舰切片同时是其余切片的复制样板。无样板可循（新交付类别、新页面族）时不得直接并行。Web UI 旗舰切片即代表页，证据优先 `ui_evidence_check` report + Gallery。
+-
+-**门包叠加**：命中门包的类别，本文件三层之上再叠加门包条目（可自动化门 / 运行态证据 / 主观项）；门包条目未覆盖的一律按 taskrail 确认协议「未覆盖即降级」登记，不得以「看起来没问题」通过。Web UI 静态门优先项目约定的 Active Instance 校验与 `scan_design_constraints.py`（或项目约定等价）。
+-
+-## 窄切片怎么做
+-
+-1. 从需求原文里挑 1-3 个核心闭环，保证每个都有入口、动作与结束状态。
+-2. 只实现这些闭环所需的真实路径——可以少做功能，但不要用假数据、假接口或写死页面冒充打通。
+-3. 独立跑一遍：按 README 启动、执行自动化测试、抓运行时证据。
+-4. 记录结果后再决定是否铺开。
+-
+-窄切片的目标是暴露缺口，不是交作业；它不通过就不进全量。
+-
+-## 失败三分类
+-
+-窄切片或全链路失败时，先归因再动手，只治一类病：
+-
+-| 分类 | 判据 | 处置 |
+-|------|------|------|
+-| skill gap | 规则没写清、门禁缺失或指引矛盾，换个任务同样会错 | 改对应 skill，走 `patches/` 协议出可审计 patch |
+-| implementation bug | 规则正确，实现写错 | 在交付仓修复并补回归测试 |
+-| acceptance gap | 评分或验收标准本身漏了维度 | 补 rubric / 验收标准，再重验 |
+-
+-一次失败可能同时命中多类，按上面顺序拆开，分别处置，不要混成一句「再改改」。
+-
+-## 增量评审
+-
+-评审不堆在收尾：旗舰切片后必审一次；此后每完成一批切片审一次——批次划分由主会话在实施段开始前声明（写进 driver 验证记录），不得事后追认；门失败修复后重跑受影响层再审。收尾只做全链路与全量门，且不代替增量评审。
+-
+-每轮评审的产出必须落到 disposition：每个 Blocker / Major 标 `fixed` 或 `accepted-recorded`（含理由与影响面）；无 disposition 的 findings 不得判收敛，也不得回填验收标准。执行器与角色按 [acceptance-rubric.md](acceptance-rubric.md) 与门包表确定。
+-
+-## 证据
+-
+-- 每个进入交付目录之外的文件都写绝对路径；项目已有约定临时目录时用那个。
+-- 至少留：启动命令与输出、自动化测试结果、关键流程运行时证据（截图或导出日志）、失败与修复对照。
+-- 证据必须与当次代码状态一致；换代码后旧证据作废，重跑受影响部分。
+-- **状态绑定**：每组证据注明所绑定的产物状态（提交号，或未提交时的 dirty 摘要）；无法绑定的证据不构成通过依据。
+-- **覆盖边界**：证据必须写清「覆盖了什么、没覆盖什么、为什么」；未覆盖条目按 taskrail 确认协议「未覆盖即降级」登记。
+-- **工具不可用**：标准证据工具不可用时，写明替代方法与能力边界、重估覆盖度，替代不等于等价通过。
+-- 不把本机路径、凭据、内部 URL 写进共享 skill 或交付文档。
+-
+-## 只重跑受影响切片
+-
+-skill gap 或 implementation bug 修好后：
+-
+-1. 先重跑直接受影响的那一层（静态门 / 窄切片）。
+-2. 通过后再跑一次全链路验收。
+-3. 不做与本次改动无关的全量重跑来「图安心」；预算要留给扩范围。
+-
+-## 收尾
+-
+-- 全链路验收通过、证据齐、A 类 `pending` 降级为 0、B 类无未追认 `provisional`（全部 `confirmed`），才回填验收标准；B 类 `provisional` 期间可回填不依赖该项的验收标准。
+-- 验收评分按 [acceptance-rubric.md](acceptance-rubric.md)。
+-- 失败未归类、证据缺失、或仍有 A 类未确认降级 / B 类未追认降级时，不勾收尾 checkbox。
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index e7daf7a..3e040b3 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -12,11 +12,7 @@
+ 
+ `Driver 协议` 小节是固定文本，逐字写入，不要改写或精简；其余小节按任务填写。
+ 
+-上游传入的质量画像与显式降级原文是完成判据的约束，不是可摘要的背景。任务描述含质量画像原文或显式降级表时，`Why` 逐字保留该快照，不摘要、不改写、不用小节指针或路径替代；任务描述没有这些内容时不编造画像与降级条目。
+-
+-填写「验收标准」时：任务描述含完成判据，第一条 checkbox 使用该判据原文。任务描述没有完成判据时按任务填写，不另造一条判据。这条验收标准不代替 driver `tasks.md` 的编排进度；进度仍只认 checkbox。脚手架仍不要写 `tasks.md`。
+-
+-任务描述含质量画像时，验收标准除上面的完成判据原文外至少再写三条：画像原文快照已逐字进入本 proposal；每条角色底线写明验证方式（运行时行为、截图或测试证据）；`pending` 降级数为 0。`confirmed` 降级在验证记录里逐项写明维度、实际选择与用户确认来源，保持可追踪。
++填写「验收标准」时：任务描述含完成判据，第一条 checkbox 用判据原文；没有判据时按任务填写，不另造。`Why` 写目标、判据原文与方案 / 批准路径（指针，不复制原文）。这条验收标准不代替 driver `tasks.md` 的编排进度。
+ 
+ ````markdown
+ ## Why
+@@ -42,24 +38,20 @@
+ - 实现进度只认子 change 自己的 `tasks.md`；本文件的 checkbox 只在对应子 change 全勾且 `validate --strict` 通过后才勾
+ - 切任务分支只针对涉及面里角色为 `必须` 的修改仓，且本身可选；task 所在仓不是修改仓时不切。修改仓干净：先 fetch 默认分支，再从其最新提交 `git switch -c`（分支已存在则 `git switch`）。修改仓 dirty：不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支（git 只是带过去，文件不变），并一句话说明「你手上有未提交改动，我没动它们，带着切到了任务分支」，记入 `TASK.md`「已做决定」。未提交改动与本任务要改的文件重叠，或 git 拒绝、切错仓时才停下，说明是哪些文件
+ - 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+-- 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 说影响与待定事项，不报编号
++- 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 四行说，不报编号
+ 
+ ## 验证记录
+ ````
+ 
+ ### 脚手架输出
+ 
+-报告 change name、`proposal.md` 路径、涉及面与验收标准里仍需用户确认的空缺，并桥接到 stock `openspec-propose`（方案未定时先 `openspec-explore`）。
+-
+-仍需用户确认的空缺里，每个 `pending` 降级单独列一条，写明维度、默认期望、实际选择与原因；不合并成「降级待确认」这类汇总条目，也不由 agent 代用户确认。
+-
+-同时提示：driver 已存在 proposal，`openspec-propose` 会问「继续已有 change 还是新建」，**应选继续**。
++报告 change name、`proposal.md` 路径与仍空缺的项，桥接 stock `openspec-propose`：它会问继续已有 change 还是新建，**选继续**。
+ 
+ ## propose 阶段的产出约定
+ 
+ `openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段切分支，实施段每个子 change 至少一条，收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
+ 
+-收尾段的回归按 [references/delivery-quality-loop.md](delivery-quality-loop.md) 执行（静态门 / 窄切片 / 全链路三层，失败先归因再修）；验收按 [references/acceptance-rubric.md](acceptance-rubric.md) 出分，缺分或缺证据不勾收尾条目。
++收尾段按 [done.md](../../taskrail/references/done.md) 核对；缺证据不勾收尾条目。
+ 
+ 子 change 的 artifacts 在 propose 阶段一次性备齐（拆分粒度本身是提案决策），apply 阶段只做实施，不在实施循环里改 change 语义。
+ 
+@@ -69,13 +61,13 @@
+ 
+ ## 2. 实施
+ - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
+-- [ ] 2.2 完成子 change `{task}-ui`：Web UI 切片消费 frozen Active Instance（代表页 two-pass 先行）；无 Active Instance 且无已确认 adopt-only 降级时禁止直接铺业务页；其余同 2.1
++- [ ] 2.2 完成子 change `{task}-ui`：同 2.1（Web UI 做法见 taskrail `ui-delivery.md`）
+ 
+ ## 3. 收尾
+ - [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录
+ - [ ] 3.2 回填 proposal 验收标准
+ - [ ] 3.3 提交交付仓改动
+-- [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、降级无 `pending`、findings 全有 disposition（见「收尾机械校核」）
++- [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、findings 全有处置（见 execution-discipline「收尾校核」）
+ - [ ] 3.5 归档全部子 change
+ ````
+ 
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index 5fc4db4..026cc52 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -1,94 +1,27 @@
+ # taskflow：执行纪律
+ 
+-由 [../SKILL.md](../SKILL.md)「纪律」引用。Driver 协议逐字块见 [driver-template.md](driver-template.md)。
++Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支与「一轮结束」规则只以它为准。
+ 
+ ## 进度归属
+ 
+-- 子 change 的 `tasks.md` 记**实现**进度，driver 的 `tasks.md` 记**编排**进度，后者必然滞后于前者。
+-- driver 的某条实施 checkbox 只在对应子 change 全部 checkbox 已勾、且在其 planning root 下 `openspec validate --strict --type change {task}-<slice>` 通过之后才允许勾选。
+-- 不持久化第二份完成度、暂缓或分支状态记录。暂缓原因写进 driver `proposal.md` 的验证记录小节。
+-- 已知代价：`openspec archive` 对未勾 checkbox 不设防。完成度靠上述纪律与 stock skill 的确认环节；归档前置校核见「收尾机械校核」节。
++- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、且 `openspec validate --strict --type change {task}-<slice>` 通过后勾。
++- 不另存完成度、暂缓或分支状态；暂缓原因写 driver `proposal.md` 验证记录。
++- 涉及面角色只有 `必须`（会改）/ `建议`（只读）/ `排除`。
+ 
+-## 涉及面与交付分支
++## 实施中
+ 
+-- 角色只有三个取值：`必须`（会修改）、`建议`（只读参考）、`排除`。`建议` 与 `排除` 仓保持只读。
+-- 切分支规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准，此处不复述。
+-- 模板之外的增量：部分仓已准备成功、其它仓停下时，已准备成功的仓保留现状以便重试。
++- 默认串行，一次一个子 change。
++- 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
++- 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
++- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录、不得提交 / 外发）。
+ 
+-## 质量画像与降级确认
++## 收尾校核
+ 
+-- 质量画像与显式降级原文快照由上游任务描述带入 driver proposal，实施阶段不改写、不删减，只按下面规则补新发现的降级。
+-- 子 change 实施中发现新的生产性降级——凡比默认期望少交付的都算，改名成「技术选型」「本期简化」也一样——先按 [../../taskrail/references/quality-profile.md](../../taskrail/references/quality-profile.md) 定级。**A 类**（缩完成判据或交付面；拿不准归 A）：标 `pending`，写入 driver `proposal.md` 的验证记录，作为需要用户决策的项停下等用户，不静默接受、不自行确认。**B 类**（判据与交付面都不缩）：经审阅收敛临时确认记 `provisional`，不停机不等用户，到用户在场点（真人门、收口）集中追认。这命中 Driver 协议「一轮结束」三条件里的「需要用户决策」；不依赖该决策的其余条目仍按「一轮结束」继续。
+-- 执行者、子代理与审阅收敛都不算用户确认；B 类 `provisional` 是唯一例外——经审阅收敛写入，但只算临时确认，追认前不算 `confirmed`。用户点名接受该项、明确全部确认、按意图命中已列授权项（复述生效，见 [../../taskrail/references/confirm-protocol.md](../../taskrail/references/confirm-protocol.md)「授权」节）、或在用户在场点追认后，才允许勾相关验收标准 checkbox，并在验证记录把该项记为 `confirmed`，保留维度与实际选择以便追踪；追认否决按该项回滚说明处理后回降级确认门重定级。
+-- driver 的最终验收必须按 [references/acceptance-rubric.md](acceptance-rubric.md) 给出五维分数与证据，并满足其通过条件（无未处置 Blocker / Major、判据逐条有证据）；缺结论不得勾验收标准 checkbox。
++对 driver 做 stock 归档前逐条核对：
+ 
+-## 收尾机械校核
++- 子 change 全勾且各自 `validate --strict` 通过；driver 实施项与之一致。
++- 每轮评审的 Blocker / Major 都有处置（`fixed` / `accepted-recorded` 带理由）。
++- 证据与当前代码一致（换代码后旧证据作废，重跑受影响部分）。
++- [done.md](../../taskrail/references/done.md) 全过。
+ 
+-对 driver 执行 stock 归档**之前**，逐条机械核对（不靠记忆、不用汇总口径替代逐条说明）：
+-
+-- 子 change 全勾，且各自在其 planning root 下 `openspec validate --strict --type change {task}-<slice>` 通过；driver 对应实施 checkbox 与子 change 状态一致。
+-- 显式降级表无 `pending`、无未追认 `provisional`。
+-- 每轮评审产出的 Blocker / Major 全部有 disposition（`fixed` 或 `accepted-recorded` 含理由）；无 disposition 不得判收敛、不得回填验收。
+-- 证据与当前产物状态一致（换代码后旧证据作废，重跑受影响层）。
+-
+-**禁止 `--yes` 掩盖未勾**：`openspec archive` 报未勾时先回填真实状态，或保持未勾；**归档后记录不可回改**——未勾齐就不归档，禁止「先归档再补正」。进度归属节所述「archive 对未勾 checkbox 不设防」指的是工具不设防，设防的是本节。
+-
+-## 一轮结束
+-
+-「一轮结束」三条件与逐条列未勾项的规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准，此处不复述。
+-
+-模板之外的增量：不因一项卡住就整轮停下；不把未完成项勾成完成；不用「某 change 还剩 3 项」这类按 change 汇总的数量代替逐条说明。
+-
+-「需要用户决策」结束一轮时，按 [../../taskrail/references/suspension.md](../../taskrail/references/suspension.md) 的挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）：依赖该决策的 checkbox 停，不依赖的继续按「一轮结束」推进，不整轮停摆。用户输入到达先比对授权形状——逐字点名或意图命中（复述生效）都算，命中即恢复对应条目，未命中重申仍停，不写成选项列表。
+-
+-## 并行执行
+-
+-有多 agent / 子代理能力时，对**无未完成依赖、范围不重叠**的单位优先并行；没有该能力则主会话串行，其余纪律不变。并行只改变执行方式，完成度仍只认 checkbox，不另建账本。
+-
+-两层都可以并行：
+-
+-| 层 | 单位 | 可以并行 | 必须串行 |
+-|----|------|----------|----------|
+-| change | 子 change `{task}-<slice>` | 落在不同必须仓，或主会话已确认实现范围不重叠 | 同一工作树且可能改同一批文件或互相依赖契约；准备段切分支；收尾段回归 / 回填 / 提交 / 归档 |
+-| task | 同一 change 的 checkbox | 互不依赖且文件范围不重叠 | 有先后依赖、共享同一文件、或需要用户决策 |
+-
+-每个子代理只领一个单位（一个子 change，或同一 change 内一组已声明不重叠的 checkbox），并同时满足：
+-
+-- 在该单位的 planning root 下执行，且显式给出 change name
+-- 只改自己范围内的代码与自己的 `tasks.md` checkbox
+-- 不勾 driver 编排项（仍由主会话在子 change 全勾且 `validate --strict` 通过后勾）
+-- 不发明等价命令，不扩大到 `建议` / `排除` 仓的写入
+-
+-主会话负责派发、汇总、处理冲突与未勾原因。子代理失败或超时不是整轮结束理由，按「一轮结束」继续其余独立项。
+-
+-两条派发前置纪律（complex 档、多切片并行时适用；单切片或 medium 小范围可省）：
+-
+-- **旗舰先行**：交付类别命中门包、且属首次实现或大改时，先只派一个**旗舰切片**——按契约文件把该类交付的代表面做到全量（含门包要求的可自动化门与运行态证据），经门包「必载专家能力」评审通过后才允许并行铺开；旗舰切片同时是其余切片的复制样板。无样板可循（新交付类别、新页面族）时不得直接并行。
+-- **同类失败升级**：**≥2 个单元报告同一类失败**（同一契约错误、同一类门失败、同一类返工）时，判定为**契约或计划缺陷**：停并行、回 `design` 修契约，再重新派发；不得按各自 bug 逐个修。
+-
+-并行飞行期间主会话仍可写共享文件，两条协调纪律：
+-
+-- 改共享面必广播：修改 shared 组件签名、共享类型、编排文件等子代理会读会引用的文件前，立即 `write agent://all`（或定向 `write agent://<id>`）广播改动点、影响面与子代理范围是否调整；收到广播的子代理按修正后契约继续，不视为打断。
+-- 补写已分配文件前核对范围：动手写文件前先对照派发分配表确认不在任一在跑子代理的范围内；已写入则立即定向通知该子代理收敛其范围。
+-
+-## 实现者输入
+-
+-默认正常交付：按 [references/implementer-isolation.md](implementer-isolation.md)，实现者必须拿到质量画像或保留语义的子范围裁剪、相关验收要求与运行约束；完整 rubric 和跨范围审阅意见仍由审阅者持有。普通任务不得盲派。
+-
+-交付面命中 [../../taskrail/references/gate-packs.md](../../taskrail/references/gate-packs.md) 的类别时，实现者输入除上述外 MUST 再携带三件，缺任一件不得派发：
+-
+-- **契约文件**：共享面（接口、类型、primitive、目录与命名、样板切片）已冻结的产物指针；并行派发前必须已存在，冻结后漂移走「并行执行」的共享面广播纪律。Web UI：指针 = Active Instance 根路径 + contract / binding / projection 三条 digest（与 handoff 载荷一致）。
+-- **门包**：适用交付类别的门包条目（可自动化门 / 运行态证据 / 主观项）+ 本切片负责产出的证据清单。
+-- **证据要求**：证据须为可复跑命令与输出、断言脚本或截图 / 录屏，并绑定产物状态（提交号或 dirty 摘要）；未覆盖条目按 taskrail 确认协议「未覆盖即降级」登记。Web UI：优先 `ui_evidence_check` current-build 证据与 Gallery。
+-
+-## Web UI 实现委托
+-
+-交付类别为 Web UI 时：
+-
+-- UI 切片（含旗舰切片）的页面实现 MUST 消费 driver 所记 frozen Active Instance（或已确认的 adopt-only）。先按代表页 two-pass 方法（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页的壳层与字阶长出。功能切片不代替这次修订。
+-- 无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面。
+-- UI 切片完成 = `ui_evidence_check.py` report exit 0 + design 评审文件 `--validate-review` exit 0（见 gate-packs「Web UI」）；`ui-skills-root` 与零散 craft skill 不替代代表页 two-pass 与 Active Instance。
+-- 发现须改 token / pattern / page-type / binding 语义：停并行，回 design 阶段修订 Active Instance 并重新 freeze，刷新 digest 与 `design/contract.md` / driver 指针后再派发；不得在 apply 内改 core。
+-- 并行派发前契约 = 三条 digest；漂移走共享面广播，且须与 Active Instance freeze 再对齐。
+-
+-只有任务显式标记 benchmark / regression 时才盲测复跑：实现者只拿同一份样例/需求原文与运行约束，不拿画像、rubric、期望清单或审阅意见；复跑不追加事后提示。
++`openspec archive` 报未勾时先回填真实状态或保持未勾，**不用 `--yes` 盖过去**：归档后记录不可回改，未勾齐就不归档。
+diff --git a/skills/taskflow/references/implementer-isolation.md b/skills/taskflow/references/implementer-isolation.md
+deleted file mode 100644
+index a5c26e3..0000000
+--- a/skills/taskflow/references/implementer-isolation.md
++++ /dev/null
+@@ -1,61 +0,0 @@
+-# 实现者输入模式
+-
+-实现者输入分两种：正常交付与盲测复跑。默认是正常交付；盲测复跑必须由任务显式标记为 benchmark / regression，不得把普通交付默认盲派。
+-
+-## 正常交付
+-
+-目标：让实现者有足够上下文满足已确认的质量约束。
+-
+-实现者必须收到：
+-
+-- 需求原文与本人负责范围的边界。
+-- 质量画像原文，或按子 change 裁剪后仍保留语义的相关部分。
+-- 该范围的验收要求：页面或状态、并发与数据假设、错误边界、测试与启动证据。
+-- 运行约束：工作目录、依赖边界、时间预算、不得提交 / 不得外发。
+-- 必要的既有契约或构建方式。
+-
+-实现者不必须收到：
+-
+-- 完整评分 rubric 与其它子 change 的验收细节。
+-- 跨角色审阅意见全文。
+-- 与本人范围无关的历史失败细节。
+-
+-审阅者仍按 [acceptance-rubric.md](acceptance-rubric.md) 独立评分；实现者自评只作输入。
+-
+-## 盲测 / 基准复跑
+-
+-目标：衡量流程或 agent 在未被提示时的理解与实现能力。仅当任务显式标记 benchmark / regression 时使用。
+-
+-实现者只收到：
+-
+-- 样例或需求原文，保持原样，不改写、不补充期望。
+-- 工作目录、允许写入范围与不得提交 / 不得外发约束。
+-- 运行约束：语言与依赖边界、本地启动要求、时间预算。
+-- 交付要求：可运行、有测试、有说明、留证据。
+-
+-实现者不收到：
+-
+-- 质量画像、角色底线清单。
+-- 验收 rubric、评分维度与通过线。
+-- 期望页面清单、功能清单或「必须包含」的隐藏清单。
+-- 审阅者具体意见与历史失败细节。
+-
+-复跑规则：
+-
+-1. 记录本次派发的原文与运行约束，作为可复现输入。
+-2. 审阅者持有画像与 rubric，不与实现者共享。
+-3. 复跑使用同一份原文，不追加事后提示；否则结果不可比。
+-4. 盲测结果只评价当次能力，不改变该任务已确认的质量画像与降级表。
+-
+-## 派发检查
+-
+-- 普通交付发现实现者没有画像或相关验收要求：先补上下文，不继续盲派。
+-- 盲测未显式标记 benchmark / regression：按普通交付补上下文。
+-- 需要实现者知道的期望没有写进画像或验收要求：先补上游文档，不靠私聊提示词传递。
+-- 多实现者并行时，正常交付按子范围裁剪上下文；盲测复跑使用同一原文。
+-
+-## 边界
+-
+-- 隔离是受控评测手段，不是默认交付策略。
+-- 盲测不降低验收：画像与 rubric 仍生效，只是由审阅者持有。
+-- 正常交付不得把完整仓库无关上下文全部塞给实现者；按负责范围裁剪，但不得丢失质量语义。
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 31eebb0..001a54c 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -37,7 +37,7 @@ HANDOFF_SVC = """
+ HANDOFF_UI = """
+ ## 交接
+ - 交付类别：Web UI
+-- 适用门包：gate-packs.md「Web UI」
++- 适用门包：ui-delivery.md
+ - Active Instance 根路径：design-system/v1
+ - contract digest：sha256:aaa
+ - binding digest：sha256:bbb
+@@ -110,7 +110,7 @@ class TestCheckHandoff(unittest.TestCase):
+         self.assertIn("binding digest", r.stdout)
+ 
+     def test_bypass_requires_user_confirmed(self) -> None:
+-        self.write(GOOD_META.replace("tier: medium", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing"))
++        self.write(GOOD_META.replace("tier: medium", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
+         self.assertEqual(self.run_gate().returncode, 1)
+ 
+     def test_bypass_user_confirmed(self) -> None:
+@@ -133,16 +133,16 @@ class TestEntryGateWiring(unittest.TestCase):
+         cls.handoff = (ROOT.parent / "task-explore" / "references" / "handoff.md").read_text(encoding="utf-8")
+ 
+     def test_skill_wires_gate(self) -> None:
+-        self.assertIn("## 入口门（强制）", self.skill)
++        self.assertIn("入口门", self.skill)
+         self.assertIn("scripts/check_handoff.py", self.skill)
+-        self.assertIn("**拒绝建 driver**", self.skill)
++        self.assertIn("不建 driver", self.skill)
+         self.assertIn("gate_bypass", self.skill)
+-        self.assertIn("禁止手写省略 UI / 验收的自由提示词", self.skill)
++        self.assertIn("不手写省略验收的自由提示词", self.skill)
+ 
+     def test_taskrail_and_handoff_reference_gate(self) -> None:
+         self.assertIn("check_handoff.py", self.rail)
+         self.assertIn("check_handoff.py", self.handoff)
+-        self.assertIn("`- 交付类别：`", self.handoff)
++        self.assertIn("交付类别", self.handoff)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskflow/tests/test_execution_spine_contract.py b/skills/taskflow/tests/test_execution_spine_contract.py
+index 163352f..0f33949 100644
+--- a/skills/taskflow/tests/test_execution_spine_contract.py
++++ b/skills/taskflow/tests/test_execution_spine_contract.py
+@@ -1,159 +1,28 @@
+-"""taskflow 契约（20261011 执行段脊梁轮）：契约前置、旗舰先行、增量评审、机械收尾。"""
+-
++"""执行纪律：收尾校核、禁用 --yes、指向 done。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++DISC = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
+ 
+-def skill_corpus(root: Path) -> str:
+-    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+-    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+-    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+-    return "\n".join(parts)
+-
+-
+-
+-class TestImplementerInputCarriesSpine(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = skill_corpus(ROOT)
+-
+-    def test_gate_pack_reference(self) -> None:
+-        self.assertIn("../taskrail/references/gate-packs.md", self.text)
+-
+-    def test_three_items_required(self) -> None:
+-        self.assertIn("MUST 再携带三件，缺任一件不得派发", self.text)
+-        for item in ("**契约文件**", "**门包**", "**证据要求**"):
+-            self.assertIn(item, self.text)
+-
+-    def test_evidence_binding(self) -> None:
+-        self.assertIn("绑定产物状态（提交号或 dirty 摘要）", self.text)
+-
+-    def test_web_ui_apply_delegation(self) -> None:
+-        self.assertIn("## Web UI 实现委托", self.text)
+-        self.assertNotIn("ui-template-", self.text)
+-        self.assertIn("无 Active Instance 且无已确认 adopt-only 降级时，先建立 Active Instance 再写页面", self.text)
+-        self.assertIn("先按代表页 two-pass 方法", self.text)
+-        self.assertIn("实现并修订一条主流程代表页", self.text)
+-        self.assertIn("回 design 阶段修订 Active Instance 并重新 freeze", self.text)
+-
+-    def test_ui_slice_skeleton_mentions_apply(self) -> None:
+-        self.assertIn("`{task}-ui`：Web UI 切片消费 frozen Active Instance", self.text)
+-
+-
+-class TestParallelPreconditions(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = skill_corpus(ROOT)
+-
+-    def test_flagship_first(self) -> None:
+-        self.assertIn("**旗舰先行**", self.text)
+-        self.assertIn("经门包「必载专家能力」评审通过后才允许并行铺开", self.text)
+-        self.assertIn("无样板可循", self.text)
+-
+-    def test_repeated_failure_escalation(self) -> None:
+-        self.assertIn("**同类失败升级**", self.text)
+-        self.assertIn("≥2 个单元报告同一类失败", self.text)
+-        self.assertIn("契约或计划缺陷", self.text)
+-
+-
+-class TestClosingReconciliation(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.text = skill_corpus(ROOT)
+-
+-    def test_section_present(self) -> None:
+-        self.assertIn("## 收尾机械校核", self.text)
+-
+-    def test_checks_present(self) -> None:
+-        for check in (
+-            "driver 对应实施 checkbox 与子 change 状态一致",
+-            "显式降级表无 `pending`、无未追认 `provisional`",
+-            "disposition（`fixed` 或 `accepted-recorded` 含理由）",
+-        ):
+-            self.assertIn(check, self.text)
+-
+-    def test_yes_flag_forbidden(self) -> None:
+-        self.assertIn("**禁止 `--yes` 掩盖未勾**", self.text)
+-        self.assertIn("归档后记录不可回改", self.text)
+-
+-    def test_skeleton_gate_added(self) -> None:
+-        self.assertIn("3.4 归档前置校核", self.text)
+-        self.assertIn("3.5 归档全部子 change", self.text)
+-
+-    def test_existing_skeleton_items_intact(self) -> None:
+-        for kept in ("3.1 全仓回归与静态检查", "3.2 回填 proposal 验收标准", "3.3 提交交付仓改动"):
+-            self.assertIn(kept, self.text)
+-
+-
+-class TestQualityLoopSpine(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.loop = (ROOT / "references" / "delivery-quality-loop.md").read_text(encoding="utf-8")
+-
+-    def test_contract_first(self) -> None:
+-        self.assertIn("**契约前置**", self.loop)
+-        self.assertIn("并行派发只允许发生在契约冻结之后", self.loop)
+-        self.assertIn("design-system/v1", self.loop)
+-        self.assertNotIn("ui-template-", self.loop)
+-
+-    def test_flagship_slice(self) -> None:
+-        self.assertIn("**旗舰切片**", self.loop)
+-        self.assertIn("../../taskrail/references/gate-packs.md", self.loop)
+-        self.assertIn("`ui_evidence_check` report + Gallery", self.loop)
+-
+-    def test_gate_pack_overlay(self) -> None:
+-        self.assertIn("**门包叠加**", self.loop)
+-
+-    def test_incremental_review(self) -> None:
+-        self.assertIn("## 增量评审", self.loop)
+-        self.assertIn("无 disposition 的 findings 不得判收敛", self.loop)
+-
+-    def test_evidence_contract(self) -> None:
+-        for item in ("**状态绑定**", "**覆盖边界**", "**工具不可用**"):
+-            self.assertIn(item, self.loop)
+-
+-    def test_existing_layers_intact(self) -> None:
+-        for kept in ("| 静态门 |", "| 窄切片 |", "| 全链路 |", "## 失败三分类", "## 只重跑受影响切片"):
+-            self.assertIn(kept, self.loop)
+-
+-
+-class TestRubricExecutorBinding(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.rubric = (ROOT / "references" / "acceptance-rubric.md").read_text(encoding="utf-8")
+-
+-    def test_reviewer_required(self) -> None:
+-        self.assertIn("打分 MUST 经 `role-based-reviewer`", self.rubric)
+-        self.assertIn("评审降级未记录", self.rubric)
+-
+-    def test_roles_from_gate_packs(self) -> None:
+-        self.assertIn("../../taskrail/references/gate-packs.md", self.rubric)
+-        self.assertIn("不得少于该表「必载评审」", self.rubric)
+-
+-    def test_gate_failure_caps_score(self) -> None:
+-        self.assertIn("**可自动化门**任一失败 → 对应维度不通过", self.rubric)
+ 
+-    def test_web_ui_evidence_binding(self) -> None:
+-        self.assertIn("scan_design_constraints", self.rubric)
+-        self.assertIn("`ui_evidence_check` current-build", self.rubric)
+-        self.assertIn("Gallery", self.rubric)
++class ExecutionSpineTest(unittest.TestCase):
++    def test_no_yes_flag(self) -> None:
++        self.assertIn("不用 `--yes`", DISC)
+ 
+-    def test_uncovered_counts_as_downgrade(self) -> None:
+-        self.assertIn("**未覆盖条目**按显式降级计", self.rubric)
++    def test_done_pointer(self) -> None:
++        self.assertIn("done.md", DISC)
+ 
+-    def test_heterogeneous_review(self) -> None:
+-        self.assertIn("SHOULD 异源", self.rubric)
++    def test_serial_checkbox(self) -> None:
++        self.assertIn("串行", DISC)
++        self.assertIn("全勾", DISC)
+ 
+-    def test_existing_pass_line_intact(self) -> None:
+-        self.assertIn("不设均值硬线", self.rubric)
++    def test_multi_worker_appendix(self) -> None:
++        mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
++        self.assertIn("样板先行", mw)
++        self.assertIn("同类失败", mw)
++        self.assertIn("广播", mw)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskflow/tests/test_parallel_broadcast_contract.py b/skills/taskflow/tests/test_parallel_broadcast_contract.py
+index f5a2703..18c4c19 100644
+--- a/skills/taskflow/tests/test_parallel_broadcast_contract.py
++++ b/skills/taskflow/tests/test_parallel_broadcast_contract.py
+@@ -1,51 +1,20 @@
+-"""并行执行主会话侧协调纪律：共享面变更广播与范围核对（20261011 进化轮文本锁）。"""
+-
++"""多 worker 附录契约。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+-SKILL_ROOT = Path(__file__).resolve().parents[1]
+-
+-def skill_corpus(root: Path) -> str:
+-    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+-    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+-    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+-    return "\n".join(parts)
+-
+-
+-
+-def read(rel: str) -> str:
+-    return (SKILL_ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestParallelMainSessionCoordination(unittest.TestCase):
+-    """主会话在并行飞行中写共享面必须广播；补写已分配文件前核对范围。"""
+-
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-
+-    def test_broadcast_rule_present(self) -> None:
+-        self.assertIn("改共享面必广播", self.text)
++MW = (Path(__file__).resolve().parents[1] / "references" / "multi-worker.md").read_text(encoding="utf-8")
+ 
+-    def test_broadcast_rule_requires_agent_message(self) -> None:
+-        self.assertIn("`write agent://all`", self.text)
+-        self.assertIn("`write agent://<id>`", self.text)
+ 
+-    def test_broadcast_rule_content_shape(self) -> None:
+-        self.assertIn("广播改动点、影响面与子代理范围是否调整", self.text)
+-        self.assertIn("按修正后契约继续，不视为打断", self.text)
++class ParallelBroadcastTest(unittest.TestCase):
++    def test_default_serial_note(self) -> None:
++        self.assertIn("默认串行", MW)
+ 
+-    def test_scope_check_rule_present(self) -> None:
+-        self.assertIn("补写已分配文件前核对范围", self.text)
+-        self.assertIn("对照派发分配表", self.text)
+-        self.assertIn("立即定向通知该子代理收敛其范围", self.text)
++    def test_broadcast(self) -> None:
++        self.assertIn("改共享面先广播", MW)
+ 
+-    def test_existing_agent_constraints_intact(self) -> None:
+-        """新规则追加不削弱子代理侧既有纪律。"""
+-        self.assertIn("只改自己范围内的代码与自己的 `tasks.md` checkbox", self.text)
+-        self.assertIn("不勾 driver 编排项", self.text)
+-        self.assertIn("主会话负责派发、汇总、处理冲突与未勾原因", self.text)
++    def test_flagship(self) -> None:
++        self.assertIn("样板先行", MW)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index 208c57d..c2046bc 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -1,247 +1,45 @@
+-"""taskflow 文本契约：Driver 协议、一轮结束、dirty 带改动切分支、rubric 通过线。"""
+-
++"""taskflow 不可破契约：入口门、driver 协议、串行默认、自进化移出运行路径。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+-SKILL_ROOT = Path(__file__).resolve().parents[1]
+-
+-def skill_corpus(root: Path) -> str:
+-    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+-    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+-    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
+-    return "\n".join(parts)
+-
+-REPO_ROOT = Path(__file__).resolve().parents[3]
+-
+-
+-def read(rel: str) -> str:
+-    return (SKILL_ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestFrontmatter(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-
+-    def test_frontmatter_fields_present(self) -> None:
+-        self.assertIn("id: taskflow", self.text)
+-        self.assertIn("name: taskflow", self.text)
+-        self.assertIn("description:", self.text)
+-
+-    def test_id_matches_directory(self) -> None:
+-        self.assertEqual(SKILL_ROOT.name, "taskflow")
+-
+-    def test_referenced_references_exist(self) -> None:
+-        for rel in (
+-            "references/acceptance-rubric.md",
+-            "references/delivery-quality-loop.md",
+-            "references/implementer-isolation.md",
+-        ):
+-            self.assertTrue((SKILL_ROOT / rel).is_file(), rel)
+-
+-
+-class TestDriverProtocol(unittest.TestCase):
+-    """Driver 协议是固定文本，逐字写入 proposal；skip_specs 必须显式写入。"""
+-
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-
+-    def test_protocol_verbatim_gate(self) -> None:
+-        self.assertIn("`Driver 协议` 小节是固定文本，逐字写入，不要改写或精简", self.text)
+-
+-    def test_skip_specs_explicit_gate(self) -> None:
+-        self.assertIn("`skip_specs: true` 必须显式写入", self.text)
+-
+-    def test_protocol_template_contains_branch_rule(self) -> None:
+-        self.assertIn("不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支", self.text)
+-        self.assertNotIn("由用户三选一", self.text)
+-        self.assertIn("不得 stash / reset / 强制切换", self.text)
+-
+-    def test_branch_rule_single_source(self) -> None:
+-        # P2-11：切分支规则只在 driver-template.md 的 Driver 协议块写一次，纪律只留指针
+-        self.assertIn("切分支规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准，此处不复述", self.text)
+-        self.assertEqual(self.text.count("不得 stash / reset / 强制切换"), 1)
+-
+-    def test_profile_snapshot_verbatim(self) -> None:
+-        self.assertIn("`Why` 逐字保留该快照，不摘要、不改写、不用小节指针或路径替代", self.text)
+-
+-
+-class TestRoundEndConditions(unittest.TestCase):
+-    """一轮结束三条件是固定门禁：只在 Driver 协议块写一次，纪律节只留指针（P2-11）。"""
+-
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-
+-    def test_three_conditions_in_template(self) -> None:
+-        self.assertIn("只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮", self.text)
+-
+-    def test_three_conditions_restated_in_discipline(self) -> None:
+-        self.assertIn("「一轮结束」三条件与逐条列未勾项的规则只以 [driver-template.md](driver-template.md) 的 Driver 协议逐字块为准", self.text)
+-        self.assertEqual(self.text.count("三种情况允许结束一轮"), 1)
+-
+-    def test_itemized_unfinished_list(self) -> None:
+-        self.assertIn("结束时在验证记录逐条列出未勾项与原因", self.text)
+-        self.assertIn("对用户按 user-report 说影响与待定事项，不报编号", self.text)
+-
+-
+-class TestAcceptanceRubric(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.text = read("references/acceptance-rubric.md")
+-
+-    def test_global_pass_line(self) -> None:
+-        self.assertIn("无未处置 Blocker / Major", self.text)
+-        self.assertIn("不设均值硬线", self.text)
+-
+-    def test_uiux_zero_subitem_blocks(self) -> None:
+-        self.assertIn("任一子项为 0 则不通过", self.text)
+-
+-    def test_skill_body_restates_thresholds(self) -> None:
+-        text = skill_corpus(SKILL_ROOT)
+-        self.assertIn("无未处置 Blocker / Major、判据逐条有证据", text)
+-
+-
+-class TestPendingConfirmationSyncLock(unittest.TestCase):
+-    """「pending 降级只有用户能确认」在三个 skill 各有一份文本。
+-
+-    任一处缺失即 fail：防止三份同源纪律改一处漏两处。
+-    """
+-
+-    def test_task_confirm_declares_user_only_confirmation(self) -> None:
+-        text = (REPO_ROOT / "skills/taskrail/references/confirm-protocol.md").read_text(encoding="utf-8")
+-        self.assertIn("审阅收敛与单独的「继续」都不算确认", text)
+-
+-    def test_task_explore_approve_declares_user_only_confirmation(self) -> None:
+-        text = (REPO_ROOT / "skills/task-explore/references/approve.md").read_text(
+-            encoding="utf-8"
+-        )
+-        self.assertIn("审阅收敛、单独的「继续」、执行者或评审者的判断都不算确认", text)
+-
+-    def test_task_explore_handoff_blocks_driver_on_pending(self) -> None:
+-        text = (REPO_ROOT / "skills/task-explore/references/handoff.md").read_text(encoding="utf-8")
+-        self.assertIn("只有用户点名接受该项、或明确说按降级表全部确认后才继续", text)
+-        self.assertIn("不创建 driver", text)
+-
+-    def test_taskflow_declares_user_only_confirmation(self) -> None:
+-        text = skill_corpus(SKILL_ROOT)
+-        self.assertIn("执行者、子代理与审阅收敛都不算用户确认", text)
+-
+-    def test_new_downgrade_needs_user_decision(self) -> None:
+-        text = skill_corpus(SKILL_ROOT)
+-        self.assertIn("不静默接受、不自行确认", text)
+-
+-
+-class TestSuspendIntegration(unittest.TestCase):
+-    """「需要用户决策」挂起五元组 + 只停依赖面 + 恢复触发。"""
+-
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-
+-    def test_suspension_reference(self) -> None:
+-        self.assertIn("taskrail/references/suspension.md", self.text)
+-        self.assertTrue(
+-            (REPO_ROOT / "skills/taskrail/references/suspension.md").is_file(),
+-            "cross-ref target missing",
+-        )
+-
+-    def test_five_tuple_presented(self) -> None:
+-        self.assertIn("挂起五元组呈现（等待项、授权形状、阻塞面、非依赖面、恢复触发）", self.text)
+-
+-    def test_only_dependency_surface_stops(self) -> None:
+-        self.assertIn("「需要用户决策」只停依赖该项的条目，其余条目继续", self.text)
+-        self.assertIn("不整轮停摆", self.text)
+-
+-    def test_resume_trigger_with_echo_back(self) -> None:
+-        self.assertIn("用户输入到达先比对授权形状", self.text)
+-        self.assertIn("复述生效", self.text)
+-
+-
+-class TestDowngradeABSync(unittest.TestCase):
+-    """新降级 A/B 定级与 provisional 追认；收尾门按类拆分。"""
+-
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
+-        self.loop = read("references/delivery-quality-loop.md")
+-        self.rubric = read("references/acceptance-rubric.md")
+-
+-    def test_ab_classification_in_skill(self) -> None:
+-        self.assertIn("**A 类**（缩完成判据或交付面；拿不准归 A）", self.text)
+-        self.assertIn("**B 类**（判据与交付面都不缩）", self.text)
+-        self.assertIn("taskrail/references/quality-profile.md", self.text)
+-
+-    def test_provisional_exception_narrow(self) -> None:
+-        self.assertIn("B 类 `provisional` 是唯一例外", self.text)
+-        self.assertIn("追认前不算 `confirmed`", self.text)
+-
+-    def test_ratification_and_rollback(self) -> None:
+-        self.assertIn("到用户在场点（真人门、收口）集中追认", self.text)
+-        self.assertIn("回滚说明处理后回降级确认门重定级", self.text)
+-
+-    def test_backfill_split_by_class(self) -> None:
+-        self.assertIn("B 类 `provisional` 期间可回填不依赖该项的验收标准", self.loop)
+-        self.assertIn("A 类 `pending` 降级为 0、B 类无未追认 `provisional`（全部 `confirmed`）", self.loop)
+-
+-    def test_rubric_scoring_with_provisional(self) -> None:
+-        self.assertIn("B 类可按 `provisional` 临时确认的范围评分并标注「待追认」", self.rubric)
+-
+-
+-class TestSelfEvolutionSingleSource(unittest.TestCase):
+-    """Self-evolution 注入块为紧凑单一模板：各 skill 逐字同文，只换目录名。
+-
+-    writing-for-agents 优化：原 84 行样板压成一段指针式短块，常驻 context 只付一次。
+-    """
+-
+-    DIRS = ("taskflow", "repo-manager", "skills-store")
+-
+-    def _block(self, skill: str) -> str:
+-        text = (REPO_ROOT / f"skills/{skill}/SKILL.md").read_text(encoding="utf-8")
+-        idx = text.find("## Self-evolution")
+-        self.assertGreater(idx, 0, f"{skill}: 缺 Self-evolution 段")
+-        return text[idx:].replace(f"skills/{skill}", "<skill-dir>")
+-
+-    def test_blocks_are_byte_identical(self) -> None:
+-        blocks = {s: self._block(s) for s in self.DIRS}
+-        first = blocks[self.DIRS[0]]
+-        for skill, block in blocks.items():
+-            self.assertEqual(first, block, f"{skill}: Self-evolution 块与其他 skill 漂移")
+-
+-    def test_compact_form_kept(self) -> None:
+-        block = self._block("taskflow")
+-        self.assertLess(len(block.splitlines()), 30, "样板块过长，应保持指针式短块")
+-        for kept in ("examples/", "evals/cases.yaml", "experience/", "evolve", "patches/"):
+-            self.assertIn(kept, block)
+-
+-    def test_injection_template_matches_blocks(self) -> None:
+-        tpl = (REPO_ROOT / "skills/skill-upgrader/references/skill-injection.md").read_text(encoding="utf-8")
+-        tpl_block = tpl[tpl.find("## Self-evolution"):].replace("<skill-dir>", "<skill-dir>")
+-        self.assertEqual(self._block("taskflow"), tpl_block, "注入模板与生产块漂移")
+-
+-    def test_long_form_scaffolding_gone(self) -> None:
+-        block = self._block("taskflow")
+-        for gone in ("Directly modify SKILL.md", "Improvement Proposal", "不要记录 trivial information"):
+-            self.assertNotIn(gone, block)
++ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+-class TestDescriptionTriggerBranches(unittest.TestCase):
+-    """description 是常驻 context 的顶层 context pointer：只留触发分支，不复述正文。"""
++class TaskflowContractTest(unittest.TestCase):
++    def test_skill_under_8kb(self) -> None:
++        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
+ 
+-    def setUp(self) -> None:
+-        self.text = skill_corpus(SKILL_ROOT)
++    def test_entry_gate(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("check_handoff.py", skill)
++        self.assertIn("入口门", skill)
++        self.assertTrue((ROOT / "scripts" / "check_handoff.py").is_file())
+ 
+-    def test_trigger_branches_kept(self) -> None:
+-        for branch in ("taskflow-new", "{task}-driver", "OpenSpec change"):
+-            self.assertIn(branch, self.text.split("---")[1], f"description 丢了触发分支 {branch}")
++    def test_driver_protocol_verbatim_block(self) -> None:
++        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
++        self.assertIn("## Driver 协议", t)
++        self.assertIn("skip_specs: true", t)
++        self.assertIn("不要写 `tasks.md`", t)
+ 
+-    def test_description_drops_body_detail(self) -> None:
+-        desc = self.text.split("---")[1]
+-        for detail in ("skip_specs", "零脚本", "第二份任务账本"):
+-            self.assertNotIn(detail, desc, f"description 复述了正文细节：{detail}")
++    def test_serial_default(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("串行", skill)
++        self.assertTrue((ROOT / "references" / "multi-worker.md").is_file())
+ 
++    def test_self_evolution_out_of_runtime(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("self-evolution.md", skill)
++        self.assertNotIn("## Self-evolution", skill)
++        self.assertTrue((ROOT / "references" / "self-evolution.md").is_file())
+ 
++    def test_old_packs_removed(self) -> None:
++        for name in ("acceptance-rubric.md", "delivery-quality-loop.md", "implementer-isolation.md"):
++            self.assertFalse((ROOT / "references" / name).exists(), name)
+ 
+-class TestSimpleNoDriver(unittest.TestCase):
+-    def test_simple_section_removed(self) -> None:
+-        self.assertNotIn("### simple 单切片", skill_corpus(SKILL_ROOT))
++    def test_points_to_done(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("done.md", skill)
+ 
+ 
+ if __name__ == "__main__":

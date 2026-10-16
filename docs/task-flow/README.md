@@ -1,150 +1,71 @@
-# task 系列：流程与使用
+# task 系列：一页地图
 
-一页说清 task 系列怎么串、怎么用。规则真源在各 skill 文件里（下文标「来源」）；本文与之冲突时以真源为准，契约总真源（含术语）是 [skills/taskrail/references/contract.md](../../skills/taskrail/references/contract.md)。
+规则真源在各 skill 文件；本页与之冲突时以真源为准。契约总真源（阶段、档位、目录、术语）：[skills/taskrail/references/contract.md](../../skills/taskrail/references/contract.md)。
 
-## 1. 各 skill 干什么
+task 系列只做三件事：**按步骤把任务做完且符合预期**（taskrail）、**先理解意图**（task-intent）、**用人话交流**（user-report）。
 
-| skill | 一句话 | 来源 |
-|---|---|---|
-| `taskrail` | **唯一编排入口**：绑定 `tasks/` 台账，按阶段推进，持确认协议、门包、完成门 | `skills/taskrail/SKILL.md` |
-| `task-intent` | 开工前对齐意图：详细探索上下文 → 1–3 句口语复述（做什么、怎么做、产出落在哪、下一步）→ 纠偏到确认；结构化覆盖清单只写进 `wizard/intent.md` | `skills/task-intent/SKILL.md` |
-| `task-explore` | 探索台账命令：explore（grill）/ design / approve / handoff / archive 等 | `skills/task-explore/SKILL.md` |
-| `taskflow` | medium / complex 交接后执行：建 `{task}-driver`，拆 OpenSpec change，进度只认 checkbox | `skills/taskflow/SKILL.md` |
-| `role-based-reviewer` | 按岗位只读评审；`roles=intent` 审意图复述，交付验收按门包角色评审 | `skills/role-based-reviewer/SKILL.md` |
-| `skill-upgrader` | 改 skill 本身：`update` 写 `patches/`，`evolve` 写 `evolutions/`（仅显式触发） | `skills/skill-upgrader/SKILL.md` |
+## 谁干什么
 
-## 2. 流程图
+| skill | 一句话 |
+|---|---|
+| `taskrail` | 唯一编排入口：绑定 `tasks/` 台账，按阶段推进，按完成清单收口 |
+| `task-intent` | 开工前对齐意图：只读探索 → 1–3 句口语复述 → 纠偏到确认 |
+| `task-explore` | explore（grill 自问自答）/ design / approve / handoff |
+| `taskflow` | 交接后执行：建 `{task}-driver`，拆 OpenSpec change，进度只认 checkbox |
+| `role-based-reviewer` | 可选的岗位化只读评审 |
+
+## 流程
 
 ```mermaid
-flowchart TD
-  subgraph TR[taskrail 编排：phase / 确认协议 / 完成门]
-    subgraph TI[task-intent · wizard 第 1 步]
-      P[详细只读探索<br/>evidence/intent/] --> S[1–3 句口语复述<br/>做什么·怎么做·落在哪·下一步]
-      S -->|human| H{用户说对?}
-      H -->|指正哪里| S
-      S -->|goal| G{roles=intent 异源审<br/>无 P0/P1?}
-      G -->|不过，≤2 轮| S
-      H -->|对| C[wizard/intent.md<br/>confirmed]
-      G -->|过| C
-      G -->|仍不过| AS[assumed + 显式降级]
-    end
-    C --> W[wizard 2–6：plan.md + criterion<br/>定稿：criterion 对齐「做完的样子」]
-    AS --> W
-    W -->|simple| SI[直接实现 + 验证<br/>TASK.md「验证」节]
-    subgraph TE[task-explore · medium/complex]
-      E[explore：grill 只追细节<br/>complex 完整 explore] --> D[design]
-      D --> A[approve 冻结<br/>APPROVED.md]
-      A --> HO[handoff]
-    end
-    W -->|medium/complex| E
-    subgraph TF[taskflow]
-      PR[propose：driver + change] --> AP[apply：实现]
-    end
-    HO --> PR
-    subgraph RB[role-based-reviewer]
-      R[验收评审<br/>随附 intent.md]
-    end
-    AP --> R
-    R --> DG{完成门 1–8<br/>第 8 条：对照 intent.md}
-    SI --> DG
-    DG -->|不过| AP
-    DG -->|过| DONE[done → archive]
-    E -. 冲突 / 改主意 .-> IC[意图变更]
-    AP -. 改主意 .-> IC
-    IC -->|重跑 task-intent| S
-  end
-  DONE -. 人工显式触发 .-> SU[skill-upgrader<br/>patches/ · evolutions/]
+flowchart LR
+  I[task-intent<br/>意图复述] --> W[wizard<br/>plan.md + criterion]
+  W -->|skip| S[直接实现 + 验证]
+  W -->|full| E[explore] --> D[design] --> A[approve] --> H[handoff<br/>check_handoff.py]
+  H --> P[taskflow<br/>propose / apply]
+  S --> DONE{完成清单 done.md}
+  P --> DONE
+  DONE -->|过| X[done → archive]
+  DONE -->|不过| P
 ```
 
-来源：`taskrail/references/phase-wizard.md`、`task-intent/references/intent.md`、`taskrail/SKILL.md`「完成门」、`taskrail/references/contract.md`「simple 专条」「意图变更」。
+## 两个档位
 
-## 3. human 与 goal
-
-| | human（默认） | goal |
+| 档位 | 什么时候 | wizard 之后 |
 |---|---|---|
-| 触发 | 未命中 goal | 消息含 `/goal` 或 `goal:` 前缀 |
-| 意图确认 | 你看一段口语复述（如「好，我按仓库约定写成一份文档……写完告诉你放在哪」），说「对」或指出哪里不对；多轮对不上就换个问法（如二选一） | 异源模型经 `roles=intent` 代审，无 P0/P1 即过；最多两轮，不过则 `assumed` + 显式降级继续；异源模型不可用则登记降级后自审 |
-| 闸口 | 列选项（含推荐）等你确认 | 写推荐默认 → 派审 → 收敛即同轮继续 |
-| 永远停下等人 | 线上、泄密、未点名危险操作、A 类 `pending` 降级、不可逆或对外发送 | 同左 |
+| `skip` | 局部修改，一句话说得清 | 直接实现 + 验证 → done |
+| `full` | 其余 | explore → design → approve → handoff → propose → apply → archive |
 
-来源：`taskrail/references/confirm-protocol.md`、`task-intent/references/intent.md`。
+旧任务里的 `simple` 按 `skip` 读，`medium` / `complex` 按 `full` 读。
 
-## 4. 档位
+## human 与 goal
 
-| 档位 | 典型 | 路径（wizard 之后） |
+| | human（默认） | goal（`/goal` 或 `goal:`） |
 |---|---|---|
-| simple | 局部修改 | 直接实现 + 验证 → done（不建 driver、不走 OpenSpec；超出局部即升档 medium） |
-| medium | 跨模块 / 仓库 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
-| complex | 项目级重构、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive |
+| 意图 | 你看复述，说对或指出哪里不对 | 另一个模型按清单审，最多两轮 |
+| 闸口 | 推荐写成决定给你看，说「继续」即放行 | 另一个模型审，收敛就继续 |
+| 一定停下 | 删数据、改共享配置、线上 / 对外发送、改完成标准、缺凭据或只有你知道的信息 | 同左 |
 
-Web UI 的重型门（frozen Active Instance + 三条 digest、代表页 two-pass、`ui_evidence_check` 硬门、design 评审文件）只对 complex；medium 为 SHOULD，未做时登记 B 类显式降级。来源：`taskrail/references/contract.md`、`gate-packs.md`。
+## 按需才读的包
 
-## 5. subagent 派发
+- Web UI：`taskrail/references/ui-delivery.md`
+- 质量画像 / 打分：`taskrail/references/quality-appendix.md`
+- 多 worker 并行：`taskflow/references/multi-worker.md`
+- 大范围拆子任务：`task-explore/references/large-scope.md`
+- 台账并发写：`task-explore/references/ledger-concurrency.md`
 
-- 大范围摸底、调研、起草、实现切片、评审、验证复跑**宜**派宿主 subagent，并行提速、保持主会话干净。
-- 没有 subagent 能力就主会话自做，不停下。
-- **永不派出**：闸口、面向你的提问、危险退出。
-- 派出时交代目标、输入、写入范围与产出位置；worker 详情落盘，只回简短摘要，主会话不转贴全文。
-
-来源：`taskrail/references/contract.md`「执行座位」。
-
-## 6. 关键产物
-
-| 路径（`tasks/ongoing/{slug}/` 下） | 谁写 | 用途 |
-|---|---|---|
-| `TASK.md` | taskrail | **唯一任务账**：`phase` / `confirm_mode` / `tier` / `criterion` / 决策；simple 另含「验证」节 |
-| `wizard/intent.md` | task-intent | 确认版意图：给你的口语复述原文 + 覆盖清单（要干嘛 / 怎么干 / 输出什么 / 上下文 / 不做 / 假设 / 决定）+ 纠偏记录 |
-| `evidence/intent/` | 探索 | 意图探索详情 |
-| `wizard/plan.md` | wizard | 方案、完成判据、流程总览、交付类别与门包 |
-| `explore/`、`design/` | task-explore | grill 纪要、设计稿（命中门包时含 `design/contract.md`） |
-| `approve/APPROVED.md` | task-explore | 冻结方案 |
-| `{slug}-driver` | taskflow | OpenSpec 执行记录（medium / complex）；propose 之后进度看 checkbox |
-
-`tasks/INDEX.md` 是派生索引。来源：`taskrail/references/contract.md`「目录」「TASK.md 元信息」。
-
-## 7. 怎么用
+## 怎么用
 
 ```text
 taskrail <一句话目标>          # 新任务（human）
 taskrail goal: <一句话目标>    # 新任务（goal）
-taskrail resume [slug]         # 恢复：输出 目标 / phase / 未决 / 建议下一步
+taskrail resume [slug]         # 恢复
 taskrail list                  # 列任务
 ```
 
-- 单点用 task-explore：`{{slash:task-explore}} <命令>`，命令见其「命令」表（`new` / `explore` / `chat` / `resume` / `design` / `approve` / `save` / `handoff` / `archive` / `reopen` / `expand`）。泛指推进、resume、`/goal` 一律走 taskrail。
-- 单独评审：`{{slash:role-based-reviewer}} roles=engineer,sre mode=review 服务与部署变更`。
-- 改 skill：点名 `skill-upgrader`（`update` / `evolve`）。
+## FAQ
 
-来源：`taskrail/SKILL.md`「输入」、`task-explore/SKILL.md`「命令」、`role-based-reviewer/references/inference-and-speed.md`。
-
-## 8. 中途改主意（意图变更）
-
-1. 重跑 task-intent，改写 `intent.md` 并追加纠偏记录（旧版靠 git 追溯）。
-2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion` 并记决策（唯一合法改写）。
-3. 未交接：只改细节留在当前 phase；改范围 / 判据回 `wizard` 或 `design`，已 approve 的须重新 approve。
-4. 已交接：经 taskflow 开修订子 change，未勾的按新判据重排。
-
-来源：`taskrail/references/contract.md`「意图变更」。
-
-## 9. 对用户怎么说话
-
-所有直接给你看的话（意图复述、闸口提问、进度、交接与完成通知、评审摘要）都用口语：先说结论或要你做什么，内部术语不裸露或顺带一句白话，不倒「字段：值」清单，最多问一个问题并带推荐，结尾说清接下来会发生什么。落盘文件（`TASK.md`、`intent.md`、driver、评审文件）仍保持结构化。
-
-例：不说「driver checkbox 3/5，slice-2 apply done」，而说「五步里做完了三步，第二部分已经实现并通过测试，接下来做剩下两步」。
-
-来源：`taskrail/references/contract.md`「对用户说话」。
-
-## 10. FAQ
-
-- **会不会问很多？** 不会；说决定、不提问，见 `user-report.md`。
-- **会不会满屏术语？** 不会；规则在契约「对用户说话」。
-- **复述会不会很长、像填表？** 不会：1–3 句口语，字段只落 `wizard/intent.md`。
-- **开新任务还会问我新建还是挂到已有任务吗？** 不会；自行判定并一句话陈述，记账类直接做。
-- **它会不会没看资料就猜、就问？** 不会；注意任务边界（先推词义、按序读一手资料、范围=目标+直接依赖），见 `task-intent/references/intent.md`。
-- **自己定的事我怎么知道？** 难回头单独一行「我定了 X，因为 Y」，全部记在 `TASK.md`「已做决定」；真阻塞才停，见 `user-report.md`。
-- **grill 会追着问我吗？** 不会：自问自答，只报结论（`explore-design.md`）。
-- **grill 会重复问目标吗？** 不会；确认过的目标 / 做完的样子 / 不做不重问。
-- **怎么算做完？** 完成门逐条核对，第 8 条回看 intent.md（`taskrail/SKILL.md`）。
-- **小改也要走全套？** 不用：simple 直接实现 + 验证。
-- **观感类目标怎么验收？** 不看档位，见 `gate-packs.md`「审美目标（不分档）」。
-- **skill 自己会改自己吗？** 不会；只在显式点名 skill-upgrader 时改。
+- **会问很多吗？** 不会。有取舍就按推荐定下并说一句理由，只有上表「一定停下」的情况才停。规则：`taskrail/references/user-report.md`。
+- **它会没看资料就猜吗？** 不会。先读一手资料，能查到的不问；你纠正后先重查再改。见 `task-intent/references/intent.md`。
+- **自己定的事我怎么知道？** 难回头的单独一行「我定了 X，因为 Y」，全部记在 `TASK.md`「已做决定」。
+- **怎么算做完？** `taskrail/references/done.md` 逐条核对。
+- **要好看的界面怎么验收？** 加一条观感验收：goal 下另一个模型对照参照审截图自己迭代，human 下评审过了再给你看截图。见 `done.md`「观感验收」。

@@ -1,0 +1,2685 @@
+diff --git a/skills/taskrail/CONTEXT.md b/skills/taskrail/CONTEXT.md
+deleted file mode 100644
+index 19a21d7..0000000
+--- a/skills/taskrail/CONTEXT.md
++++ /dev/null
+@@ -1,63 +0,0 @@
+-# Taskrail
+-
+-任务轨道：绑定 tasks/ 台账，按阶段推进任务。wizard 阶段产出步骤级方案；确认按 references/confirm-protocol.md；探索/审批委托 task-explore；交付委托 taskflow。
+-
+-## Language
+-
+-**任务方案**:
+-写给人或下游执行方的步骤级纲要。wizard 阶段产出后经确认闸口继续；处在 goal 里时由确认协议接管确认与审阅。
+-_Avoid_: Goal 方案, Plan, objective
+-
+-**完成判据**:
+-方案「目标」里那条可检查的话，用来判断这份方案是否做完。
+-_Avoid_: 目标, objective, 交付标准
+-
+-**交付标准**:
+-完成判据之外、本任务应有的交付面要求，每条可检查。只取验证或测试覆盖、错误与边界行为、文档与配置等配套更新里与本任务相关的几条；没有就写「无」。
+-_Avoid_: 完成判据, 详细设计, 质量目标
+-
+-**阻塞点**:
+-会卡住整份方案、需要先解开的前提。
+-_Avoid_: 坑
+-
+-**决策收敛**:
+-方案落稿前把所有要人拍板的缺口（歧义、假设、阻塞点、执行中须授权的动作）写进方案。下游只做「按此执行 / 调整哪步 / 改路由」三选一，方案外缺口不允许在执行期冒出来向人要答案。
+-_Avoid_: 执行中再确认, 边走边问
+-
+-**复杂度档位**:
+-任务走哪条衔接，只取简单、中等、复杂，对应复杂度低、中、高。简单通常是局部修改。中等通常是一个中等需求，可以跨多个模块或仓库，改动量稍大或逻辑稍微复杂。复杂是项目级重构、逻辑重塑，或业务逻辑复杂且涉及面广。命中复杂的任一条即复杂。
+-_Avoid_: 完成程度, 方案置信度
+-
+-**外部参照**:
+-为补方案读到的一条公开做法，出处是检索、开源实现或上游文档。对上原始出处的记为事实，对不上的记为假设。只在复杂档、方案定稿前做一次。
+-_Avoid_: 参考, 参考步骤, 建议, 参考意见
+-
+-**闭门造车**:
+-复杂档里会改步骤的做法，定稿前没有尝试外部参照。
+-_Avoid_: 没调研, 调研不足
+-
+-## Language（确认协议，原 task-confirm）
+-
+-**完成判据**:
+-一条可检查的话，用来判断任务是否做完。
+-_Avoid_: 目标, objective, 交付标准
+-
+-**交付标准**:
+-完成判据之外、本任务应有的交付面要求，每条可检查。
+-_Avoid_: 完成判据, 详细设计, 质量目标
+-
+-**审阅者**:
+-每次审阅给出完成程度与 P0/P1/P2：role-based-reviewer、agent-roster、subagent 三选一。
+-_Avoid_: 审计者
+-
+-**完成程度**:
+-高 / 中 / 低；评审通过只看是否为高。
+-_Avoid_: 复杂度, 方案置信度（旧名）
+-
+-**退出点**:
+-必须停下来、把决定交回人的条件。
+-_Avoid_: 暂停, 阻塞点
+-
+-**授权**:
+-用户明确接受某条退出点已点名的动作。单独「继续」不算。
+-_Avoid_: 点头, 路由确认
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index ecf4663..03b6661 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -1,21 +1,19 @@
+ ---
+ id: taskrail
+ name: taskrail
+-description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，按 wizard → explore(+grill) → design → approve → handoff → propose → apply → archive 推进；内含 human/goal 确认协议、门包与完成门。在用户点名 taskrail、要求端到端推进任务、消息含 /goal、resume 或继续已有任务时使用。"
++description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，按 wizard → explore(grill) → design → approve → handoff → propose → apply → archive 推进，按完成清单收口；human/goal 两种确认模式。在用户点名 taskrail、要求端到端推进任务、消息含 /goal、resume 或继续已有任务时使用。"
+ ---
+ 
+ # taskrail：任务轨道
+ 
+-面向用户默认简体中文；命令名、路径、状态值与既成术语保持原文。
++面向用户默认简体中文；命令名、路径、状态值保持原文。
+ 
+-把一句目标变成可恢复、可交接的任务推进。本 skill 是**脊柱**：持 `phase` / 完成门 / 档位跳过；确认按本 skill 的 [references/confirm-protocol.md](references/confirm-protocol.md)；探索与审批材料委托 `task-explore`；交付委托 `taskflow`。
++把一句目标变成按步骤推进、可恢复、做完符合预期的任务。本 skill 只管**步骤与完成**：意图交给 `task-intent`，探索与审批交给 `task-explore`，交付交给 `taskflow`，对用户的话按 [references/user-report.md](references/user-report.md)。
+ 
+-契约真源：[references/contract.md](references/contract.md)（含「术语」节）。
++契约真源（阶段、档位、目录、术语）：[references/contract.md](references/contract.md)。给人看的地图：`docs/task-flow/README.md`。
+ 
+ ## 输入
+ 
+-流程总览见 `docs/task-flow/README.md`。对用户说的话按「对用户说话」：[user-report.md](references/user-report.md)。
+-
+ ```text
+ taskrail <一句话目标>
+ taskrail goal: <一句话目标>
+@@ -23,91 +21,46 @@ taskrail resume [slug]
+ taskrail list
+ ```
+ 
+-- 消息含 `/goal`，或当前有进行中的 goal 且本条挂了本 skill → `confirm_mode: goal`。
+-- 显式 `goal:` 前缀同上。
+-- 未命中 → `confirm_mode: human`。
++消息含 `/goal`、`goal:` 前缀，或有进行中的 goal 且本条挂了本 skill → `confirm_mode: goal`；否则 `human`。两种模式的差别只在 [references/confirm-protocol.md](references/confirm-protocol.md)。
+ 
+ ## 依赖
+ 
+-执行前确认可读；缺任一项停下报告安装选项：
+-
+-- `task-intent`（wizard 第 1 步意图确认）
+-- `task-explore`（simple/medium 的 explore 仅为 grill；复杂档完整 explore；medium 可轻 design）
+-- `taskflow`（medium / complex 交付必需；simple 不建 driver；入口门 `taskflow/scripts/check_handoff.py`）
+-- `grilling`（有任务目录时的拷问）
+-- stock `openspec-*`（propose/apply/archive；经 taskflow）
+-- Web UI 交付另需：playwright + axe-core（`ui_evidence_check`）；Active Instance 由 design 阶段在交付仓内建立，不依赖仓外 UI skill
++`task-intent`、`task-explore`、`taskflow`（full 档）、`grilling`、stock `openspec-*`（full 档，经 taskflow）。缺哪个就说缺哪个和怎么装，不发明等价命令。
+ 
+-## 绑定与目录
++## 绑定
+ 
+-1. 先读 `tasks/INDEX.md`（无或漂移则按 `ongoing/`/`archive/` 重建，纪律见 task-explore）。
+-2. 无绑定：按 task-explore 绑定规则自行判定新建或恢复并陈述（见 [user-report.md](references/user-report.md)）。
+-3. `new`：无 `tasks/` 就在仓库根建。推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`（字段见契约），落 `wizard/` 等目录按需。INDEX 追加一行。
+-4. 同名已存在：禁止覆盖；是同一件事就 resume，否则换名。
+-5. `resume`：读 `TASK.md` 与阶段产物；按 user-report 的 resume 模板口语汇报；从当前 `phase` 继续，不重出 wizard（除非用户点名重开）。
++1. 先读 `tasks/INDEX.md`（无或漂移则按 `ongoing/` / `archive/` 重建）。
++2. 无绑定：自行判定新建或恢复，一句话说出决定和理由（同一件事就恢复，否则新建）。
++3. 新建：无 `tasks/` 就在仓库根建；推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`，INDEX 追加一行。同名已存在不覆盖：同一件事就恢复，否则换名。
++4. `resume`：读 `TASK.md` 与阶段产物，按 user-report 的 resume 四行汇报，从当前 `phase` 继续；`list` 打印 INDEX。
+ 
+ ## 主循环
+ 
+-每轮：读绑定任务的 `phase` → 只加载该阶段细则 → 高噪声 legwork 宜派宿主 subagent（见契约「执行座位」；无能力则主会话自做）→ 做完当前闸口 → 更新 `TASK.md`（`updated`、`phase`、指针）→ 按档位决定下一阶段或停。
++每轮：读 `phase` → 只加载该阶段细则 → 做完当前步 → 更新 `TASK.md`（`updated`、`phase`、指针、「已做决定」）→ 按档位进下一阶段或停。
+ 
+ | phase | 动作 |
+ |-------|------|
+-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)；第 1 步委托 `task-intent` 落 `wizard/intent.md`；落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）；闸口定稿 |
+-| `explore` | 委托 task-explore `explore`：simple/medium 仅为 grill；复杂为完整 explore(+grill) |
+-| `design` | 委托 task-explore `design`；复杂必经；中等可轻量（方案仍落任务目录）；simple 跳过 |
+-| `approve` | 委托 task-explore `approve`（medium / complex 必经；simple 跳过） |
+-| `propose` | **先** handoff（若 `status` 尚未 `handed-off`；交接节必写「交付类别」「适用门包」，Web UI 另写 Active Instance 根路径与三条 digest），跑 taskflow 入口门 `check_handoff.py` 通过后再委托 taskflow / `openspec-propose`；simple 为单切片 |
+-| `apply` | 委托 `openspec-apply-change`；进度只认 checkbox。Web UI：页面实现消费 frozen Active Instance，先按代表页 two-pass 方法实现并修订一条主流程代表页，再铺其余表面 |
++| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)：先委托 `task-intent` 落 `wizard/intent.md`，再写 `wizard/plan.md` 与 `criterion` / `tier`，定稿 |
++| `explore` | 委托 task-explore `explore`（grill 自问自答，只追细节） |
++| `design` | 委托 task-explore `design` |
++| `approve` | 委托 task-explore `approve` |
++| `propose` | 未 `handed-off` 先走 task-explore `handoff`；`check_handoff.py` 通过后委托 taskflow |
++| `apply` | full：委托 taskflow / `openspec-apply-change`，进度只认 checkbox；skip：直接实现 + 验证 |
+ | `archive` | 交付侧归档 driver；探索侧关闭走 task-explore `archive` |
+-| `done` | 完成门已过；停止新增工作 |
+-
+-### 档位跳过
+-
+-wizard 定稿后写 `tier`，按契约表跳过未列出的阶段（simple：定稿后直接实现 + 验证，不建 driver；medium 的 explore 仅为 grill）。`grill` / `handoff` / `expand` 是非 phase 动作，见契约。
+-
+-### expand
+-
+-design 发现 ≥2 独立方向，或 approve 驳回「范围过大」时，**必须评估一次** expand（task-explore）。父纯伞、子一层；父禁止 handoff。
+-
+-### approve 出口
+-
+-`status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`：叶子任务交接自己；父伞只批量交接已批准子任务。此出口不列 archive、另起任务、继续探索。
+-
+-查证项与外部依赖写入「可带进实现的未决」，进入 driver 准备段或对应切片前置。未决不把推荐改成 archive，也不另开任务。
+-
+-同一已冻结方案里的多条实施线，建成该任务 `{slug}-driver` 的 taskflow 子 change。不为实施再 `expand`，不另起无关 driver。
+-
+-禁止用当轮叙事改写 `criterion`。方案落盘不是完成门。
+-
+-仅当用户明确说放弃、不实施、或确认关闭且不做实施时，才进入探索侧 archive。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive，改走 handoff。与 task-explore archive「不交接而结束」冲突时，以本节为准。
+-
+-### 复杂档自动推进
+-
+-`confirm_mode: goal` 且 `tier: complex` 时：闸口一律走确认协议审阅，收敛后同轮续下一阶段；不列选项。证据根落仓外并写入 `evidence_root`。apply 后可选质量环（角色化评审 / 增量复验）沿用 taskflow references 中的交付质量约定，不另开编排入口。
+-
+-## 完成门
++| `done` | 完成清单已过，停止新增工作 |
+ 
+-同时满足才把 `status`/`phase` 标 `done`：
++**档位**：`skip` = wizard 定稿后直接实现 + 验证；`full` = 全路径。规则见契约「流程」。
+ 
+-1. 完成判据成立（`criterion` 原文）。
+-2. 交付标准全过（方案写「无」则只看判据）。
+-3. medium / complex：相关 checkbox 全勾；simple：`TASK.md`「验证」节有验证命令与结果。
+-4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。
+-5. 命中交付类别门包时（[references/gate-packs.md](references/gate-packs.md)）：可自动化门全过、运行态证据齐、主观项按参照集或项目标准逐条指认；未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记。
+-6. 各轮评审的 Blocker / Major 全有 disposition（`fixed` 或 `accepted-recorded` 含理由），从 driver `proposal.md` 验证记录逐条核对。
+-7. Web UI（按档，见 [gate-packs.md](references/gate-packs.md)「档位调度」）：**complex** 须 digest 与仓库 freeze 一致，且 `ui_evidence_check.py` report exit 0 + design 评审 `--validate-review` exit 0（reviewer ≠ implementer）。**medium / simple**：digest/freeze 仅在有 Active Instance 时核对；`ui_evidence_check` 与 design 评审为 SHOULD——未跑须登记 B 类显式降级，quality floor 自检写入验证记录即可标 `done`。
++**approve 出口**：唯一下一步是 handoff，细则只在契约「approve 出口与交接」。
+ 
+-完成门**逐条机械核对**：不靠记忆、不用「整体看没问题」替代；任一条缺证据即不标 `done`。
++**命中才读**：Web UI → [references/ui-delivery.md](references/ui-delivery.md)；多 worker 并行 → `taskflow/references/multi-worker.md`；一个目标里有多个独立方向 → `task-explore/references/large-scope.md`。
+ 
+-8. 对照 `wizard/intent.md`（若有）：「做完的样子」逐条成立，「不做」未被越界。
+-9. 观感目标：异源 design 评审看改前改后截图无未解决的观感 Blocker / Major；human 再经用户看图确认（[gate-packs.md](references/gate-packs.md)「审美目标」）。
++## 完成
+ 
+-`handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。
++按 [references/done.md](references/done.md) 逐条核对，全过才标 `done`。`handed-off` 或 checkbox 全勾但判据不成立都不算完成。
+ 
+-## 硬边界
++## 边界
+ 
+-- 不自动 commit / push / 部署 / 改线上数据。
+-- 危险与线上退出点以确认协议为准。
+-- 不在正文复制确认协议的审阅规则；不复制 taskflow 的 Driver 协议。
+-- 进度：approve 前认 `TASK.md.phase`；其后认 OpenSpec checkbox。
+-- Worker 派出为建议；无宿主 subagent 时主会话自做，不因此退出轨道。
++- 不自动 commit / push / 部署 / 改线上数据；危险动作按确认协议停。
++- 进度：approve 前认 `TASK.md.phase`，之后认 OpenSpec checkbox。
++- 没有 worker 能力时主会话自做，不因此退出轨道。
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 20f53e1..b67ad12 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -33,23 +33,23 @@ cases:
+     given: handoff 完成或 checkbox 全勾但判据不成立
+     expect:
+       must:
+-        - 完成门核对 criterion 与交付标准
++        - 按 references/done.md 逐条核对 criterion、做完的样子与交付标准
+       must_not:
+         - 仅因 handed-off 或 propose 完标 done
+ 
+-  - id: simple-direct-implement
++  - id: skip-direct-implement
+     kind: core
+     judge: deterministic
+-    description: simple 档定稿后直接实现 + 验证，不建 driver
+-    given: wizard 定档 simple 且用户继续走 taskrail
++    description: skip 档定稿后直接实现 + 验证，不建 driver
++    given: wizard 定档 skip 且用户继续走 taskrail
+     expect:
+       must:
+         - wizard 定稿（意图确认 + 含判据的简短 plan）后直接实现
+-        - 验证命令与结果写入 TASK.md「验证」节，过完成门即 done
+-        - 发现超出局部修改时停下升档为 medium
++        - 验证命令与结果写入 TASK.md「验证」节，过 done.md 即 done
++        - 发现超出局部修改时升档为 full
+       must_not:
+-        - 为 simple 建 {slug}-driver 或走 OpenSpec
+-        - 跳过确认协议执行不可逆动作
++        - 为 skip 建 {slug}-driver 或走 OpenSpec
++        - 不停下就执行删数据 / 线上 / 对外发送等真阻塞动作
+ 
+   - id: optional-worker-seat
+     kind: core
+@@ -64,43 +64,18 @@ cases:
+       must_not:
+         - 因缺少 subagent 停下或改道
+ 
+-  - id: web-ui-active-instance-wizard
+-    kind: core
+-    judge: deterministic
+-    description: Web UI 在 wizard 记录 Active Instance 状态；完成门核对 digest 未漂
+-    given: 交付类别为 Web UI
+-    expect:
+-      must:
+-        - wizard/plan.md 含 Active Instance 状态与三条 digest 或缺失与前置动作
+-        - medium/complex 无 freeze 时不得 approve 冻结
+-        - done 前核对 digest 与交付仓 freeze 一致
+-      must_not:
+-        - 把 tokens/primitive 精确值写入 tasks/
+-
+-  # ---- 确认协议（原 task-confirm）----
+   - id: dual-mode
+     kind: basic
+     judge: deterministic
+-    description: human 列选项；goal 审阅收敛即放行
++    description: human 把推荐说成决定；goal 另一个模型审阅收敛即放行
+     given: 任一确认闸口
+     expect:
+       must:
+-        - human 列选项含推荐；goal 写推荐默认并派审
+-        - 线上 / 泄密 / 未点名危险 / A 类 pending 永不因审阅自动放行
++        - human 把推荐写成决定带理由；goal 写推荐并派另一个模型审
++        - 删数据 / 共享配置 / 线上对外 / 改判据 / 缺凭据 永不因审阅自动放行
+       must_not:
+         - 编排档位或改 TASK.md.phase
+ 
+-  - id: pending-degrade-user-only
+-    kind: core
+-    judge: deterministic
+-    description: A 类 pending 只有用户能确认
+-    given: 显式降级表含 A 类 pending
+-    expect:
+-      must:
+-        - 审阅收敛与单独「继续」都不算确认
+-      must_not:
+-        - 执行者或评审者代确认 A 类
+-
+   - id: phase-is-progress-truth
+     kind: basic
+     judge: deterministic
+@@ -124,48 +99,6 @@ cases:
+       must_not:
+         - 只列问题、不写推荐
+ 
+-  - id: reviewer-binding-and-gate-packs
+-    kind: core
+-    judge: deterministic
+-    description: 命中门包必载专家能力时必须结构化调用 role-based-reviewer；基准物禁外部产品；未覆盖即降级
+-    given: 交付面命中交付类别门包（如 Web UI），进入 approve 或收尾验收
+-    expect:
+-      must:
+-        - 按 references/gate-packs.md 选定交付类别门包
+-        - 以 mode=review + 完整 roles= + 审阅边界结构化调用 role-based-reviewer，并先提供运行态证据
+-        - 门包 / 运行态 / 判据未验证的条目按 quality-profile 定级登记为显式降级
+-      must_not:
+-        - 把外部产品或参考实现当作验收基准
+-        - 未写明不可用原因就退普通 subagent
+-  - id: web-ui-active-instance-baseline
+-    kind: core
+-    judge: deterministic
+-    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
+-    given: 交付类别为 Web UI，complex 进入 approve，或 medium/simple 无 freeze 走 adopt-only
+-    expect:
+-      must:
+-        - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
+-        - complex 无 freeze 时停下回 design 建立 Active Instance，不批准
+-        - medium/simple adopt-only 须已登记显式降级；不强制代表页 two-pass / Gallery
+-        - complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
+-      must_not:
+-        - 用散文组件约定或 ui-skills-root 替代 Active Instance
+-        - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
+-        - 仅用 Gallery 指针或 digest 作为视觉完成
+-
+-  - id: web-ui-runtime-evidence-and-design-review
+-    kind: regression
+-    judge: deterministic
+-    description: Web UI 运行态证据与 design 评审按档调度（complex 硬门；medium/simple SHOULD）
+-    given: 交付类别为 Web UI，进入完成门
+-    expect:
+-      must:
+-        - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
+-        - medium：宜跑同脚本（未跑登记 B 类降级），允许精简 manifest
+-        - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
+-      must_not:
+-        - simple 因未跑 ui_evidence_check 且未登记降级而标 done
+-        - complex 用 Gallery 指针或 digest 代替运行态证据
+   - id: ui-evidence-gate-fail
+     kind: failure
+     judge: deterministic
+@@ -196,7 +129,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 意图「做完的样子」从 wizard 流到完成门（跨 task-intent / taskrail / taskflow）
+-    given: medium 任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
++    given: full 档任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
+     expect:
+       must:
+         - wizard 定稿时 criterion 与「做完的样子」一致或写明差异
+@@ -224,7 +157,7 @@ cases:
+     kind: core
+     judge: llm
+     description: 面向用户的闸口 / 进度 / 评审摘要是口语，不是术语堆砌
+-    given: medium 任务到 approve 闸口、apply 进度汇报、评审结束各一次
++    given: full 档任务到 approve 闸口、apply 进度汇报、评审结束各一次
+     expect:
+       must:
+         - 第一人称完整句子，先说结论或要用户做什么
+@@ -238,12 +171,12 @@ cases:
+     kind: core
+     judge: llm
+     description: goal 模式的观感任务由异源评审自判并自动迭代，不停下问人
+-    given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 medium
++    given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 full
+     expect:
+       must:
+-        - plan 质量属性写下视觉方向（读 frontend-design）与天花板参照集
++        - plan 质量属性写下视觉方向（读 frontend-design）与参照
+         - 截图前准备接近真实的演示数据，截改前 / 改后截图
+-        - 派异源 design 评审对照参照集；有观感 Blocker / Major 就改、重截、再评
++        - 派另一个模型对照参照审截图；有观感 Blocker / Major 就改、重截、再评
+         - 评审结论与截图路径记进验证记录
+       must_not:
+         - 停下请用户看截图
+@@ -328,3 +261,16 @@ cases:
+       must_not:
+         - 数据模型改造、增删改或迁移
+         - 向用户提问或提议跳过流程
++
++  - id: web-ui-strength-follows-aesthetic
++    kind: core
++    judge: deterministic
++    description: Web UI 强度跟是否观感交付走，不跟档位走
++    given: 交付类别为 Web UI
++    expect:
++      must:
++        - 读 references/ui-delivery.md
++        - 普通 UI 改动沿用已有组件库并自检 quality floor
++        - 观感交付先过 done.md「观感验收」
++      must_not:
++        - 把 tokens/primitive 精确值写入 tasks/
+diff --git a/skills/taskrail/examples/README.md b/skills/taskrail/examples/README.md
+index a8ece63..f52f10c 100644
+--- a/skills/taskrail/examples/README.md
++++ b/skills/taskrail/examples/README.md
+@@ -2,4 +2,4 @@
+ 
+ 经过验证的优秀执行案例（惰性补齐）。
+ 
+-- [minimal-webui/](minimal-webui/README.md)：simple 档 Web UI 交接后的台账与证据快照；`tests/test_e2e_handoff_flow.py` 端到端回放 handoff → check_handoff → ui_evidence_check。
++- [minimal-webui/](minimal-webui/README.md)：full 档 Web UI 交接后的台账与证据快照；`tests/test_e2e_handoff_flow.py` 端到端回放 handoff → check_handoff → ui_evidence_check。
+diff --git a/skills/taskrail/examples/minimal-webui/README.md b/skills/taskrail/examples/minimal-webui/README.md
+index 2c055ba..44b1f1f 100644
+--- a/skills/taskrail/examples/minimal-webui/README.md
++++ b/skills/taskrail/examples/minimal-webui/README.md
+@@ -1,10 +1,10 @@
+ # minimal-webui：handoff → check_handoff → ui_evidence 回归样例
+ 
+-最小 Web UI 任务（medium 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
++最小 Web UI 任务（full 档、单切片）交接后的台账与证据快照，供 `tests/test_e2e_handoff_flow.py` 端到端回放：
+ 
+ 1. `workspace/tasks/ongoing/demo-list/TASK.md`：已 `handed-off`，「## 交接」带交付类别、门包与三条 digest。
+ 2. `taskflow/scripts/check_handoff.py workspace demo-list` 应 exit 0；回退到 approve 态或删掉一条 digest 应 exit 1。
+ 3. `ui_evidence_check.py workspace/ui-manifest.json --validate-only`、`--validate-report workspace/evidence/ui/sample/report.json`、`--validate-review workspace/tasks/ongoing/demo-list/design/review-ui.md` 均应 exit 0。
+-4. 交接节 digest 与 `design/contract.md` 一致（完成门第 7 条）。
++4. 交接节 digest 与 `design/contract.md` 一致（见 references/ui-delivery.md）。
+ 
+ `report.json` 是按脚本 schema 合成的样例（截图文件未入库）；装了 playwright + axe-core 时，测试另起本地静态页真跑一遍。
+diff --git a/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md b/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md
+index eb193d4..352eebf 100644
+--- a/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md
++++ b/skills/taskrail/examples/minimal-webui/workspace/tasks/ongoing/demo-list/TASK.md
+@@ -2,7 +2,7 @@
+ slug: demo-list
+ status: handed-off
+ phase: propose
+-tier: medium
++tier: full
+ confirm_mode: human
+ criterion: "列表页在 1280x800 与 375x812 下四态可用，axe 无 serious/critical，焦点全程可见"
+ driver: "demo-list-driver"
+@@ -21,7 +21,7 @@ driver: "demo-list-driver"
+ 
+ ## 交接
+ - 交付类别：Web UI
+-- 适用门包：gate-packs.md「Web UI」
++- 适用门包：ui-delivery.md
+ - Active Instance 根路径：design-system/v1
+ - contract digest：sha256:1f3a0c
+ - binding digest：sha256:2b7d41
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 85b3619..42d97b0 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -1,122 +1,23 @@
+-# 确认协议（taskrail）
++# 确认协议（薄）
+ 
+-写给处在确认闸口的执行者。本协议（原 task-confirm skill，已并入 taskrail）**只**回答「是否放行 / 如何改后放行」；阶段推进与完成门归 `taskrail`。
++闸口（wizard 定稿、design 定稿、approve、危险动作前）只回答「放行 / 改后放行 / 停」。怎么说话见 [user-report.md](user-report.md)，本文不重复。
+ 
+-契约闸口表见 [contract.md](contract.md)。质量画像字段见 [quality-profile.md](quality-profile.md)。
++## 两种模式
+ 
+-## 触发（「在 goal 里」的单一真源）
++| | human（默认） | goal（消息含 `/goal` 或 `goal:`，或被上游以 goal 委派） |
++|---|---|---|
++| 闸口 | 把推荐写成已定的决定（带一句理由）给用户看，用户说「继续」或指出要改哪条后放行；定下的追加到「已做决定」 | 不问人：写推荐 → 派另一个模型审 → 收敛即放行，同轮继续 |
++| 真阻塞 | 停，陈述需要什么 | 同左；审阅收敛不放行真阻塞 |
+ 
+-任一命中则 `confirm_mode` 按 goal 处理；否则 human：
++真阻塞清单只在 [user-report.md](user-report.md) 第 5 节。用户没回话不算确认；单独「继续」不算对真阻塞动作的授权，要用户点名该动作。
+ 
+-- 消息看得到 `/goal`，或上游显式 `confirm:goal` / `goal:`。
+-- 当前有进行中的 goal 且本条挂了本 skill。
+-- 被上游（taskrail / task-explore）以 goal 模式委派。
++## 闸口前自查
+ 
+-其他 skill 判断是否处在 goal 里时按本节，不另写一份。
++呈现前自己走一遍：判据可检查；步骤从现状走得到判据；没有漏掉或越界的交付标准。不过就先改方案，不把自查失败包装成待确认项。
+ 
+-## 模式
++## goal 的另一个模型审（短规则）
+ 
+-| 模式 | 行为 |
+-|------|------|
+-| human | 闸口把推荐写成已定的决定（带理由）呈现，等人说「继续」或指出要改哪条后放行（说决定见 [user-report.md](user-report.md)） |
+-| goal | 写推荐默认 → 派审 → 完成程度为高且无未消 P0/P1 即收敛放行，同轮继续；不列选项。wizard 意图确认由 `task-intent` 派 `role-based-reviewer roles=intent`（异源、高一档模型）代审，通过线按 task-intent `references/intent.md`（无 P0/P1） |
+-
+-永不因审阅收敛自动放行：**线上动作、泄密、未点名的危险操作、A 类 `pending` 降级**。
+-
+-## human 闸口呈现（强制）
+-
+-每个未决口子写成**决定**（按推荐定下）+ **一句话理由**；可选备选。**禁止**只列问题、不写推荐；不以问句呈现（规则见 [user-report.md](user-report.md)「说决定，不提问」）。
+-
+-呈现给用户时按契约「对用户说话」用口语表达，内部字段与 P 级只在落盘文件里结构化。收口句默认陈述：「以上按推荐定了，说『继续』我就往下做，要改哪条直接说编号。」用户回「继续」或「按推荐」即放行。定下的每条决定追加到 `TASK.md`「已做决定」。
+-
+-human 强制走查（wizard 定稿 / approve）：无论是否另派审，呈现闸口前自走三连并在呈现中附一行结论——①判据可检查；②流程总览（或推荐方案步骤）从现状走得到判据；③交付标准无漏、无越界。任一项不过：先修方案再走闸口，不把走查失败包装成待确认项。
+-
+-human 点名派审：用户点名评审（名册 / subagent / 同事已评）时，按下方「审阅」节执行，含 P 级判定与收敛规则；human 闸口表的「推荐整体」即审阅的推荐默认。
+-
+-输出模板（半屏内）：
+-
+-```markdown
+-## 闸口：<名>
+-推荐整体：<一句话放行路径>
+-走查：<通过|失败|不适用> — <一句>（wizard 定稿 / approve 必填；其它闸口写「不适用」）
+-
+-| # | 口子 | 决定 | 理由 |
+-|---|------|------|------|
+-| 1 | … | 具体值 | … |
+-
+-以上按推荐定了；说「继续」即放行，要改哪条直接说编号。
+-```
+-
+-## 闸口输入
+-
+-调用方须给出：闸口名、推荐默认（**human 与 goal 均必填**）、审阅边界材料（完成判据、「不做的事」、wizard 定稿与 approve 时的流程总览；approve/复杂档另附质量画像与显式降级原文）。缺材料（含缺推荐默认）则停，退出点「理解不够」。
+-
+-## 审阅（goal；human 在 wizard 定稿 / approve 点名派审时也可复用）
+-
+-派审前贴上完成判据、「不做的事」，复杂档再贴质量画像与显式降级原文，并写明审与不审。返回完成程度（高/中/低）与范围内意见（P0/P1/P2）。有 P0 或 P1 时完成程度取中或低。
+-
+-| 环节 | 审 | 不审 |
+-|------|----|------|
+-| 方案/流程总览闸口 | 判据可检查；流程总览（或推荐方案步骤）能否走到判据；交付标准是否漏或越界；阻塞/退出是否改道 | 架构、接口、schema、代码骨架；判据与「不做的事」没有的新行为 |
+-| approve | 同上 + 设计依据是否齐；冻结范围是否清楚 | 详细设计正文代写 |
+-| 执行中新决策点 | 该岔路及未验证步骤 | 已验证步骤；详细设计 |
+-
+-**P0**：判据不可检查，或走不到判据，或漏会改道的阻塞/退出；复杂档画像缺必要字段也算。  
+-**P1**：验证对不住判据，或漏应有交付标准。  
+-**P2**：不改道的写法问题；写入坑，不参与完成程度。
+-
+-完成程度写入：
+-
+-- 有 P0/P1：取中或低（审阅者定高→写中；否则从其值）。
+-- 无 P0/P1：写高；审阅者定级不参与。
+-
+-评审者三选一（选中即唯一）：
+-
+-| 方式 | 何时 |
+-|------|------|
+-| role-based-reviewer | 复杂档 approve / 交付面命中门包中的「必载专家能力」（[gate-packs.md](gate-packs.md)）/ 点名角色审 |
+-| agent-roster | 点名名册或 Endpoint |
+-| subagent | 仅在无对应角色、无可用端点且 role-based-reviewer 不可用时；起不来换模型最多两次 |
+-
+-**执行器绑定**（防静默降级）：
+-
+-- 命中 role-based-reviewer 的环节 MUST 以结构化参数调用：`mode=review` + 完整 `roles=` + 审阅边界（完成判据、质量画像 / 角色底线、显式降级原文、审与不审、门包）；角色按调用方给定，不增删。
+-- 降级必须显式：写明不可用的具体原因（无对应角色 / 端点不可达 / 工具缺失）并记入评审意见路径；**不得以图快为由退普通 subagent**——静默降级等同审阅未做。
+-- 交付验收（收尾 rubric）SHOULD 异源：`model=` 与实现者不同，或 `endpoint=` 走名册；同源时报告开头写明。
+-- role-based-reviewer 的 `[运行态]` 条目要求调用方**先给运行证据**（起服务 + 截图 / 录屏 / 断言输出）；未提供时该角色只能对这些条目给「⚠ 需运行态验证」提示——该提示即覆盖缺口，按下方「未覆盖即降级」处理。
+-
+-只看完成程度是否为高判定通过。只有程度无意见也无诚实结论：再派一次；第二次仍无 →「审阅没有结论」。
+-
+-**核对**（有 P0/P1 时）：写入判据或步骤后逐条标已消失/仍在/新增。全部消失且无新增 → 收敛。同一条连续两轮仍在，或单轮新增条数 ≥ 上轮已消失数 →「审阅不通过」。approve 闸口内只派一次审阅循环，禁止嵌套再开 approve。
+-
+-**未覆盖即降级**：门包条目、`[运行态]` 条目或判据的任何一项未被验证 / 未提供证据，等于生产性降级——按 [quality-profile.md](quality-profile.md) 定级并写入显式降级表：A 类走「降级未确认」退出点，B 类可经审阅记 `provisional`。「未测但看起来没问题」不构成通过，未登记不得放行。
+-
+-## 退出点
+-
+-命中则停，向调用方返回标签与所需授权；不标任务完成。
+-
+-- **理解不够**：写不出可检查判据，或缺推荐默认，或步骤靠会改方案的猜测。
+-- **审阅不通过** / **审阅派不出** / **审阅没有结论** / **评审者未定**。
+-- **评审降级未记录**：本轮命中 role-based-reviewer（或门包要求的其它专家能力）却退了普通 subagent，且未写明不可用原因——按「审阅派不出」处理，不放行。
+-- **降级未确认**：A 类仍 `pending`——仅用户点名接受该项、或明确说按降级表全部确认可放行；审阅收敛与单独的「继续」都不算确认。B 类可经审阅记 `provisional`，到用户在场点追认。
+-- **阻塞解不开**。
+-- **未点名的危险操作** / **线上动作** / **泄密**。
+-- **同一验证连败两次**：同一假设下连续失败两次；换假设须写判伪差异；累计假设达 3 仍失败则停。
+-
+-## 授权
+-
+-授权只用于退出点已经点名的动作。单独「继续」在因退出点而停时不算授权。意图命中可复述生效（不可逆与线上仍须逐字点名）。
+-
+-同闸口连败 2 次：返回调用方升级 human 或标 `blocked`。
+-
+-## 不做
+-
+-- 不产步骤级方案、不定档位、不改 `TASK.md.phase`。
+-- 不执行 OpenSpec、不写业务代码。
+-- 不维护完整四状态网格；任务进度真相在 `TASK.md` / checkbox（见 taskrail 契约）。
+-
+-## 相关资产
+-
+-- 质量画像：[quality-profile.md](quality-profile.md)
+-- 交付类别门包（**唯一真源**）：[gate-packs.md](gate-packs.md)——哪类交付用哪套门、必载专家能力、基准物；taskrail / taskflow / task-explore 只引用本表
+-- 挂起五元组：[suspension.md](suspension.md)
++- 审阅者用与执行者不同、最好更强的模型（`model=` 或 agent-roster `endpoint=`）；派不出时写明原因，主会话按同一清单自审并把结论标「把握低」。
++- 随附：`criterion`、「不做」、要审的方案或步骤；写明只审「判据可检查、步骤走得到判据、交付标准有无漏 / 越界」，不审架构与代码细节。
++- 返回 P0（判据不可检查或走不到判据）/ P1（验证对不上判据、漏交付标准）/ P2（写法问题，不挡路）。无 P0 / P1 即收敛。
++- 有 P0 / P1 就改了再审；同一条连续两轮还在，或同一验证连败两次，停下按 user-report 四行说卡在哪。
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index 61aaa07..603d653 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -1,53 +1,54 @@
+-# taskrail 契约（阶段 / 载荷 / 闸口 / 目录）
++# taskrail 契约（阶段 / 载荷 / 闸口 / 目录 / 术语）
+ 
+-本文件是 task* 族重组后的**唯一真源**。`taskrail`（含确认协议 [confirm-protocol.md](confirm-protocol.md)）/ `task-explore` / `taskflow` 与本文有出入时，以本文为准（术语定义见本文「术语」节）；各 skill 正文只写执行细则，不另造阶段枚举。
++task 系列的**唯一真源**。`taskrail` / `task-explore` / `taskflow` / `task-intent` 与本文有出入时以本文为准；各 skill 只写执行细则，不另造阶段枚举或术语定义。
++
++职责收敛：taskrail 管步骤与完成；task-intent 管意图；[user-report.md](user-report.md)（+ 薄确认 [confirm-protocol.md](confirm-protocol.md)）管对用户的输出与交互。Web UI、多 worker、大范围拆分、质量画像是可选包，命中才读。
+ 
+ ## 流程
+ 
+ ```text
+ confirm_mode: human | goal
+ 
+-wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive
+-         ↑ expand 可插在 explore / design 之后
+-         ↑ handoff = 动作，不是 phase
++wizard → explore(grill) → design → approve → [handoff] → propose → apply → archive
++                                             ↑ handoff 是动作，不是 phase
+ ```
+ 
+-| 档位 (`tier`) | 路径 |
+-|---------------|------|
+-| simple | wizard → apply(直接实现 + 验证) → done |
+-| medium | wizard → explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
+-| complex | wizard → explore(+grill) → design → approve → handoff → propose → apply → archive |
+-
+-简单/中等是**跳过**中间阶段（simple 跳过 explore / design / approve / handoff，直接实现；medium 的 explore 仅为 grill），不是另一套 skill。
++| 档位 (`tier`) | 路径 | 何时 |
++|---------------|------|------|
++| `skip` | wizard → apply（直接实现 + 验证）→ done | 局部修改，一句话说得清改动 |
++| `full` | wizard → explore(grill) → design → approve → handoff → propose → apply → archive | 其余：跨模块 / 仓库、要拆步骤、涉及面广 |
+ 
+-### simple 专条
+-
+-- simple **不建 driver、不走 OpenSpec**：wizard 定稿（意图确认 + 含判据的简短 plan）后直接实现；验证命令与结果写入 `TASK.md`「验证」节，过完成门即 `done`。
+-- 实现中发现超出局部修改（跨模块、需拆切片、命中复杂硬指标）→ 停下升档为 medium，补 explore / approve / handoff。
+-- 不可逆、线上、对外发送等动作仍按确认协议逐步授权；`criterion` 同样不得无声改写。
++- 拿不准往 `skip` 靠并说一句理由；实现中发现超出局部（跨模块、要拆切片）→ 升 `full`，补 explore / approve / handoff。
++- `skip` 不建 driver、不走 OpenSpec：验证命令与结果写入 `TASK.md`「验证」节，过 [done.md](done.md) 即 `done`。
++- 旧任务目录里的 `simple` 按 `skip` 读，`medium` / `complex` 按 `full` 读；下次写 `TASK.md` 时顺手改成新值。
++- UI 强度不跟档位走，跟「是否观感交付」走（见 [ui-delivery.md](ui-delivery.md)）。
+ 
+ ## 非 phase 动作
+ 
+-下列是动作，**不得**写入 `TASK.md.phase`：
++| 动作 | 时机 | 影响 |
++|------|------|------|
++| `grill` | `explore` 的子步骤，委托 `grilling`，自问自答 | 不占 phase |
++| `handoff` | approve 冻结后、propose 前；步骤见 task-explore [handoff.md](../../task-explore/references/handoff.md) | `status:=handed-off`，`phase:=propose`，写 `driver` |
+ 
+-| 动作 | 时机 | phase / status 影响 |
+-|------|------|---------------------|
+-| `grill` | 属 `explore` 子步骤；有台账时委托 `grilling` | 不单独占 phase |
+-| `handoff` | approve 已冻结后、进入 `propose` 前；委托 task-explore `handoff` | `status:=handed-off`，`phase:=propose`，写入 `driver` |
+-| `expand` | explore / design 后按需 | 建子任务目录；父 `phase` 不变 |
++大范围拆分（父伞 / 子任务）是可选附录：[large-scope.md](../../task-explore/references/large-scope.md)。默认单任务。
+ 
+-### approve 出口
++## approve 出口与交接（本节是唯一出处）
+ 
+-`status` 为 `ongoing` 且尚未 `handed-off` 时，approve 完成后的唯一推荐下一步是 `handoff`。查证项与外部依赖写入「可带进实现的未决」，未决不阻断交接。同一已冻结方案的多条实施线建成该 `{slug}-driver` 的 taskflow 子 change。禁止用当轮叙事改写 `criterion`。已冻结方案含实施动作且尚未 `handed-off` 时，拒绝进入 archive。
++1. approve 冻结且尚未 `handed-off` 时，唯一下一步是 `handoff`；不列 archive、另起任务、继续探索。方案含实施动作却未交接时拒绝 archive。仅当用户明确说放弃 / 不实施，才走探索侧 archive。
++2. 查证项与外部依赖写进「带进实现的未决」，不阻断交接。
++3. 交接只带**指针与判据**：`criterion` 原文、方案与 `approve/APPROVED.md` 路径（可附 git 短 hash），不复制方案、画像或降级原文。
++4. `taskflow/scripts/check_handoff.py <root> <slug>` exit 0 是**唯一机械门**；不过就回 handoff 补齐，不在别处复述它的核对项。
++5. 同一方案的多条实施线建成 `{slug}-driver` 的子 change，不另起 driver。
++6. 禁止用当轮叙事改写 `criterion`；方案落盘不是完成。
+ 
+ ## 意图变更
+ 
+-用户在 wizard 之后改主意（或 grill / design / apply 发现与 `wizard/intent.md` 冲突）时，按序，不得跳步：
++wizard 之后用户改主意，或 grill / design / apply 发现与 `wizard/intent.md` 冲突：
+ 
+-1. 重跑 `task-intent`，改写 `wizard/intent.md` 并在其纠偏记录追加一行（旧版靠 git 追溯）。
+-2. 「做完的样子」变了 → 走确认协议**显式**改 `criterion`（human 逐条确认；goal 审阅收敛），记入 `TASK.md`「已做决定」；这是唯一合法改写，不算「用当轮叙事改写」。
+-3. phase 回退：只改细节 → 留在当前 phase；改范围 / 判据且未 `handed-off` → 回 `wizard`（方案未冻结）或 `design`（已有设计）；已 `approve` 的须重新 approve。
+-4. 已 `handed-off`：探索侧不回退，经 taskflow 开修订子 change（或修订 driver 判据快照），未勾 checkbox 按新判据重排；已交付部分写显式决策。
++1. 重跑 `task-intent`，改写 `wizard/intent.md` 并在纠偏记录追加一行。
++2. 「做完的样子」变了 → 显式改 `criterion`（human 等用户说可以；goal 审阅收敛），记入「已做决定」。这是唯一合法改写。
++3. 未 `handed-off`：只改细节留在当前 phase；改范围 / 判据回 `wizard` 或 `design`，已 approve 的重新 approve。
++4. 已 `handed-off`：经 taskflow 开修订子 change，未勾 checkbox 按新判据重排。
+ 
+ ## 目录
+ 
+@@ -56,24 +57,18 @@ tasks/
+ ├── INDEX.md
+ ├── ongoing/{slug}/
+ │   ├── TASK.md
++│   ├── wizard/intent.md   # task-intent 确认版
+ │   ├── wizard/plan.md
+-│   ├── wizard/intent.md         # task-intent 确认版（含纠偏记录）
+-│   ├── evidence/intent/         # 意图摸底详情（只读 subagent 写）
+-│   ├── explore/                 # grill 纪要等（可选）
++│   ├── evidence/intent/   # 意图摸底详情
++│   ├── explore/           # grill 纪要（可选）
+ │   ├── design/
+-│   ├── approve/                 # 评审意见 + APPROVED.md
+-│   ├── handoff.md               # 交接摘要（可选；也可写在 TASK.md 交接节）
+-│   ├── glossary.md              # 惰性
+-│   └── {sub}/                   # expand：只一层
++│   └── approve/           # 评审意见 + APPROVED.md
+ └── archive/{yyyy-mm-dd}/{slug}/
+ ```
+ 
+-- 凡经 `taskrail` 推进的任务一律建 `tasks/ongoing/{slug}/`（含简单档）。
+-- 无 `tasks/` 时在仓库根直接建，一句话说明（沿用 task-explore 纪律）。
+-- 运行产物（证据、确认计数器）落**仓外**；`TASK.md` 只存指针（如 `evidence_root`）。
+-- 命中交付类别门包时，`design/` 落**契约文件指针**（指向仓库内已冻结的共享面契约）与证据计划，二者随交接进 driver。
+-- **Web UI**：共享面契约 = 交付项目根 `design-system/v1` Active Instance（`status: frozen` + contract / binding / projection digest）；指针与 digest 写在任务 `design/contract.md` 与 driver，**禁止**把 tokens / primitive 精确值复制进 `tasks/`。Active Instance 本体落交付项目根，由交付仓自己维护（task* 的 design 阶段负责建立 / 修订并 freeze）。
+-- 单任务产物只写当前任务目录；禁止写仓库根 `CONTEXT.md`、`docs/adr/`、`docs/design/`。
++- 经 `taskrail` 推进的任务一律建 `tasks/ongoing/{slug}/`；无 `tasks/` 在仓库根直接建，一句话说明。
++- 运行产物（证据）落仓外，`TASK.md` 只存指针（`evidence_root`）。
++- 单任务产物只写当前任务目录（不写仓库根 `CONTEXT.md`、`docs/adr/`、`docs/design/`）。
+ 
+ ## TASK.md 元信息（封闭字段）
+ 
+@@ -83,7 +78,7 @@ parent: <父 slug；仅子任务>
+ status: ongoing | handed-off | blocked | done | archived
+ phase: wizard | explore | design | approve | propose | apply | archive | done
+ confirm_mode: human | goal
+-tier: simple | medium | complex
++tier: skip | full
+ criterion: "<完成判据原文一条>"
+ driver: null | "{slug}-driver"
+ evidence_root: <仓外路径或 null>
+@@ -91,123 +86,57 @@ created: YYYY-MM-DD
+ updated: YYYY-MM-DD
+ ```
+ 
+-- `phase` 只允许上列封闭枚举。task-explore 的 `new` / `chat` / `save` / `resume` / `reopen` / `expand` / `handoff` 等是**命令**，禁止写入 `phase`。
+-- `phase` + 各阶段目录产物 = wizard→approve 区间的进度真相。
+-- propose 之后进度只认 OpenSpec checkbox（driver / 子 change）。
+-- **一本账**：`TASK.md` 是唯一任务账（目标、判据、phase、决定）；所有决定只追加到「已做决定」表（决定 / 理由 / 可逆 / 来源阶段），意图确认、grill、闸口、实现中定下的都记在这里，不分散到别的文件；driver 只是 OpenSpec 执行记录，propose 之后的进度看其 checkbox，不在 driver 另记任务状态。`handed-off` **不等于** `done`。
+-- `done` 仅当完成判据成立且交付标准全过（复杂档另要求质量画像齐全、降级无 `pending`/`provisional`）。
+-
+-`status` 随 `phase` 走，不另设矩阵：wizard–approve（及 simple 的 apply）为 `ongoing`；handoff 后为 `handed-off`；完成门过为 `done`；归档为 `archived`；`blocked` 停在原 `phase`。
++- `phase` 只取上列枚举；命令名（`new` / `save` / `resume` / `handoff` 等）不得写入。
++- approve 前进度认 `phase` + 阶段产物；propose 之后只认 OpenSpec checkbox。
++- **一本账**：`TASK.md` 是唯一任务账；所有决定只追加到「已做决定」表（决定 / 理由 / 可逆 / 来源阶段）。driver 只是 OpenSpec 执行记录。`handed-off` 不等于 `done`。
++- `status` 随 `phase` 走：wizard–approve（及 skip 的 apply）为 `ongoing`；handoff 后 `handed-off`；完成清单过为 `done`；归档 `archived`；`blocked` 停在原 phase。
+ 
+-## 阶段载荷契约
++## 阶段载荷
+ 
+-阶段跳转必须带齐；缺则停在上一 `phase`，禁止下游猜意图：
++缺则停在上一 phase，不让下游猜：
+ 
+-| 进入阶段 | 必须已有 |
+-|----------|----------|
+-| explore / design | `wizard/intent.md`（`status: confirmed` 或 `assumed`；本规则生效前的旧任务缺失不回溯）+ `criterion` + `wizard/plan.md`（或 TASK.md「方案」节等价正文，含流程总览与质量属性节；有交付产出时含交付类别与适用门包节；Web UI 另含 Active Instance 状态节） |
+-| design | 流程总览映射：设计步骤 ↔ 总览步骤逐条对齐；新增 / 删改 / 改序写显式决策，供 approve 结构门核对；命中门包时产出**契约文件指针**（仓库内已冻结的共享面契约）与证据计划；Web UI 指针必须含 Active Instance 根路径与三条 digest（档位门见 gate-packs） |
+-| approve | design 产出路径（或简单档的 plan / explore 纪要）+ `criterion` + 「不做的事」；命中门包时另附交付类别、适用门包与基准物；Web UI：complex 须 digest 与仓库 freeze 一致才可冻结；simple 无 freeze 仅当 adopt-only + 已确认显式降级 |
+-| propose（经 handoff） | `approve/APPROVED.md`（或 TASK.md「已做决定」已冻结）+ 判据原文；流程总览快照随交接进 driver；命中门包时门包与契约文件指针一并进 driver；`status: handed-off` 与 `driver` 已写入；`taskflow/scripts/check_handoff.py` exit 0 |
+-| apply | driver `tasks.md` 已由 propose 产出；simple：wizard 已定稿（`wizard/intent.md` + `criterion`） |
+-| archive（探索侧） | 用户确认关闭；子任务均已结 |
++| 进入 | 必须已有 |
++|------|----------|
++| explore / design | `wizard/intent.md`（`confirmed` 或 `assumed`）+ `criterion` + `wizard/plan.md`（目标 / 判据 / 步骤 / 不做） |
++| approve | design 产出路径 + `criterion` + 「不做」 |
++| propose | `approve/APPROVED.md` + `status: handed-off` + `driver` + `check_handoff.py` exit 0 |
++| apply | full：driver `tasks.md` 已由 propose 产出；skip：wizard 已定稿 |
++| archive（探索侧） | 用户确认关闭 |
+ 
+ ## 执行座位
+ 
+-高噪声 legwork（大范围摸底、调研、起草、实现切片、评审、验证复跑）**宜**交给 worker（宿主 subagent；点名 Endpoint 时走 `agent-roster`），以并行提速、保持主会话上下文干净。不新增 `phase`，不改变闸口与完成门。宿主无 subagent 或派出失败 → 主会话按同一落点与完成标准自做，**不得**因此停下或改道。
++高噪声 legwork（摸底、调研、起草、实现、评审、复跑）宜交 worker（宿主 subagent；点名 Endpoint 走 `agent-roster`）；没有就主会话按同一落点自做，不停下。闸口与对用户的话不外派。worker 详情落盘，只回结论 / 路径 / 未决。`phase` / `status` / `driver` 只由编排者写。多 worker 并行见 [multi-worker.md](../../taskflow/references/multi-worker.md)。
+ 
+-- wizard 意图探索是否并行摸底：跳过条件见 task-intent「何时跳过」。
+-- **永不派出**：闸口（确认协议）、危险退出、面向用户的提问与选项。
+-- 派出时交代清楚目标、输入、写入范围与产出位置；apply 的实现者输入引用 taskflow `implementer-isolation`。
+-- Worker 详情落盘，只回简短摘要（结论 / 落盘路径 / 未决）；转述给用户时按「对用户说话」；主会话不回灌工具轨迹、不转贴全文。产物缺失则停在当前 `phase`。
+-- `TASK.md` 的 `phase` / `status` / `driver` 仅编排者写（属记账：编排者直接更新，不向用户请示）；OpenSpec checkbox 由执行 `openspec-apply-change` 的一方按协议勾，编排者回收时核对。
++## 确认闸口
+ 
+-## 确认闸口（封闭）
+-
+-一律按确认协议（[confirm-protocol.md](confirm-protocol.md)），不在各 skill 复制第二份规则：
+-
+-| 闸口 | 说明 |
+-|------|------|
+-| wizard 定稿 | 方案落盘前；human 含强制走查（判据可检查 / 流程总览可达判据 / 交付标准无漏越界，细则见确认协议），可点名派审 |
+-| explore 关键 | 探索方向/范围收敛（含仅 grill） |
+-| design 定稿 | 方案稿可审前 |
+-| approve | 结构门 + 评审门 + 冻结（medium / complex 必经；simple 跳过）；human 结构门含流程总览对齐核对，可点名名册评审 |
+-| expand 创建 | 拆子任务前 |
+-| 危险类退出点 | 线上 / 泄密 / 未点名危险操作等 |
+-
+-- **human**：列选项（含推荐）/ 等人确认。
+-- **goal**：写推荐默认 → 派审 → 收敛即放行，同轮继续。
+-- 线上、泄密、破坏性 git、未点名危险操作：**永不**因审阅收敛自动放行。
+-- 同闸口连败 2 次 → 停并升级 human，或标 `blocked`。
++wizard 定稿、design 定稿、approve、危险操作前。一律按 [confirm-protocol.md](confirm-protocol.md)：说决定、真阻塞才停。
+ 
+ ## Skill 归属
+ 
+ | Skill | 职责 |
+ |-------|------|
+-| `taskrail` | 唯一编排入口；绑定任务；推进阶段；完成门 |
+-| `taskrail` 确认协议（`references/confirm-protocol.md`） | human/goal 确认与审阅；退出点；质量画像字段规范 |
+-| `task-explore` | 台账与 explore/design/expand/approve/handoff/archive 等**命令** |
+-| `taskflow` | driver + propose/apply/archive；交付 checkbox |
+-
+-Web UI 不依赖仓外 skill：Active Instance 由 design 阶段在交付仓内建立并 freeze，业务页由 apply 阶段按代表页 two-pass 方法实现；task* 只认指针与 digest，不复制 DS 本体。
+-
+-已删除的旧 id（`task-wizard` / `task-goal` / `task-delivery`）勿再引用；统一用上表四 skill。
+-
+-## 对用户说话（task 系列共用，唯一出处）
+-
+-规则正文只在 [user-report.md](user-report.md)（影响 → 要改哪 → 怎么改 → 我的决定；说决定不提问；内部词留台账；file:line 只作附注；记账不问人；resume 模板）。本节只留对比示例。
+-
+-前后对比：
+-
+-- 闸口 —— 前：「gate=approve；tier=medium；criterion 待确认；P1×1」；后：「方案定了：按中等规模处理，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。接下来我就往下做。」
+-- 进度 —— 前：「driver checkbox 3/5，slice-2 apply done，gate pending」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步，预计不需要你介入。」
+-- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2（E-1、Q-1）」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：错误处理漏了超时、缺一条回归测试，我这就补上。」
+-
+-## 术语（原 glossary.md）
++| `taskrail` | 唯一编排入口；绑定任务；推进阶段；[done.md](done.md) |
++| `task-intent` | 意图：探索 → 复述 → 纠偏 |
++| `task-explore` | explore / design / approve / handoff（台账细则） |
++| `taskflow` | driver + propose / apply / archive；checkbox |
+ 
+-taskrail / task-explore / taskflow 共用；其他文件出现下列术语时按本节理解，只链接本节，不另写定义。
++## 对用户说话
+ 
+-### 任务与阶段
++规则只在 [user-report.md](user-report.md)。前后对比：
+ 
+-| 术语 | 含义 | 不要写成 |
+-|------|------|----------|
+-| 完成判据（`criterion`） | 一条可检查的话，判断任务是否做完；原文逐字传递 | 目标、objective |
+-| 交付标准 | 判据之外、本任务应有的交付面要求，每条可检查；没有写「无」 | 质量目标 |
+-| 档位（`tier`） | simple / medium / complex，由 wizard 判定，下游不重判 | 完成程度 |
+-| `phase` | 契约封闭枚举 `wizard \| explore \| design \| approve \| propose \| apply \| archive \| done`；命令名不得写入 | — |
+-| `handed-off` | `TASK.md.status`：已交接 taskflow，任务仍在 `ongoing/`，之后进度只认 checkbox | 归档 |
+-| 交接载荷 | `TASK.md`「## 交接」节：判据原文、交付类别、适用门包、契约指针（Web UI 含三条 digest）；`check_handoff.py` 只认它 | 口头交接 |
+-| driver | OpenSpec change `{task}-driver`，只编排子 change；子 change 为 `{task}-<slice>` | 第二份任务账本 |
++- 闸口 —— 前：「gate=approve；tier=full；criterion 待确认；P1×1」；后：「方案定了，做完的标准是导出 5 秒内。大文件内存占用有点风险，我先加个上限再动手。接下来我就往下做。」
++- 进度 —— 前：「driver checkbox 3/5，slice-2 apply done」；后：「五步里做完了三步，第二部分已经实现并通过测试。接下来做剩下两步。」
++- 评审摘要 —— 前：「roles=engineer,qa；Blocker 0；Major 2」；后：「工程和测试两个角度看过了，没有必须马上修的问题；有两处该补：超时处理和一条回归测试，我这就补上。」
+ 
+-### 确认与审阅
++## 术语
+ 
+ | 术语 | 含义 |
+ |------|------|
+-| 完成程度 | 审阅返回的高 / 中 / 低；只有「高」且无未消 P0/P1 才收敛 |
+-| 退出点 | 必须停下、把决定交回人的条件（见 [confirm-protocol.md](confirm-protocol.md)） |
+-| 授权 | 用户明确接受某条退出点已点名的动作；单独「继续」不算 |
+-| 门包 | 交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill）对应的可自动化门 + 运行态证据 + 主观项 + 必载专家能力，真源 [gate-packs.md](gate-packs.md) |
+-| 未覆盖即降级 | 门包条目或判据任一项未验证 = 生产性降级，须登记，不得以「看起来没问题」放行 |
+-
+-### 质量画像与降级状态
+-
+-| 状态 | 谁能写 | 含义 |
+-|------|--------|------|
+-| `pending` | 执行者登记 | 未确认；A 类（缩判据或交付面）挂 `pending` 即停 |
+-| `provisional` | 审阅收敛（仅 B 类） | 临时确认，须到用户在场点追认，完成门不认 |
+-| `confirmed` | 只有用户 | 点名接受、全部确认或在场追认 |
+-
+-评审意见 disposition 只取两值：`fixed`（已修）/ `accepted-recorded`（接受并记录理由）。Blocker / Major 无 disposition 不得收敛。字段细则见 [quality-profile.md](quality-profile.md)。
+-
+-### Web UI
+-
+-| 术语 | 含义 | 不要混用 |
+-|------|------|----------|
+-| Active Instance | 交付项目根 `design-system/v1` 下的设计系统实例，由 task* 的 design 阶段在交付仓内建立并 freeze | 组件约定、样式说明 |
+-| freeze / frozen | Active Instance 的 `status: frozen`：契约已冻结，apply 只消费不改 core | 定稿 |
+-| 三条 digest | contract / binding / projection 三个摘要；写入 `design/contract.md` 与 driver，用来判断是否漂移 | 版本号 |
+-| adopt-only | simple 档无 Active Instance 时直接沿用交付仓已有组件库 / 样式体系；须登记并确认显式降级，豁免 Active Instance，并按 gate-packs 档位调度豁免重型证据门（`ui_evidence_check` / design 评审改为 SHOULD） | — |
+-| 代表页 | 一条主流程的代表页面：按代表页 two-pass 方法先实现并修订，其余表面从它长出 | 旗舰切片（并行层面的概念，代表页是其 UI 产物） |
+-| 旗舰切片 | 命中门包时先单独派出的首个切片，做到全量并过评审后才并行 | — |
+-| Gallery | 交付仓内的组件 / 页面展示页证据；只证明系统未漂，不替代 `ui_evidence_check` | 截图证据 |
+-| `ui_evidence_check` | [`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)：多视口截图 + axe WCAG 2.2 AA + 焦点走查 + 四态，出 `report.json`；完成门只认它 exit 0 | 自评 |
++| 完成判据（`criterion`） | 一条可检查的话，判断任务是否做完；原文逐字传递 |
++| 交付标准 | 判据之外、本任务应有的可检查交付面要求；没有写「无」 |
++| 档位（`tier`） | `skip` / `full`，wizard 判定，下游不重判 |
++| `handed-off` | 已交接 taskflow，任务仍在 `ongoing/`，之后进度只认 checkbox |
++| 交接载荷 | `TASK.md`「## 交接」节：判据、交付类别、适用门包、指针；`check_handoff.py` 只认它 |
++| driver | OpenSpec change `{slug}-driver`，只编排子 change `{slug}-<slice>` |
++| 真阻塞 | 必须停下等用户的情况，清单只在 [user-report.md](user-report.md) 第 5 节 |
++| 授权 | 用户明确接受某个已点名的动作；单独「继续」不算对危险动作的授权 |
+diff --git a/skills/taskrail/references/external-precedent.md b/skills/taskrail/references/external-precedent.md
+index aea01a6..5ff1bfe 100644
+--- a/skills/taskrail/references/external-precedent.md
++++ b/skills/taskrail/references/external-precedent.md
+@@ -1,39 +1,8 @@
+-# 外部参照
++# 外部参照（full 档可选一步）
+ 
+-术语见 [../CONTEXT.md](../CONTEXT.md)。定稿前的一次公开参照，避免闭门造车。
++方案依赖选型、外部集成或协议对接，且本仓查不到成熟做法时做一次；其余跳过。
+ 
+-## 何时做
+-
+-本仓摸底之后、方案定稿之前：
+-
+-- 档位是复杂，或写到定稿前升到复杂：必做。
+-- 中等档且涉及选型 / 外部集成 / 协议对接：必做。
+-- 其余情况（简单档、中等档纯局部改动）：跳过，回到方案正文继续写。
+-
+-做完后路由按事实重判。没有复杂档典型情况时可以低于初步档位；已经命中复杂档时不得降档。已经记下的外部参照留在前提里。
+-
+-## 先搜后读
+-
+-先检索、后读原文。
+-
+-- 用宿主已有的搜索能力检索公开资料；搜索不限次，读到可对证的**原文**为止。
+-- 原文 = 公开仓库或上游文档里写下该做法的那一处（官方文档章节、标准条文、上游 Issue/PR、成熟开源实现的对应源码或文档），不是转述。
+-- 阅读最多两处原文。本仓的代码和文档算摸底；本机其他仓库仅当该项目本身公开时才算外部参照。
+-
+-来源分级，冲突时写明依据：官方文档 / 标准 / RFC > 上游 Issue / PR / Release Notes > 成熟开源实现 > 权威社区 > 其他。
+-
+-## 一次尝试
+-
+-只追最会影响步骤的那一个做法。两个做法分不出主次时，追更没把握的那个，另一个写入假设。
+-
+-## 写入前提
+-
+-- 对上原文：写入事实。一句话写出做法，并附上公开出处。做法会改步骤时，改步骤。
+-- 打不开、没有检索或阅读能力、没有命中、或只有转述：写入假设，写明缺的是什么。方案照常写完。
+-- 两处原文都对上、做法相反：两条都写入事实，各自附上公开出处。步骤采纳一条，另一条写入坑。没有已查证事实能选定哪条时，这是决策点。
+-
+-事实和假设仍写在前提里。步骤里写采纳之后的动作。
+-
+-## 做完
+-
+-前提里写明这一轮追的是哪一个做法，以及结果落在事实、假设，还是两条相反的事实。然后才定稿。
++- 先检索，再读**原文**（官方文档 / 标准 / 上游 Issue 或 PR / 成熟开源实现的对应处），最多两处；转述不算。来源冲突时官方与标准优先。
++- 只追最会影响步骤的那一个做法。
++- 对上原文：写进「事实」并附出处；会改步骤就改步骤。打不开、没命中或只有转述：写进「假设」，写明缺什么，方案照常写完。
++- 两处原文做法相反：都写进事实，步骤采纳一条并在「已做决定」写理由。
+diff --git a/skills/taskrail/references/gate-packs.md b/skills/taskrail/references/gate-packs.md
+deleted file mode 100644
+index 8999fd3..0000000
+--- a/skills/taskrail/references/gate-packs.md
++++ /dev/null
+@@ -1,98 +0,0 @@
+-# 交付类别门包（唯一真源）
+-
+-本表回答「哪类交付、用哪套门、拿什么当基准、谁审、没覆盖怎么办」。taskrail / taskflow / task-explore 只**引用**本表，不另写第二份；新增交付类别或门时改本文件。
+-
+-## 通则
+-
+-1. **基准物** = 标准 / 契约定稿 / 冻结基线。**禁止把外部产品或参考实现当验收基准**；外部参照（风格、架构、交互）只作一次性输入被吸收；参照集仅用于「可指认件的差值」，不作地板判定。
+-2. **门包条目三分**：可自动化（落脚本、可复跑）· 运行态（须真实运行证据）· 主观（须指到参照集或项目自有标准的可指认件）。
+-3. **未覆盖即降级**：任一条目未验证、未提供证据 = 生产性降级，按 [quality-profile.md](quality-profile.md) 定级登记；不得以「看起来没问题」通过。
+-4. **执行器绑定**：命中「必载专家能力」的类别，评审 MUST 以 `mode=review` + 完整 `roles=` + 审阅边界结构化调用 `role-based-reviewer`；降级须写明不可用原因（见 SKILL.md「执行器绑定」）。
+-
+-## Web UI
+-
+-- **基准物**：无障碍标准（WCAG 2.2 AA 作地板）+ 交互启发式清单（Nielsen 类压缩版）+ **交付项目根已冻结的 `design-system/v1` Active Instance**（`design-system.yaml` 的 `status: frozen`，及 contract / binding / projection 三条 digest）+ Gallery / 冻结视觉基线（Gallery 证据或等价 current-build 截图）。Active Instance 由 task* 的 design 阶段在交付仓内建立并 freeze（有参照源时先从参照源提炼 tokens / primitive）；task* 只认指针与 digest，不在 `tasks/` 内复制 tokens / primitive 精确值。`ui-skills-root` 与零散 craft skill **不**替代 Active Instance。
+-- **Active Instance 档位门**（与基准物同级；按档调度，保任务速度）：
+-  - **complex**：进入 `approve` 冻结前必须已有 frozen Active Instance；缺失则停下，回 design 阶段建立 Active Instance 至 freeze，不得用散文式「组件约定」顶替。
+-  - **medium**：SHOULD 使用 frozen Active Instance；缺失时可走 adopt-only（沿用交付仓已有组件库 / 样式体系）并登记 **B 类**显式降级放行。
+-  - **simple**：优先 frozen Active Instance；否则「adopt-only：沿用交付仓已有组件库 / 样式体系」且质量画像已登记并**确认**显式降级即可放行；无降级登记不得放行。adopt-only **豁免** Active Instance，并按下方「档位调度」豁免重型证据门。
+-- **必载专家能力**（按档）：
+-  - **complex**：`role-based-reviewer roles=design`（别名 `uiux`）。审阅边界 MUST 附 Active Instance 根路径、三条 digest、Gallery（或等价）证据指针。
+-  - **medium**：SHOULD 点名 `roles=design`；未点名时同 simple 自检 quality floor 并写入验证记录。
+-  - **simple**：不强制 `roles=design`；实现者自检 quality floor（破坏性确认、键盘可达、focus 可见）即可。需要时再点名 design 角色，且该角色只扫 floor（见 `role-based-reviewer` design 角色「调用范围与速度」）。
+-- **可自动化门**（落仓库脚本；能跑 DS runtime 时优先下列命令，缺工具按「未覆盖即降级」登记）：
+-  - Active Instance：项目约定的 Active Instance 校验（`design-system.yaml` 为 `status: frozen`、三条 digest 可复算）通过，且三条 digest 与 `design/contract.md` / driver 指针一致；
+-  - 设计约束扫描：`scan_design_constraints.py <output-root>`（或项目约定等价）通过；
+-  - token 纪律：完成时共享色、字、间距在 `core/tokens.yaml`。代表页实现过程中的暂存值在回写前保留在该页；完成时仍留在页面里的共享值视为未完成。
+-  - 无障碍：键盘可达、`:focus-visible` 存在、icon-only 有 `aria-label`、异步反馈走 `aria-live`、表单控件有关联 label；
+-  - 状态覆盖：数据区四态（loading / empty / error / success）、交互元素态（hover / focus / active / disabled）；
+-  - 结构断言：≥2 个视口的布局重组断言（不是等比缩放）。
+-- **运行态证据（按档调度）**：[`scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py)
+-  - **complex（硬门）**：对关键路由跑出 `evidence/ui/<run>/report.json` + PNG，且 exit 0：≥2 视口（必含 1280x800 与 375x812）、axe-core WCAG 2.2 AA 无 serious / critical、键盘 Tab 焦点顺序与焦点可见、manifest 声明的 loading / empty / error / success 四态逐一截图（不适用须在 manifest `not_applicable` 写理由）。manifest 随交付仓保存、可复跑；代码变更后旧 report 作废重跑。playwright / axe-core 缺失时脚本 exit 2 阻断，或经用户确认登记 A 类降级。
+-  - **medium（SHOULD，可精简）**：宜跑同脚本并 exit 0（未跑登记 B 类显式降级），允许精简 manifest——关键路由 ≥1、视口至少 1280x800（移动视口 SHOULD）、四态可批量 `not_applicable` 并写一句理由。current-build 截图与 Gallery 是补充。
+-  - **simple（SHOULD，非硬门）**：不强制跑 `ui_evidence_check`；未跑时在质量画像登记 **B 类**显式降级即可放行（不得静默跳过不登记）。quality floor（破坏性确认、键盘可达、focus 可见）由实现者自检写入验证记录。
+-- **design 评审文件（按档）**：
+-  - **complex（硬门）**：评审者（≠ 实现者）基于 report 与截图写评审文件，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report: <report.json 路径>`，正文逐条 findings + disposition；`ui_evidence_check.py --validate-review <file>` 须 exit 0。
+-  - **medium / simple**：不强制 design 评审文件；有 report 时仍可选用 `--validate-review`。有观感目标时例外，见「审美目标（不分档）」。
+-- **主观项**：视觉层次 / 密度 / 排版节奏——complex 由 design 评审文件基于截图逐条判定；simple 不强制。代表页源码修订记录是过程记录，**不单独构成完成证据**——自述不算证据。Gallery 与 digest 只证明系统未漂。
+-- **实现方法（按档）**：
+-  - **complex**：业务页实现消费 frozen Active Instance。先按代表页 two-pass（先定 design thesis 与壳层，初稿后再修订一轮）实现并修订一条主流程代表页，其余表面从该页长出。无 Active Instance 时先建立再写页面。改共享 token / pattern / page-type → 回 design 修订 Active Instance 并重新 freeze。
+-  - **medium / simple / adopt-only**：不强制代表页 two-pass 与 Gallery；直接改业务页，遵守既有组件库 / 样式体系即可。
+-
+-## 审美目标（不分档）
+-
+-用户原话里有观感类目标时，下面几条不看档位一律适用。本节是唯一出处，别处只指向这里。
+-
+-1. **视觉方向**：动手前读 [../../pretty-view-html/references/frontend-design/REFERENCE.md](../../pretty-view-html/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下本次选定的视觉方向：配色、字体、版式、一个特征元素。不拿框架默认样式点缀几处就收工。
+-2. **天花板参照集**：按 [quality-profile.md](quality-profile.md) 的写法列参照集，不分档必写；没有质量画像的档位写在「质量属性」里。
+-3. **演示数据**：截图前先准备接近真实的演示数据（足够条数、长短文本、多种状态），不在空库或一两条数据上截图。
+-4. **改前 / 改后截图**：同一路由、同一视口、同一份演示数据各截一组，放进证据目录。
+-5. **异源 design 评审**：派 `role-based-reviewer roles=design`，模型与实现者不同、最好更强；随附参照集、视觉方向、改前 / 改后截图。评审按参照集对观感出意见。
+-6. **收口**：
+-   - goal：不停下问人。评审还有没解决的观感 Blocker / Major，就按意见改、重截、再评，自动迭代；评审没有未解决的观感 Blocker / Major 才算过。每轮评审结论与截图路径记进验证记录。同一问题连续两轮没改好，按确认协议「同一验证连败两次」停下。
+-   - human：异源评审通过后，把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算确认。
+-7. 任一条没做到不能标 `done`，也不能用 B 类降级放行。
+-
+-## 服务 / 后端
+-
+-- **基准物**：接口契约（schema / 协议）+ 既有错误语义与状态码约定。
+-- **必载专家能力**：`role-based-reviewer roles=engineer`（涉及并发 / 持久化 / 迁移时加对照面）。
+-- **可自动化门**：契约测试（请求 / 响应形状）、类型检查、依赖边界检查、迁移幂等与重放可复跑。
+-- **运行态证据**：真实进程启动 + 关键路径端到端（含失败路径）；负载 / 并发假设按画像「规模与运行假设」验证，不验证则登记降级。
+-- **主观项**：不适用（以契约与可观测性判定）。
+-
+-## 数据 / 口径
+-
+-- **基准物**：口径定义（指标含义 / 时间窗 / 维度）+ schema / 血缘约定。
+-- **必载专家能力**：`role-based-reviewer roles=data,engineer`。
+-- **可自动化门**：schema 校验、幂等 / 重放、口径单测（样例输入 → 期望口径值）。
+-- **运行态证据**：受控样本或真实数据源上的端到端；取不到数据时登记降级。
+-- **主观项**：不适用。
+-
+-## 部署 / 密钥
+-
+-- **基准物**：最小权限 + 回滚路径 + 密钥不落盘 / 不入仓库。
+-- **必载专家能力**：`role-based-reviewer roles=sre`（按需 + `ops`）。
+-- **可自动化门**：配置校验、密钥扫描、依赖 / 镜像来源检查、回滚脚本可执行性。
+-- **运行态证据**：本地或预发演练；禁止以生产作为首次验证。
+-- **主观项**：不适用。
+-
+-## 文档 / Skill
+-
+-- **基准物**：结构规范 + 契约测试（文本锁）+ 引用完整性。
+-- **必载专家能力**：`role-based-reviewer roles=skill`（按需 + `product`）。
+-- **可自动化门**：结构校验、引用 / 链接存在性、契约测试**含决策用例**。
+-- **运行态证据**：文档类不强制；Skill 类须有决策 / 路由用例覆盖。
+-- **主观项**：可读性按项目标准，逐条指认。
+-
+-## 与评审执行器的绑定
+-
+-| 交付类别 | 必载评审 | 异源要求 |
+-|---|---|---|
+-| Web UI | `role-based-reviewer roles=design` | 复杂档 SHOULD 异源（`model=` 或 `endpoint=`） |
+-| 服务 / 后端 | `roles=engineer`（+ 并发 / 持久化对照面） | 同上 |
+-| 数据 / 口径 | `roles=data,engineer` | 同上 |
+-| 部署 / 密钥 | `roles=sre`（按需 + `ops`） | 同上 |
+-| 文档 / Skill | `roles=skill`（按需 + `product`） | 同上 |
+-
+-未按本表加载而退普通 subagent：须写明不可用原因并记入评审意见路径，否则按退出点「评审降级未记录」不放行。
+diff --git a/skills/taskrail/references/phase-wizard.md b/skills/taskrail/references/phase-wizard.md
+index 7421c25..c646278 100644
+--- a/skills/taskrail/references/phase-wizard.md
++++ b/skills/taskrail/references/phase-wizard.md
+@@ -1,104 +1,43 @@
+ # wizard 阶段
+ 
+-进入本阶段后执行。产出步骤级、可移交的任务方案，落盘 `wizard/plan.md`，并写入 `TASK.md` 的 `criterion` / `tier` 与「方案」节。不做详细设计、不写实现代码。
++产出步骤级、可交给下游的方案：落 `wizard/plan.md`，写 `TASK.md` 的 `criterion` / `tier` 与「方案」节。不做详细设计、不写代码。
+ 
+-## 原则
+-
+-- **先查后定**：能查到的先查；查不到的按推荐写成决定并带理由，不留裸问题。**禁止**空问清单（只列问题、不写推荐）。
+-- **步骤级颗粒度**：每步一个可执行动作，不超过 2 行，含要点与验证。
+-- **完成判据**：单独成节、一条可检查的话；下游按原文采用。
+-- **交付标准**：只取与本任务相关的交付面；无则写「无」。
+-- **阻塞点与坑必须显式列出**，没有写「无」。
+-- **简洁**：半屏内；判据、流程总览、阻塞点、建议路由不可省。
+-- **流程总览锚点**：「流程总览」节是从现状到完成判据的完整步骤链（只读摸底探索得出），不是示例清单——末步必须走得到判据，每步带验证点。它是后续 design / propose / apply 的对齐锚点：下游步骤不得无声偏离，偏离须写显式决策（见 taskrail 契约阶段载荷表）。
+-- **质量属性必问**：定稿前确认「质量属性」节已填；观感 / 性能等不可确定性度量的目标写验收方式或参照，不用「高质量」一类形容词收工。Web UI 有观感目标时，另写视觉方向与天花板参照集（[gate-packs.md](gate-packs.md)「审美目标（不分档）」）。
+-- **交付类别必判**：任务有交付产出时，在 `wizard/plan.md` 判定交付类别（Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill），按 [gate-packs.md](gate-packs.md) 写入适用门包与**基准物**；验收方式不能只写「对照外部产品或参考实现」；外部参照可以进天花板参照集供评审对照，但不代替验收。
+-- **Web UI → Active Instance 前置**：交付类别为 Web UI 时，只读扫描交付项目根是否存在 `status: frozen` 的 `design-system/v1` Active Instance；将状态、根路径、contract / binding / projection digest（或「缺失」）写入 `wizard/plan.md`「Active Instance」节。缺失时写明前置动作：design 阶段建立 Active Instance 至 freeze（有参照源先提炼 tokens / primitive）；complex 在 freeze 前不得进入可批准的 design 定稿；simple 可记 adopt-only 路径但须后续显式降级。不把 DS 本体写入 `tasks/`。
+-
+-## 决策收敛
+-
+-落稿前把所有要人拍板的缺口写进「坑 / 注意事项」（写成「推荐=…」，勿裸问题）：
++## 步骤
+ 
+-1. **需逐步授权**：线上、泄密风险、破坏性 git、删除或不可逆改写、改密钥或权限、对外发送、不可逆迁移——始终要用户逐步点名。
+-2. **执行前授权清单**：走完本次步骤需一次性放行的可逆、仓内、非线上动作；用户接受方案即视为已放行；未列入的一律按①处理。
++1. **意图**：委托 `task-intent` 落 `wizard/intent.md`。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
++2. **只读摸底**：先查一手资料；事实与假设分开写。
++3. **写 plan**：按下方模板；同步 `TASK.md`。写不出可检查判据就停，按 user-report 说清缺什么。
++4. **定档**：局部修改、一句话说得清 → `skip`；其余 → `full`（契约「流程」）。
++5. **（full 档可选）外部参照**：方案依赖选型 / 外部集成 / 协议对接时，按 [external-precedent.md](external-precedent.md) 查一次。
++6. **定稿闸口**：`criterion` 与「做完的样子」一致（不一致就写明差异），按 [confirm-protocol.md](confirm-protocol.md) 放行。
+ 
+-方案交出后，下游只做「按此执行 / 调整哪步 / 改路由」；执行中新缺口走确认协议（[confirm-protocol.md](confirm-protocol.md)），不回流本阶段重写协议。
++## 写法
+ 
+-## 步骤
++- 每步一个可执行动作，不超过两行，带验证点；末步走得到判据。下游 design / apply 按这些步骤走，偏离就写进「已做决定」。
++- 有歧义就按推荐写成决定带理由，不留裸问题。
++- 涉及数据写删迁或改表：写备份与回滚路径；这类动作本身按真阻塞停（[user-report.md](user-report.md) 第 5 节）。
++- 观感类目标加一条验收（[done.md](done.md)「观感验收」）；Web UI 交付读 [ui-delivery.md](ui-delivery.md)。
+ 
+-1. 意图确认：委托 `task-intent`（[../../task-intent/SKILL.md](../../task-intent/SKILL.md)），落 `wizard/intent.md`；human 模式纠偏到用户确认；goal 模式由 `role-based-reviewer roles=intent` 异源强模型代审（最多 2 轮，不过则记显式降级继续）。歧义按推荐写成决定（带理由），不向用户提问。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
+-2. 只读摸底；事实与假设分开。
+-3. 涉及数据写删迁或改表时，写备份与回滚路径（仅针对本次改动）；大 size / 不可回滚写入「风险点」。
+-4. 外部参照：读并做完 [external-precedent.md](external-precedent.md)。必做：复杂档；中等档涉及选型 / 外部集成 / 协议对接。其余跳过。
+-5. 按模板写 `wizard/plan.md`（含交付类别与门包节；无交付产出写「不适用」）；同步 `TASK.md`（`criterion`、`tier`、方案节）。写不出可检查判据则停，走确认协议（[confirm-protocol.md](confirm-protocol.md)）。
+-6. 闸口「wizard 定稿」：`criterion` 与 `wizard/intent.md`「做完的样子」一致，或在方案中写明差异；未决口子须已带推荐再交确认协议（human 三选一；goal 审阅收敛后同轮继续）。禁止空问清单。
++## `wizard/plan.md` 模板
+ 
+-## 输出模板
++必填四节；其余按需加，没有就不写。
+ 
+ ```markdown
+-# 任务方案：<任务名>
++# 方案：<任务名>
+ 
+ ## 目标
+-<任务名 + 一句话背景>
++<一句话背景 + 要达成什么>
+ 
+ ## 完成判据
+ <一条可检查的话>
+ 
+-## 交付标准
+-- <…；无则写「无」>
+-
+-## 交付类别与门包
+-- 交付类别：<Web UI / 服务 / 数据 / 部署密钥 / 文档 Skill / 不适用>
+-- 适用门包：<引用 taskrail/references/gate-packs.md 对应类别条目；不适用写「无」>
+-- 基准物：<标准 / 契约定稿 / 冻结基线——禁止外部产品或参考实现；Web UI 须含 Active Instance 路径与 digest>
+-- 未覆盖即降级：<按显式降级登记，含 A/B 定级与证据要求>
+-
+-## Active Instance（仅 Web UI；其它类别写「不适用」）
+-- 状态：<frozen / 缺失 / adopt-only 候选>
+-- 根路径：<交付项目根下 Active Instance 目录；缺失写「无」>
+-- contract digest：<…或无>
+-- binding digest：<…或无>
+-- projection digest：<…或无>
+-- 前置动作：<已就绪 / design 阶段建立 Active Instance 至 freeze / simple 拟 adopt-only + 显式降级>
+-
+-## 前提
+-- 事实：…
+-- 假设：…
+-
+-## 质量属性
+-- <与本任务相关的质量目标：观感 / 性能 / 可靠性 / 可维护性…；不可确定性度量的写验收方式或参照；不适用写「不适用」+ 原因>
+-
+-## 流程总览
+-1. <动作> — 要点：…；验证：…；从现状探索得出，末步走得到判据，全程无断点>
+-
+-## 阻塞点
+-- <…；无则写「无」>
+-
+-## 坑 / 注意事项
+-- <含①②授权清单；无则写「无」>
+-
+-## 风险点
+-- <…；无则写「无」>
++## 步骤
++1. <动作> — 验证：<怎么确认这步做成>
+ 
+-## 不做的事
+-- <…>
++## 不做
++- <只来自用户原话的限制；自己想加的写进「假设」>
+ 
+-## 建议路由
+-<简单 / 中等 / 复杂 + 一句话理由>
++<!-- 按需：交付标准 / 交付类别 / 质量属性（观感方向与参照）/ 事实与假设 / 风险与回滚 -->
+ ```
+ 
+-## 复杂度档位
+-
+-先看复杂：命中任一条即复杂。`tier` 取值 `simple` / `medium` / `complex`（中文呈现可用 简单/中等/复杂）。
+-
+-| 档位 | 典型 | wizard 之后 |
+-|------|------|-------------|
+-| 简单 | 局部修改 | 直接实现 + 验证（不建 driver）→ done |
+-| 中等 | 跨模块/仓库、改动量稍大 | explore(仅 grill) → design(可轻) → approve → handoff → propose → apply → archive |
+-| 复杂 | 项目级重构、逻辑重塑、涉及面广 | explore(+grill) → design → approve → handoff → propose → apply → archive |
+-
+-- 产品交付硬指标命中即复杂：多主页面；两以上角色/权限边界；持久化跨请求/用户复用；外部集成/实时协作/通知/审计；项目级重构。单组件、单页原型、无持久化静态演示不触发。
+-- 跨模块/仓库本身是中等；同时属项目级重构等则升复杂。
+-- 简单与中等拿不准且未命中复杂：往简单靠一档并说明。
+-- 有任务目录时 grill 委托 `grilling`，纪要可落 `explore/`；禁止在任务目录路径调用 `grill-with-docs` / `domain-modeling`（会写仓库根文档）。无台账的一次性拷问才用 `grill-with-docs`（两跳 `grilling` + `domain-modeling` 逐字保留）。
+-- 委托前确认 skill 可读；不可用则报告安装选项，不发明等价命令。
++`check_handoff.py` 要求交接时写「交付类别」「适用门包」两行；plan 里有交付产出时顺手写上类别（Web UI / 服务 / 数据 / 部署 / 文档 Skill / 不适用），门包按 [quality-appendix.md](quality-appendix.md) 的类别名，或写「无」。
+diff --git a/skills/taskrail/references/quality-profile.md b/skills/taskrail/references/quality-profile.md
+deleted file mode 100644
+index 8866edb..0000000
+--- a/skills/taskrail/references/quality-profile.md
++++ /dev/null
+@@ -1,74 +0,0 @@
+-# 质量画像
+-
+-术语见 [../CONTEXT.md](../CONTEXT.md)。服务于 `taskrail`（含确认协议）复杂档：它是完成判据的约束，不是独立文档，也不要求穷举质量标准的全部维度。不做自动评分器——字段是否齐全、底线能否验证，由审阅者按 P 级判定。设计阶段产出草稿，approve 冻结，handoff 逐字进 driver。
+-
+-## 字段
+-
+-```text
+-受众与场景: <谁在什么场景完成什么>
+-规模与运行假设: <人数、并发、数据量、本地 / 共享 / 生产>
+-页面/主流程: <3-7 条，每条一个入口到一个结束状态>
+-角色底线:
+-  product: <核心工作流、范围外、协作边界>
+-  design: <视觉方向、关键页面、必备状态、可用性与无障碍底线；质量目标含审美 / 体验等无法用确定性度量完备验收的项时，另写天花板参照集>
+-  engineer: <数据一致性、并发、错误边界、测试与本地启动证据>
+-显式降级:
+-  - 维度: <如持久化方式、实时协作、移动端适配>
+-    定级: <A 类 | B 类；A=使完成判据不成立或收窄交付面，B=判据与交付面都不缩；拿不准归 A>
+-    默认期望: <画像其余字段自然推出的要求>
+-    实际选择: <本次接受的实现>
+-    原因: <范围或约束>
+-    回滚说明: <B 类必填：追认否决时撤什么；A 类写「无」>
+-    确认状态: <confirmed | provisional | pending>
+-```
+-
+-- 五个顶层字段都要写；`角色底线` 下的 product、design、engineer 三条一条都不能省。
+-- 天花板参照集不分档：用户原话有观感目标时，没有质量画像的档位也要写（落在 `wizard/plan.md`「质量属性」），见 [gate-packs.md](gate-packs.md)「审美目标（不分档）」。
+-- 质量目标含审美 / 体验等无法用确定性度量完备验收的项时（典型：UI 观感、文案气质、交互手感），design 底线还须写**天花板参照集**：把「卓越」落到可数的构成件，或列外部参照（作品、规范、既有页面各指到具体件，写清取它哪一点），写在 design 底线里、与其余底线同样可检查。实测指标与地板只声明「不低于」，替代不了参照集；写不出先走退出点「理解不够」，不以「无缺陷」默认收工。
+-- 主流程 3-7 条。超出 7 条说明范围过大，按「不做的事」收敛，不堆清单。
+-- 每条底线写成可检查的话：点出页面或状态、并发与数据量假设、以及验证方式（运行、截图、测试、启动步骤）。「高质量」「体验好」「足够健壮」这类形容词不算。
+-- 某维度确实不适用：写「不适用」加一句原因，不留空，不默默省掉字段。
+-
+-## UI 交付的 design 底线必须回答
+-
+-画像覆盖含界面交付时，`角色底线.design` 除视觉方向、关键页面、必备状态外，还必须能用一句话回答四个契约问题；回答不出按「空泛形容词」归 P0，复用缺字段判定。确实不适用写「不适用」加一句原因。
+-
+-```text
+-控件密度: <哪些 surface 用常规档、哪些用密集档；同一上下文内是否要求同高>
+-icon 形态: <是否收敛到单一 icon primitive 及其来源；是否禁止裸字符/emoji 充当 icon>
+-表单间距: <字段间距与表单收尾间距是否来自 token，而非手写数值>
+-证据分工: <哪些一致性要求用 DOM/静态断言钉住，哪些必须截图确认>
+-```
+-
+-- 四问只约束「底线要写清」，不规定具体取值；取值由设计决定，写清即可。
+-- 「证据分工」必须写验证方式，与「每条底线带验证方式」同一条纪律。
+-
+-## 天花板参照集的去向
+-
+-- 随画像原文快照流到 task-explore、taskflow 与 approve 审阅边界，作为 design 角色的审阅边界输入；哪件参照用在哪、差在哪，由 design 角色按它出自己的评审意见。
+-- 参照集不引入新的审阅对象：架构、接口、schema、代码骨架与底层设计不在其内（「缺字段怎么判」末段的「不审」列照旧）。
+-- 参照集本身写不出，或与完成判据冲突：按缺字段处理——记 P0，走「理解不够」或回画像完善，不改完成判据。
+-
+-## 与交付标准的分工
+-
+-复杂档下画像收编交付标准里的三类：验证或测试覆盖、错误与边界行为、运行假设。这三类不再重复写进「交付标准」；「交付标准」只写画像未覆盖的交付面，例如文档与配置等配套更新。简单和中等不写画像，交付标准照旧。
+-
+-## 显式降级
+-
+-- 判定看实质，不看措辞：凡比默认期望少交付的都是降级，改名成「技术选型」「本期简化」也一样算。
+-- 每条降级先定级：**A 类**——使完成判据不成立或收窄交付面；**B 类**——完成判据与交付面都不缩，只是交付方式、顺序或批次的诚实声明。拿不准一律归 A，定级理由写进该项。
+-- 方案完善阶段一次列出所有已知生产性降级，初始状态一律 `pending`。
+-- `confirmed` 只有用户能写：点名接受该项、明确说按降级表全部确认、或在用户在场点（真人门、收口）追认。`provisional` 只有 B 类可经审阅收敛写入（临时确认），A 类任何情况下都不许。执行者与审阅者不能把 A 类写成任何已确认态；单独的「继续」不算任何确认。
+-- A 类仍有 `pending` 时按退出点「降级未确认」停：不开工、不交接。B 类 `pending` 走审阅临时确认，不停机；`provisional` 到用户在场点集中追认——追认改 `confirmed`，否决按该项回滚说明处理后回退出点重定级。
+-- 实现中发现新的降级：补进降级表并定级，A 类回确认门、B 类走审阅，不静默接受。
+-
+-## 缺字段怎么判
+-
+-派审时把完成判据原文、画像原文、显式降级原文一并贴上。缺任一必要字段、字段写成空泛形容词、或核心底线没有验证方式：记 P0，路由写成 `完善中：补质量画像并再审。此阶段不改代码。`，不开工。确实写不出——说不清受众与场景，或主流程完全未知且会改方案——才走退出点「理解不够」。
+-
+-画像不引入新的审阅对象：架构、接口、schema、代码骨架仍在「不审」列里。写不出某条底线不等于要先做大设计，按上一段判 P0 或走「理解不够」。
+-
+-## 交接与完成门
+-
+-- 复杂档交接给 task-explore 时逐字带上画像原文快照，含显式降级表；路径或小节指针只作辅助，不能替代快照。后续设计、子任务的验收标准引用同一份原文。
+-- 完成门：字段齐全，降级表无 `pending` 且无 `provisional`（B 类已全部追认）；`confirmed` 降级在验证记录里可追踪。
+diff --git a/skills/taskrail/references/suspension.md b/skills/taskrail/references/suspension.md
+deleted file mode 100644
+index b0fdfba..0000000
+--- a/skills/taskrail/references/suspension.md
++++ /dev/null
+@@ -1,45 +0,0 @@
+-# 挂起子协议（等用户的统一形态）
+-
+-凡「需要用户产生的输入才能继续」的点——退出点已列的授权、复杂档降级确认、
+-危险操作点名、详细设计裁决——停下时按本协议呈现与等待。本文件是族内通用
+-定义：确认协议（[confirm-protocol.md](confirm-protocol.md)）直接使用；taskflow、taskrail 等引用本文件，
+-不各自发明「停下」形态。
+-
+-## 挂起五元组
+-
+-停下等待的回复必须写全五项，缺一项不算进入挂起：
+-
+-1. **等待项**：等的是哪一个决定（一句话，对应退出点标签或已列授权项）。
+-2. **授权形状**：用户说什么算数——逐字可判的话（如「降级全部接受」
+-   「点名接受第 N 项」「仍按此方案执行」）。授权是封闭集合，不发明新授权项。
+-3. **阻塞面**：等待期间不能做什么（改方案、写交付代码、commit/push、
+-   交接、标完成——按命中的退出点取）。
+-4. **非依赖面**：等待期间仍可继续做什么（见下「合法动作白名单」）；
+-   全部工作都依赖该决定时写「无」，不硬凑。
+-5. **恢复触发**：什么事件使重评估——用户消息到达先比对授权形状；
+-   命中即按授权走，未命中重申仍停（不写成选项列表）。
+-
+-## 合法动作白名单（挂起期间）
+-
+-允许且应做：只读环境查证、外部原文取证、证据固化、与等待项无依赖的
+-既定工作。审阅类等待（退出点为审阅派不出 / 审阅没有结论）额外允许
+-重试派审——审阅者只读；派审成功即按审阅收敛 / 审阅未收敛处理，该
+-等待自动解除。禁止：交付代码、改完成判据/步骤/降级表、commit/push/
+-部署、把挂起包装成进展。
+-
+-## blocked（挂起的交接形态）
+-
+-同一等待项被 goal 自动续跑连续第三次且仍无用户输入：标记 blocked，
+-给交接摘要四段——已完成、未完成、证据、下一步（下一步写授权形状里
+-那句话）。给出摘要的同一轮把四段写入 `TASK.md` 的挂起记录（`handoff_summary` 小节，并标 `blocked: true`）；后续轮只读该字段，不重算。blocked 不是新状态，goal 留在已停。无自动续跑的环境
+-（非 goal 模式）：首次停下即按五元组呈现，不空等第三轮才给摘要。
+-
+-「下一步」按**最小解除集**排序：一句授权能同时解掉最多退出点的
+-排最前，并写明这句解掉哪几个退出点；逐条解的排后。多个等待项时
+-先给最小解除集，再给完整清单。
+-
+-## 恢复
+-
+-恢复触发到达后：先核对授权形状，再按对应状态格走；恢复回复第一行
+-用白话说清卡在什么、对用户有什么影响、等的事解除了没有（见 [user-report.md](user-report.md)）。挂起期间固化的证据在恢复时直接
+-引用，不重做。
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index e94ae37..b224d09 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -1,63 +1,57 @@
+-# 给用户的汇报（task 系列唯一出处）
++# 对用户说话（task 系列唯一出处）
+ 
+-taskrail / task-explore / taskflow 凡是直接给用户看的话都按本文件：resume、进度、问题报告、闸口提问、交接 / 完成通知、挂起与恢复、评审摘要、subagent 摘要转述。落盘的 `TASK.md`、driver、验证记录、评审文件可以保持结构化。契约「对用户说话」节只指向这里，不另写第二份。
++taskrail / task-intent / task-explore / taskflow 凡是直接给用户看的话都按本文件：复述、resume、进度、问题报告、闸口、停下等用户、完成通知、评审摘要。落盘文件（`TASK.md`、driver、验证记录、评审文件）可以保持结构化。
+ 
+ ## 1. 先说影响和要改什么
+ 
+-- 第一句就讲：什么坏了 / 对谁有什么影响，打算改什么。用白话，像同事说话：第一人称、完整句子。
+-- 不先讲根因推导，也不以文件名、行号、函数名开头。
++第一句讲什么坏了 / 对谁有什么影响、打算改什么。白话、第一人称、完整句子，像同事说话；不以根因推导、文件名、行号、函数名开头。
+ 
+ ## 2. 问题报告的顺序
+ 
+-1. **影响面**：哪些功能 / 环境 / 人受影响，后果是什么。
+-2. **要改哪些地方**：按模块或行为说（如“解析版本引用的那一层”），不按文件名。
++1. **影响面**：哪些功能 / 环境 / 人受影响。
++2. **要改哪些地方**：按模块或行为说，不按文件名。
+ 3. **怎么改**：每处一两句。
+-4. **我做的决定**：有取舍就按推荐直接定下，用陈述句带一句理由；只有真阻塞才写「需要你：…」（见第 5 节）。
++4. **我的决定**：有取舍就按推荐定下，陈述句带一句理由。
+ 
+ ## 3. 内部词留在台账
+ 
+-phase、status、tier、driver 名、change id、checkbox 编号与计数、门 / 门包名、digest、criterion、slice、OpenSpec、proposal.yaml 等路径，默认只写进台账，不进对话；用户问起再给。非用不可时顺带一句白话（如「driver（交付用的总任务单）」）。不倒「字段：值」清单，也不转贴术语表、工具调用过程或读过的文件清单。
++phase、status、tier、driver 名、change id、checkbox 编号与计数、门名、digest、criterion、slice、OpenSpec 等只写进台账，用户问起再给；非用不可时带一句白话。不倒「字段：值」清单，不转贴术语表、工具过程或读过的文件清单。file:line 只放结尾「细节（可跳过）」一行，最多 3 条。
+ 
+-## 4. file:line 只作附注
++## 4. 先查资料，能查到的不问
+ 
+-确需给出时放在结尾「细节（可跳过）」一行，最多 3 条；用户要去看时才给完整路径。
++先读一手资料再开口；能从代码、配置、文档、历史任务里查到的，不写成假设、不拿去问用户。用户纠正后先回资料重查，再带出处说改了什么。
+ 
+ ## 5. 说决定，不提问
+ 
+-本条是 task 系列「不提问」的唯一真源；别处只指针到这里。
++本节是 task 系列「不提问」的唯一真源，别处只指针到这里。
+ 
+-1. **默认陈述**：有歧义或取舍，按推荐定下，用陈述句说决定和一句理由；不用问号，不写「要不要」「你看行吗」「对吗」，不加「如果理解偏了请纠正」「有不同意见直接说」这类结尾邀请。用户不同意会自己说。
+-2. **真阻塞才停**：删除或迁移数据、改共享配置（别人也在用的环境、CI、共享库的配置）、线上 / 不可逆 / 对外发送、要改完成标准、安全底线、缺了做不下去且只有用户能给的信息（账号、权限、外部事实）、晋升 Skill 改动前确认 diff。停时也用陈述句说清停在哪、需要什么。
+-3. **难回头单独说**：数据结构、接口 / API 形状、库表 schema、存储格式、对外命名、选用的依赖，以及会删除或迁移数据的做法——不停下，但复述 / 进度 / 完成通知里**单独一行**「我定了 X，因为 Y」。
++1. **默认陈述**：有歧义或取舍就按推荐定下，用陈述句说决定和一句理由；不用问号，不写「要不要」「你看行吗」「对吗」，不加「理解偏了请纠正」这类结尾邀请。
++2. **真阻塞才停**：删除或迁移数据、改共享配置（别人也在用的环境、CI、共享库配置）、线上 / 不可逆 / 对外发送、要改完成判据、缺凭据或只有用户知道的信息（账号、权限、外部事实）。停时也用陈述句说清停在哪、需要什么。
++3. **难回头单独说**：数据结构、接口 / API 形状、库表 schema、存储格式、对外命名、选用的依赖、会删或迁数据的做法——不停下，但在复述 / 进度 / 完成通知里单独一行「我定了 X，因为 Y」。
+ 
+-短清单：
++- 记账（建任务、恢复、起名、建 `tasks/`、更新台账、勾 checkbox、重建 INDEX）直接做，一句话说出决定。
++- 普通可回头取舍（命名、布局、组件怎么拆、先做哪步）直接定，一句话带过。
++- 所有决定追加到 `TASK.md`「已做决定」（决定 / 理由 / 可逆 / 来源阶段）；完成通知最后一句指向它。
+ 
+-- 记账（建任务 / 恢复 / 起名 / 建 `tasks/` / 更新台账 / 勾 checkbox / 重建 INDEX / 勾 evolution 记账项）：直接做，一句话说出决定和理由（如「新建任务 〈slug〉，因为和进行中的 〈other〉无关；接下来进意图确认」），不列选项。
+-- 普通可回头取舍（是否导入初始数据、命名、页面布局、组件怎么拆、先做哪一步）：直接定下来说一句，不停。
+-- 所有决定追加到 `TASK.md`「已做决定」（可逆 + 来源阶段）；完成通知最后一句指向它。
++## 6. resume / 停下时的四行
+ 
+-## 6. resume 模板
++恢复任务、或因真阻塞停下时，用这四行（没有的行省略）：
+ 
+ ```
+ 这个任务是要 <目标白话>。
+-目前：<做到哪了，用结果说，不用阶段名>。
+-还卡着：<影响 + 原因，一两句>（没有就省略）。
++目前 <做到哪了，用结果说>。
++还卡着 <影响 + 原因>，需要你 <只在真阻塞时写，说清要什么>。
+ 接下来我会 <下一步动作，白话>。
+-我定了：<决定 + 一句理由>（没有就省略）。
+-需要你：<只在真阻塞时写，说清要什么>（没有就省略）。
+ ```
+ 
+-## 6a. 观感任务收尾
+-
+-- human：「界面改好了，下面是改之前和改之后的截图，用的是接近真实的演示数据。你看看效果行不行，行我就收尾。」
+-- goal：「界面改了三轮，另一个模型对照参照页逐条评过，现在没有剩下的大问题；改前改后截图放在 <目录>。」
++有难回头的决定时，另起一行「我定了 X，因为 Y」。
+ 
+ ## 7. 发出前自检
+ 
+-第一段里不应出现：`phase` / `status` / `tier` / `-driver` / 「x.y 未勾」/ `*.py:行号` / 命令名当作下一步（如“进 apply”）/ 记账类问题 / 以问号结尾的提问（真阻塞除外）。
++第一段不应出现：`phase` / `status` / `tier` / `-driver` / 「x.y 未勾」/ `*.py:行号` / 命令名当下一步（如「进 apply」）/ 记账类问题 / 以问号结尾的提问（真阻塞除外）。
+ 
+ ## 前后对比
+ 
+-- 问题报告 —— 前：「根因：adapters.py:213 的 fetch-ref stub 致 ref-drift fail-closed；phase propose / status handed-off；1.1 未勾；要不要更新 TASK.md？」；后：「发布时拿到的版本引用和实际 tag 对不上，所以发布被拦下。要改两处：解析版本引用的那一层、环境选择逻辑。修法是按 tag 精确取引用，取不到就明确报错。有个配置名会因此多出一段后缀，我直接改配置、不加兼容层，免得留两套名字。台账我会自己更新。」
++- 问题报告 —— 前：「根因：adapters.py:213 的 fetch-ref stub 致 ref-drift fail-closed；phase propose；1.1 未勾；要不要更新 TASK.md？」；后：「发布时拿到的版本引用和实际 tag 对不上，所以发布被拦下。要改两处：解析版本引用的那一层、环境选择逻辑。修法是按 tag 精确取引用，取不到就明确报错。我定了直接改配置名、不加兼容层，因为留两套名字更难维护。」
+ - resume —— 前：「目标 X / phase apply / 未决 2 / 建议下一步：进 apply」；后：「这个任务是要把导出提速。目前方案已经定了，第一部分已实现。接下来我会做剩下的部分。」
+-- 挂起恢复 —— 前：「等待项 → 仍未解除」；后：「还卡在测试环境的权限上，所以没法验证发布；你开通后我就接着跑。」
++- 停下 —— 前：「等待项 → 仍未解除」；后：「还卡在测试环境的权限上，没法验证发布，需要你开通测试环境的部署权限。接下来我会在权限到位后接着跑。」
+diff --git a/skills/taskrail/scripts/ui_evidence_check.py b/skills/taskrail/scripts/ui_evidence_check.py
+index aab4c55..ab4049c 100644
+--- a/skills/taskrail/scripts/ui_evidence_check.py
++++ b/skills/taskrail/scripts/ui_evidence_check.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Web UI 运行态证据门（gate-packs.md「Web UI」可自动化门 + 运行态证据）。
++"""Web UI 运行态证据门（references/ui-delivery.md「机械门」）。
+ 
+ 给定 base URL（或启动命令）与 routes/states manifest，用真实浏览器产出可复跑证据：
+   - ≥2 视口截图（默认 desktop 1280x800、mobile 375x812，两者必须在场）；
+@@ -436,7 +436,7 @@ def main(argv: list[str] | None = None) -> int:
+     try:
+         import playwright.sync_api  # noqa: F401
+     except ImportError:
+-        print("BLOCK 缺 playwright：pip install playwright && playwright install chromium（按 gate-packs「未覆盖即降级」登记前不得放行）", file=sys.stderr)
++        print("BLOCK 缺 playwright：pip install playwright && playwright install chromium（未登记前不得放行，见 references/ui-delivery.md）", file=sys.stderr)
+         return 2
+     axe = find_axe(a.axe_path)
+     if not axe:
+diff --git a/skills/taskrail/tests/test_aesthetic_goal_contract.py b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+index 9e1de55..44fc8ef 100644
+--- a/skills/taskrail/tests/test_aesthetic_goal_contract.py
++++ b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+@@ -1,48 +1,26 @@
+-"""观感类目标不分档的收口规则：视觉方向、参照集、演示数据、改前改后截图、异源评审；goal 自判迭代，human 给人看截图。"""
+-
++"""观感验收：goal 自迭代、human 给用户看图；frontend-design 路径保留。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+-ROOT = Path(__file__).resolve().parents[1]
+-SKILLS = ROOT.parent
+-
+-
+-def read(rel: str) -> str:
+-    return (ROOT / rel).read_text(encoding="utf-8")
+-
+-
+-class TestAestheticGoal(unittest.TestCase):
+-    def setUp(self) -> None:
+-        self.packs = read("references/gate-packs.md")
+-
+-    def test_single_source_section(self) -> None:
+-        self.assertIn("## 审美目标（不分档）", self.packs)
+-        for phrase in ("视觉方向", "天花板参照集", "演示数据", "改前 / 改后截图", "异源 design 评审"):
+-            self.assertIn(phrase, self.packs)
++DONE = (Path(__file__).resolve().parents[1] / "references" / "done.md").read_text(encoding="utf-8")
+ 
+-    def test_visual_direction_file_exists(self) -> None:
+-        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", self.packs)
+-        self.assertTrue((SKILLS / "pretty-view-html/references/frontend-design/REFERENCE.md").is_file())
+ 
+-    def test_goal_iterates_without_asking_human(self) -> None:
+-        self.assertIn("goal：不停下问人", self.packs)
+-        self.assertIn("自动迭代", self.packs)
+-        self.assertIn("没有未解决的观感 Blocker / Major 才算过", self.packs)
++class AestheticGoalTest(unittest.TestCase):
++    def test_section_present(self) -> None:
++        self.assertIn("## 观感验收", DONE)
+ 
+-    def test_human_confirms_screenshots(self) -> None:
+-        self.assertIn("human：异源评审通过后，把改前 / 改后截图给用户看", self.packs)
++    def test_frontend_design_path(self) -> None:
++        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", DONE)
+ 
+-    def test_no_b_class_downgrade(self) -> None:
+-        self.assertIn("也不能用 B 类降级放行", self.packs)
++    def test_goal_vs_human(self) -> None:
++        self.assertIn("goal：不停下问人", DONE)
++        self.assertIn("human：", DONE)
++        self.assertIn("用户说可以才算完成", DONE)
+ 
+-    def test_pointers(self) -> None:
+-        self.assertIn("「审美目标」", read("SKILL.md"))
+-        self.assertIn("「审美目标（不分档）」", read("references/phase-wizard.md"))
+-        self.assertIn("天花板参照集不分档", read("references/quality-profile.md"))
+-        self.assertIn("观感任务收尾", read("references/user-report.md"))
+-        self.assertIn("「审美目标（不分档）」", (SKILLS / "taskflow/SKILL.md").read_text(encoding="utf-8"))
++    def test_screenshot_and_demo_data(self) -> None:
++        self.assertIn("演示数据", DONE)
++        self.assertIn("改前 / 改后", DONE)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_confirm_contract.py b/skills/taskrail/tests/test_confirm_contract.py
+index 7fa5915..7487ad0 100644
+--- a/skills/taskrail/tests/test_confirm_contract.py
++++ b/skills/taskrail/tests/test_confirm_contract.py
+@@ -1,91 +1,34 @@
+-"""确认协议（taskrail/references/confirm-protocol.md，原 task-confirm）契约：双模式确认、审阅与退出点。"""
+-
++"""确认协议薄契约：两种模式 + 真阻塞不停审阅放行。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+-class ContractTest(unittest.TestCase):
++class ConfirmContractTest(unittest.TestCase):
+     @classmethod
+     def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
+-        cls.profile = (ROOT / "references" / "quality-profile.md").read_text(
+-            encoding="utf-8"
+-        )
+-
+-    def test_frontmatter(self) -> None:
+-        self.assertEqual(ROOT.name, "taskrail")
+-        self.assertTrue(self.skill.startswith("# 确认协议（taskrail）"))
+-        self.assertFalse((ROOT.parent / "task-confirm").exists())
++        cls.text = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
++        cls.ur = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
+ 
+     def test_dual_mode(self) -> None:
+-        self.assertIn("| human |", self.skill)
+-        self.assertIn("| goal |", self.skill)
+-        self.assertIn("不列选项", self.skill)
+-
+-    def test_human_gate_requires_recommend(self) -> None:
+-        self.assertIn("## human 闸口呈现（强制）", self.skill)
+-        self.assertIn("只列问题、不写推荐", self.skill)
+-        self.assertIn("按推荐", self.skill)
+-        self.assertIn("human 与 goal 均必填", self.skill)
+-        self.assertIn("或缺推荐默认", self.skill)
+-
+-    def test_trigger_is_single_source(self) -> None:
+-        self.assertIn("单一真源", self.skill)
+-        self.assertIn("/goal", self.skill)
+-
+-    def test_review_severity(self) -> None:
+-        self.assertIn("**P0**", self.skill)
+-        self.assertIn("**P1**", self.skill)
+-        self.assertIn("**P2**", self.skill)
+-
+-    def test_exit_points(self) -> None:
+-        for tag in (
+-            "理解不够",
+-            "审阅不通过",
+-            "降级未确认",
+-            "线上动作",
+-            "泄密",
+-            "同一验证连败两次",
+-        ):
+-            self.assertIn(tag, self.skill)
+-
+-    def test_no_orchestration(self) -> None:
+-        self.assertIn("不定档位", self.skill)
+-        self.assertIn("不改 `TASK.md.phase`", self.skill)
+-
+-    def test_quality_profile_present(self) -> None:
+-        self.assertIn("角色底线", self.profile)
+-        self.assertIn("显式降级", self.profile)
+-        self.assertIn("天花板参照集", self.profile)
+-
+-    def test_auth_section(self) -> None:
+-        self.assertIn("## 授权", self.skill)
+-
+-    def test_migrated_assets(self) -> None:
+-        for rel in (
+-            "references/suspension.md",
+-        ):
+-            self.assertTrue((ROOT / rel).is_file(), rel)
+-
+-
+-
+-    def test_legacy_assets_removed(self) -> None:
+-        self.assertNotIn("legacy", self.skill)
+-        self.assertFalse((ROOT / "references" / "legacy").exists())
+-        self.assertFalse((ROOT / "scripts" / "goal_transition.py").exists())
+-
+-
+-    def test_human_walkcheck_and_named_review(self) -> None:
+-        self.assertIn("human 强制走查（wizard 定稿 / approve）", self.skill)
+-        self.assertIn("human 点名派审", self.skill)
+-        self.assertIn("wizard 定稿与 approve 时的流程总览", self.skill)
+-        self.assertIn("走查：<通过|失败|不适用>", self.skill)
+-        self.assertIn("wizard 定稿 / approve 点名派审", self.skill)
+-        self.assertIn("方案/流程总览闸口", self.skill)
++        self.assertIn("human", self.text)
++        self.assertIn("goal", self.text)
++        self.assertIn("另一个模型", self.text)
++
++    def test_true_blocker_not_auto(self) -> None:
++        self.assertIn("真阻塞", self.text)
++        self.assertIn("不放行真阻塞", self.text.replace("**", ""))
++
++    def test_points_to_user_report(self) -> None:
++        self.assertIn("user-report.md", self.text)
++        self.assertIn("说决定，不提问", self.ur)
++
++    def test_no_suspension_five_tuple(self) -> None:
++        self.assertFalse((ROOT / "references" / "suspension.md").exists())
++        self.assertNotIn("挂起五元组", self.text)
++        self.assertNotIn("五元组", self.ur)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py b/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
+index d80204f..2864195 100644
+--- a/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
++++ b/skills/taskrail/tests/test_confirm_reviewer_binding_contract.py
+@@ -1,113 +1,32 @@
+-"""确认协议（taskrail/references/confirm-protocol.md，原 task-confirm）契约（20261011 轮）：评审执行器绑定、门包真源与未覆盖即降级。"""
+-
++"""交付类别与 UI 包：下沉后只锁文件存在与入口指针。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++REF = ROOT / "references"
+ 
+ 
+-class TestReviewerBinding(unittest.TestCase):
+-    """评审命中门包必载专家能力时不得静默降级为普通 subagent。"""
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
+-
+-    def test_binding_section_present(self) -> None:
+-        self.assertIn("**执行器绑定**（防静默降级）", self.skill)
+-
+-    def test_structured_invocation_required(self) -> None:
+-        self.assertIn("`mode=review` + 完整 `roles=` + 审阅边界", self.skill)
+-
+-    def test_silent_downgrade_forbidden(self) -> None:
+-        self.assertIn("静默降级等同审阅未做", self.skill)
+-        self.assertIn("不得以图快为由退普通 subagent", self.skill)
+-
+-    def test_downgrade_must_be_recorded(self) -> None:
+-        self.assertIn("写明不可用的具体原因", self.skill)
+-        self.assertIn("**评审降级未记录**", self.skill)
+-
+-    def test_heterogeneous_review_required(self) -> None:
+-        self.assertIn("SHOULD 异源", self.skill)
+-        self.assertIn("`model=` 与实现者不同，或 `endpoint=` 走名册", self.skill)
+-
+-    def test_runtime_evidence_required_before_design_role(self) -> None:
+-        self.assertIn("先给运行证据", self.skill)
+-        self.assertIn("「⚠ 需运行态验证」提示", self.skill)
+-
+-    def test_three_choice_table_intact(self) -> None:
+-        """三选一表保留，且 subagent 不再是无条件默认回退。"""
+-        self.assertIn("评审者三选一（选中即唯一）", self.skill)
+-        self.assertIn("| role-based-reviewer |", self.skill)
+-        self.assertIn("| agent-roster |", self.skill)
+-        self.assertIn("| subagent | 仅在无对应角色", self.skill)
+-
+-
+-class TestUncoveredBecomesDowngrade(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
+-
+-    def test_rule_present(self) -> None:
+-        self.assertIn("**未覆盖即降级**", self.skill)
+-        self.assertIn("A 类走「降级未确认」退出点", self.skill)
+-        self.assertIn("B 类可经审阅记 `provisional`", self.skill)
+-
+-    def test_no_pass_by_appearance(self) -> None:
+-        self.assertIn("「未测但看起来没问题」不构成通过", self.skill)
+-
+-
+-class TestGatePacksSingleSource(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")
+-        cls.packs = (ROOT / "references" / "gate-packs.md").read_text(encoding="utf-8")
+-
+-    def test_linked_from_skill(self) -> None:
+-        self.assertIn("](gate-packs.md)", self.skill)
+-        self.assertIn("唯一真源", self.skill)
+-
+-    def test_external_reference_forbidden_as_baseline(self) -> None:
+-        self.assertIn("禁止把外部产品或参考实现当验收基准", self.packs)
+-
+-    def test_classes_covered(self) -> None:
+-        for cls_name in ("## Web UI", "## 服务 / 后端", "## 数据 / 口径", "## 部署 / 密钥", "## 文档 / Skill"):
+-            self.assertIn(cls_name, self.packs)
+-
+-    def test_web_ui_binds_design_role(self) -> None:
+-        self.assertIn("role-based-reviewer roles=design", self.packs)
+-        self.assertIn("role-based-reviewer roles=engineer", self.packs)
+-        self.assertIn("**simple**：不强制 `roles=design`", self.packs)
+-
+-    def test_web_ui_binds_active_instance(self) -> None:
+-        self.assertIn("design-system/v1", self.packs)
+-        self.assertIn("status: frozen", self.packs)
+-        self.assertIn("contract / binding / projection", self.packs)
+-        self.assertNotIn("ui-template-", self.packs)
+-        self.assertIn("design 阶段在交付仓内建立并 freeze", self.packs)
+-
+-    def test_web_ui_tier_gate(self) -> None:
+-        self.assertIn("**Active Instance 档位门**", self.packs)
+-        self.assertIn("按档调度，保任务速度", self.packs)
+-        self.assertIn("**complex**：进入 `approve` 冻结前必须已有 frozen Active Instance", self.packs)
+-        self.assertIn("**medium**：SHOULD 使用 frozen Active Instance", self.packs)
+-        self.assertIn("adopt-only：沿用交付仓已有组件库", self.packs)
+-        self.assertIn("simple（SHOULD，非硬门）", self.packs)
++class OptionalPacksTest(unittest.TestCase):
++    def test_ui_delivery_exists(self) -> None:
++        text = (REF / "ui-delivery.md").read_text(encoding="utf-8")
++        self.assertIn("ui_evidence_check.py", text)
++        self.assertIn("--validate-review", text)
++        self.assertIn("观感交付", text)
+ 
+-    def test_web_ui_automations_hook_ds_runtime(self) -> None:
+-        self.assertIn("项目约定的 Active Instance 校验", self.packs)
+-        self.assertIn("scan_design_constraints.py", self.packs)
++    def test_quality_appendix_exists(self) -> None:
++        text = (REF / "quality-appendix.md").read_text(encoding="utf-8")
++        self.assertIn("Web UI", text)
++        self.assertIn("服务 / 后端", text)
+ 
+-    def test_entry_taxonomy(self) -> None:
+-        self.assertIn("门包条目三分", self.packs)
+-        self.assertIn("未覆盖即降级", self.packs)
++    def test_gate_packs_removed(self) -> None:
++        self.assertFalse((REF / "gate-packs.md").exists())
++        self.assertFalse((REF / "quality-profile.md").exists())
+ 
+-    def test_references_quality_profile_relatively(self) -> None:
+-        self.assertIn("[quality-profile.md](quality-profile.md)", self.packs)
++    def test_skill_points_to_ui_pack(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("ui-delivery.md", skill)
++        self.assertIn("done.md", skill)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_decision_boundary_contract.py b/skills/taskrail/tests/test_decision_boundary_contract.py
+index 3eada72..290ad4f 100644
+--- a/skills/taskrail/tests/test_decision_boundary_contract.py
++++ b/skills/taskrail/tests/test_decision_boundary_contract.py
+@@ -1,74 +1,24 @@
+-"""真阻塞边界两头都要守住：该停的停，不该停的不停；难回头的决定单独说；决定只记一本账。"""
+-
++"""真阻塞 / 普通取舍 / 已做决定表。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+-SKILLS = Path(__file__).resolve().parents[2]
+-
+-
+-def r(rel: str) -> str:
+-    return (SKILLS / rel).read_text(encoding="utf-8")
+-
+-
+-def section5() -> str:
+-    t = r("taskrail/references/user-report.md")
+-    return t.split("## 5. 说决定，不提问", 1)[1].split("\n## ", 1)[0]
+-
+-
+-class TestMustStop(unittest.TestCase):
+-    def test_blocker_categories(self) -> None:
+-        sec = section5()
+-        self.assertIn("真阻塞才停", sec)
+-        for k in ("删除或迁移数据", "改共享配置", "线上", "不可逆", "对外发送", "要改完成标准", "安全底线", "账号、权限"):
+-            self.assertIn(k, sec, k)
+-
+-
+-class TestMustNotStop(unittest.TestCase):
+-    def test_ordinary_choices(self) -> None:
+-        sec = section5()
+-        self.assertIn("普通可回头取舍", sec)
+-        for k in ("是否导入初始数据", "命名", "页面布局"):
+-            self.assertIn(k, sec, k)
+-        # 删除属真阻塞，不得出现在普通取舍清单
+-        ordinary = next(l for l in sec.splitlines() if "普通可回头取舍" in l)
+-        self.assertNotIn("删除", ordinary)
+-
+-    def test_ordinary_examples_not_in_blocker(self) -> None:
+-        blocker = next(l for l in section5().splitlines() if "真阻塞才停" in l)
+-        for k in ("命名", "布局", "初始数据"):
+-            self.assertNotIn(k, blocker, k)
+-
+-
+-class TestHardToReverse(unittest.TestCase):
+-    def test_defined_once_and_pointed(self) -> None:
+-        sec = section5()
+-        self.assertIn("难回头单独说", sec)
+-        for k in ("数据结构", "接口 / API 形状", "schema", "存储格式", "对外命名", "依赖", "单独一行"):
+-            self.assertIn(k, sec, k)
+-        self.assertIn("说决定", r("task-intent/SKILL.md"))
+-        self.assertIn("user-report.md", r("task-intent/SKILL.md"))
++UR = (Path(__file__).resolve().parents[1] / "references" / "user-report.md").read_text(encoding="utf-8")
+ 
+ 
+-class TestSingleDecisionLedger(unittest.TestCase):
+-    def test_template_table(self) -> None:
+-        t = r("task-explore/references/templates.md")
+-        self.assertIn("## 已做决定", t)
+-        self.assertIn("| # | 决定 | 理由 | 可逆 | 来源阶段 |", t)
+-        self.assertNotIn("\n## 决策\n", t)
++class DecisionBoundaryTest(unittest.TestCase):
++    def test_must_stop(self) -> None:
++        self.assertIn("真阻塞才停", UR)
++        for s in ("删除或迁移数据", "共享配置", "线上", "对外发送", "完成判据"):
++            self.assertIn(s, UR)
+ 
+-    def test_writers_append_there(self) -> None:
+-        for rel in ("taskrail/references/contract.md", "taskrail/references/confirm-protocol.md",
+-                    "task-intent/SKILL.md", "task-explore/references/explore-design.md",
+-                    "taskrail/references/user-report.md"):
+-            self.assertIn("「已做决定」", r(rel), rel)
++    def test_ordinary_no_stop(self) -> None:
++        self.assertIn("普通可回头取舍", UR)
++        self.assertIn("直接定", UR)
+ 
+-    def test_no_old_section_name(self) -> None:
+-        for rel in ("taskrail/references/contract.md", "task-explore/references/commands.md",
+-                    "task-explore/references/approve.md", "task-explore/references/ledger.md"):
+-            self.assertNotIn("决策节", r(rel), rel)
+-            self.assertNotIn("决策小节", r(rel), rel)
++    def test_ledger(self) -> None:
++        self.assertIn("已做决定", UR)
++        self.assertIn("难回头单独说", UR)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_deliverable_class_contract.py b/skills/taskrail/tests/test_deliverable_class_contract.py
+index 0b6bccb..c857017 100644
+--- a/skills/taskrail/tests/test_deliverable_class_contract.py
++++ b/skills/taskrail/tests/test_deliverable_class_contract.py
+@@ -1,124 +1,31 @@
+-"""taskrail 契约（20261011 轮）：交付类别与门包随 wizard 定稿、完成门机械核对。"""
+-
++"""完成清单与 wizard 必填四节。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+-class TestWizardDeliverableClass(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-        cls.wizard = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
+-
+-    def test_phase_action_carries_gate_pack(self) -> None:
+-        self.assertIn("落 `wizard/plan.md`（含交付类别与适用门包；Web UI 另含 Active Instance 状态）", self.skill)
+-
+-    def test_principle_present(self) -> None:
+-        self.assertIn("**交付类别必判**", self.wizard)
+-        self.assertIn("](gate-packs.md)", self.wizard)
+-
+-    def test_external_reference_forbidden_as_acceptance(self) -> None:
+-        self.assertIn("验收方式不能只写「对照外部产品或参考实现」", self.wizard)
+-
+-    def test_template_section(self) -> None:
+-        self.assertIn("## 交付类别与门包", self.wizard)
+-        for field in ("- 交付类别：", "- 适用门包：", "- 基准物：", "- 未覆盖即降级："):
+-            self.assertIn(field, self.wizard)
+-
+-    def test_active_instance_section(self) -> None:
+-        self.assertIn("**Web UI → Active Instance 前置**", self.wizard)
+-        self.assertIn("## Active Instance（仅 Web UI；其它类别写「不适用」）", self.wizard)
+-        for field in ("- 状态：", "- 根路径：", "- contract digest：", "- binding digest：", "- projection digest：", "- 前置动作："):
+-            self.assertIn(field, self.wizard)
+-        self.assertNotIn("ui-template-", self.wizard)
+-        self.assertIn("design 阶段建立 Active Instance 至 freeze", self.wizard)
+-
+-    def test_template_keeps_existing_sections(self) -> None:
+-        for kept in ("## 完成判据", "## 交付标准", "## 质量属性", "## 流程总览", "## 建议路由"):
+-            self.assertIn(kept, self.wizard)
+-
+-
+-class TestCompletionGateMechanical(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-
+-    def test_gate_pack_item(self) -> None:
+-        self.assertIn("5. 命中交付类别门包时", self.skill)
+-        self.assertIn("](references/gate-packs.md)", self.skill)
+-        self.assertIn("未覆盖条目均已按「[references/confirm-protocol.md](references/confirm-protocol.md) 未覆盖即降级」登记", self.skill)
+-
+-    def test_disposition_item(self) -> None:
+-        self.assertIn("6. 各轮评审的 Blocker / Major 全有 disposition", self.skill)
+-        self.assertIn("`accepted-recorded` 含理由", self.skill)
+-
+-    def test_web_ui_digest_done_gate(self) -> None:
+-        self.assertIn("7. Web UI（按档", self.skill)
+-        self.assertIn("**complex** 须 digest 与仓库 freeze 一致", self.skill)
+-        self.assertIn("未跑须登记 B 类显式降级", self.skill)
+-
+-    def test_mechanical_wording(self) -> None:
+-        self.assertIn("完成门**逐条机械核对**", self.skill)
+-        self.assertIn("任一条缺证据即不标 `done`", self.skill)
+-
+-    def test_existing_gate_items_intact(self) -> None:
+-        for kept in (
+-            "1. 完成判据成立（`criterion` 原文）。",
+-            "2. 交付标准全过（方案写「无」则只看判据）。",
+-            "3. medium / complex：相关 checkbox 全勾；simple：`TASK.md`「验证」节有验证命令与结果。",
+-            "4. 复杂：质量画像字段齐全；显式降级无 `pending`、无未追认的 `provisional`。",
+-        ):
+-            self.assertIn(kept, self.skill)
+-
+-    def test_not_done_rule_intact(self) -> None:
+-        self.assertIn("`handed-off`、propose 完、checkbox 全勾但判据不成立 → **不**标 done。", self.skill)
+-
+-
+-class TestContractPayload(unittest.TestCase):
+-
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.contract = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
+-
+-    def test_plan_carries_class(self) -> None:
+-        self.assertIn("有交付产出时含交付类别与适用门包节", self.contract)
+-
+-    def test_design_carries_contract_file(self) -> None:
+-        self.assertIn("**契约文件指针**（仓库内已冻结的共享面契约）与证据计划", self.contract)
+-
+-    def test_web_ui_active_instance_in_contract(self) -> None:
+-        self.assertIn("**Web UI**：共享面契约 = 交付项目根 `design-system/v1`", self.contract)
+-        self.assertIn("Web UI 指针必须含 Active Instance 根路径与三条 digest", self.contract)
+-        self.assertIn("simple 无 freeze 仅当 adopt-only + 已确认显式降级", self.contract)
+-        self.assertNotIn("ui-template-", self.contract)
+-        self.assertIn("Web UI 不依赖仓外 skill", self.contract)
+-
+-    def test_approve_and_propose_carry_gate_pack(self) -> None:
+-        self.assertIn("命中门包时另附交付类别、适用门包与基准物", self.contract)
+-        self.assertIn("命中门包时门包与契约文件指针一并进 driver", self.contract)
+-
+-    def test_design_dir_artifacts(self) -> None:
+-        self.assertIn("`design/` 落**契约文件指针**", self.contract)
+-
+-    def test_existing_payload_rows_intact(self) -> None:
+-        for kept in (
+-            "| apply | driver `tasks.md` 已由 propose 产出",
+-            "| archive（探索侧） | 用户确认关闭；子任务均已结 |",
+-            "`status: handed-off` 与 `driver` 已写入",
+-        ):
+-            self.assertIn(kept, self.contract)
+-
+-    def test_phase_enum_untouched(self) -> None:
+-        self.assertIn(
+-            "phase: wizard | explore | design | approve | propose | apply | archive | done",
+-            self.contract,
+-        )
++class DoneAndWizardTest(unittest.TestCase):
++    def test_done_items(self) -> None:
++        d = (ROOT / "references" / "done.md").read_text(encoding="utf-8")
++        self.assertIn("判据成立", d)
++        self.assertIn("做完的样子", d)
++        self.assertIn("观感验收", d)
++        self.assertIn("goal", d)
++        self.assertIn("human", d)
++
++    def test_wizard_required_four(self) -> None:
++        w = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
++        for s in ("## 目标", "## 完成判据", "## 步骤", "## 不做"):
++            self.assertIn(s, w)
++        self.assertIn("必填四节", w)
++
++    def test_no_verbatim_snapshot_rule(self) -> None:
++        for name in ("contract.md", "done.md", "phase-wizard.md"):
++            text = (ROOT / "references" / name).read_text(encoding="utf-8")
++            self.assertNotIn("逐字复制", text)
++            self.assertNotIn("原文快照", text)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_intent_loop_contract.py b/skills/taskrail/tests/test_intent_loop_contract.py
+index 72ffc1e..bed66ed 100644
+--- a/skills/taskrail/tests/test_intent_loop_contract.py
++++ b/skills/taskrail/tests/test_intent_loop_contract.py
+@@ -1,80 +1,40 @@
+-"""意图闭环：task-intent ↔ taskrail ↔ task-explore ↔ taskflow ↔ role-based-reviewer 的跨 skill 文本契约（审计 10 条缺口）。"""
+-
++"""意图闭环：wizard 委托、完成对照 intent、意图变更。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+-SKILLS = Path(__file__).resolve().parents[2]
+-
+-
+-def r(rel: str) -> str:
+-    return (SKILLS / rel).read_text(encoding="utf-8")
++ROOT = Path(__file__).resolve().parents[1]
++FAMILY = ROOT.parent
+ 
+ 
+ class IntentLoopTest(unittest.TestCase):
+-    def test_01_reviewer_unavailable_consistent(self) -> None:
+-        self.assertIn("可用性由本 skill 先判断", r("task-intent/references/intent.md"))
+-        self.assertIn("**不调用** role-based-reviewer", r("task-intent/references/intent.md"))
+-        self.assertIn("例外：调用方已判定不可用、未调用本 skill 并自行登记降级", r("role-based-reviewer/SKILL.md"))
+-
+-    def test_02_intent_change_rule(self) -> None:
+-        c = r("taskrail/references/contract.md")
+-        for s in ("## 意图变更", "重跑 `task-intent`", "纠偏记录追加一行", "**显式**改 `criterion`", "phase 回退", "经 taskflow 开修订子 change"):
+-            self.assertIn(s, c)
+-        self.assertIn("「意图变更」", r("task-explore/references/explore-design.md"))
+-
+-    def test_03_done_gate_reads_intent(self) -> None:
+-        self.assertIn("8. 对照 `wizard/intent.md`", r("taskrail/SKILL.md"))
+-        self.assertIn("「不做」未被越界", r("taskrail/SKILL.md"))
+-        self.assertIn("另附 `wizard/intent.md`", r("taskflow/references/acceptance-rubric.md"))
+-
+-    def test_04_wizard_gate_checks_criterion(self) -> None:
+-        self.assertIn("`criterion` 与 `wizard/intent.md`「做完的样子」一致", r("taskrail/references/phase-wizard.md"))
+-
+-    def test_05_taskflow_points_to_seat(self) -> None:
+-        self.assertIn("执行座位", r("taskflow/SKILL.md"))
+-
+-    def test_06_layout_has_intent_dirs(self) -> None:
+-        c = r("taskrail/references/contract.md")
+-        self.assertIn("wizard/intent.md         #", c)
++    def test_wizard_delegates(self) -> None:
++        w = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
++        self.assertIn("task-intent", w)
++
++    def test_done_reads_intent(self) -> None:
++        d = (ROOT / "references" / "done.md").read_text(encoding="utf-8")
++        self.assertIn("wizard/intent.md", d)
++
++    def test_intent_change_in_contract(self) -> None:
++        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
++        self.assertIn("意图变更", c)
++        self.assertIn("重跑 `task-intent`", c)
++
++    def test_layout_has_intent_dirs(self) -> None:
++        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
++        self.assertIn("wizard/intent.md", c)
+         self.assertIn("evidence/intent/", c)
+ 
+-    def test_07_resume_skips_assumed(self) -> None:
+-        self.assertIn("`status: confirmed` 或 `assumed` 时不重做", r("task-intent/SKILL.md"))
+-
+-    def test_08_goal_threshold_single(self) -> None:
+-        self.assertIn("通过线按 task-intent `references/intent.md`", r("taskrail/references/confirm-protocol.md"))
+-
+-    def test_09_skip_rule_single_source(self) -> None:
+-        self.assertIn("跳过条件见 task-intent「何时跳过」", r("taskrail/references/contract.md"))
+-        self.assertIn("唯一真源", r("task-intent/SKILL.md"))
+-
+-    def test_10_cross_skill_evals(self) -> None:
+-        e = r("taskrail/evals/cases.yaml")
+-        self.assertIn("id: intent-closed-loop", e)
+-        self.assertIn("id: intent-change-mid-task", e)
+-
+-    def test_severity_moved(self) -> None:
+-        self.assertIn("**Blocker**：必须修复", r("role-based-reviewer/references/severity.md"))
+-        self.assertIn("references/severity.md", r("role-based-reviewer/SKILL.md"))
+-
+-
+-class PlainTalkTest(unittest.TestCase):
+-    def test_shared_guideline_with_examples(self) -> None:
+-        c = r("taskrail/references/contract.md")
+-        self.assertIn("## 对用户说话", c)
+-        sec = c.split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
+-        self.assertGreaterEqual(sec.count("前：「"), 3)
+-        self.assertGreaterEqual(sec.count("后：「"), 3)
+-        self.assertIn("user-report.md", sec)
+-        self.assertIn("## 2. 问题报告的顺序", r("taskrail/references/user-report.md"))
++    def test_skip_rule_in_intent(self) -> None:
++        skill = (FAMILY / "task-intent" / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("何时跳过", skill)
++        self.assertIn("skip", skill)
+ 
+-    def test_skills_point_to_guideline(self) -> None:
+-        for rel in ("taskrail/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md",
+-                    "taskrail/references/confirm-protocol.md", "role-based-reviewer/references/protocol.md",
+-                    "task-intent/references/intent.md"):
+-            self.assertIn("「对用户说话」", r(rel), rel)
++    def test_plain_talk_pointer(self) -> None:
++        for rel in ("taskrail/SKILL.md", "task-intent/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md"):
++            text = (FAMILY / rel).read_text(encoding="utf-8")
++            self.assertIn("user-report.md", text, rel)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_no_bookkeeping_questions.py b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+index 8c9e709..cc0ceb7 100644
+--- a/skills/taskrail/tests/test_no_bookkeeping_questions.py
++++ b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+@@ -1,55 +1,24 @@
+-"""可回头的记账（建任务 / 恢复 / 起名 / 建 tasks/ / 更新台账 / dirty 切分支）不提问，直接做并一句话说明。"""
+-
++"""记账不问人：绑定自行判定并陈述。"""
+ from __future__ import annotations
+-
+-import re
+ import unittest
+ from pathlib import Path
+ 
+-SKILLS = Path(__file__).resolve().parents[2]
+-
+-
+-def r(rel: str) -> str:
+-    return (SKILLS / rel).read_text(encoding="utf-8")
+-
+-
+-ASK = re.compile(r"请用户(选|确认)|(?<!不)先问|询问是否|提示是否|提示创建或者恢复|先确认创建|先获确认再建|由用户三选一|停下来问|列出请用户选")
+-FILES = (
+-    "taskrail/SKILL.md", "taskrail/references/contract.md", "taskrail/references/user-report.md",
+-    "task-explore/SKILL.md", "task-explore/references/ledger.md", "task-explore/references/commands.md",
+-    "task-explore/references/approve.md", "task-explore/references/explore-design.md",
+-    "task-intent/SKILL.md", "taskflow/references/driver-template.md",
+-    "role-based-reviewer/SKILL.md", "role-based-reviewer/references/inference-and-speed.md",
+-)
+-
+-
+-class TestNoBookkeepingQuestions(unittest.TestCase):
+-    def test_no_ask_patterns(self) -> None:
+-        for rel in FILES:
+-            m = ASK.search(r(rel))
+-            self.assertIsNone(m, f"{rel}: {m.group(0) if m else ''}")
++ROOT = Path(__file__).resolve().parents[1]
++UR = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
++LEDGER = (ROOT.parent / "task-explore" / "references" / "ledger.md").read_text(encoding="utf-8")
+ 
+-    def test_binding_decides_and_states(self) -> None:
+-        t = r("task-explore/references/ledger.md")
+-        self.assertIn("自行判定新建还是恢复", t)
+-        self.assertIn("user-report.md", t)
+-        self.assertIn("「已做决定」", t)
+-        self.assertIn("自行判定新建或恢复", r("taskrail/SKILL.md"))
+-        # 抽象原则句在真源
+-        ur = r("taskrail/references/user-report.md")
+-        self.assertIn("说决定，不提问", ur)
+-        self.assertIn("不列选项", ur)
+ 
+-    def test_no_trailing_invitation(self) -> None:
+-        self.assertIn("如果理解偏了请纠正", r("taskrail/references/user-report.md"))  # 列为禁止项
+-        sec = r("taskrail/references/contract.md").split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
+-        self.assertNotIn("有不同意见直接说", sec)
++class NoBookkeepingQuestionsTest(unittest.TestCase):
++    def test_binding_decides(self) -> None:
++        self.assertIn("自行判定", LEDGER)
++        self.assertIn("一句话说出决定和理由", LEDGER)
+ 
+-    def test_agent_roster_dirty_tree_is_stated_blocker(self) -> None:
+-        self.assertIn("说明哪些文件有未提交改动（受派方会改到用户的改动，属真阻塞）", r("agent-roster/SKILL.md"))
++    def test_bookkeeping_listed(self) -> None:
++        self.assertIn("记账", UR)
++        self.assertIn("直接做", UR)
+ 
+-    def test_no_noise_dump(self) -> None:
+-        self.assertIn("不转贴术语表、工具调用过程", r("taskrail/references/user-report.md"))
++    def test_no_trailing_invitation_rule(self) -> None:
++        self.assertIn("理解偏了请纠正", UR)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_task_family_contract.py b/skills/taskrail/tests/test_task_family_contract.py
+index 360bc4d..0710cdb 100644
+--- a/skills/taskrail/tests/test_task_family_contract.py
++++ b/skills/taskrail/tests/test_task_family_contract.py
+@@ -1,177 +1,32 @@
+-"""task* 族跨 skill 契约：载荷归属、真源、相对链接可达。"""
+-
++"""task 族：归属、术语单真源、无 CONTEXT 双真源。"""
+ from __future__ import annotations
+-
+-import re
+ import unittest
+ from pathlib import Path
+ 
+-SKILLS_ROOT = Path(__file__).resolve().parents[2]
+-TASK_SKILLS = (
+-    "taskrail",
+-    "task-explore",
+-    "taskflow",
+-)
+-SKIP_DIRS = {"patches", "evolutions", "experience", "tests", "evals", "examples"}
+-
+-
+-def read(skill: str, rel: str) -> str:
+-    return (SKILLS_ROOT / skill / rel).read_text(encoding="utf-8")
+-
+-
+-def live_texts() -> list[tuple[str, str]]:
+-    out: list[tuple[str, str]] = []
+-    for skill in TASK_SKILLS:
+-        for path in sorted((SKILLS_ROOT / skill).rglob("*.md")):
+-            if any(p in SKIP_DIRS for p in path.relative_to(SKILLS_ROOT / skill).parts):
+-                continue
+-            out.append(
+-                (str(path.relative_to(SKILLS_ROOT.parent)), path.read_text(encoding="utf-8"))
+-            )
+-    return out
+-
+-
+-class TestPayloadOwners(unittest.TestCase):
+-    def test_wizard_phase_provides_criterion(self) -> None:
+-        self.assertIn("## 完成判据", read("taskrail", "references/phase-wizard.md"))
+-
+-    def test_confirm_owns_profile(self) -> None:
+-        self.assertIn("质量画像", read("taskrail", "references/confirm-protocol.md"))
+-        self.assertIn("角色底线", read("taskrail", "references/quality-profile.md"))
+-
+-    def test_no_stale_wizard_profile_attribution(self) -> None:
+-        stale = ("由 task-wizard 复杂档产出", "上游 task-wizard 复杂档")
+-        for path, text in live_texts():
+-            for s in stale:
+-                self.assertNotIn(s, text, f"{path} 仍把质量画像归给 task-wizard")
+-
+-
+-class TestFailureCountingSingleSource(unittest.TestCase):
+-    def test_confirm_defines_thresholds(self) -> None:
+-        confirm = read("taskrail", "references/confirm-protocol.md")
+-        self.assertIn("同一验证连败两次", confirm)
+-        self.assertIn("累计假设达 3", confirm)
+-
+-
+-class TestNoDeletedSkillIdsInLiveDocs(unittest.TestCase):
+-    """生产稿（非 patches/evolutions）不得再引用已删除 skill id 作路径。"""
+-
+-    DELETED = ("task-wizard/", "task-goal/", "task-delivery/")
+-
+-    def test_no_path_refs_to_deleted_skills(self) -> None:
+-        hits: list[str] = []
+-        for path, text in live_texts():
+-            for d in self.DELETED:
+-                if d in text:
+-                    hits.append(f"{path} contains {d}")
+-        self.assertEqual(hits, [], "live docs still reference deleted skill paths")
+-
+-
+-class TestFamilyLinksResolve(unittest.TestCase):
+-    def test_all_relative_links_reachable(self) -> None:
+-        broken: list[str] = []
+-        for skill in TASK_SKILLS:
+-            for path in sorted((SKILLS_ROOT / skill).rglob("*.md")):
+-                if any(p in SKIP_DIRS for p in path.relative_to(SKILLS_ROOT / skill).parts):
+-                    continue
+-                text = path.read_text(encoding="utf-8")
+-                for m in re.finditer(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)", text):
+-                    target = m.group(1)
+-                    if target.startswith(("http://", "https://")):
+-                        continue
+-                    if not (path.parent / target).resolve().is_file():
+-                        broken.append(f"{path.relative_to(SKILLS_ROOT.parent)} -> {target}")
+-        self.assertEqual(broken, [], "存在不可达的相对链接")
+-
+-
+-class TestFamilyComplete(unittest.TestCase):
+-    def test_all_task_skills_present(self) -> None:
+-        missing = [s for s in TASK_SKILLS if not (SKILLS_ROOT / s / "SKILL.md").is_file()]
+-        self.assertEqual(missing, [])
+-
+-    def test_deleted_skills_gone(self) -> None:
+-        for s in ("task-wizard", "task-goal", "task-delivery"):
+-            self.assertFalse(
+-                (SKILLS_ROOT / s / "SKILL.md").is_file(), f"{s} should be deleted"
+-            )
+-
+-    def test_spine_and_confirm(self) -> None:
+-        self.assertIn("唯一对外编排入口", read("taskrail", "SKILL.md"))
+-        self.assertIn("| human |", read("taskrail", "references/confirm-protocol.md"))
+-        self.assertTrue(
+-            (SKILLS_ROOT / "taskrail" / "references" / "suspension.md").is_file()
+-        )
+-
+-
+-class TestPhaseEnumClosed(unittest.TestCase):
+-    def test_no_ambiguous_simple_delivery(self) -> None:
+-        for path, text in live_texts():
+-            self.assertNotIn(
+-                "可单 change",
+-                text,
+-                f"{path} 仍含歧义 simple 交付措辞",
+-            )
+-
+-    def test_phase_line_excludes_actions(self) -> None:
+-        contract = read("taskrail", "references/contract.md")
+-        # closed phase enum line
+-        self.assertIn(
+-            "phase: wizard | explore | design | approve | propose | apply | archive | done",
+-            contract,
+-        )
+-        phase_line = [
+-            ln for ln in contract.splitlines() if ln.startswith("phase: wizard")
+-        ][0]
+-        for banned in ("grill", "handoff", "chat", "expand"):
+-            self.assertNotIn(banned, phase_line)
+-
+-    def test_non_phase_section_present(self) -> None:
+-        contract = read("taskrail", "references/contract.md")
+-        self.assertIn("## 非 phase 动作", contract)
+-        self.assertIn("`status` 随 `phase` 走", contract)
+-
+-
+-
+-
+-class TestTriggerOwnership(unittest.TestCase):
+-    """P1-4：只有 taskrail 对外响应泛指推进 / resume / /goal；另两个只在点名或被委派时触发。"""
+-
+-    @staticmethod
+-    def desc(skill: str) -> str:
+-        m = re.search(r"^description: (.*)$", read(skill, "SKILL.md"), re.M)
+-        assert m, skill
+-        return m.group(1)
+-
+-    def test_taskrail_owns_generic_triggers(self) -> None:
+-        d = self.desc("taskrail")
+-        for t in ("/goal", "resume", "唯一对外编排入口"):
+-            self.assertIn(t, d)
++ROOT = Path(__file__).resolve().parents[1]
++FAMILY = ROOT.parent
+ 
+-    def test_others_only_by_name_or_delegation(self) -> None:
+-        for skill in ("task-explore", "taskflow"):
+-            d = self.desc(skill)
+-            self.assertIn("仅在用户点名", d, skill)
+-            self.assertIn("被 taskrail 委派", d, skill)
+-            self.assertIn("一律走 taskrail", d, skill)
+-            head = d.split("泛指")[0]
+-            for t in ("/goal", "resume", "恢复"):
+-                self.assertNotIn(t, head, f"{skill} 仍抢 {t}")
+ 
++class FamilyTest(unittest.TestCase):
++    def test_skills_exist(self) -> None:
++        for name in ("taskrail", "task-explore", "taskflow", "task-intent"):
++            self.assertTrue((FAMILY / name / "SKILL.md").is_file(), name)
+ 
+-class TestGlossary(unittest.TestCase):
+-    """P2-12：术语表唯一真源，三个 skill 正文都链到它。"""
++    def test_contract_is_glossary(self) -> None:
++        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
++        self.assertIn("## 术语", c)
++        self.assertIn("完成判据", c)
++        self.assertFalse((ROOT / "CONTEXT.md").exists())
+ 
+-    def test_glossary_covers_terms(self) -> None:
+-        g = read("taskrail", "references/contract.md")
+-        for term in ("Active Instance", "freeze", "digest", "Gallery", "代表页", "旗舰切片",
+-                     "`pending`", "`provisional`", "`confirmed`", "accepted-recorded", "handed-off"):
+-            self.assertIn(term, g)
++    def test_confirm_is_thin(self) -> None:
++        n = len((ROOT / "references" / "confirm-protocol.md").read_bytes())
++        self.assertLess(n, 4000)
+ 
+-    def test_skills_link_glossary(self) -> None:
+-        self.assertIn("## 术语", read("taskrail", "references/contract.md"))
+-        self.assertFalse((SKILLS_ROOT / "taskrail" / "references" / "glossary.md").exists())
+-        for skill in ("task-explore", "taskflow"):
+-            self.assertNotIn("glossary.md", read(skill, "SKILL.md"), skill)
++    def test_ownership_table(self) -> None:
++        c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
++        self.assertIn("## Skill 归属", c)
++        for s in ("taskrail", "task-intent", "task-explore", "taskflow"):
++            self.assertIn(s, c)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index c9713c1..857d7d7 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -1,131 +1,78 @@
+-"""taskrail 契约：脊柱入口、阶段、目录与完成门。"""
+-
++"""taskrail 不可破契约：phase 枚举、handoff 入口、说决定真源、完成清单、档位、文件存在。"""
+ from __future__ import annotations
+-
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++REF = ROOT / "references"
+ 
+ 
+-class ContractTest(unittest.TestCase):
+-    @classmethod
+-    def setUpClass(cls) -> None:
+-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-        cls.contract = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
+-        cls.wizard = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
++def read(*parts: str) -> str:
++    return (ROOT.joinpath(*parts)).read_text(encoding="utf-8")
+ 
+-    def test_frontmatter(self) -> None:
+-        self.assertIn("id: taskrail", self.skill)
+-        self.assertIn("name: taskrail", self.skill)
+-        self.assertEqual(ROOT.name, "taskrail")
++
++class ContractTest(unittest.TestCase):
++    def test_skill_under_8kb(self) -> None:
++        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
+ 
+     def test_references_exist(self) -> None:
+-        for rel in (
+-            "references/contract.md",
+-            "references/phase-wizard.md",
+-            "references/external-precedent.md",
+-            "CONTEXT.md",
+-        ):
+-            self.assertTrue((ROOT / rel).is_file(), rel)
+-
+-    def test_pipeline_named(self) -> None:
+-        self.assertIn(
+-            "wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive",
+-            self.contract,
+-        )
+-        self.assertIn("confirm_mode: human | goal", self.contract)
+-
+-    def test_task_dir_layout(self) -> None:
+-        self.assertIn("wizard/plan.md", self.contract)
+-        self.assertIn("approve/", self.contract)
+-        self.assertIn("phase:", self.contract)
+-        self.assertIn("criterion:", self.contract)
+-
+-    def test_depends_on_confirm_explore_taskflow(self) -> None:
+-        self.assertIn("references/confirm-protocol.md", self.skill)
+-        self.assertIn("task-explore", self.skill)
+-        self.assertIn("taskflow", self.skill)
+-
+-    def test_completion_gate(self) -> None:
+-        self.assertIn("完成门", self.skill)
+-        self.assertIn("`handed-off`", self.skill)
+-        self.assertIn("**不**标 done", self.skill)
+-
+-    def test_wizard_has_criterion_and_tiers(self) -> None:
+-        self.assertIn("## 完成判据", self.wizard)
+-        self.assertIn("simple", self.wizard)
+-        self.assertIn("complex", self.wizard)
+-        self.assertIn("grilling", self.wizard)
+-
+-    def test_human_gate_aligns_recommend(self) -> None:
+-        self.assertIn("列选项（含推荐）", self.contract)
+-        self.assertIn("空问清单", self.wizard)
+-        self.assertIn("未决口子须已带推荐再交", self.wizard)
+-
+-    def test_pipeline_includes_handoff_action(self) -> None:
+-        self.assertIn("[handoff]", self.contract)
+-        self.assertIn("handoff = 动作，不是 phase", self.contract)
+-
+-    def test_tier_paths_aligned(self) -> None:
+-        self.assertIn("explore(仅 grill)", self.contract)
+-        self.assertIn("handoff → propose", self.contract)
+-        self.assertNotIn("可单 change", self.contract)
+-        self.assertIn("explore(仅 grill)", self.wizard)
+-        self.assertNotIn("→ 实现", self.wizard)
+-
+-    def test_non_phase_actions_table(self) -> None:
+-        self.assertIn("## 非 phase 动作", self.contract)
+-        self.assertIn("| `grill`", self.contract)
+-        self.assertIn("| `handoff`", self.contract)
+-        self.assertIn("| `expand`", self.contract)
+-
+-    def test_single_ledger(self) -> None:
+-        self.assertIn("**一本账**", self.contract)
+-        self.assertNotIn("status × phase 合法组合", self.contract)
+-
+-    def test_simple_direct_implement(self) -> None:
+-        self.assertIn("### simple 专条", self.contract)
+-        self.assertIn("simple **不建 driver、不走 OpenSpec**", self.contract)
+-        self.assertIn("升档为 medium", self.contract)
+-        self.assertIn("「验证」节", self.skill)
+-
+-
+-    def test_flow_overview_anchor_and_quality_attrs(self) -> None:
+-        self.assertIn("## 质量属性", self.wizard)
+-        self.assertIn("## 流程总览", self.wizard)
+-        self.assertIn("流程总览映射", self.contract)
+-        self.assertIn("流程总览快照随交接进 driver", self.contract)
+-        self.assertIn("human 含强制走查", self.contract)
+-
+-
+-    def test_approve_exit_is_handoff(self) -> None:
+-        self.assertIn("### approve 出口", self.skill)
+-        self.assertIn("唯一推荐下一步是 `handoff`", self.skill)
+-        self.assertIn("未决不把推荐改成 archive", self.skill)
+-        self.assertIn("禁止用当轮叙事改写 `criterion`", self.skill)
+-        self.assertIn("拒绝进入 archive", self.skill)
+-        self.assertIn("taskflow 子 change", self.skill)
+-        self.assertIn("### approve 出口", self.contract)
+-        self.assertIn("未决不阻断交接", self.contract)
+-        self.assertIn("taskflow 子 change", self.contract)
+-        self.assertIn("拒绝进入 archive", self.contract)
+-
+-    def test_optional_worker_seat(self) -> None:
+-        self.assertIn("## 执行座位", self.contract)
+-        self.assertIn("**永不派出**", self.contract)
+-        self.assertIn("只回简短摘要", self.contract)
+-        self.assertIn("宿主 subagent", self.contract)
+-        self.assertIn("不回灌工具轨迹", self.contract)
+-        self.assertIn("Worker 派出为建议", self.skill)
++        for name in ("contract.md", "done.md", "user-report.md", "confirm-protocol.md",
++                     "phase-wizard.md", "ui-delivery.md", "quality-appendix.md", "external-precedent.md"):
++            self.assertTrue((REF / name).is_file(), name)
++
++    def test_phase_enum_closed(self) -> None:
++        c = read("references", "contract.md")
++        self.assertIn("wizard | explore | design | approve | propose | apply | archive | done", c)
++        self.assertIn("tier: skip | full", c)
++        self.assertIn("confirm_mode: human | goal", c)
++
++    def test_pipeline_and_handoff(self) -> None:
++        c = read("references", "contract.md")
++        self.assertIn("wizard → explore(grill) → design → approve → [handoff] → propose → apply → archive", c)
++        self.assertIn("check_handoff.py", c)
++        self.assertIn("唯一下一步是 `handoff`", c)
++        skill = read("SKILL.md")
++        self.assertIn("check_handoff.py", skill)
++        self.assertIn("done.md", skill)
++
++    def test_skip_full_paths(self) -> None:
++        c = read("references", "contract.md")
++        self.assertIn("`skip`", c)
++        self.assertIn("`full`", c)
++        self.assertIn("simple` 按 `skip`", c)
++        self.assertIn("medium` / `complex` 按 `full`", c)
++
++    def test_say_decide_single_source(self) -> None:
++        ur = read("references", "user-report.md")
++        self.assertIn("说决定，不提问", ur)
++        self.assertIn("真阻塞才停", ur)
++        self.assertIn("唯一真源", ur)
++        self.assertIn("已做决定", ur)
++
++    def test_note_task_boundary_in_intent(self) -> None:
++        # 真源在 task-intent；编排侧通过 wizard 委托到达
++        intent = (ROOT.parent / "task-intent" / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("注意任务边界", intent)
++
++    def test_done_is_single_source(self) -> None:
++        d = read("references", "done.md")
++        self.assertIn("唯一真源", d)
++        self.assertIn("观感验收", d)
++        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", d)
+ 
+     def test_wizard_delegates_task_intent(self) -> None:
+-        self.assertIn("委托 `task-intent`", self.wizard)
+-        self.assertIn("wizard/intent.md", self.wizard)
+-        self.assertIn("第 1 步委托 `task-intent`", self.skill)
+-        self.assertIn("`wizard/intent.md`（`status: confirmed` 或 `assumed`", self.contract)
+-        self.assertIn("roles=intent", self.wizard)
+-
++        w = read("references", "phase-wizard.md")
++        self.assertIn("task-intent", w)
++        self.assertIn("## 目标", w)
++        self.assertIn("## 完成判据", w)
++        self.assertIn("## 步骤", w)
++        self.assertIn("## 不做", w)
++
++    def test_no_deleted_compat_shells_in_skill(self) -> None:
++        skill = read("SKILL.md")
++        self.assertNotIn("decide", skill)
++        self.assertNotIn("plan-review", skill)
++        self.assertNotIn("gate-packs", skill)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_ui_evidence_check.py b/skills/taskrail/tests/test_ui_evidence_check.py
+index 2669721..c5284fa 100644
+--- a/skills/taskrail/tests/test_ui_evidence_check.py
++++ b/skills/taskrail/tests/test_ui_evidence_check.py
+@@ -196,13 +196,11 @@ class TestBrowserSmoke(unittest.TestCase):
+ 
+ class TestGateWiring(unittest.TestCase):
+ 
+-    def test_gate_packs_require_script(self) -> None:
+-        packs = (ROOT / "references" / "gate-packs.md").read_text(encoding="utf-8")
++    def test_ui_delivery_requires_script(self) -> None:
++        packs = (ROOT / "references" / "ui-delivery.md").read_text(encoding="utf-8")
+         self.assertIn("scripts/ui_evidence_check.py", packs)
+-        self.assertIn("simple（SHOULD，非硬门）", packs)
+-        self.assertNotIn("simple 同样必须通过", packs)
+-        self.assertIn("自述不算证据", packs)
+         self.assertIn("--validate-review", packs)
++        self.assertIn("观感交付", packs)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskrail/tests/test_user_report_contract.py b/skills/taskrail/tests/test_user_report_contract.py
+index 1d597fb..1434fd7 100644
+--- a/skills/taskrail/tests/test_user_report_contract.py
++++ b/skills/taskrail/tests/test_user_report_contract.py
+@@ -1,82 +1,36 @@
+-"""对用户汇报唯一出处（taskrail/references/user-report.md）契约：链接、顺序、记账不问人、resume 模板不裸露台账字段。"""
+-import re
++"""user-report：说决定真源、resume 四行、不堆术语。"""
++from __future__ import annotations
+ import unittest
+ from pathlib import Path
+ 
+-SKILLS = Path(__file__).resolve().parents[2]
+-UR = "taskrail/references/user-report.md"
+-
+-
+-def r(rel: str) -> str:
+-    return (SKILLS / rel).read_text(encoding="utf-8")
++ROOT = Path(__file__).resolve().parents[1]
++UR = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
++CONTRACT = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
+ 
+ 
+ class UserReportTest(unittest.TestCase):
+-    def test_linked_from_three_skills(self) -> None:
+-        for rel in ("taskrail/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md"):
+-            self.assertIn("user-report.md", r(rel), rel)
+-
+-    def test_contract_points_here(self) -> None:
+-        sec = r("taskrail/references/contract.md").split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
+-        self.assertIn("[user-report.md](user-report.md)", sec)
+-        self.assertIn("属记账：编排者直接更新，不向用户请示", r("taskrail/references/contract.md"))
+-
+-    def test_report_order(self) -> None:
+-        t = r(UR)
+-        idx = [t.index(k) for k in ("**影响面**", "**要改哪些地方**", "**怎么改**", "**我做的决定**")]
+-        self.assertEqual(idx, sorted(idx))
+-
+-    def test_rules_present(self) -> None:
+-        t = r(UR)
+-        for k in ("## 3. 内部词留在台账", "## 4. file:line 只作附注", "## 5. 说决定，不提问",
+-                  "## 6. resume 模板", "勾 evolution 记账项", "晋升 Skill 改动前确认 diff"):
+-            self.assertIn(k, t)
+-
+-    def test_resume_template_has_no_ledger_fields(self) -> None:
+-        tpl = r(UR).split("## 6. resume 模板", 1)[1].split("\n## ", 1)[0]
+-        for bad in ("phase", "status", "tier", "driver", "checkbox", "未勾"):
+-            self.assertNotIn(bad, tpl, bad)
++    def test_single_source_label(self) -> None:
++        self.assertIn("唯一出处", UR)
++        self.assertIn("说决定，不提问", UR)
+ 
+-    def test_resume_lines_do_not_list_ledger_fields(self) -> None:
+-        lines = [
+-            next(l for l in r("taskrail/SKILL.md").splitlines() if "`resume`：" in l),
+-            next(l for l in r("task-explore/references/commands.md").splitlines() if "resume 模板" in l),
+-        ]
+-        for l in lines:
+-            self.assertIsNone(re.search(r"/ *(当前 )?phase *[/（]|建议下一步", l), l)
+-        sus = r("taskrail/references/suspension.md")
+-        self.assertNotIn("等待项 → 已解除/仍未解除", sus)
+-        self.assertNotIn("建议下一步**（`explore`", r("task-explore/references/commands.md"))
++    def test_blocker_categories(self) -> None:
++        for s in ("删除或迁移数据", "共享配置", "线上", "对外发送", "完成判据", "缺凭据"):
++            self.assertIn(s, UR)
+ 
+-    def test_unchecked_list_goes_to_ledger(self) -> None:
+-        self.assertIn("结束时在验证记录逐条列出未勾项", r("taskflow/references/driver-template.md"))
++    def test_resume_four_lines(self) -> None:
++        self.assertIn("这个任务是要", UR)
++        self.assertIn("目前", UR)
++        self.assertIn("还卡着", UR)
++        self.assertIn("接下来我会", UR)
++        self.assertNotIn("挂起五元组", UR)
+ 
+-    def test_skill_sizes(self) -> None:
+-        for rel in ("taskrail/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md"):
+-            self.assertLessEqual(len(r(rel).encode("utf-8")), 8192, rel)
+-
+-
+-
+-
+-class TestStatementsNotQuestions(unittest.TestCase):
+-    def test_default_no_questions_and_blockers_listed(self) -> None:
+-        t = r(UR)
+-        sec = t.split("## 5. 说决定，不提问", 1)[1].split("\n## ", 1)[0]
+-        for k in ("默认陈述", "真阻塞才停", "难回头单独说", "唯一真源"):
+-            self.assertIn(k, sec)
+-
+-    def test_pointers_follow_single_source(self) -> None:
+-        self.assertIn("说决定", r("taskrail/references/confirm-protocol.md"))
+-        self.assertIn("说决定", r("task-intent/SKILL.md"))
+-        self.assertIn("user-report.md", r("task-intent/SKILL.md"))
+-        self.assertIn("自问自答", r("task-explore/references/explore-design.md"))
+-        self.assertNotIn("最多一个问题", r("task-intent/references/intent.md"))
++    def test_contract_points_here(self) -> None:
++        self.assertIn("user-report.md", CONTRACT)
++        self.assertIn("对用户说话", CONTRACT)
+ 
+-    def test_contract_examples_have_no_questions(self) -> None:
+-        sec = r("taskrail/references/contract.md").split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
+-        for line in sec.splitlines():
+-            if "后：「" in line:
+-                self.assertNotRegex(line.split("后：「", 1)[1], r"[？?]")
++    def test_decision_ledger(self) -> None:
++        self.assertIn("已做决定", UR)
++        self.assertIn("难回头", UR)
+ 
+ 
+ if __name__ == "__main__":

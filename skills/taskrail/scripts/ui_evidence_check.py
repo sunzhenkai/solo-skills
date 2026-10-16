@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Web UI 运行态证据门（gate-packs.md「Web UI」可自动化门 + 运行态证据）。
+"""Web UI 运行态证据门（references/ui-delivery.md「机械门」）。
 
 给定 base URL（或启动命令）与 routes/states manifest，用真实浏览器产出可复跑证据：
   - ≥2 视口截图（默认 desktop 1280x800、mobile 375x812，两者必须在场）；
@@ -436,7 +436,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         import playwright.sync_api  # noqa: F401
     except ImportError:
-        print("BLOCK 缺 playwright：pip install playwright && playwright install chromium（按 gate-packs「未覆盖即降级」登记前不得放行）", file=sys.stderr)
+        print("BLOCK 缺 playwright：pip install playwright && playwright install chromium（未登记前不得放行，见 references/ui-delivery.md）", file=sys.stderr)
         return 2
     axe = find_axe(a.axe_path)
     if not axe:

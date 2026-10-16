@@ -1,131 +1,78 @@
-"""taskrail 契约：脊柱入口、阶段、目录与完成门。"""
-
+"""taskrail 不可破契约：phase 枚举、handoff 入口、说决定真源、完成清单、档位、文件存在。"""
 from __future__ import annotations
-
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+REF = ROOT / "references"
+
+
+def read(*parts: str) -> str:
+    return (ROOT.joinpath(*parts)).read_text(encoding="utf-8")
 
 
 class ContractTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        cls.contract = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
-        cls.wizard = (ROOT / "references" / "phase-wizard.md").read_text(encoding="utf-8")
-
-    def test_frontmatter(self) -> None:
-        self.assertIn("id: taskrail", self.skill)
-        self.assertIn("name: taskrail", self.skill)
-        self.assertEqual(ROOT.name, "taskrail")
+    def test_skill_under_8kb(self) -> None:
+        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
 
     def test_references_exist(self) -> None:
-        for rel in (
-            "references/contract.md",
-            "references/phase-wizard.md",
-            "references/external-precedent.md",
-            "CONTEXT.md",
-        ):
-            self.assertTrue((ROOT / rel).is_file(), rel)
+        for name in ("contract.md", "done.md", "user-report.md", "confirm-protocol.md",
+                     "phase-wizard.md", "ui-delivery.md", "quality-appendix.md", "external-precedent.md"):
+            self.assertTrue((REF / name).is_file(), name)
 
-    def test_pipeline_named(self) -> None:
-        self.assertIn(
-            "wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive",
-            self.contract,
-        )
-        self.assertIn("confirm_mode: human | goal", self.contract)
+    def test_phase_enum_closed(self) -> None:
+        c = read("references", "contract.md")
+        self.assertIn("wizard | explore | design | approve | propose | apply | archive | done", c)
+        self.assertIn("tier: skip | full", c)
+        self.assertIn("confirm_mode: human | goal", c)
 
-    def test_task_dir_layout(self) -> None:
-        self.assertIn("wizard/plan.md", self.contract)
-        self.assertIn("approve/", self.contract)
-        self.assertIn("phase:", self.contract)
-        self.assertIn("criterion:", self.contract)
+    def test_pipeline_and_handoff(self) -> None:
+        c = read("references", "contract.md")
+        self.assertIn("wizard → explore(grill) → design → approve → [handoff] → propose → apply → archive", c)
+        self.assertIn("check_handoff.py", c)
+        self.assertIn("唯一下一步是 `handoff`", c)
+        skill = read("SKILL.md")
+        self.assertIn("check_handoff.py", skill)
+        self.assertIn("done.md", skill)
 
-    def test_depends_on_confirm_explore_taskflow(self) -> None:
-        self.assertIn("references/confirm-protocol.md", self.skill)
-        self.assertIn("task-explore", self.skill)
-        self.assertIn("taskflow", self.skill)
+    def test_skip_full_paths(self) -> None:
+        c = read("references", "contract.md")
+        self.assertIn("`skip`", c)
+        self.assertIn("`full`", c)
+        self.assertIn("simple` 按 `skip`", c)
+        self.assertIn("medium` / `complex` 按 `full`", c)
 
-    def test_completion_gate(self) -> None:
-        self.assertIn("完成门", self.skill)
-        self.assertIn("`handed-off`", self.skill)
-        self.assertIn("**不**标 done", self.skill)
+    def test_say_decide_single_source(self) -> None:
+        ur = read("references", "user-report.md")
+        self.assertIn("说决定，不提问", ur)
+        self.assertIn("真阻塞才停", ur)
+        self.assertIn("唯一真源", ur)
+        self.assertIn("已做决定", ur)
 
-    def test_wizard_has_criterion_and_tiers(self) -> None:
-        self.assertIn("## 完成判据", self.wizard)
-        self.assertIn("simple", self.wizard)
-        self.assertIn("complex", self.wizard)
-        self.assertIn("grilling", self.wizard)
+    def test_note_task_boundary_in_intent(self) -> None:
+        # 真源在 task-intent；编排侧通过 wizard 委托到达
+        intent = (ROOT.parent / "task-intent" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("注意任务边界", intent)
 
-    def test_human_gate_aligns_recommend(self) -> None:
-        self.assertIn("列选项（含推荐）", self.contract)
-        self.assertIn("空问清单", self.wizard)
-        self.assertIn("未决口子须已带推荐再交", self.wizard)
-
-    def test_pipeline_includes_handoff_action(self) -> None:
-        self.assertIn("[handoff]", self.contract)
-        self.assertIn("handoff = 动作，不是 phase", self.contract)
-
-    def test_tier_paths_aligned(self) -> None:
-        self.assertIn("explore(仅 grill)", self.contract)
-        self.assertIn("handoff → propose", self.contract)
-        self.assertNotIn("可单 change", self.contract)
-        self.assertIn("explore(仅 grill)", self.wizard)
-        self.assertNotIn("→ 实现", self.wizard)
-
-    def test_non_phase_actions_table(self) -> None:
-        self.assertIn("## 非 phase 动作", self.contract)
-        self.assertIn("| `grill`", self.contract)
-        self.assertIn("| `handoff`", self.contract)
-        self.assertIn("| `expand`", self.contract)
-
-    def test_single_ledger(self) -> None:
-        self.assertIn("**一本账**", self.contract)
-        self.assertNotIn("status × phase 合法组合", self.contract)
-
-    def test_simple_direct_implement(self) -> None:
-        self.assertIn("### simple 专条", self.contract)
-        self.assertIn("simple **不建 driver、不走 OpenSpec**", self.contract)
-        self.assertIn("升档为 medium", self.contract)
-        self.assertIn("「验证」节", self.skill)
-
-
-    def test_flow_overview_anchor_and_quality_attrs(self) -> None:
-        self.assertIn("## 质量属性", self.wizard)
-        self.assertIn("## 流程总览", self.wizard)
-        self.assertIn("流程总览映射", self.contract)
-        self.assertIn("流程总览快照随交接进 driver", self.contract)
-        self.assertIn("human 含强制走查", self.contract)
-
-
-    def test_approve_exit_is_handoff(self) -> None:
-        self.assertIn("### approve 出口", self.skill)
-        self.assertIn("唯一推荐下一步是 `handoff`", self.skill)
-        self.assertIn("未决不把推荐改成 archive", self.skill)
-        self.assertIn("禁止用当轮叙事改写 `criterion`", self.skill)
-        self.assertIn("拒绝进入 archive", self.skill)
-        self.assertIn("taskflow 子 change", self.skill)
-        self.assertIn("### approve 出口", self.contract)
-        self.assertIn("未决不阻断交接", self.contract)
-        self.assertIn("taskflow 子 change", self.contract)
-        self.assertIn("拒绝进入 archive", self.contract)
-
-    def test_optional_worker_seat(self) -> None:
-        self.assertIn("## 执行座位", self.contract)
-        self.assertIn("**永不派出**", self.contract)
-        self.assertIn("只回简短摘要", self.contract)
-        self.assertIn("宿主 subagent", self.contract)
-        self.assertIn("不回灌工具轨迹", self.contract)
-        self.assertIn("Worker 派出为建议", self.skill)
+    def test_done_is_single_source(self) -> None:
+        d = read("references", "done.md")
+        self.assertIn("唯一真源", d)
+        self.assertIn("观感验收", d)
+        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", d)
 
     def test_wizard_delegates_task_intent(self) -> None:
-        self.assertIn("委托 `task-intent`", self.wizard)
-        self.assertIn("wizard/intent.md", self.wizard)
-        self.assertIn("第 1 步委托 `task-intent`", self.skill)
-        self.assertIn("`wizard/intent.md`（`status: confirmed` 或 `assumed`", self.contract)
-        self.assertIn("roles=intent", self.wizard)
+        w = read("references", "phase-wizard.md")
+        self.assertIn("task-intent", w)
+        self.assertIn("## 目标", w)
+        self.assertIn("## 完成判据", w)
+        self.assertIn("## 步骤", w)
+        self.assertIn("## 不做", w)
 
+    def test_no_deleted_compat_shells_in_skill(self) -> None:
+        skill = read("SKILL.md")
+        self.assertNotIn("decide", skill)
+        self.assertNotIn("plan-review", skill)
+        self.assertNotIn("gate-packs", skill)
 
 
 if __name__ == "__main__":

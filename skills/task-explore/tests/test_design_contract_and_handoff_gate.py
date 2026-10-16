@@ -1,118 +1,28 @@
-"""task-explore 契约（20261011 轮）：design 落契约指针与证据计划、handoff 前置核对。"""
-
+"""design 门禁精简 + handoff 门与 check_handoff 接线。"""
 from __future__ import annotations
-
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def skill_corpus(root: Path) -> str:
-    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
-    parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
-    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
-    return "\n".join(parts)
 
+class DesignAndHandoffTest(unittest.TestCase):
+    def test_design_no_force_two_options(self) -> None:
+        d = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
+        self.assertIn("design/", d)
+        detail = (ROOT / "references" / "design-detail.md").read_text(encoding="utf-8")
+        self.assertIn("只有一条可行路线时不凑第二个方案", detail)
 
+    def test_no_verbatim_profile_copy(self) -> None:
+        for name in ("explore-design.md", "handoff.md", "templates.md"):
+            text = (ROOT / "references" / name).read_text(encoding="utf-8")
+            self.assertNotIn("逐字复制", text)
 
-class TestDesignContractArtifact(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.skill = skill_corpus(ROOT)
-        cls.design = (ROOT / "references" / "explore-design.md").read_text(encoding="utf-8")
-
-    def test_gate_requires_contract_and_evidence_plan(self) -> None:
-        self.assertIn("**契约文件指针**", self.design)
-        self.assertIn("**证据计划**", self.design)
-        self.assertIn("缺任一项按缺口停下，不写空心方案", self.design)
-
-    def test_gate_references_gate_packs(self) -> None:
-        self.assertIn("../../taskrail/references/gate-packs.md", self.design)
-
-    def test_output_table_has_contract_row(self) -> None:
-        self.assertIn("| `design/contract.md` |", self.design)
-        self.assertIn("命中交付类别门包时必需；只存指针，契约本体落交付仓", self.design)
-        self.assertIn("Web UI 另含 Active Instance 根路径与三条 digest", self.design)
-
-    def test_web_ui_active_instance_gate(self) -> None:
-        self.assertIn("**Web UI Active Instance 门**", self.design)
-        self.assertNotIn("ui-template-", self.design)
-        self.assertIn("先在交付项目根建立 Active Instance 至 freeze", self.design)
-        self.assertIn("不写空心 UI 方案", self.design)
-        self.assertIn("禁止在 `{taskRoot}/design/` 重写 `core/tokens.yaml`", self.design)
-
-    def test_boundary_no_body_copy(self) -> None:
-        self.assertIn("本 skill 只留指针，契约本体落交付仓并由交付仓维护", self.design)
-
-    def test_command_mentions_artifact(self) -> None:
-        self.assertIn("本阶段另落 `design/contract.md`", self.skill)
-        self.assertIn("Web UI：complex 无 frozen Active Instance", self.skill)
-
-    def test_existing_design_gates_intact(self) -> None:
-        for kept in (
-            "目标能一句话说清",
-            "成功标准可检验",
-            "能形成至少两个可行方案",
-            "## 画像展开（上游含质量画像时）",
-            "不写实现代码，不创建 OpenSpec `tasks.md`",
-        ):
-            self.assertIn(kept, self.design)
-
-
-class TestHandoffContractGate(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.skill = skill_corpus(ROOT)
-        cls.handoff = (ROOT / "references" / "handoff.md").read_text(encoding="utf-8")
-
-    def test_gate_five_present(self) -> None:
-        self.assertIn("5. 命中交付类别门包时：`design/contract.md` 的契约文件指针与证据计划已就绪", self.handoff)
-        self.assertIn("先回 `design` 补，不创建 driver", self.handoff)
-
-    def test_gate_six_web_ui_digests(self) -> None:
-        self.assertIn("6. **Web UI**：`design/contract.md` 含 Active Instance 根路径", self.handoff)
-        self.assertIn("三条 digest 写入 driver `proposal.md`", self.handoff)
-
-    def test_payload_carries_gate_pack_and_pointer(self) -> None:
-        self.assertIn("`--goal` 再附交付类别、适用门包与基准物", self.handoff)
-        self.assertIn("不把契约本体复制进 `tasks/`", self.handoff)
-        self.assertIn("Web UI 时再附 Active Instance 根路径与三条 digest", self.handoff)
-
-    def test_command_mentions_gate(self) -> None:
-        self.assertIn("交接门禁含：命中交付类别门包时", self.skill)
-        self.assertIn("Web UI 另须三条 digest 进 driver", self.skill)
-
-    def test_existing_gates_intact(self) -> None:
-        for kept in (
-            "1. 该任务已批准：`approve/APPROVED.md` 存在",
-            "2. driver change 名 = 任务 slug + `-driver`",
-            "3. 任务已是 `handed-off` 且 driver 已存在",
-            "4. 显式降级原文快照里确认状态为 `pending` 的条目为 0",
-            "**不要写 `tasks.md`。**",
-        ):
-            self.assertIn(kept, self.handoff)
-
-
-class TestApproveActiveInstanceGate(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
-        cls.skill = skill_corpus(ROOT)
-
-    def test_structure_gate_web_ui(self) -> None:
-        self.assertIn("**Web UI 附加**", self.approve)
-        self.assertIn("**complex**：仓库内 Active Instance 须为 `status: frozen`", self.approve)
-        self.assertIn("项目约定的 Active Instance 校验", self.approve)
-        self.assertIn("不得冻结", self.approve)
-
-    def test_review_boundary_requires_digests(self) -> None:
-        self.assertIn("审阅边界 MUST 附 Active Instance 根路径、三条 digest", self.approve)
-
-    def test_command_mentions_gate(self) -> None:
-        self.assertIn("Web UI 结构门另核 Active Instance freeze / digest", self.skill)
+    def test_handoff_wires_check(self) -> None:
+        h = (ROOT / "references" / "handoff.md").read_text(encoding="utf-8")
+        self.assertIn("check_handoff.py", h)
+        self.assertIn("交付类别", h)
+        self.assertIn("适用门包", h)
 
 
 if __name__ == "__main__":

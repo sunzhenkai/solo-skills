@@ -37,7 +37,7 @@ HANDOFF_SVC = """
 HANDOFF_UI = """
 ## 交接
 - 交付类别：Web UI
-- 适用门包：gate-packs.md「Web UI」
+- 适用门包：ui-delivery.md
 - Active Instance 根路径：design-system/v1
 - contract digest：sha256:aaa
 - binding digest：sha256:bbb
@@ -110,7 +110,7 @@ class TestCheckHandoff(unittest.TestCase):
         self.assertIn("binding digest", r.stdout)
 
     def test_bypass_requires_user_confirmed(self) -> None:
-        self.write(GOOD_META.replace("tier: medium", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing"))
+        self.write(GOOD_META.replace("tier: medium", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
         self.assertEqual(self.run_gate().returncode, 1)
 
     def test_bypass_user_confirmed(self) -> None:
@@ -133,16 +133,16 @@ class TestEntryGateWiring(unittest.TestCase):
         cls.handoff = (ROOT.parent / "task-explore" / "references" / "handoff.md").read_text(encoding="utf-8")
 
     def test_skill_wires_gate(self) -> None:
-        self.assertIn("## 入口门（强制）", self.skill)
+        self.assertIn("入口门", self.skill)
         self.assertIn("scripts/check_handoff.py", self.skill)
-        self.assertIn("**拒绝建 driver**", self.skill)
+        self.assertIn("不建 driver", self.skill)
         self.assertIn("gate_bypass", self.skill)
-        self.assertIn("禁止手写省略 UI / 验收的自由提示词", self.skill)
+        self.assertIn("不手写省略验收的自由提示词", self.skill)
 
     def test_taskrail_and_handoff_reference_gate(self) -> None:
         self.assertIn("check_handoff.py", self.rail)
         self.assertIn("check_handoff.py", self.handoff)
-        self.assertIn("`- 交付类别：`", self.handoff)
+        self.assertIn("交付类别", self.handoff)
 
 
 if __name__ == "__main__":

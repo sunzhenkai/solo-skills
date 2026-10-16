@@ -189,36 +189,6 @@ cases:
       must_not:
         - 脚手架阶段把 tasks 写满
 
-  - id: delivery-quality-loop-three-way-triage
-    kind: core
-    judge: deterministic
-    description: 复杂交付收尾按三层验证执行，失败先归因为 skill gap / implementation bug / acceptance gap
-    given: driver 进入收尾段，或大改之后需要回归
-    expect:
-      must:
-        - 静态门 / 窄切片 / 全链路三层有先后，窄切片先行、全链路只跑一次
-        - 失败归因为 skill gap、implementation bug 或 acceptance gap 之一
-        - skill gap 走 patches/ 出可审计 patch；修复后只重跑受影响切片再跑全链路
-      must_not:
-        - 一上来铺全量功能而不先跑窄切片
-        - 不做归因就笼统说「再改改」
-        - 与改动无关地全量重跑图安心
-
-  - id: acceptance-rubric-thresholds
-    kind: core
-    judge: deterministic
-    description: 最终验收按五维 rubric 给结论，无未处置 Blocker/Major 才通过
-    given: driver 收尾，准备回填验收标准
-    expect:
-      must:
-        - 五维为功能闭环、UI/UX、工程质量、画像一致性、证据
-        - UI/UX 拆信息架构、视觉层级、关键状态、反馈、无障碍、响应式六个子项
-        - 无未处置 Blocker / Major、判据逐条有证据；UI/UX 任一子项为 0 不通过
-        - 先证据后打分，评分主体按 product / design / engineer 分工
-      must_not:
-        - 缺分或缺证据仍勾验收标准 checkbox
-        - 用实现者自评代替对应岗位评分
-
   - id: normal-delivery-input-context
     kind: core
     judge: deterministic
@@ -247,35 +217,6 @@ cases:
         - 未标记 benchmark/regression 就盲派
         - 把质量画像、验收 rubric 或期望页面清单写进实现者 prompt
         - 靠私聊提示词传递未写进需求原文的期望
-
-  - id: rubric-not-second-ledger
-    kind: failure
-    judge: deterministic
-    description: rubric 分数与证据不得成为 checkbox 之外的第二份完成度
-    given: 复杂交付已完成评分并记录证据
-    expect:
-      must:
-        - 进度仍只认 driver 与子 change 的 checkbox
-        - 分数与证据写入验证记录，用于结论而非替代进度
-      must_not:
-        - 用五维分数或证据清单推断未勾 checkbox 已完成
-        - 另建完成度、暂缓或分支状态台账
-
-  - id: web-ui-apply-consumes-active-instance
-    kind: core
-    judge: deterministic
-    description: Web UI 切片消费 frozen Active Instance；无 Active Instance 不得直接铺页
-    given: 交付类别为 Web UI，driver 进入实施段
-    expect:
-      must:
-        - UI 切片消费 frozen Active Instance 或已确认 adopt-only，代表页 two-pass 先行
-        - 先按 frontend-design 实现并修订一条主流程代表页，其余表面从其壳层与字阶长出
-        - 实现者输入携带三条 digest；证据优先 ui_evidence_check report 与 Gallery
-        - 改 DS 本体回 design 修订 Active Instance 并重新 freeze 后刷新 digest
-      must_not:
-        - 无 Active Instance 且无已确认 adopt-only 降级时直接生成业务页
-        - 在 apply 内改 core tokens/pattern
-
 
   - id: entry-gate-handoff-pass
     kind: core
@@ -333,6 +274,6 @@ cases:
     expect:
       must:
         - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
-        - 收口按 gate-packs「审美目标（不分档）」
+        - 收口按 taskrail done.md「观感验收」
       must_not:
         - 沿用框架默认样式只点缀几处颜色就收工

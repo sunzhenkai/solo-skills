@@ -33,23 +33,23 @@ cases:
     given: handoff 完成或 checkbox 全勾但判据不成立
     expect:
       must:
-        - 完成门核对 criterion 与交付标准
+        - 按 references/done.md 逐条核对 criterion、做完的样子与交付标准
       must_not:
         - 仅因 handed-off 或 propose 完标 done
 
-  - id: simple-direct-implement
+  - id: skip-direct-implement
     kind: core
     judge: deterministic
-    description: simple 档定稿后直接实现 + 验证，不建 driver
-    given: wizard 定档 simple 且用户继续走 taskrail
+    description: skip 档定稿后直接实现 + 验证，不建 driver
+    given: wizard 定档 skip 且用户继续走 taskrail
     expect:
       must:
         - wizard 定稿（意图确认 + 含判据的简短 plan）后直接实现
-        - 验证命令与结果写入 TASK.md「验证」节，过完成门即 done
-        - 发现超出局部修改时停下升档为 medium
+        - 验证命令与结果写入 TASK.md「验证」节，过 done.md 即 done
+        - 发现超出局部修改时升档为 full
       must_not:
-        - 为 simple 建 {slug}-driver 或走 OpenSpec
-        - 跳过确认协议执行不可逆动作
+        - 为 skip 建 {slug}-driver 或走 OpenSpec
+        - 不停下就执行删数据 / 线上 / 对外发送等真阻塞动作
 
   - id: optional-worker-seat
     kind: core
@@ -64,42 +64,17 @@ cases:
       must_not:
         - 因缺少 subagent 停下或改道
 
-  - id: web-ui-active-instance-wizard
-    kind: core
-    judge: deterministic
-    description: Web UI 在 wizard 记录 Active Instance 状态；完成门核对 digest 未漂
-    given: 交付类别为 Web UI
-    expect:
-      must:
-        - wizard/plan.md 含 Active Instance 状态与三条 digest 或缺失与前置动作
-        - medium/complex 无 freeze 时不得 approve 冻结
-        - done 前核对 digest 与交付仓 freeze 一致
-      must_not:
-        - 把 tokens/primitive 精确值写入 tasks/
-
-  # ---- 确认协议（原 task-confirm）----
   - id: dual-mode
     kind: basic
     judge: deterministic
-    description: human 列选项；goal 审阅收敛即放行
+    description: human 把推荐说成决定；goal 另一个模型审阅收敛即放行
     given: 任一确认闸口
     expect:
       must:
-        - human 列选项含推荐；goal 写推荐默认并派审
-        - 线上 / 泄密 / 未点名危险 / A 类 pending 永不因审阅自动放行
+        - human 把推荐写成决定带理由；goal 写推荐并派另一个模型审
+        - 删数据 / 共享配置 / 线上对外 / 改判据 / 缺凭据 永不因审阅自动放行
       must_not:
         - 编排档位或改 TASK.md.phase
-
-  - id: pending-degrade-user-only
-    kind: core
-    judge: deterministic
-    description: A 类 pending 只有用户能确认
-    given: 显式降级表含 A 类 pending
-    expect:
-      must:
-        - 审阅收敛与单独「继续」都不算确认
-      must_not:
-        - 执行者或评审者代确认 A 类
 
   - id: phase-is-progress-truth
     kind: basic
@@ -124,48 +99,6 @@ cases:
       must_not:
         - 只列问题、不写推荐
 
-  - id: reviewer-binding-and-gate-packs
-    kind: core
-    judge: deterministic
-    description: 命中门包必载专家能力时必须结构化调用 role-based-reviewer；基准物禁外部产品；未覆盖即降级
-    given: 交付面命中交付类别门包（如 Web UI），进入 approve 或收尾验收
-    expect:
-      must:
-        - 按 references/gate-packs.md 选定交付类别门包
-        - 以 mode=review + 完整 roles= + 审阅边界结构化调用 role-based-reviewer，并先提供运行态证据
-        - 门包 / 运行态 / 判据未验证的条目按 quality-profile 定级登记为显式降级
-      must_not:
-        - 把外部产品或参考实现当作验收基准
-        - 未写明不可用原因就退普通 subagent
-  - id: web-ui-active-instance-baseline
-    kind: core
-    judge: deterministic
-    description: Web UI 基准物绑定 frozen Active Instance；档位硬门；实现消费 frozen Active Instance
-    given: 交付类别为 Web UI，complex 进入 approve，或 medium/simple 无 freeze 走 adopt-only
-    expect:
-      must:
-        - 基准物含 design-system/v1 Active Instance 的 status frozen 与 contract/binding/projection digest
-        - complex 无 freeze 时停下回 design 建立 Active Instance，不批准
-        - medium/simple adopt-only 须已登记显式降级；不强制代表页 two-pass / Gallery
-        - complex 视觉完成仍认 ui_evidence_check + design 评审；Gallery 与 digest 只证明系统未漂
-      must_not:
-        - 用散文组件约定或 ui-skills-root 替代 Active Instance
-        - 无 Active Instance 且无已确认 adopt-only 降级时直接铺业务页
-        - 仅用 Gallery 指针或 digest 作为视觉完成
-
-  - id: web-ui-runtime-evidence-and-design-review
-    kind: regression
-    judge: deterministic
-    description: Web UI 运行态证据与 design 评审按档调度（complex 硬门；medium/simple SHOULD）
-    given: 交付类别为 Web UI，进入完成门
-    expect:
-      must:
-        - complex：跑 scripts/ui_evidence_check.py 产出 report.json（双视口 + axe + 键盘 + 四态），design 评审 --validate-review exit 0
-        - medium：宜跑同脚本（未跑登记 B 类降级），允许精简 manifest
-        - simple：ui_evidence_check 与 design 评审为 SHOULD；未跑须登记 B 类显式降级，quality floor 自检即可
-      must_not:
-        - simple 因未跑 ui_evidence_check 且未登记降级而标 done
-        - complex 用 Gallery 指针或 digest 代替运行态证据
   - id: ui-evidence-gate-fail
     kind: failure
     judge: deterministic
@@ -196,7 +129,7 @@ cases:
     kind: core
     judge: llm
     description: 意图「做完的样子」从 wizard 流到完成门（跨 task-intent / taskrail / taskflow）
-    given: medium 任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
+    given: full 档任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
     expect:
       must:
         - wizard 定稿时 criterion 与「做完的样子」一致或写明差异
@@ -224,7 +157,7 @@ cases:
     kind: core
     judge: llm
     description: 面向用户的闸口 / 进度 / 评审摘要是口语，不是术语堆砌
-    given: medium 任务到 approve 闸口、apply 进度汇报、评审结束各一次
+    given: full 档任务到 approve 闸口、apply 进度汇报、评审结束各一次
     expect:
       must:
         - 第一人称完整句子，先说结论或要用户做什么
@@ -238,12 +171,12 @@ cases:
     kind: core
     judge: llm
     description: goal 模式的观感任务由异源评审自判并自动迭代，不停下问人
-    given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 medium
+    given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 full
     expect:
       must:
-        - plan 质量属性写下视觉方向（读 frontend-design）与天花板参照集
+        - plan 质量属性写下视觉方向（读 frontend-design）与参照
         - 截图前准备接近真实的演示数据，截改前 / 改后截图
-        - 派异源 design 评审对照参照集；有观感 Blocker / Major 就改、重截、再评
+        - 派另一个模型对照参照审截图；有观感 Blocker / Major 就改、重截、再评
         - 评审结论与截图路径记进验证记录
       must_not:
         - 停下请用户看截图
@@ -328,3 +261,16 @@ cases:
       must_not:
         - 数据模型改造、增删改或迁移
         - 向用户提问或提议跳过流程
+
+  - id: web-ui-strength-follows-aesthetic
+    kind: core
+    judge: deterministic
+    description: Web UI 强度跟是否观感交付走，不跟档位走
+    given: 交付类别为 Web UI
+    expect:
+      must:
+        - 读 references/ui-delivery.md
+        - 普通 UI 改动沿用已有组件库并自检 quality floor
+        - 观感交付先过 done.md「观感验收」
+      must_not:
+        - 把 tokens/primitive 精确值写入 tasks/

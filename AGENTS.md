@@ -55,17 +55,16 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-- 任务编排入口是 **`taskrail`**；确认协议并入 taskrail（`skills/taskrail/references/confirm-protocol.md`，含质量画像、门包与挂起五元组）。已删除：`task-confirm` / `task-wizard` / `task-goal` / `task-delivery`。
-- 有 `tasks/` 任务目录时**禁止**委托 `grill-with-docs` / `domain-modeling`（会写仓库根 `CONTEXT.md` / `docs/adr/`，与任务目录落点冲突）。
+- 任务编排入口是 **`taskrail`**；确认协议是 taskrail 的薄引用 `skills/taskrail/references/confirm-protocol.md`。有 `tasks/` 时 grill 只用 `grilling`（理由见 `task-explore/references/explore-design.md`）。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
 ### task* 要点
 
-- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位可跳过；simple 直接实现 + 验证、不建 driver；medium 的 explore 仅为 grill；handoff 是动作不是 phase；medium / complex 经 handoff 走 OpenSpec）。
+- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位 `skip` / `full`：skip 直接实现 + 验证、不建 driver；full 经 handoff 走 OpenSpec；handoff 是动作不是 phase）。
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
-- 契约真源：`skills/taskrail/references/contract.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
+- 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
 - 三件套：`taskrail` + `task-explore` + `taskflow`。
-- 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由 `role-based-reviewer roles=intent` 异源代审）；explore 的 grill 在其后，只追细节不重问意图。
+- 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由另一个模型按 `task-intent/references/intent.md` 第 5 节清单代审）；explore 的 grill 在其后，只追细节不重问意图。
 - 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 
 ## Skill 设计原则
