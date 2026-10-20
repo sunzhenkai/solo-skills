@@ -17,8 +17,8 @@
 
 - **视觉方向**：动手前读 [../../pretty-view-html/references/frontend-design/REFERENCE.md](../../pretty-view-html/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下配色、字体、版式、一个特征元素，再列几件参照（作品或既有页面，写清取它哪一点）。
 - **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录。
-- **另一个模型审**：派与实现者不同、最好更强的模型，对照参照审截图（可用 `role-based-reviewer roles=design`）。
-  - goal：不停下问人。还有观感 Blocker / Major 就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题连续两轮没改好，停下说明卡在哪。
+- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审，对照参照审截图（可用 `role-based-reviewer roles=design`）。
+  - goal：不停下问人。还有观感 Blocker / Major 就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停。
   - human：评审过了再把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算。
 
 ## 可选附录（命中才读）

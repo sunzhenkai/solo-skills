@@ -4,12 +4,12 @@
 
 ## 步骤
 
-1. **意图**：委托 `task-intent` 落 `wizard/intent.md`。确认版「做完的样子」是 `criterion` 的起草来源，不得无声改写。
-2. **只读摸底**：先查一手资料；事实与假设分开写。
-3. **写 plan**：按下方模板；同步 `TASK.md`。写不出可检查判据就停，按 user-report 说清缺什么。
+1. **意图**：委托 `task-intent` 探索并起草复述，落 `wizard/intent.md`。复述先不单独发，到第 6 步和 plan 要点一起说。确认版「做完的样子」是 `criterion` 的起草来源，改它只走契约「意图变更」。
+2. **补实现入口**：复用 `evidence/intent/` 的摸底，只补写步骤需要的实现入口（模块、文件、命令），已读过的资料不重读。
+3. **写 plan**：按下方模板；同步 `TASK.md`。写不出可检查判据就按 [user-report.md](user-report.md) 第 5 节「卡住」停，说清缺什么。
 4. **定档**：局部修改、一句话说得清 → `skip`；其余 → `full`（契约「流程」）。
 5. **（full 档可选）外部参照**：方案依赖选型 / 外部集成 / 协议对接时，按 [external-precedent.md](external-precedent.md) 查一次。
-6. **定稿闸口**：`criterion` 与「做完的样子」一致（不一致就写明差异），按 [confirm-protocol.md](confirm-protocol.md) 放行。
+6. **定稿闸口**：`criterion` 与「做完的样子」一致（不一致就写明差异）。把意图复述和 plan 要点（判据、步骤、档位）合成一条消息，按 [confirm-protocol.md](confirm-protocol.md)「停点」表放行；task-intent 的纠偏在这一步进行。
 
 ## 写法
 

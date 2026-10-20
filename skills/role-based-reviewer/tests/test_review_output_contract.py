@@ -21,7 +21,7 @@ class ReviewOutputTest(unittest.TestCase):
         self.assertIn("不代判收敛", SKILL)
 
     def test_roles_enum(self) -> None:
-        self.assertIn("intent", SKILL)
+        self.assertIn("qa", SKILL)
         self.assertIn("design", SKILL)
 
     def test_missing_boundary_not_refusal(self) -> None:

@@ -1,0 +1,155 @@
+diff --git a/skills/task-explore/SKILL.md b/skills/task-explore/SKILL.md
+index 3d40083..72405bf 100644
+--- a/skills/task-explore/SKILL.md
++++ b/skills/task-explore/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: task-explore
+ name: task-explore
+-description: "探索台账命令：explore / design / approve / handoff，由 taskrail 委派；approve 之后的唯一出口是 handoff。仅在用户点名 task-explore 或被 taskrail 委派时使用；泛指的推进、resume、list、/goal 一律走 taskrail。"
++description: "任务探索命令：explore（grill 自问自答）/ design / approve / handoff，把已确认的意图推进到冻结、可交接的方案。taskrail 委派或用户点名 task-explore 时使用。"
+ ---
+ 
+ # 任务探索
+@@ -17,7 +17,7 @@ description: "探索台账命令：explore / design / approve / handoff，由 ta
+ | `approve` | 自查 + 闸口 + 冻结 | [references/approve.md](references/approve.md) |
+ | `handoff` | 交接给 taskflow，转 `handed-off` | [references/handoff.md](references/handoff.md) |
+ 
+-其余动作（新建、恢复、列表、保存进展、归档、reopen）经 taskrail 走，细则：台账 [references/ledger.md](references/ledger.md)，归档 [references/archive-reopen.md](references/archive-reopen.md)。用户点名 `{{slash:task-explore}}` 且首词不是上表命令时，按对话回答任务问题，不自动 grill、不写方案稿。
++端到端推进、resume、list、/goal 与其余动作（新建、保存进展、归档、reopen）经 taskrail 走，细则：台账 [references/ledger.md](references/ledger.md)，归档 [references/archive-reopen.md](references/archive-reopen.md)。用户点名 `{{slash:task-explore}}` 且首词不是上表命令时，按对话回答任务问题，不自动 grill、不写方案稿。
+ 
+ 命令名不是 `phase` 取值；`handoff` 成功后 status 置为 handed-off、phase 置为 propose、写 driver。
+ 
+diff --git a/skills/task-explore/references/approve.md b/skills/task-explore/references/approve.md
+index b7d5907..5a2b985 100644
+--- a/skills/task-explore/references/approve.md
++++ b/skills/task-explore/references/approve.md
+@@ -13,16 +13,16 @@
+ 
+ ## 2. 闸口
+ 
+-按 [confirm-protocol.md](../../taskrail/references/confirm-protocol.md)（闸口 `approve`）只走一次：human 把推荐写成决定呈现，用户说「继续」即放行；goal 派另一个模型审，收敛即放行。用户点名名册评审时按 `$agent-roster` 只读委派，意见落 `approve/review-<yyyy-mm-dd>.md`。
++按 [confirm-protocol.md](../../taskrail/references/confirm-protocol.md)「停点」表的 approve 行只走一次：human 把推荐写成决定呈现，用户说「继续」即放行；goal 派另一个模型审，收敛即放行。用户点名名册评审时按 `$agent-roster` 只读委派，意见落 `approve/review-<yyyy-mm-dd>.md`。
+ 
+ ## 3. 冻结
+ 
+ - `TASK.md`「已做决定」追加：采纳方案 + 主因、取舍、回退；带进实现的未决单列。
+ - 写 `approve/APPROVED.md`：一句话结论、方案路径（可附 git 短 hash）、评审意见路径、未决、下一步只写 handoff。
+ - 同步 INDEX 行（如「已批：…」）。
+-- 出口按 [契约「approve 出口与交接」](../../taskrail/references/contract.md)：下一步只有 handoff。用户说「按推荐冻结并交接」或 goal 收敛时，本轮冻结完立刻 handoff。
++- 出口按 [契约「approve 出口与交接」](../../taskrail/references/contract.md)：下一步只有 handoff。闸口放行后本轮冻结完立刻 handoff，两种模式相同。
+ 
+ ## 重复 approve 与驳回
+ 
+-- 新决定以新编号追加，被取代的标「被 D-n 取代」。已 `handed-off` 的要先 reopen；小改直接改 driver `proposal.md`。
+-- 自查或闸口不过：`phase` 回 `design`（或 `wizard`）；同一闸口连败两次，停下按 user-report 四行说明。
++- 新决定以新编号追加，被取代的标「被 D-n 取代」。已 `handed-off` 的按 [契约「意图变更」](../../taskrail/references/contract.md)第 4 条开修订子 change。
++- 自查或闸口不过：`phase` 回 `design`（或 `wizard`）；同一闸口连败两次，按 [user-report.md](../../taskrail/references/user-report.md) 第 5 节「卡住」停。
+diff --git a/skills/task-explore/references/handoff.md b/skills/task-explore/references/handoff.md
+index ab625d3..bf63a35 100644
+--- a/skills/task-explore/references/handoff.md
++++ b/skills/task-explore/references/handoff.md
+@@ -1,14 +1,14 @@
+ # handoff：交接给 taskflow
+ 
+-把 `tasks/ongoing/{slug}` 交给 `{slug}-driver`。不写代码、不归档、不搬目录、不清绑定。之后交付进度只认 taskflow checkbox。goal 里不问是否交接，approve 收敛就直接做。
++把 `tasks/ongoing/{slug}` 交给 `{slug}-driver`。不写代码、不归档、不搬目录、不清绑定。之后交付进度只认 taskflow checkbox。approve 放行后同轮做，两种模式相同。
+ 
+ ## 前提
+ 
+-1. 已批准：`approve/APPROVED.md` 存在，或「已做决定」写明采纳方案。没有就先 approve。
++1. 已批准：`approve/APPROVED.md` 存在。没有就先 approve。
+ 2. driver 名固定 `{slug}-driver`（子任务 `{sub}-driver`）。已存在就复用，不新建。
+ 3. 已 `handed-off` 且 driver 存在：报告 driver 路径，不重复交接。
+ 
+-## 步骤
++## 步骤（顺序固定：先过入口门，再建 driver）
+ 
+ 1. 有未写回的进展先写回 `TASK.md`。
+ 2. 写 `TASK.md`「## 交接」节，只放**指针与判据**，不复制方案、画像或降级原文：
+@@ -24,9 +24,10 @@
+    ```
+ 
+    Web UI 另加 [ui-delivery.md](../../taskrail/references/ui-delivery.md)「交接行」四行。
+-3. 按 `taskflow` 脚手架建 driver：`--goal` = 目标 + `criterion` 原文 + 上面的方案 / 批准路径。按 [driver-template.md](../../taskflow/references/driver-template.md) 写 `.openspec.yaml`（`skip_specs: true`）与 `proposal.md`；**不写 `tasks.md`**。
+-4. `TASK.md`：`status: handed-off`、`phase: propose`、`driver`、`handed-off` 日期；INDEX 行改为 `已交接：… → {slug}-driver`（留在 Ongoing 表）。
+-5. 跑 `python3 taskflow/scripts/check_handoff.py <root> <slug>`，exit 0 才算交接成立；不过就按它的输出补交接节再跑。
+-6. 桥接 stock `openspec-propose`（选继续已有 change）。
++3. `TASK.md` 元信息：`status: handed-off`、`phase: propose`、`driver: "{slug}-driver"`、`handed-off` 日期。
++4. 在工作区根跑 `python3 taskflow/scripts/check_handoff.py <root> <slug>`：exit 0 才往下；不过就按它的输出补交接节再跑。
++5. 按 `taskflow` 脚手架建 driver（入口门已在上一步通过）：`{task}` = `{slug}`，`--goal` = 目标 + `criterion` 原文 + 方案 / 批准路径。按 [driver-template.md](../../taskflow/references/driver-template.md) 写 `.openspec.yaml`（`skip_specs: true`）与 `proposal.md`；`tasks.md` 留给 propose。
++6. INDEX 行改为 `已交接：… → {slug}-driver`（留在 Ongoing 表）。
++7. 桥接 stock `openspec-propose`（选继续已有 change）。
+ 
+-taskflow / openspec 不可用、或定不了 planning root：停下说明缺什么，任务保持 `ongoing` 不变。
++第 5 步建不成（taskflow / openspec 不可用、定不了 planning root）：元信息改回 `status: ongoing`、`phase: approve`，`driver: null`，说明缺什么。
+diff --git a/skills/task-explore/references/templates.md b/skills/task-explore/references/templates.md
+index b0c1996..21bb680 100644
+--- a/skills/task-explore/references/templates.md
++++ b/skills/task-explore/references/templates.md
+@@ -1,21 +1,24 @@
+ # 落盘模板
+ 
+-元信息字段与取值只在 [taskrail 契约](../../taskrail/references/contract.md)。按已知信息填，未知留空，不编造。
++元信息写在开头的 `---` frontmatter，字段与取值只在 [taskrail 契约](../../taskrail/references/contract.md)。按已知信息填，未知留空，不编造。
+ 
+ ## TASK.md
+ 
+ ```markdown
+-# <Title>
++---
++slug: <slug>
++status: ongoing
++phase: wizard
++confirm_mode: <human | goal>
++tier: <skip | full>
++criterion: "<完成判据原文；没有就留空>"
++driver: null
++evidence_root: null
++created: YYYY-MM-DD
++updated: YYYY-MM-DD
++---
+ 
+-- slug: <slug>
+-- status: ongoing
+-- phase: wizard
+-- confirm_mode: human
+-- tier: <skip | full>
+-- criterion: <完成判据原文；没有就留空>
+-- driver: <handoff 后填写>
+-- created: YYYY-MM-DD
+-- updated: YYYY-MM-DD
++# <Title>
+ 
+ ## 目标
+ - <要达成什么>
+@@ -44,7 +47,7 @@
+ <handoff 时按 handoff.md 写>
+ ```
+ 
+-子任务另加 `- parent:`；父任务另加「子任务」小节（见 [large-scope.md](large-scope.md)）。
++子任务在 frontmatter 另加 `parent:`；父任务另加「子任务」小节（见 [large-scope.md](large-scope.md)）。
+ 
+ ## INDEX.md
+ 
+diff --git a/skills/task-explore/tests/test_design_contract_and_handoff_gate.py b/skills/task-explore/tests/test_design_contract_and_handoff_gate.py
+index 07b7e5e..2d54035 100644
+--- a/skills/task-explore/tests/test_design_contract_and_handoff_gate.py
++++ b/skills/task-explore/tests/test_design_contract_and_handoff_gate.py
+@@ -24,6 +24,16 @@ class DesignAndHandoffTest(unittest.TestCase):
+         self.assertIn("交付类别", h)
+         self.assertIn("适用门包", h)
+ 
++    def test_handoff_gate_before_driver(self) -> None:
++        """入口门要求 status=handed-off：改状态 → 跑 check → 建 driver，顺序反了就会被打回 handoff 死循环。"""
++        h = (ROOT / "references" / "handoff.md").read_text(encoding="utf-8")
++        steps = h.split("## 步骤", 1)[1]
++        i_status = steps.index("status: handed-off")
++        i_check = steps.index("check_handoff.py")
++        i_driver = steps.index("脚手架建 driver")
++        self.assertLess(i_status, i_check)
++        self.assertLess(i_check, i_driver)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

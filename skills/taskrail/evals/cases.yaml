@@ -21,7 +21,7 @@ cases:
     given: 用户 resume 已有任务
     expect:
       must:
-        - 输出目标 / phase / 未决 / 建议下一步
+        - 按 user-report 第 6 节四行汇报：目标、做到哪、卡在哪（只限真阻塞）、接下来做什么；第一段不出现 phase 等内部词
         - 从当前 phase 继续，不默认重出 wizard
       must_not:
         - 覆盖已有任务目录
@@ -90,14 +90,16 @@ cases:
   - id: human-gate-with-recommend
     kind: core
     judge: deterministic
-    description: human 闸口禁止空问，须带推荐表
-    given: human 模式确认闸口有未决口子
+    description: human 只在 wizard 定稿与 approve 停，推荐写成已定的决定
+    given: human 模式 full 档任务推进到 wizard 定稿、design、approve
     expect:
       must:
-        - 每个口子含问题、推荐、一句话理由
-        - 收口可「按推荐」放行
+        - wizard 定稿把意图复述和 plan 要点合成一条消息，停下等用户说对
+        - approve 把推荐写成决定带一句理由，用户说「继续」即放行并同轮 handoff
+        - explore / design / apply 切换时说决定、接着做
       must_not:
-        - 只列问题、不写推荐
+        - 以问句收尾或列待选问题
+        - 在 design 定稿另设一次停
 
   - id: ui-evidence-gate-fail
     kind: failure

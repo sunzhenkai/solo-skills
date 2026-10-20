@@ -21,11 +21,11 @@ taskrail resume [slug]
 taskrail list
 ```
 
-消息含 `/goal`、`goal:` 前缀，或有进行中的 goal 且本条挂了本 skill → `confirm_mode: goal`；否则 `human`。两种模式的差别只在 [references/confirm-protocol.md](references/confirm-protocol.md)。
+消息含 `/goal`、`goal:` 前缀，或有进行中的 goal 且本条挂了本 skill → `confirm_mode: goal`；resume 沿用 `TASK.md.confirm_mode`，本条带 `/goal` 时改成 goal 并记入「已做决定」；其余 `human`。停在哪、两种模式在闸口上的差别见 [references/confirm-protocol.md](references/confirm-protocol.md)「停点」表。
 
 ## 依赖
 
-`task-intent`、`task-explore`、`taskflow`（full 档）、`grilling`、stock `openspec-*`（full 档，经 taskflow）。缺哪个就说缺哪个和怎么装，不发明等价命令。
+`task-intent`、`task-explore`、`taskflow`（full 档）、stock `openspec-*`（full 档，经 taskflow）；`grilling` 可选，缺了 explore 照样自问自答。缺哪个就说缺哪个和怎么装，不发明等价命令。
 
 ## 绑定
 
@@ -36,7 +36,7 @@ taskrail list
 
 ## 主循环
 
-每轮：读 `phase` → 只加载该阶段细则 → 做完当前步 → 更新 `TASK.md`（`updated`、`phase`、指针、「已做决定」）→ 按档位进下一阶段或停。
+每轮：读 `phase` → 只加载该阶段细则 → 做完当前步 → 更新 `TASK.md`（`updated`、`phase`、指针、「已做决定」）→ 按档位进下一阶段；只在 confirm-protocol「停点」表列出的时机停。
 
 | phase | 动作 |
 |-------|------|
@@ -61,6 +61,6 @@ taskrail list
 
 ## 边界
 
-- 不自动 commit / push / 部署 / 改线上数据；危险动作按确认协议停。
+- 提交只落在任务 worktree 的任务分支；不 push、不合进默认分支、不部署、不改线上数据；危险动作按确认协议停。
 - 进度：approve 前认 `TASK.md.phase`，之后认 OpenSpec checkbox。
 - 没有 worker 能力时主会话自做，不因此退出轨道。

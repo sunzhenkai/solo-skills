@@ -36,7 +36,7 @@ class OutputStyleTest(unittest.TestCase):
         self.assertTrue(any("自然口语" in w for w in warns))
         self.assertTrue(any("输出什么" in e for e in errs))
         self.assertFalse(any("要干嘛" in e for e in errs))
-        self.assertFalse(any("对用户说话" in e for e in errs))  # 临时目录无 contract，不报
+        self.assertFalse(any("对用户说话" in e for e in errs))  # 临时目录无 user-report，不报
 
     def test_lint_warns_desc_chain_ban(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

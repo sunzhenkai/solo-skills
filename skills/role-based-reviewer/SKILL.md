@@ -1,7 +1,7 @@
 ---
 id: role-based-reviewer
 name: role-based-reviewer
-description: "角色化只读评审（engineer、algo、data、sre、ops、biz、product、design、qa、skill、intent）。用户点名本 skill 或写 roles=、要求按岗位 / 多角色视角审查，或上游工作流以 mode=review + roles 调用时使用。"
+description: "角色化只读评审（engineer、algo、data、sre、ops、biz、product、design、qa、skill）。用户点名本 skill 或写 roles=、要求按岗位 / 多角色视角审查，或上游工作流以 mode=review + roles 调用时使用。"
 ---
 
 # 角色化评审
@@ -11,17 +11,17 @@ description: "角色化只读评审（engineer、algo、data、sre、ops、biz�
 - `mode=ask`：按岗位回答问题，标明证据与下游建议。
 - `mode=review`：多视角审查，输出分级发现；默认目标为当前工作区变更。
 
-只读：不改代码、不落盘。用户要求修复时再动手。
+只读：不改代码、不落盘；调用方需要评审文件时，由调用方按 protocol「输出骨架」落盘。用户要求修复时再动手。
 
 ## 三道门
 
 1. **触发要窄**：用户点名本 skill / `{{slash:role-based-reviewer}}`、写出 `roles=` 或岗位短名、明确要多角色视角，或上游以 `mode=review` + 完整 `roles=` 调用。单独的「看看这段」「帮我 review」「有没有 bug」不算。上游给的审阅边界（判据、审与不审、证据）缺项不拒审：按已有边界审，报告开头写明缺哪块，受影响条目标「未验证」。
-2. **角色要少**：未指定 `roles` 时只开 `engineer`；其它角色要主体强信号（文件名沾边不够）；推断超过 2 个只留信号最强的 2 个并在报告开头说一句。调用方或用户给定的 `roles` 照单执行，不增删。
+2. **角色要少**：未指定 `roles` 时只开 `engineer`；`product`、`design`、`qa` 要主体强信号才推断（文件名沾边不够），`algo`、`data`、`sre`、`ops`、`biz`、`skill` 只在点名或调用方传入时启用；推断超过 2 个只留信号最强的 2 个并在报告开头说一句。调用方或用户给定的 `roles` 照单执行，不增删。
 3. **发现要克制**：默认只报 Blocker 与 Major；Minor / Suggestion 仅在用户要求「仔细 / 全面」时给。拿不准不当 Blocker；没问题就说没有，不为每个角色凑一条。
 
 ## 输入
 
-- `roles=<逗号分隔>`：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`、`intent`（仅调用方显式传入，清单见 [references/roles/intent.md](references/roles/intent.md)）。
+- `roles=<逗号分隔>`：`engineer`、`algo`、`data`、`sre`、`ops`、`biz`、`product`、`design`（别名 `uiux`）、`qa`、`skill`。
 - `mode=<ask|review>`：默认 `ask`；用户说评审 / review / 审查时为 `review`。
 - 范围：未给时默认当前 `git diff`。
 - 审阅边界（上游调用时）：判据原文、「审 / 不审」范围、运行态证据（截图 / 断言输出）、观感任务的参照与截图。

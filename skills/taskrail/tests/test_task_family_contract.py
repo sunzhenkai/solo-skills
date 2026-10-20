@@ -24,7 +24,8 @@ class FamilyTest(unittest.TestCase):
 
     def test_ownership_table(self) -> None:
         c = (ROOT / "references" / "contract.md").read_text(encoding="utf-8")
-        self.assertIn("## Skill 归属", c)
+        self.assertNotIn("## Skill 归属", c)  # 归属只在 taskrail SKILL.md 开头一句
+        c = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         for s in ("taskrail", "task-intent", "task-explore", "taskflow"):
             self.assertIn(s, c)
 

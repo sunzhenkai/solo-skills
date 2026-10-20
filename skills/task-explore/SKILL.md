@@ -1,7 +1,7 @@
 ---
 id: task-explore
 name: task-explore
-description: "探索台账命令：explore / design / approve / handoff，由 taskrail 委派；approve 之后的唯一出口是 handoff。仅在用户点名 task-explore 或被 taskrail 委派时使用；泛指的推进、resume、list、/goal 一律走 taskrail。"
+description: "任务探索命令：explore（grill 自问自答）/ design / approve / handoff，把已确认的意图推进到冻结、可交接的方案。taskrail 委派或用户点名 task-explore 时使用。"
 ---
 
 # 任务探索
@@ -17,7 +17,7 @@ description: "探索台账命令：explore / design / approve / handoff，由 ta
 | `approve` | 自查 + 闸口 + 冻结 | [references/approve.md](references/approve.md) |
 | `handoff` | 交接给 taskflow，转 `handed-off` | [references/handoff.md](references/handoff.md) |
 
-其余动作（新建、恢复、列表、保存进展、归档、reopen）经 taskrail 走，细则：台账 [references/ledger.md](references/ledger.md)，归档 [references/archive-reopen.md](references/archive-reopen.md)。用户点名 `{{slash:task-explore}}` 且首词不是上表命令时，按对话回答任务问题，不自动 grill、不写方案稿。
+端到端推进、resume、list、/goal 与其余动作（新建、保存进展、归档、reopen）经 taskrail 走，细则：台账 [references/ledger.md](references/ledger.md)，归档 [references/archive-reopen.md](references/archive-reopen.md)。用户点名 `{{slash:task-explore}}` 且首词不是上表命令时，按对话回答任务问题，不自动 grill、不写方案稿。
 
 命令名不是 `phase` 取值；`handoff` 成功后 status 置为 handed-off、phase 置为 propose、写 driver。
 

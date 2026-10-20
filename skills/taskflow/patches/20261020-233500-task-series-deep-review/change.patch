@@ -1,0 +1,316 @@
+diff a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+--- a/skills/taskflow/SKILL.md	2026-10-16 08:42:11.000000000 +0800
++++ b/skills/taskflow/SKILL.md	2026-10-20 23:45:02.512284528 +0800
+@@ -1,12 +1,12 @@
+ ---
+ id: taskflow
+ name: taskflow
+-description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。仅在用户点名 taskflow / taskflow-new / 某个 `{task}-driver`、或被 taskrail 委派时使用；泛指的推进、resume、/goal 一律走 taskrail。"
++description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。taskrail 委派，或用户点名 taskflow / taskflow-new / 某个 `{task}-driver` 时使用。"
+ ---
+ 
+ # taskflow
+ 
+-面向用户默认简体中文；对用户报进度按 [user-report.md](../taskrail/references/user-report.md)，不报 checkbox 计数与字段。
++面向用户默认简体中文；端到端推进、resume、/goal 走 taskrail。对用户报进度按 [user-report.md](../taskrail/references/user-report.md)，不报 checkbox 计数与字段。
+ 
+ 一个任务 = 一个 driver change `{task}-driver`，实现拆成子 change `{task}-<slice>`（同一 planning root；跨 root 时在 driver 涉及面表记录）。**进度只有 checkbox 一种真相**：不另建台账、索引或编号。术语见 [taskrail 契约「术语」](../taskrail/references/contract.md)。
+ 
+@@ -21,7 +21,7 @@
+ 
+ 方案未定时先 stock `openspec-explore`。只提供 `taskflow-new` 一个 command，其余复用 stock skill。
+ 
+-委托时必须在 driver 的 planning root 下执行，并显式给出 change name `{task}-driver`；缺任一项不委托。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
++委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name `{task}-driver`；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
+ 
+ ## 入口门
+ 
+@@ -33,14 +33,14 @@
+ 
+ exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自己补写 `TASK.md` 绕过。核对项只在脚本里。
+ 
+-用户明确说「不走 taskrail 直接建 driver」时，由用户确认后在 `TASK.md` 元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <理由>"` 再跑（脚本以 BYPASS 放行）；agent 不自己写这一行。
++用户原话明确要求「不走 taskrail 直接建 driver」时：没有 `TASK.md` 就按 task-explore 模板建最小的一份，元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"` 再跑（脚本以 BYPASS 放行）。理由只照录用户原话；用户没说跳过就走 taskrail。
+ 
+ ## 脚手架
+ 
+ `taskflow-new {任务描述}`，入口门通过后三步：
+ 
+-1. 由描述归纳 kebab-case `{task}`（描述为空才问）。
+-2. `openspec new change {task}-driver --goal "<任务描述原文>"`。
++1. 定 `{task}`：有 `TASK.md` 时等于其 slug；否则由描述归纳 kebab-case（描述为空时说明需要任务描述）。
++2. `openspec new change {task}-driver --goal "<目标 + criterion 原文 + 方案 / 批准路径；无 TASK.md 时为任务描述原文>"`。
+ 3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；`tasks.md` 留给 propose。
+ 
+ ## 执行
+diff a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+--- a/skills/taskflow/evals/cases.yaml	2026-10-20 23:18:48.329536376 +0800
++++ b/skills/taskflow/evals/cases.yaml	2026-10-20 23:45:02.512739018 +0800
+@@ -58,7 +58,7 @@
+     expect:
+       must:
+         - Driver 协议与 SKILL 模板固定文本一致
+-        - 含 skip_specs、子 change 命名、checkbox 进度、必须仓可选建 worktree 规则、一轮结束三条件
++        - 含 skip_specs、子 change 命名、checkbox 进度、两个根与必须仓建 worktree 规则、提交只到任务分支、一轮结束三条件
+       must_not:
+         - 改写、精简或挪走 Driver 协议
+ 
+@@ -69,7 +69,7 @@
+     given: openspec-propose 处理 {task}-driver
+     expect:
+       must:
+-        - 准备段含可选的必须仓建 worktree 条目
++        - 准备段含给必须仓建 worktree 的条目
+         - 实施段每个子 change 至少一条，且须 apply 至全勾且 validate --strict 通过
+         - 收尾段含回归、回填验收、提交与归档全部子 change
+       must_not:
+@@ -91,19 +91,21 @@
+   - id: fail-closed-must-repos
+     kind: core
+     judge: deterministic
+-    description: 任务改动放在修改仓的 worktrees/{task} 里，只针对必须修改仓且可选；主工作树与用户未提交改动不动
++    description: 必须修改仓的代码改在 worktrees/{task}；tasks/ 与 openspec change 留在主工作树；主工作树与用户未提交改动不动
+     given: 准备涉及面角色为必须的修改仓
+     expect:
+       must:
+-        - task 所在仓不是修改仓时不建 worktree
+-        - 先同步默认分支，再 git worktree add worktrees/{task} -b {task}；分支已存在去掉 -b，worktree 已存在则复用
+-        - 把 worktrees/ 写进 .git/info/exclude，worktree 路径记入「已做决定」
+-        - 实施、回归、提交都在 worktree 里做；git 拒绝时停下说明原因，已准备成功的仓保留现状
++        - openspec-* 在 planning root（主工作树）跑；改代码、测试、提交在 worktrees/{task}
++        - 先 fetch；基线默认 origin/<默认分支>，当前分支不是默认分支且领先时用 HEAD；git worktree add worktrees/{task} -b {task} <基线>
++        - 分支已存在用 git worktree add worktrees/{task} {task}；worktree 已存在则复用
++        - 把 worktrees/ 写进 .git/info/exclude，worktree 路径与基线记入「已做决定」
++        - 派给实现者的工作目录是 worktree 的绝对路径；同一任务的 worker 共用这个 worktree
++        - 提交只落在任务分支 {task}；git 拒绝时停下说明原因
+       must_not:
+         - 在主工作树上切分支、stash 或 reset
+-        - 对建议/排除仓或非修改的 task 所在仓建 worktree
+-        - 把建 worktree 当作必须仓的强制前置
+-        - 收尾自动删除 worktree
++        - 对建议/排除仓建 worktree
++        - 分支已存在时用 origin/<默认分支> 作参数建出 detached HEAD
++        - push、合进默认分支或收尾自动删除 worktree
+ 
+   - id: round-end-three-only
+     kind: core
+@@ -193,11 +195,11 @@
+   - id: normal-delivery-input-context
+     kind: core
+     judge: deterministic
+-    description: 正常交付实现者必须拿到画像或保留语义的子范围上下文
++    description: 正常交付实现者拿到交接载荷生成的输入；点名画像时一并给画像
+     given: 派发普通复杂交付的实现者
+     expect:
+       must:
+-        - 实现者收到质量画像，或保留语义的子范围裁剪
++        - 实现者收到判据原文、交付类别、本人范围、要产出的证据与指针；用户点名质量画像时另给画像或保留语义的子范围裁剪
+         - 实现者收到本人范围的相关验收要求与运行约束
+         - 完整 rubric 与跨范围审阅意见仍由审阅者持有
+       must_not:
+@@ -246,14 +248,17 @@
+   - id: entry-gate-bypass-user-only
+     kind: boundary
+     judge: deterministic
+-    description: gate_bypass 只有含 user-confirmed 与理由才以 BYPASS 放行
+-    given: TASK.md 元信息带 gate_bypass
++    description: 用户原话要求跳过 taskrail 时，agent 照录原话写 gate_bypass，脚本以 BYPASS 放行
++    given: 用户说「不走 taskrail，直接建 driver」
+     expect:
+       must:
+-        - "值含 user-confirmed 且写明理由时 BYPASS 放行（exit 0、醒目警告），验收按未覆盖即降级"
++        - 没有 TASK.md 时按 task-explore 模板建最小的一份
++        - 元信息写 gate_bypass "<日期> user-confirmed: <用户原话>"，BYPASS 放行（exit 0、醒目警告）
++        - 没验证到的门包项按 done.md 第 6 条记进「已做决定」
+         - 缺 user-confirmed 或缺理由时 exit 1
+       must_not:
+-        - agent 自行写入 gate_bypass
++        - 用户没说跳过时写 gate_bypass
++        - 用自己编的理由代替用户原话
+ 
+   - id: web-ui-no-external-ui-skill
+     kind: regression
+diff a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+--- a/skills/taskflow/references/driver-template.md	2026-10-20 23:18:48.329371656 +0800
++++ b/skills/taskflow/references/driver-template.md	2026-10-20 23:40:12.390094457 +0800
+@@ -36,7 +36,10 @@
+ - 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）
+ - 子 change 一律命名 `{task}-<slice>`，与本 change 同一 planning root；跨 root 时在涉及面表显式记录 root 或 store id
+ - 实现进度只认子 change 自己的 `tasks.md`；本文件的 checkbox 只在对应子 change 全勾且 `validate --strict` 通过后才勾
+-- 任务改动放在 worktree 里，不在修改仓的主工作树上切分支。只对涉及面里角色为 `必须` 的修改仓建，且本身可选；task 所在仓不是修改仓时不建。先 fetch 默认分支，再在修改仓根目录执行 `git worktree add worktrees/{task} -b {task} origin/<默认分支>`（分支已存在则去掉 `-b`，worktree 已存在则直接复用），并把 `worktrees/` 写进 `.git/info/exclude`；其他规则另有指定位置时以其为准。之后实施、回归、提交都在这个 worktree 里做，主工作树和用户手上的未提交改动一律不碰，不 stash / reset / 切换主工作树分支。worktree 路径记入 `TASK.md`「已做决定」。git 拒绝（如分支已在别处检出）时才停下，说明原因。收尾提交后保留 worktree，清理留给用户
++- 两个根：planning root（`tasks/`、`openspec/changes/`）留在主工作树，只增量写本任务的目录，`openspec-*` 命令在这里跑；代码根是修改仓根目录下的 `worktrees/{task}`，读改代码、测试、回归、提交都在这里做，派给实现者的工作目录写它的绝对路径
++- 涉及面里角色为 `必须` 的 git 修改仓一律建 worktree；修改仓不是 git 仓、或用户原话要求就地改时才在主工作树做，并记入 `TASK.md`「已做决定」。建法：先 fetch；基线默认 `origin/<默认分支>`，主工作树当前分支不是默认分支且领先于它时用 `HEAD`；执行 `git worktree add worktrees/{task} -b {task} <基线>`，分支已存在则 `git worktree add worktrees/{task} {task}`，worktree 已存在就复用；把 `worktrees/` 写进 `.git/info/exclude`；其他规则另有指定位置时以其为准。worktree 路径与基线记入「已做决定」。git 拒绝（如分支已在别处检出）时停下说明原因
++- 主工作树里用户已有的改动和当前分支保持原样，不 stash / reset / 切分支。同一任务的 worker 共用这个 worktree，靠改动文件不重叠隔离
++- 提交只落在任务分支 `{task}`，不 push、不合进默认分支。收尾提交后保留 worktree，清理留给用户
+ - 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+ - 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 四行说，不报编号
+ 
+@@ -57,7 +60,7 @@
+ 
+ ````markdown
+ ## 1. 准备
+-- [ ] 1.1 （可选）给涉及面里角色为必须的修改仓建 worktree：从默认分支最新代码建到 `worktrees/{task}`，后续都在 worktree 里做，主工作树不动
++- [ ] 1.1 给涉及面里角色为必须的修改仓建 worktree `worktrees/{task}`（基线与命令见 Driver 协议），之后改代码、测试、提交都在 worktree 里做
+ 
+ ## 2. 实施
+ - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
+@@ -66,7 +69,7 @@
+ ## 3. 收尾
+ - [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录
+ - [ ] 3.2 回填 proposal 验收标准
+-- [ ] 3.3 提交交付仓改动
++- [ ] 3.3 在 worktree 里把交付改动提交到任务分支 `{task}`（不 push）
+ - [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、findings 全有处置（见 execution-discipline「收尾校核」）
+ - [ ] 3.5 归档全部子 change
+ ````
+diff a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+--- a/skills/taskflow/references/execution-discipline.md	2026-10-20 23:18:48.329426031 +0800
++++ b/skills/taskflow/references/execution-discipline.md	2026-10-20 23:40:12.390131727 +0800
+@@ -13,7 +13,7 @@
+ - 默认串行，一次一个子 change。
+ - 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
+ - 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
+-- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录、不得提交 / 外发）。
++- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；只提交到任务分支，不 push、不外发）。
+ 
+ ## 收尾校核
+ 
+diff a/skills/taskflow/references/multi-worker.md b/skills/taskflow/references/multi-worker.md
+--- a/skills/taskflow/references/multi-worker.md	2026-10-20 23:18:48.329456093 +0800
++++ b/skills/taskflow/references/multi-worker.md	2026-10-20 23:40:12.390161671 +0800
+@@ -9,7 +9,7 @@
+ | 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段建 worktree；收尾段回归 / 回填 / 提交 / 归档 |
+ | 同一 change 的 checkbox | 互不依赖且文件不重叠 | 有先后依赖、共享文件、或卡在用户决策上 |
+ 
+-每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突。worker 需要独立工作树时，按 driver-template.md 的 Driver 协议建 worktree。worker 失败不是整轮结束的理由。
++每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突。同一任务的 worker 共用 `worktrees/{task}`（Driver 协议），靠改动文件不重叠隔离。worker 失败不是整轮结束的理由。
+ 
+ ## 派发前
+ 
+diff a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+--- a/skills/taskflow/scripts/check_handoff.py	2026-10-12 14:02:44.000000000 +0800
++++ b/skills/taskflow/scripts/check_handoff.py	2026-10-20 23:39:33.805710983 +0800
+@@ -11,7 +11,7 @@
+   4. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
+ 
+ 逃生口：元信息 `gate_bypass:` 值含 `user-confirmed` 且写明理由时，以 BYPASS 放行（exit 0，
+-输出醒目警告）；该行只能由用户明确确认后写入，agent 不得自行写。
++输出醒目警告）；只在用户原话明确要求跳过时写入，理由照录用户原话。
+ 
+ 退出码：0 通过（或已登记 BYPASS）· 1 不通过 · 2 用法错误。
+ 仅标准库，只读。
+@@ -30,7 +30,7 @@
+ 
+ 
+ def parse_meta(text: str) -> dict[str, str]:
+-    """读 TASK.md 元信息：优先 `---` frontmatter，其次首个 ```yaml 块，再退到全文顶层 key: value。"""
++    """读 TASK.md 元信息：优先 `---` frontmatter，其次首个 ```yaml 块，再退到全文顶层 key: value（兼容 `- key: value` 列表行）。"""
+     block = None
+     m = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
+     if m:
+@@ -40,7 +40,7 @@
+         block = m.group(1) if m else text
+     meta: dict[str, str] = {}
+     for line in block.splitlines():
+-        mm = re.match(r"^([a-z_]+)\s*:\s*(.*?)\s*$", line)
++        mm = re.match(r"^[-*]?\s*([a-z_]+)\s*:\s*(.*?)\s*$", line)
+         if mm and mm.group(1) not in meta:
+             meta[mm.group(1)] = mm.group(2).strip().strip("\"'")
+     return meta
+@@ -72,9 +72,9 @@
+     if bypass and bypass.lower() not in ("null", "none", "~"):
+         if "user-confirmed" in bypass and len(bypass.replace("user-confirmed", "").strip(" :：-")) >= 4:
+             res["bypass"] = bypass
+-            res["warnings"].append("BYPASS：入口门由用户确认豁免（TASK.md gate_bypass），门包未经机械核对，验收按未覆盖即降级处理。")
++            res["warnings"].append("BYPASS：入口门由用户确认豁免（TASK.md gate_bypass），门包未经机械核对，没验证到的项按 done.md 第 6 条记进「已做决定」。")
+             return res
+-        res["errors"].append("gate_bypass 存在但未含 `user-confirmed` 与理由；agent 不得自写豁免。")
++        res["errors"].append("gate_bypass 须含 `user-confirmed` 与用户原话。")
+ 
+     if meta.get("status") != "handed-off":
+         res["errors"].append(f"status 须为 handed-off，实为 {meta.get('status')!r}")
+diff a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+--- a/skills/taskflow/tests/test_check_handoff.py	2026-10-16 00:06:59.000000000 +0800
++++ b/skills/taskflow/tests/test_check_handoff.py	2026-10-20 23:39:33.805837584 +0800
+@@ -22,7 +22,7 @@
+ slug: demo
+ status: handed-off
+ phase: propose
+-tier: medium
++tier: full
+ driver: "demo-driver"
+ ---
+ """
+@@ -31,7 +31,7 @@
+ 
+ ## 交接
+ - 交付类别：服务 / 后端
+-- 适用门包：gate-packs.md「服务 / 后端」
++- 适用门包：quality-appendix.md「服务 / 后端」
+ - driver：demo-driver
+ """
+ HANDOFF_UI = """
+@@ -110,7 +110,7 @@
+         self.assertIn("binding digest", r.stdout)
+ 
+     def test_bypass_requires_user_confirmed(self) -> None:
+-        self.write(GOOD_META.replace("tier: medium", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
++        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
+         self.assertEqual(self.run_gate().returncode, 1)
+ 
+     def test_bypass_user_confirmed(self) -> None:
+@@ -145,5 +145,29 @@
+         self.assertIn("交付类别", self.handoff)
+ 
+ 
++class TestTemplateCompat(unittest.TestCase):
++    """task-explore templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
++
++    def run_on(self, text: str) -> subprocess.CompletedProcess:
++        with tempfile.TemporaryDirectory() as tmp:
++            d = Path(tmp) / "tasks" / "ongoing" / "demo"
++            d.mkdir(parents=True)
++            (d / "TASK.md").write_text(text, encoding="utf-8")
++            return subprocess.run([sys.executable, str(SCRIPT), tmp, "demo"], capture_output=True, text=True)
++
++    def test_template_task_md_passes(self) -> None:
++        import re
++        tpl = (ROOT.parent / "task-explore" / "references" / "templates.md").read_text(encoding="utf-8")
++        block = re.search(r"## TASK\.md\n\n```markdown\n(.*?)\n```\n", tpl, re.S).group(1)
++        text = block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
++        text = re.sub(r"## 交接\n.*", "## 交接\n- 交付类别：服务\n- 适用门包：无\n", text, flags=re.S)
++        r = self.run_on(text)
++        self.assertEqual(r.returncode, 0, r.stdout)
++
++    def test_bullet_meta_compat(self) -> None:
++        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n\n## 交接\n- 交付类别：服务\n- 适用门包：无\n")
++        self.assertEqual(r.returncode, 0, r.stdout)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+--- a/skills/taskflow/tests/test_taskflow_contract.py	2026-10-16 08:42:06.000000000 +0800
++++ b/skills/taskflow/tests/test_taskflow_contract.py	2026-10-20 23:40:41.473772761 +0800
+@@ -22,6 +22,21 @@
+         self.assertIn("skip_specs: true", t)
+         self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
+ 
++    def test_worktree_protocol(self) -> None:
++        """两个根、worktree 命令正确（分支已存在不建 detached HEAD）、提交只到任务分支。"""
++        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
++        proto = t.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
++        self.assertIn("planning root", proto)
++        self.assertIn("代码根", proto)
++        self.assertIn("git worktree add worktrees/{task} -b {task} <基线>", proto)
++        self.assertIn("分支已存在则 `git worktree add worktrees/{task} {task}`", proto)
++        self.assertIn(".git/info/exclude", proto)
++        self.assertIn("不 push", proto)
++        self.assertNotIn("去掉 `-b`", proto)
++        self.assertNotIn("（可选）", t)
++        rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("提交只落在任务 worktree 的任务分支", rail)
++
+     def test_serial_default(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("串行", skill)

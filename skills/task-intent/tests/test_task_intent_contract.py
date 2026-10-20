@@ -28,7 +28,8 @@ class IntentContractTest(unittest.TestCase):
 
     def test_skip_rule(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("`skip` 档", skill)
+        self.assertIn("先定做多少", skill)
+        self.assertIn("一句话能描述改动", skill)
 
 
 if __name__ == "__main__":

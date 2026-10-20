@@ -28,8 +28,9 @@ class IntentLoopTest(unittest.TestCase):
 
     def test_skip_rule_in_intent(self) -> None:
         skill = (FAMILY / "task-intent" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("何时跳过", skill)
-        self.assertIn("skip", skill)
+        self.assertIn("先定做多少", skill)
+        self.assertIn("一句话能描述改动", skill)
+        self.assertNotIn("`skip` 档", skill)  # 档位在 wizard 第 4 步才定，意图阶段不能拿它当条件
 
     def test_plain_talk_pointer(self) -> None:
         for rel in ("taskrail/SKILL.md", "task-intent/SKILL.md", "task-explore/SKILL.md", "taskflow/SKILL.md"):

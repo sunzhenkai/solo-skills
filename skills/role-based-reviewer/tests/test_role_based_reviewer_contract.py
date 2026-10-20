@@ -1,4 +1,4 @@
-"""role-based-reviewer：三道门、intent 指针、design 速度节。"""
+"""role-based-reviewer：三道门、意图审不在本 skill、design 速度节。"""
 from __future__ import annotations
 import unittest
 from pathlib import Path
@@ -18,11 +18,11 @@ class RbrContractTest(unittest.TestCase):
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("只开 `engineer`", text)
 
-    def test_intent_is_pointer(self) -> None:
-        intent = (ROOT / "references" / "roles" / "intent.md").read_text(encoding="utf-8")
-        self.assertIn("task-intent/references/intent.md", intent)
-        self.assertIn("第 5 节", intent)
-        self.assertNotIn("自加限制或缩窄目标", intent)  # 清单已下沉
+    def test_no_intent_role(self) -> None:
+        # 意图代审由 taskrail confirm-protocol 派异源模型按 task-intent 清单做，不经本 skill 的角色
+        self.assertFalse((ROOT / "references" / "roles" / "intent.md").exists())
+        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("`intent`", text)
 
     def test_design_speed_section(self) -> None:
         text = (ROOT / "references" / "roles" / "design.md").read_text(encoding="utf-8")

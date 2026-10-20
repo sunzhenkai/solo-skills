@@ -10,7 +10,7 @@
    - `wizard/intent.md` 模板的「覆盖清单」缺字段 → ERROR（落盘文件的结构约束）；
    - 「给用户的复述」示例出现标题 / 加粗标签 / 字段名开头 → 告警（应为自然口语）；
    - 示例出现问号或「要不要 / 你看行吗 / 对吗」→ 告警（应说决定，不提问）。
-3. taskrail contract 必须有「对用户说话」共用节且含 ≥3 组前后对比 → 缺失为 ERROR。
+3. taskrail references/user-report.md（对用户说话唯一出处）必须有「前后对比」节且含 ≥3 组 → 缺失为 ERROR。
 """
 from __future__ import annotations
 
@@ -131,20 +131,18 @@ def check_plain_talk(path: Path) -> list[str]:
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8")
-    if "## 对用户说话" not in text:
-        return [f"{path}: 缺「对用户说话」共用节"]
-    if not (path.parent / "user-report.md").is_file():
-        return [f"{path}: 缺 user-report.md（对用户汇报唯一出处）"]
-    sec = text.split("## 对用户说话", 1)[1].split("\n## ", 1)[0]
+    if "## 前后对比" not in text:
+        return [f"{path}: 缺「前后对比」节"]
+    sec = text.split("## 前后对比", 1)[1].split("\n## ", 1)[0]
     if sec.count("前：「") < 3 or sec.count("后：「") < 3:
-        return [f"{path}: 「对用户说话」前后对比少于 3 组"]
+        return [f"{path}: 「前后对比」少于 3 组"]
     return []
 
 
 def run(skills: Path) -> tuple[list[str], list[str]]:
     warns = check_sizes(skills) + check_skill_lint(skills)
     errs, w2 = check_intent(skills / "task-intent" / "references" / "intent.md")
-    errs += check_plain_talk(skills / "taskrail" / "references" / "contract.md")
+    errs += check_plain_talk(skills / "taskrail" / "references" / "user-report.md")
     return errs, warns + w2
 
 

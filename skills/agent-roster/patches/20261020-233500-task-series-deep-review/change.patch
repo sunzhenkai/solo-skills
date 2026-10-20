@@ -1,0 +1,12 @@
+diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
+index 84f43b7..856c7fc 100644
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -57,6 +57,7 @@ description: 跨机器 agent 名册与委派。用于把定计划、评审或实
+ 
+ - **只读**（默认）：定计划、评审、调研、排查。受派 Endpoint 不许改工作目录里的任何文件。
+ - **可写**：仅实施类委派。发起前必须确认工作目录处于干净状态，否则停下，说明哪些文件有未提交改动（受派方会改到用户的改动，属真阻塞）。
++  工作目录指受派方要写入的目录：在任务 worktree 里实施时，只看该 worktree 是否干净。
+ 
+ 只读委派下受派方无法写文件，所以它的产出由 Orchestrator 从结果文本落盘到指定的 Handoff 路径——这条约束顺带保证了「定计划」这类委派永远不会偷偷动到代码。
+ 

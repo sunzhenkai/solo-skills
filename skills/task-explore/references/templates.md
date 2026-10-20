@@ -1,21 +1,24 @@
 # 落盘模板
 
-元信息字段与取值只在 [taskrail 契约](../../taskrail/references/contract.md)。按已知信息填，未知留空，不编造。
+元信息写在开头的 `---` frontmatter，字段与取值只在 [taskrail 契约](../../taskrail/references/contract.md)。按已知信息填，未知留空，不编造。
 
 ## TASK.md
 
 ```markdown
-# <Title>
+---
+slug: <slug>
+status: ongoing
+phase: wizard
+confirm_mode: <human | goal>
+tier: <skip | full>
+criterion: "<完成判据原文；没有就留空>"
+driver: null
+evidence_root: null
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
 
-- slug: <slug>
-- status: ongoing
-- phase: wizard
-- confirm_mode: human
-- tier: <skip | full>
-- criterion: <完成判据原文；没有就留空>
-- driver: <handoff 后填写>
-- created: YYYY-MM-DD
-- updated: YYYY-MM-DD
+# <Title>
 
 ## 目标
 - <要达成什么>
@@ -44,7 +47,7 @@
 <handoff 时按 handoff.md 写>
 ```
 
-子任务另加 `- parent:`；父任务另加「子任务」小节（见 [large-scope.md](large-scope.md)）。
+子任务在 frontmatter 另加 `parent:`；父任务另加「子任务」小节（见 [large-scope.md](large-scope.md)）。
 
 ## INDEX.md
 

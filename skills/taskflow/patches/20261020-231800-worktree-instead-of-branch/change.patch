@@ -1,0 +1,128 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index ca9a542..2617bbd 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -58,7 +58,7 @@ cases:
+     expect:
+       must:
+         - Driver 协议与 SKILL 模板固定文本一致
+-        - 含 skip_specs、子 change 命名、checkbox 进度、必须仓可选切分支规则、一轮结束三条件
++        - 含 skip_specs、子 change 命名、checkbox 进度、必须仓可选建 worktree 规则、一轮结束三条件
+       must_not:
+         - 改写、精简或挪走 Driver 协议
+ 
+@@ -69,7 +69,7 @@ cases:
+     given: openspec-propose 处理 {task}-driver
+     expect:
+       must:
+-        - 准备段含可选的必须仓切分支条目
++        - 准备段含可选的必须仓建 worktree 条目
+         - 实施段每个子 change 至少一条，且须 apply 至全勾且 validate --strict 通过
+         - 收尾段含回归、回填验收、提交与归档全部子 change
+       must_not:
+@@ -91,18 +91,19 @@ cases:
+   - id: fail-closed-must-repos
+     kind: core
+     judge: deterministic
+-    description: 切分支只针对修改仓且可选；干净从默认分支最新代码切，dirty 时带着用户改动 git switch -c、不提问，禁止 stash/reset/强制切换
+-    given: 准备涉及面角色为必须的修改仓并考虑切任务分支
++    description: 任务改动放在修改仓的 worktrees/{task} 里，只针对必须修改仓且可选；主工作树与用户未提交改动不动
++    given: 准备涉及面角色为必须的修改仓
+     expect:
+       must:
+-        - task 所在仓不是修改仓时不切分支
+-        - 工作树干净时先同步默认分支，再从其最新提交 git switch -c；分支已存在则 git switch
+-        - 工作树 dirty 时不动改动，带着它们 git switch -c 到任务分支，一句话说明并记入「已做决定」
+-        - 未提交改动与本任务文件重叠或 git 拒绝时停下，说明是哪些文件；已准备成功的仓保留现状
++        - task 所在仓不是修改仓时不建 worktree
++        - 先同步默认分支，再 git worktree add worktrees/{task} -b {task}；分支已存在去掉 -b，worktree 已存在则复用
++        - 把 worktrees/ 写进 .git/info/exclude，worktree 路径记入「已做决定」
++        - 实施、回归、提交都在 worktree 里做；git 拒绝时停下说明原因，已准备成功的仓保留现状
+       must_not:
+-        - 自动 stash、reset 或强制切换
+-        - 对建议/排除仓或非修改的 task 所在仓切分支
+-        - 把切分支当作必须仓的强制前置
++        - 在主工作树上切分支、stash 或 reset
++        - 对建议/排除仓或非修改的 task 所在仓建 worktree
++        - 把建 worktree 当作必须仓的强制前置
++        - 收尾自动删除 worktree
+ 
+   - id: round-end-three-only
+     kind: core
+@@ -129,7 +130,7 @@ cases:
+         - 每个子代理绑定 planning root 与 change name，只改自己范围
+         - 主会话汇总，并在子 change 全勾且 validate --strict 通过后才勾 driver 编排项
+       must_not:
+-        - 对有依赖、同范围重叠、准备切分支或收尾段条目并行
++        - 对有依赖、同范围重叠、准备段建 worktree 或收尾段条目并行
+         - 另建第二份进度账本
+         - 因子代理失败而整轮结束
+ 
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 586e9fc..1b53d9f 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -1,6 +1,6 @@
+ # taskflow：driver 模板与 propose 产出约定
+ 
+-由 [../SKILL.md](../SKILL.md)「脚手架」引用。本文件的 **Driver 协议** 块是切分支、一轮结束等规则的**唯一真源**，其余文件只引用不复述。
++由 [../SKILL.md](../SKILL.md)「脚手架」引用。本文件的 **Driver 协议** 块是建 worktree、一轮结束等规则的**唯一真源**，其余文件只引用不复述。
+ 
+ ## 脚手架细则
+ 
+@@ -36,7 +36,7 @@
+ - 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）
+ - 子 change 一律命名 `{task}-<slice>`，与本 change 同一 planning root；跨 root 时在涉及面表显式记录 root 或 store id
+ - 实现进度只认子 change 自己的 `tasks.md`；本文件的 checkbox 只在对应子 change 全勾且 `validate --strict` 通过后才勾
+-- 切任务分支只针对涉及面里角色为 `必须` 的修改仓，且本身可选；task 所在仓不是修改仓时不切。修改仓干净：先 fetch 默认分支，再从其最新提交 `git switch -c`（分支已存在则 `git switch`）。修改仓 dirty：不动用户的改动，不得 stash / reset / 强制切换；用 `git switch -c` 带着这些改动切到新任务分支（git 只是带过去，文件不变），并一句话说明「你手上有未提交改动，我没动它们，带着切到了任务分支」，记入 `TASK.md`「已做决定」。未提交改动与本任务要改的文件重叠，或 git 拒绝、切错仓时才停下，说明是哪些文件
++- 任务改动放在 worktree 里，不在修改仓的主工作树上切分支。只对涉及面里角色为 `必须` 的修改仓建，且本身可选；task 所在仓不是修改仓时不建。先 fetch 默认分支，再在修改仓根目录执行 `git worktree add worktrees/{task} -b {task} origin/<默认分支>`（分支已存在则去掉 `-b`，worktree 已存在则直接复用），并把 `worktrees/` 写进 `.git/info/exclude`；其他规则另有指定位置时以其为准。之后实施、回归、提交都在这个 worktree 里做，主工作树和用户手上的未提交改动一律不碰，不 stash / reset / 切换主工作树分支。worktree 路径记入 `TASK.md`「已做决定」。git 拒绝（如分支已在别处检出）时才停下，说明原因。收尾提交后保留 worktree，清理留给用户
+ - 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+ - 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 四行说，不报编号
+ 
+@@ -49,7 +49,7 @@
+ 
+ ## propose 阶段的产出约定
+ 
+-`openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段切分支，实施段每个子 change 至少一条，收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
++`openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段建 worktree，实施段每个子 change 至少一条，收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
+ 
+ 收尾段按 [done.md](../../taskrail/references/done.md) 核对；缺证据不勾收尾条目。
+ 
+@@ -57,7 +57,7 @@
+ 
+ ````markdown
+ ## 1. 准备
+-- [ ] 1.1 （可选）把涉及面里角色为必须的修改仓切到任务分支：干净则从默认分支最新代码切；dirty 则带着用户改动 `git switch -c`（不动改动；说决定见 user-report），与本任务文件重叠时才停
++- [ ] 1.1 （可选）给涉及面里角色为必须的修改仓建 worktree：从默认分支最新代码建到 `worktrees/{task}`，后续都在 worktree 里做，主工作树不动
+ 
+ ## 2. 实施
+ - [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index c82e641..31fe5bd 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -1,6 +1,6 @@
+ # taskflow：执行纪律
+ 
+-Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支与「一轮结束」规则只以它为准。
++Driver 协议逐字块在 [driver-template.md](driver-template.md)，建 worktree 与「一轮结束」规则只以它为准。
+ 
+ ## 进度归属
+ 
+diff --git a/skills/taskflow/references/multi-worker.md b/skills/taskflow/references/multi-worker.md
+index 2d4adb9..dae6c4e 100644
+--- a/skills/taskflow/references/multi-worker.md
++++ b/skills/taskflow/references/multi-worker.md
+@@ -6,10 +6,10 @@
+ 
+ | 层 | 可以并行 | 必须串行 |
+ |----|----------|----------|
+-| 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段切分支；收尾段回归 / 回填 / 提交 / 归档 |
++| 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段建 worktree；收尾段回归 / 回填 / 提交 / 归档 |
+ | 同一 change 的 checkbox | 互不依赖且文件不重叠 | 有先后依赖、共享文件、或卡在用户决策上 |
+ 
+-每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突。worker 失败不是整轮结束的理由。
++每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突。worker 需要独立工作树时，按 driver-template.md 的 Driver 协议建 worktree。worker 失败不是整轮结束的理由。
+ 
+ ## 派发前
+ 

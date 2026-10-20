@@ -11,7 +11,7 @@
   4. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
 
 逃生口：元信息 `gate_bypass:` 值含 `user-confirmed` 且写明理由时，以 BYPASS 放行（exit 0，
-输出醒目警告）；该行只能由用户明确确认后写入，agent 不得自行写。
+输出醒目警告）；只在用户原话明确要求跳过时写入，理由照录用户原话。
 
 退出码：0 通过（或已登记 BYPASS）· 1 不通过 · 2 用法错误。
 仅标准库，只读。
@@ -30,7 +30,7 @@ REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → ha
 
 
 def parse_meta(text: str) -> dict[str, str]:
-    """读 TASK.md 元信息：优先 `---` frontmatter，其次首个 ```yaml 块，再退到全文顶层 key: value。"""
+    """读 TASK.md 元信息：优先 `---` frontmatter，其次首个 ```yaml 块，再退到全文顶层 key: value（兼容 `- key: value` 列表行）。"""
     block = None
     m = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
     if m:
@@ -40,7 +40,7 @@ def parse_meta(text: str) -> dict[str, str]:
         block = m.group(1) if m else text
     meta: dict[str, str] = {}
     for line in block.splitlines():
-        mm = re.match(r"^([a-z_]+)\s*:\s*(.*?)\s*$", line)
+        mm = re.match(r"^[-*]?\s*([a-z_]+)\s*:\s*(.*?)\s*$", line)
         if mm and mm.group(1) not in meta:
             meta[mm.group(1)] = mm.group(2).strip().strip("\"'")
     return meta
@@ -72,9 +72,9 @@ def check(root: Path, slug: str) -> dict:
     if bypass and bypass.lower() not in ("null", "none", "~"):
         if "user-confirmed" in bypass and len(bypass.replace("user-confirmed", "").strip(" :：-")) >= 4:
             res["bypass"] = bypass
-            res["warnings"].append("BYPASS：入口门由用户确认豁免（TASK.md gate_bypass），门包未经机械核对，验收按未覆盖即降级处理。")
+            res["warnings"].append("BYPASS：入口门由用户确认豁免（TASK.md gate_bypass），门包未经机械核对，没验证到的项按 done.md 第 6 条记进「已做决定」。")
             return res
-        res["errors"].append("gate_bypass 存在但未含 `user-confirmed` 与理由；agent 不得自写豁免。")
+        res["errors"].append("gate_bypass 须含 `user-confirmed` 与用户原话。")
 
     if meta.get("status") != "handed-off":
         res["errors"].append(f"status 须为 handed-off，实为 {meta.get('status')!r}")

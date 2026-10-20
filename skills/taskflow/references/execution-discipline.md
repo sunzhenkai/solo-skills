@@ -1,6 +1,6 @@
 # taskflow：执行纪律
 
-Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支与「一轮结束」规则只以它为准。
+Driver 协议逐字块在 [driver-template.md](driver-template.md)，建 worktree 与「一轮结束」规则只以它为准。
 
 ## 进度归属
 
@@ -13,7 +13,7 @@ Driver 协议逐字块在 [driver-template.md](driver-template.md)，切分支�
 - 默认串行，一次一个子 change。
 - 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
 - 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
-- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录、不得提交 / 外发）。
+- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；只提交到任务分支，不 push、不外发）。
 
 ## 收尾校核
 

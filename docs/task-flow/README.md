@@ -18,14 +18,15 @@ task 系列只做三件事：**按步骤把任务做完且符合预期**（taskr
 
 ```mermaid
 flowchart LR
-  I[task-intent<br/>意图复述] --> W[wizard<br/>plan.md + criterion]
+  W[wizard<br/>task-intent 意图复述 + plan.md + criterion]
   W -->|skip| S[直接实现 + 验证]
   W -->|full| E[explore] --> D[design] --> A[approve] --> H[handoff<br/>check_handoff.py]
   H --> P[taskflow<br/>propose / apply]
   S --> DONE{完成清单 done.md}
   P --> DONE
   DONE -->|过| X[done → archive]
-  DONE -->|不过| P
+  DONE -->|不过，skip| S
+  DONE -->|不过，full| P
 ```
 
 ## 两个档位
@@ -41,8 +42,8 @@ flowchart LR
 
 | | human（默认） | goal（`/goal` 或 `goal:`） |
 |---|---|---|
+| 停几次 | wizard 定稿时看意图复述和计划要点；full 档 approve 时看方案。说「继续」即放行，其余阶段说决定接着做 | 不停，另一个模型审，收敛就继续 |
 | 意图 | 你看复述，说对或指出哪里不对 | 另一个模型按清单审，最多两轮 |
-| 闸口 | 推荐写成决定给你看，说「继续」即放行 | 另一个模型审，收敛就继续 |
 | 一定停下 | 删数据、改共享配置、线上 / 对外发送、改完成标准、缺凭据或只有你知道的信息 | 同左 |
 
 ## 按需才读的包

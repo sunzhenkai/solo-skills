@@ -22,6 +22,21 @@ class TaskflowContractTest(unittest.TestCase):
         self.assertIn("skip_specs: true", t)
         self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
 
+    def test_worktree_protocol(self) -> None:
+        """两个根、worktree 命令正确（分支已存在不建 detached HEAD）、提交只到任务分支。"""
+        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
+        proto = t.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
+        self.assertIn("planning root", proto)
+        self.assertIn("代码根", proto)
+        self.assertIn("git worktree add worktrees/{task} -b {task} <基线>", proto)
+        self.assertIn("分支已存在则 `git worktree add worktrees/{task} {task}`", proto)
+        self.assertIn(".git/info/exclude", proto)
+        self.assertIn("不 push", proto)
+        self.assertNotIn("去掉 `-b`", proto)
+        self.assertNotIn("（可选）", t)
+        rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("提交只落在任务 worktree 的任务分支", rail)
+
     def test_serial_default(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("串行", skill)
