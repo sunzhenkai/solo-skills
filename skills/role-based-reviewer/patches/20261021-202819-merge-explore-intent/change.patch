@@ -1,0 +1,65 @@
+diff --git a/skills/role-based-reviewer/references/roles/algo.md b/skills/role-based-reviewer/references/roles/algo.md
+index a841605..7e40494 100644
+--- a/skills/role-based-reviewer/references/roles/algo.md
++++ b/skills/role-based-reviewer/references/roles/algo.md
+@@ -40,7 +40,7 @@
+ 
+ ## 下游建议
+ 
+-`task-explore` / `taskflow` → 方案探索与任务编排。
++`taskrail` / `taskflow` → 方案探索与任务编排。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/references/roles/data.md b/skills/role-based-reviewer/references/roles/data.md
+index bd08ba2..4d9f922 100644
+--- a/skills/role-based-reviewer/references/roles/data.md
++++ b/skills/role-based-reviewer/references/roles/data.md
+@@ -38,7 +38,7 @@ ETL/数仓/特征样本/口径文档与作业定义。
+ 
+ ## 下游建议
+ 
+-`task-explore` / `taskflow` → 方案探索与任务编排。
++`taskrail` / `taskflow` → 方案探索与任务编排。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/references/roles/engineer.md b/skills/role-based-reviewer/references/roles/engineer.md
+index 19b1809..0a8aada 100644
+--- a/skills/role-based-reviewer/references/roles/engineer.md
++++ b/skills/role-based-reviewer/references/roles/engineer.md
+@@ -42,7 +42,7 @@
+ 
+ ## 下游建议
+ 
+-`task-explore` / `taskflow` → 方案探索与任务编排；`service-manager` → 本地起服务验证。
++`taskrail` / `taskflow` → 方案探索与任务编排；`service-manager` → 本地起服务验证。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/references/roles/product.md b/skills/role-based-reviewer/references/roles/product.md
+index 735367c..f91776e 100644
+--- a/skills/role-based-reviewer/references/roles/product.md
++++ b/skills/role-based-reviewer/references/roles/product.md
+@@ -34,7 +34,7 @@
+ 
+ ## 下游建议
+ 
+-`task-explore` / `taskflow` → 方案探索与任务编排；OpenSpec（若项目有）→ 需求结构化。
++`taskrail` / `taskflow` → 方案探索与任务编排；OpenSpec（若项目有）→ 需求结构化。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index b66398d..c055dfc 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -19,7 +19,7 @@ class RbrContractTest(unittest.TestCase):
+         self.assertIn("只开 `engineer`", text)
+ 
+     def test_no_intent_role(self) -> None:
+-        # 意图代审由 taskrail confirm-protocol 派异源模型按 task-intent 清单做，不经本 skill 的角色
++        # 意图代审由 taskrail confirm-protocol 派异源模型按 taskrail intent.md 清单做，不经本 skill 的角色
+         self.assertFalse((ROOT / "references" / "roles" / "intent.md").exists())
+         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertNotIn("`intent`", text)

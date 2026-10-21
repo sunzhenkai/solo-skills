@@ -62,7 +62,7 @@ class ContractTest(unittest.TestCase):
 
     def test_complex_explore_does_not_call_grill_with_docs(self) -> None:
         self.assertIn("不调用 `grill-with-docs`", self.tracks)
-        self.assertIn("`$task-explore`", self.tracks)
+        self.assertIn("`$taskrail`", self.tracks)
 
     def test_human_only_on_plan_review_and_wrap_up(self) -> None:
         self.assertIn("方案评审与收尾", self.skill)

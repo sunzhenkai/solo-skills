@@ -38,7 +38,7 @@ ETL/数仓/特征样本/口径文档与作业定义。
 
 ## 下游建议
 
-`task-explore` / `taskflow` → 方案探索与任务编排。
+`taskrail` / `taskflow` → 方案探索与任务编排。
 
 ## 跨角色 redirect
 

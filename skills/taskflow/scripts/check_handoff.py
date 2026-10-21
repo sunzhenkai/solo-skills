@@ -5,10 +5,11 @@
   check_handoff.py <workspace-root> <slug> [--json]
 
 核对项（全部满足才 exit 0）：
-  1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/<sub> 作 slug）；
+  1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/subtasks/<sub> 作 slug）；
   2. 元信息 status = handed-off，phase ∈ propose / apply / archive / done；
-  3. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
-  4. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
+  3. 已批准：approve/APPROVED.md 存在；元信息 criterion 非空；driver = <slug 末段>-driver；
+  4. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
+  5. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
 
 逃生口：元信息 `gate_bypass:` 值含 `user-confirmed` 且写明理由时，以 BYPASS 放行（exit 0，
 输出醒目警告）；只在用户原话明确要求跳过时写入，理由照录用户原话。
@@ -26,7 +27,7 @@ import sys
 from pathlib import Path
 
 ALLOWED_PHASES = ("propose", "apply", "archive", "done")
-REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → handoff（task-explore handoff）。"
+REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → handoff（taskrail references/handoff.md）。"
 
 
 def parse_meta(text: str) -> dict[str, str]:
@@ -80,6 +81,13 @@ def check(root: Path, slug: str) -> dict:
         res["errors"].append(f"status 须为 handed-off，实为 {meta.get('status')!r}")
     if meta.get("phase") not in ALLOWED_PHASES:
         res["errors"].append(f"phase 须为 {'/'.join(ALLOWED_PHASES)}（approve 之后），实为 {meta.get('phase')!r}")
+    if not (task_md.parent / "approve" / "APPROVED.md").is_file():
+        res["errors"].append("缺 approve/APPROVED.md（方案未经 approve 冻结）")
+    if not meta.get("criterion"):
+        res["errors"].append("元信息缺 criterion（完成判据原文）")
+    want_driver = f"{slug.rstrip('/').rsplit('/', 1)[-1]}-driver"
+    if meta.get("driver") != want_driver:
+        res["errors"].append(f"driver 须为 {want_driver!r}，实为 {meta.get('driver')!r}")
 
     body = section(text, "交接")
     if body is None:
@@ -100,7 +108,7 @@ def check(root: Path, slug: str) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="taskflow 入口门：核对 handoff 已成立且载荷带交付类别与门包")
+    ap = argparse.ArgumentParser(description="taskflow 入口门：核对方案已批准、handoff 已成立且载荷带交付类别与门包")
     ap.add_argument("workspace_root", help="含 tasks/ 的工作区根")
     ap.add_argument("slug", help="任务 slug（子任务写 parent/sub）")
     ap.add_argument("--json", action="store_true", help="输出 JSON")

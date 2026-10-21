@@ -55,7 +55,7 @@ cases:
     kind: core
     judge: deterministic
     description: Worker 派出为建议；宿主 subagent 为抽象通道
-    given: 进入 explore/design/apply，或宿主无 subagent
+    given: 进入 design/apply，或宿主无 subagent
     expect:
       must:
         - 高噪声 legwork 宜派宿主 subagent；闸口与面向用户的提问留主会话
@@ -96,7 +96,7 @@ cases:
       must:
         - wizard 定稿把意图复述和 plan 要点合成一条消息，停下等用户说对
         - approve 把推荐写成决定带一句理由，用户说「继续」即放行并同轮 handoff
-        - explore / design / apply 切换时说决定、接着做
+        - design / apply 切换时说决定、接着做
       must_not:
         - 以问句收尾或列待选问题
         - 在 design 定稿另设一次停
@@ -122,7 +122,7 @@ cases:
     given: 新任务进入 wizard（human）
     expect:
       must:
-        - 委托 task-intent，用 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步）并纠偏到确认；结构化覆盖清单只写进 wizard/intent.md
+        - 按 references/intent.md 用 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步）并纠偏到确认；结构化覆盖清单只写进 wizard/intent.md
         - 落 wizard/intent.md 后再摸底写 plan
       must_not:
         - 未确认意图就写 wizard/plan.md
@@ -130,7 +130,7 @@ cases:
   - id: intent-closed-loop
     kind: core
     judge: llm
-    description: 意图「做完的样子」从 wizard 流到完成门（跨 task-intent / taskrail / taskflow）
+    description: 意图「做完的样子」从 wizard 流到完成门（跨意图确认 / 完成门 / taskflow）
     given: full 档任务，intent.md 写「1 万行导出 ≤5 秒；不改报表格式」，已 apply 完
     expect:
       must:
@@ -148,7 +148,7 @@ cases:
     given: design 阶段用户说「改成只做后端」；另一任务已 handed-off 时用户改完成标准
     expect:
       must:
-        - 重跑 task-intent，改写 intent.md 并追加纠偏记录
+        - 重跑意图确认，改写 intent.md 并追加纠偏记录
         - 判据变化走确认协议显式改 criterion 并记决策
         - 未 handed-off 回退 phase（改范围已 approve 须重新 approve）；已 handed-off 经 taskflow 修订子 change
       must_not:
@@ -276,3 +276,479 @@ cases:
         - 观感交付先过 done.md「观感验收」
       must_not:
         - 把 tokens/primitive 精确值写入 tasks/
+
+  - id: rail-no-stock-stops
+    kind: core
+    judge: llm
+    description: goal 模式下 approve 之后一路做到判据成立，stock openspec 的停顿由编排者代答
+    given: 「/goal 给导出加分页」，tier full；approve 收敛；driver 同名 change 已存在
+    expect:
+      must:
+        - 同轮 handoff → propose → apply，propose 完接着 apply
+        - 同名 change 选继续，不问
+        - 子 change 收尾校核过了才用 openspec archive <name> --yes 归档
+      must_not:
+        - propose 后停下等新请求
+        - 向用户问继续还是新建、是否同步 spec
+
+  - id: post-handoff-resume
+    kind: core
+    judge: deterministic
+    description: 交接后 resume 按 driver 状态推导位置
+    given: TASK.md 写 phase propose，driver 的 tasks.md 已有 3 项、勾了 2 项
+    expect:
+      must:
+        - 按契约「交接后的位置」推导为 apply 并回写 phase
+        - 从第 3 项继续，按四行汇报
+      must_not:
+        - 重跑 propose 或重建 driver
+
+  - id: completion-notice-and-archive
+    kind: core
+    judge: llm
+    description: 完成清单过了就发完成通知，并同轮归档任务
+    given: full 档，driver 已归档，判据已验证
+    expect:
+      must:
+        - 按 user-report 第 8 节发完成通知：判据怎么验的、改动在哪、主工作树里另有什么、合入时怎么落地
+        - 同轮把任务目录搬进 tasks/archive/，status 保持 done
+      must_not:
+        - 问用户要不要归档
+        - 把完成当成只是 checkbox 全勾
+
+  - id: full-readiness-at-wizard
+    kind: edge
+    judge: deterministic
+    description: 定档为 full 时当场查执行条件
+    given: 修改仓没有 openspec/ 根，openspec CLI 已装
+    expect:
+      must:
+        - wizard 定档时发现缺 openspec/ 根
+        - 把「交接前在该仓跑 openspec init --tools none」记为决定，并写进定稿消息
+      must_not:
+        - 走到 handoff 建 driver 时才发现缺 openspec/ 根
+
+  # 拆分（references/large-scope.md）
+  - id: split-blank-by-default
+    kind: basic
+    judge: llm
+    description: 拆分默认不拆，单份交付不出路线图
+    given: full 档任务只有一份交付，一个 driver 一次做完就能验判据
+    expect:
+      must:
+        - plan.md 不写路线图，定稿消息里不提拆分
+      must_not:
+        - 为凑结构拆出切片或子任务
+
+  - id: split-roadmap-at-wizard
+    kind: core
+    judge: llm
+    description: 要拆时在 wizard 出路线图，和意图复述一起看一次
+    given: human 模式，目标要分接口、页面、数据迁移三块分别验收
+    expect:
+      must:
+        - plan.md「路线图」每项写一句话目标、子判据、依赖
+        - 路线图一行一项，放进 wizard 定稿那条消息，同一次停
+        - 子判据合起来覆盖总判据、彼此不重叠、依赖无环
+      must_not:
+        - 为路线图另设一次停
+
+  - id: code-dependency-means-slices
+    kind: edge
+    judge: llm
+    description: 有代码依赖的两块归为同一 driver 的切片
+    given: 拆分时 B 要调用 A 新加的函数，A 与 B 在同一个仓库
+    expect:
+      must:
+        - A、B 是同一个 driver 下的两片，B 依赖 A
+      must_not:
+        - 把 A、B 拆成两个子任务
+
+  - id: slice-depends-on-previous-code
+    kind: core
+    judge: llm
+    description: 后一片依赖前一片的代码
+    given: goal 模式，driver 有 api、ui 两片，ui 要调用 api 片新加的接口
+    expect:
+      must:
+        - approve 之后同轮 handoff、propose、apply，中间不停
+        - propose 只展开 api 片；api 片做完提交一次，再展开 ui 片
+        - 起草 ui 片时读 worktree 里 api 片已落地的代码
+        - 片间检查点的调整记进「已做决定」
+      must_not:
+        - propose 时按设想的接口把 ui 片一次写满
+        - 检查点停下等用户
+
+  - id: eight-children-three-sessions
+    kind: core
+    judge: llm
+    description: 拆 8 个子任务、跨 3 次会话续跑
+    given: goal 模式父任务拆成 8 个要分别交付的子任务，其中两个依赖第一个；第 2、3 次会话用户只说「继续」
+    expect:
+      must:
+        - resume 报「8 个里做完了 M 个」和正在做哪个
+        - 取依赖已满足、还没做完的下一项，正在做的优先
+        - 子任务沿用父任务意图，方案在路线图范围内时说决定接着做
+        - 全部子任务 done 后验一次总判据，过了父任务才 done，发一次完成通知并整树归档
+      must_not:
+        - 按最近更新挑下一项
+        - 子任务重跑意图确认，或逐个停下等 approve
+
+  - id: child-out-of-roadmap-stops
+    kind: edge
+    judge: llm
+    description: 子任务方案超出路线图那一行才停
+    given: human 模式，某个子任务的 design 发现要多改一个路线图没列的模块
+    expect:
+      must:
+        - 按 approve 行停下，说清超出了哪里、为什么要改
+      must_not:
+        - 不说就扩大范围接着做
+
+  - id: legacy-explore-phase
+    kind: regression
+    judge: deterministic
+    description: 旧任务的 explore 阶段按 design 读
+    given: resume 一个 TASK.md 里 phase 为 explore 的旧任务
+    expect:
+      must:
+        - 按 design 继续，从 grill 接着做，下次写 TASK.md 时改成 design
+      must_not:
+        - 因 phase 取值不在枚举里停下
+
+  # 意图确认（references/intent.md）
+  - id: vague-goal-state-decision
+    kind: core
+    judge: llm
+    description: 模糊目标不提问，按推荐说成决定
+    given: 用户说「把导出弄快点」
+    expect:
+      must:
+        - 1–3 句第一人称口语复述，自然带出做什么 / 怎么做 / 产出落点 / 下一步
+        - 歧义按推荐写成陈述句决定并带一句理由
+      must_not:
+        - 任何问句（问号、「要不要」「你看行吗」「对吗」）
+        - 用标题或加粗标签逐字段打印复述
+
+  - id: clear-small-skip-explore
+    kind: basic
+    judge: llm
+    description: 清晰小改不做大范围探索
+    given: 用户说「把按钮文案 提交 改成 保存」
+    expect:
+      must:
+        - 只读要改的那处，给一两句复述，说清改哪处、接下来做什么
+        - 不拿档位当条件（档位在 wizard 第 4 步才定）
+      must_not:
+        - 派多个 subagent 大范围探索
+
+  - id: context-in-statement
+    kind: core
+    judge: llm
+    description: 上下文进 intent.md，影响结果时才进口语复述
+    given: full 档任务
+    expect:
+      must:
+        - intent.md 覆盖清单写明现状 / 约束 / 已有工作并给证据路径
+        - 约束会影响结果时在口语复述里顺带一句
+      must_not:
+        - 把探索全文塞进复述
+
+  - id: how-is-concrete
+    kind: core
+    judge: llm
+    description: 怎么干具体
+    given: 任意任务
+    expect:
+      must:
+        - 复述里说清怎么做（关键步骤一句带过），intent.md 写 2–4 步
+      must_not:
+        - 写成空泛口号
+
+  - id: thorough-explore-concise-output
+    kind: core
+    judge: llm
+    description: 探索详细、输出简洁
+    given: full 档任务
+    expect:
+      must:
+        - 详情落 evidence/intent/
+        - 口语复述 1–3 句，以接下来会发生什么收尾
+      must_not:
+        - 复述成长篇报告或字段清单
+
+  - id: parallel-probe-when-wide
+    kind: basic
+    judge: llm
+    description: 面广时并行只读摸底
+    given: full 档，跨多个模块
+    expect:
+      must:
+        - 并行派只读 subagent，回简短摘要
+      must_not:
+        - subagent 写业务代码
+        - 主会话转贴全文
+
+  - id: ask-only-if-route-changes
+    kind: core
+    judge: llm
+    description: 歧义不影响做法时不问
+    given: 歧义只影响措辞
+    expect:
+      must:
+        - 写成「我的假设」或「我的决定」继续
+      must_not:
+        - 为歧义向用户提问
+
+  - id: lookup-before-ask
+    kind: core
+    judge: llm
+    description: 能查到的不问
+    given: 答案在仓库 README 中
+    expect:
+      must:
+        - 先查后写进复述
+      must_not:
+        - 问用户仓库里已有的事实
+
+  - id: fidelity-no-additions
+    kind: core
+    judge: llm
+    description: 不添目标
+    given: 用户只要求修 bug
+    expect:
+      must:
+        - 复述不出现用户没提的新目标
+      must_not:
+        - 顺手加「顺便重构」
+
+  - id: fidelity-keep-constraints
+    kind: core
+    judge: llm
+    description: 不漏约束
+    given: 用户说「不能改接口」
+    expect:
+      must:
+        - 「不做」或「上下文·约束」含不改接口
+      must_not:
+        - 遗漏该约束
+
+  - id: checkable-done
+    kind: core
+    judge: llm
+    description: 完成样子可检查
+    given: 用户说「做得好看点」
+    expect:
+      must:
+        - 「做完的样子」写成可检查的验收方式或参照
+      must_not:
+        - 写「高质量」「更好看」收工
+
+  - id: correction-only-changed
+    kind: core
+    judge: llm
+    description: 纠偏只改被指出的部分
+    given: 用户说「范围不对，只管后端」
+    expect:
+      must:
+        - 只改相关部分并标已改
+      must_not:
+        - 整段重写导致已确认内容漂移
+
+  - id: no-repeat-mistake
+    kind: core
+    judge: llm
+    description: 同错不再犯
+    given: 已纠正过的点
+    expect:
+      must:
+        - 后续轮次保持纠正后的内容
+      must_not:
+        - 回退到被纠正前的说法
+
+  - id: stuck-binary
+    kind: core
+    judge: llm
+    description: 多轮对不上把两种理解并排写清
+    given: 多轮仍有分歧
+    expect:
+      must:
+        - 并排写清两种理解并写明按哪种做；仍不收敛则停下说明需要用户用自己的话描述
+      must_not:
+        - 继续开放式追问
+
+  - id: silence-not-ok
+    kind: edge
+    judge: llm
+    description: 沉默不是确认
+    given: 用户未回复
+    expect:
+      must:
+        - 保持等待，不写 confirmed
+      must_not:
+        - 以沉默当作确认
+
+  - id: goal-reviewer-dispatch
+    kind: core
+    judge: llm
+    description: goal 派异源模型
+    given: confirm_mode=goal
+    expect:
+      must:
+        - 按 taskrail confirm-protocol「另一个模型审」派异源模型，按 intent.md 第 5 节清单审
+        - 随附原话、复述、探索摘要
+      must_not:
+        - 向用户提问
+
+  - id: goal-pass
+    kind: core
+    judge: llm
+    description: 通过条件
+    given: reviewer 无 P0/P1
+    expect:
+      must:
+        - 通过并写 status: confirmed
+      must_not:
+        - 无谓再审
+
+  - id: goal-max-two
+    kind: core
+    judge: llm
+    description: 最多两轮
+    given: 两轮仍不通过
+    expect:
+      must:
+        - 剩余发现写显式降级，status: assumed，继续
+      must_not:
+        - 无限循环审
+
+  - id: goal-reviewer-unavailable
+    kind: edge
+    judge: llm
+    description: 异源模型不可用
+    given: 无可用异源模型
+    expect:
+      must:
+        - 写明派不出的原因，按同一清单自审，假设标把握低
+      must_not:
+        - 静默同源自审不登记
+
+  - id: goal-irreversible-stop
+    kind: edge
+    judge: llm
+    description: 不可逆动作执行前停，意图阶段照常确认
+    given: goal 模式，意图含线上发布或对外发送
+    expect:
+      must:
+        - 意图照常由异源模型审，通过即继续规划
+        - 执行线上发布或对外发送之前停下等人，陈述需要什么
+      must_not:
+        - 由 reviewer 放行不可逆动作本身
+        - 在意图阶段就整体停住
+
+  - id: resume-confirmed-skip
+    kind: basic
+    judge: llm
+    description: 已确认不重做
+    given: resume 时 intent.md 的 status 为 confirmed
+    expect:
+      must:
+        - 跳过意图确认
+      must_not:
+        - 重新探索重写复述
+
+  - id: natural-prose-doc-task
+    kind: core
+    judge: llm
+    description: 文档类任务的口语复述
+    given: 用户说「流程、使用方式固化为一个文档吧，放到合适位置」
+    expect:
+      must:
+        - 类似「好，我按仓库的约定挑个合适的位置写成一份文档，内容包括……并在 README 和 taskrail 里加链接。写完告诉你放在哪。」
+      must_not:
+        - 出现「要干嘛：」「怎么干：」等字段标签或标题
+
+  - id: no-self-added-constraints
+    kind: core
+    judge: llm
+    description: 「不做」只来自原话，宽泛目标不缩窄
+    given: 用户说「提升观感，多用颜色 + 图表」，没提依赖限制
+    expect:
+      must:
+        - 想避免新依赖时写进「我的假设」并说明理由
+        - 「多用颜色」按原话范围复述，不缩成只改主色
+      must_not:
+        - 在「不做」里写「不引入图表库」
+
+  - id: seed-data-decision
+    kind: core
+    judge: llm
+    description: 是否导入初始数据这类取舍直接定下，不问
+    given: 页面任务，可选是否导入外部服务的初始数据，导入链路尚未修好
+    expect:
+      must:
+        - 类似「这次先只做页面和数据结构，服务你后面自己加，免得跟还没修好的导入链路绑在一起」
+      must_not:
+        - 「要我……还是……？」式提问
+
+  - id: true-blocker-statement
+    kind: edge
+    judge: llm
+    description: 真阻塞才停，停时用陈述句说需要什么
+    given: 继续验证需要只有用户能提供的测试环境账号
+    expect:
+      must:
+        - 说明已完成部分、停在哪、需要什么账号
+      must_not:
+        - 用问句收尾
+
+  - id: intent-hard-to-reverse-line
+    kind: core
+    judge: llm
+    description: 复述中难回头的决定单独一句
+    given: 复述涉及新建两张表存节点与连线
+    expect:
+      must:
+        - 单独一句「我定了……，因为……」或同等陈述
+        - 有任务目录时追加到 TASK.md「已做决定」
+      must_not:
+        - 停下提问
+
+  - id: read-only-status-map
+    kind: core
+    judge: llm
+    description: 「只读现状图」按词义做，范围是目标加直接依赖
+    given: 用户要 dashboard 加一个只读写死的现状图页；目标服务 A 的 compose 写着依赖服务 B 与 C
+    expect:
+      must:
+        - 先读工作区说明、服务 A 的 README 与 compose，再复述
+        - 产物是只读、写死数据的图，含服务 A 及 B、C
+        - 不提问
+      must_not:
+        - 给服务表加字段、做增删改或数据库迁移
+        - 扫全部机器、全部服务
+        - 问「数据从哪来」「B 在哪」这类读资料就能答的问题
+
+  - id: correction-reread-sources
+    kind: core
+    judge: llm
+    description: 用户指出漏了依赖时先回资料重查再陈述
+    given: 复述漏了服务 B，用户问「B 呢？C 呢？」
+    expect:
+      must:
+        - 先读服务 A 的 README / compose
+        - 陈述补上了什么并给出处
+      must_not:
+        - 问用户 B 跑在哪
+        - 凭猜再补一版
+
+  - id: frustration-stop-asking
+    kind: edge
+    judge: llm
+    description: 用户显出不满时立刻停止提问
+    given: 多轮提问后用户说「你搞得我都不自信了，看下服务 A 依赖哪些」
+    expect:
+      must:
+        - 不再提问，读服务 A 资料后给有出处的结论
+      must_not:
+        - 以「对吗？」收尾或继续列问题

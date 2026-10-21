@@ -1,0 +1,70 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 6af3a9b..eece479 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -252,7 +252,7 @@ cases:
+     given: 用户说「不走 taskrail，直接建 driver」
+     expect:
+       must:
+-        - 没有 TASK.md 时按 task-explore 模板建最小的一份
++        - 没有 TASK.md 时按 taskrail 的 templates.md 建最小的一份
+         - 元信息写 gate_bypass "<日期> user-confirmed: <用户原话>"，BYPASS 放行（exit 0、醒目警告）
+         - 没验证到的门包项按 done.md 第 6 条记进「已做决定」
+         - 缺 user-confirmed 或缺理由时 exit 1
+diff --git a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+index 9c6e42b..21e609b 100644
+--- a/skills/taskflow/scripts/check_handoff.py
++++ b/skills/taskflow/scripts/check_handoff.py
+@@ -27,7 +27,7 @@ import sys
+ from pathlib import Path
+ 
+ ALLOWED_PHASES = ("propose", "apply", "archive", "done")
+-REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → handoff（task-explore handoff）。"
++REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → handoff（taskrail references/handoff.md）。"
+ 
+ 
+ def parse_meta(text: str) -> dict[str, str]:
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 7a0f4b6..4775f0b 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -44,7 +44,7 @@ python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
+ 
+ exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自己补写 `TASK.md` 绕过。核对项只在脚本里。
+ 
+-用户原话明确要求「不走 taskrail 直接建 driver」时：没有 `TASK.md` 就按 task-explore 模板建最小的一份，元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"` 再跑（脚本以 BYPASS 放行）。理由只照录用户原话；用户没说跳过就走 taskrail。
++用户原话明确要求「不走 taskrail 直接建 driver」时：没有 `TASK.md` 就按 taskrail [templates.md](../taskrail/references/templates.md) 建最小的一份，元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"` 再跑（脚本以 BYPASS 放行）。理由只照录用户原话；用户没说跳过就走 taskrail。
+ 
+ ## 脚手架
+ 
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 2d23baf..22a9943 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -156,7 +156,7 @@ class TestEntryGateWiring(unittest.TestCase):
+     def setUpClass(cls) -> None:
+         cls.skill = skill_corpus(ROOT)
+         cls.rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
+-        cls.handoff = (ROOT.parent / "task-explore" / "references" / "handoff.md").read_text(encoding="utf-8")
++        cls.handoff = (ROOT.parent / "taskrail" / "references" / "handoff.md").read_text(encoding="utf-8")
+ 
+     def test_skill_wires_gate(self) -> None:
+         self.assertIn("入口门", self.skill)
+@@ -172,7 +172,7 @@ class TestEntryGateWiring(unittest.TestCase):
+ 
+ 
+ class TestTemplateCompat(unittest.TestCase):
+-    """task-explore templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
++    """taskrail templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
+ 
+     def run_on(self, text: str) -> subprocess.CompletedProcess:
+         with tempfile.TemporaryDirectory() as tmp:
+@@ -184,7 +184,7 @@ class TestTemplateCompat(unittest.TestCase):
+ 
+     def test_template_task_md_passes(self) -> None:
+         import re
+-        tpl = (ROOT.parent / "task-explore" / "references" / "templates.md").read_text(encoding="utf-8")
++        tpl = (ROOT.parent / "taskrail" / "references" / "templates.md").read_text(encoding="utf-8")
+         block = re.search(r"## TASK\.md\n\n```markdown\n(.*?)\n```\n", tpl, re.S).group(1)
+         text = (block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
+                 .replace("driver: null", 'driver: "demo-driver"'))

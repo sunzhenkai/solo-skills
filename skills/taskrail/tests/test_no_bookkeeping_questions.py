@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 UR = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
-LEDGER = (ROOT.parent / "task-explore" / "references" / "ledger.md").read_text(encoding="utf-8")
+LEDGER = (ROOT / "references" / "ledger.md").read_text(encoding="utf-8")
 
 
 class NoBookkeepingQuestionsTest(unittest.TestCase):

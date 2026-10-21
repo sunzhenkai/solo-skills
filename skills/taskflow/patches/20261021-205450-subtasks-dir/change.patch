@@ -1,0 +1,28 @@
+diff --git a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+index 21e609b..5fece82 100644
+--- a/skills/taskflow/scripts/check_handoff.py
++++ b/skills/taskflow/scripts/check_handoff.py
+@@ -5,7 +5,7 @@
+   check_handoff.py <workspace-root> <slug> [--json]
+ 
+ 核对项（全部满足才 exit 0）：
+-  1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/<sub> 作 slug）；
++  1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/subtasks/<sub> 作 slug）；
+   2. 元信息 status = handed-off，phase ∈ propose / apply / archive / done；
+   3. 已批准：approve/APPROVED.md 存在；元信息 criterion 非空；driver = <slug 末段>-driver；
+   4. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 703a8ac..24e63bd 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -104,8 +104,8 @@ class TestCheckHandoff(unittest.TestCase):
+         self.assertIn("demo-driver", r.stdout)
+ 
+     def test_child_task_driver_uses_leaf(self) -> None:
+-        self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/api")
+-        self.assertEqual(self.run_gate("demo/api").returncode, 0)
++        self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/subtasks/api")
++        self.assertEqual(self.run_gate("demo/subtasks/api").returncode, 0)
+ 
+     def test_missing_task(self) -> None:
+         r = self.run_gate("nope")

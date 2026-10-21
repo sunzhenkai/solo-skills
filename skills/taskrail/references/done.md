@@ -2,7 +2,7 @@
 
 把 `status` / `phase` 标 `done` 前逐条核对；任一条缺证据就不标。不靠记忆，不用「整体看没问题」代替。
 
-1. **判据成立**：`criterion` 原文成立，有验证命令与结果。skip 档写在 `TASK.md`「验证」节；full 档写在 driver `proposal.md` 验证记录，且相关 checkbox 全勾。
+1. **判据成立**：`criterion` 原文成立，有验证命令与结果。skip 档写在 `TASK.md`「验证」节；full 档写在 driver `proposal.md` 验证记录，且相关 checkbox 全勾；拆成子任务的父任务写在父 `TASK.md`「验证」节，且子任务全部 `done`。
 2. **做完的样子**：对照 `wizard/intent.md`（若有），「做完的样子」逐条成立，「不做」没被越界。
 3. **交付标准**：`wizard/plan.md` 列出的交付标准全过（写「无」则只看判据）。
 4. **观感**：用户原话有观感目标时，下方「观感验收」已过。

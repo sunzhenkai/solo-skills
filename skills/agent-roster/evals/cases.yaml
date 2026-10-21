@@ -282,7 +282,7 @@ cases:
     given: Flow 开始
     expect:
       must:
-        - grill-with-docs 或 task-explore explore 在 Orchestrator 会话进行
+        - grill-with-docs 或 taskrail 的 grill 在 Orchestrator 会话进行
         - spine 记录 Orchestrator 的 Kind 与 Model
       must_not:
         - 把 grill 派给另一个 Endpoint

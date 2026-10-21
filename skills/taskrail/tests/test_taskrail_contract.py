@@ -17,18 +17,20 @@ class ContractTest(unittest.TestCase):
 
     def test_references_exist(self) -> None:
         for name in ("contract.md", "done.md", "user-report.md", "confirm-protocol.md",
-                     "phase-wizard.md", "ui-delivery.md", "quality-appendix.md", "external-precedent.md"):
+                     "phase-wizard.md", "ui-delivery.md", "quality-appendix.md", "external-precedent.md",
+                     "intent.md", "design.md", "design-detail.md", "approve.md", "handoff.md",
+                     "ledger.md", "ledger-concurrency.md", "templates.md", "archive-reopen.md", "large-scope.md"):
             self.assertTrue((REF / name).is_file(), name)
 
     def test_phase_enum_closed(self) -> None:
         c = read("references", "contract.md")
-        self.assertIn("wizard | explore | design | approve | propose | apply | archive | done", c)
+        self.assertIn("wizard | design | approve | propose | apply | archive | done", c)
         self.assertIn("tier: skip | full", c)
         self.assertIn("confirm_mode: human | goal", c)
 
     def test_pipeline_and_handoff(self) -> None:
         c = read("references", "contract.md")
-        self.assertIn("wizard → explore(grill) → design → approve → [handoff] → propose → apply → archive", c)
+        self.assertIn("wizard → design(grill) → approve → [handoff] → propose → apply → archive", c)
         self.assertIn("check_handoff.py", c)
         self.assertIn("唯一下一步是 `handoff`", c)
         skill = read("SKILL.md")
@@ -50,8 +52,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("已做决定", ur)
 
     def test_note_task_boundary_in_intent(self) -> None:
-        # 真源在 task-intent；编排侧通过 wizard 委托到达
-        intent = (ROOT.parent / "task-intent" / "SKILL.md").read_text(encoding="utf-8")
+        intent = read("references", "intent.md")
         self.assertIn("注意任务边界", intent)
 
     def test_done_is_single_source(self) -> None:
@@ -60,9 +61,9 @@ class ContractTest(unittest.TestCase):
         self.assertIn("观感验收", d)
         self.assertIn("pretty-ui/references/direction.md", d)
 
-    def test_wizard_delegates_task_intent(self) -> None:
+    def test_wizard_uses_intent(self) -> None:
         w = read("references", "phase-wizard.md")
-        self.assertIn("task-intent", w)
+        self.assertIn("[intent.md](intent.md)", w)
         self.assertIn("## 目标", w)
         self.assertIn("## 完成判据", w)
         self.assertIn("## 步骤", w)

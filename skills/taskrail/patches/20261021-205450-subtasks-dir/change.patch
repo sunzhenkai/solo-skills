@@ -1,0 +1,94 @@
+diff --git a/skills/taskrail/references/archive-reopen.md b/skills/taskrail/references/archive-reopen.md
+index 694c8cc..02da249 100644
+--- a/skills/taskrail/references/archive-reopen.md
++++ b/skills/taskrail/references/archive-reopen.md
+@@ -6,7 +6,7 @@
+ 
+ 把任务整树移到 `tasks/archive/{yyyy-mm-dd}/{slug}`，分两种情况：
+ 
+-- **做完归档**：完成清单过、标 `done` 后同轮归档，属记账，一句话说明；`status` 保持 `done`。子任务做完留在父任务下，随父任务一起归档。
++- **做完归档**：完成清单过、标 `done` 后同轮归档，属记账，一句话说明；`status` 保持 `done`。子任务做完留在父任务的 `subtasks/` 下，随父任务一起归档。
+ - **未完成关闭**：用户明确说关闭才搬，`status: archived`。方案已冻结、含实施动作且未 `handed-off` 时改走 handoff；用户明确放弃或不实施时照常关闭。
+ 
+ **搬之前一次说清**：未结子任务（有则停）；未决条数（可随归档关闭）；曾交接的 driver 进度（读不到写「进度未知」，只报告不回写）；指向旧路径的链接（我会改指新路径）。目标路径已存在：停下说明冲突，不改任何文件。
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index f68907f..ce9cd89 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -65,7 +65,7 @@ tasks/
+ │   ├── evidence/intent/   # 意图摸底详情
+ │   ├── design/            # 方案；grill 纪要 design/grill.md
+ │   ├── approve/           # 评审意见 + APPROVED.md
+-│   └── {sub}/             # 子任务（只拆一层；意图沿用父任务）
++│   └── subtasks/{sub}/    # 子任务：一个子任务一个目录，结构同上（只拆一层；意图沿用父任务）
+ └── archive/{yyyy-mm-dd}/{slug}/
+ ```
+ 
+@@ -134,7 +134,7 @@ gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"
+ | driver | OpenSpec change `{slug}-driver`，只编排子 change `{slug}-<slice>` |
+ | 路线图 | 拆分时写在 `wizard/plan.md` 的表：每项一句话目标、子判据、依赖 |
+ | 切片（slice） | driver 下的一个子 change，与其他切片同一条任务分支，可依赖前一片的代码 |
+-| 子任务 | `ongoing/{parent}/{sub}/` 下要分别交付的任务，有自己的 driver 与分支，与兄弟子任务无代码依赖 |
++| 子任务 | `ongoing/{parent}/subtasks/{sub}/` 下要分别交付的任务，有自己的 driver 与分支，与兄弟子任务无代码依赖 |
+ | 真阻塞 / 卡住 | 必须停下等用户的情况，清单只在 [user-report.md](user-report.md) 第 5 节 |
+ | 严重级 | P0 = Blocker、P1 = Major，挡路；P2 / Minor 不挡路 |
+ | 台账（ledger） | `tasks/` 下单任务 `TASK.md` + 派生 `INDEX.md` |
+diff --git a/skills/taskrail/references/handoff.md b/skills/taskrail/references/handoff.md
+index 2dfdc01..08c01b0 100644
+--- a/skills/taskrail/references/handoff.md
++++ b/skills/taskrail/references/handoff.md
+@@ -25,7 +25,7 @@
+ 
+    Web UI 另加 [ui-delivery.md](ui-delivery.md)「交接行」四行。
+ 3. `TASK.md` 元信息：`status: handed-off`、`phase: propose`、`driver: "{slug}-driver"`、`handed-off` 日期。
+-4. 在工作区根跑 `python3 <taskflow>/scripts/check_handoff.py <root> <slug>`（`<taskflow>` 是 taskflow skill 目录；子任务的 `<slug>` 写 `{parent}/{sub}`）：exit 0 才往下；不过就按它的输出补齐再跑。
++4. 在工作区根跑 `python3 <taskflow>/scripts/check_handoff.py <root> <slug>`（`<taskflow>` 是 taskflow skill 目录；子任务的 `<slug>` 写它在 `ongoing/` 下的路径 `{parent}/subtasks/{sub}`）：exit 0 才往下；不过就按它的输出补齐再跑。
+ 5. 按 `taskflow` 脚手架建 driver（入口门已在上一步通过）：`{task}` = `{slug}`，`--goal` = 目标 + `criterion` 原文 + 方案 / 批准路径。按 [driver-template.md](../../taskflow/references/driver-template.md) 写 `.openspec.yaml`（`skip_specs: true`）与 `proposal.md`；`tasks.md` 留给 propose。
+ 6. INDEX 行改为 `已交接：… → {slug}-driver`（留在 Ongoing 表）。
+ 7. 桥接 stock `openspec-propose`（选继续已有 change）。
+diff --git a/skills/taskrail/references/large-scope.md b/skills/taskrail/references/large-scope.md
+index 5fa969d..cac59ad 100644
+--- a/skills/taskrail/references/large-scope.md
++++ b/skills/taskrail/references/large-scope.md
+@@ -11,7 +11,7 @@ wizard 第 5 步决定拆不拆、design 要改拆法、推进或恢复拆过的
+ | 拆成 | 什么时候 | 怎么落 |
+ |---|---|---|
+ | 切片（默认） | 同一份交付，能在同一条任务分支上合入 | 一个 driver 下的子 change `{slug}-<slice>`；后一片可以依赖前一片的代码 |
+-| 子任务 | 要分别交付，或在不同修改仓，且互不用对方的代码 | `ongoing/{parent}/{sub}/`，各有 driver、分支与 worktree；`{sub}` 全仓唯一 |
++| 子任务 | 要分别交付，或在不同修改仓，且互不用对方的代码 | `ongoing/{parent}/subtasks/{sub}/`，各有 driver、分支与 worktree；`{sub}` 全仓唯一 |
+ 
+ - 两块之间有代码依赖，就是同一个 driver 的切片，归不进两个子任务。
+ - 只拆一层：子任务里要再分，就分成它自己 driver 的切片。
+@@ -36,10 +36,12 @@ wizard 第 5 步决定拆不拆、design 要改拆法、推进或恢复拆过的
+ 
+ ## 5. 推进子任务
+ 
+-- **建**：轮到它（依赖都 `done`）时建 `ongoing/{parent}/{sub}/TASK.md`：`parent:` 写父 slug，`criterion` 用路线图那一行的子判据原文，`confirm_mode` 沿用父任务；INDEX 追加 `{parent}/{sub}` 行。
++子任务一律放在父任务的 `subtasks/` 下，和父任务的 `wizard/`、`design/`、`approve/` 并列；每个子任务一个目录，里面的布局与父任务相同。
++
++- **建**：轮到它（依赖都 `done`）时建 `ongoing/{parent}/subtasks/{sub}/TASK.md`：`parent:` 写父 slug，`criterion` 用路线图那一行的子判据原文，`confirm_mode` 沿用父任务；INDEX 追加一行，路径写 `ongoing/{parent}/subtasks/{sub}`。
+ - **继承**：父任务确认过的 `wizard/intent.md` 加路线图里自己那一行，就是子任务的意图，不重跑意图确认；子任务的 wizard 只写 plan、定档，说决定接着做。
+ - **范围内不停**：方案没超出路线图那一行的范围、也不改子判据时，approve 按推荐写成决定（`APPROVED.md` 注明「在父任务路线图范围内」），同轮 handoff。超出范围或要改子判据，才按 [confirm-protocol.md](confirm-protocol.md) 的 approve 行停；改子判据要同时改父任务路线图，走契约「意图变更」。
+-- **做完**：子任务 `done` 后在进度里报一句做完了什么、分支在哪，留在父任务目录下，不单独归档。
++- **做完**：子任务 `done` 后在进度里报一句做完了什么、分支在哪，留在 `subtasks/{sub}/`，不单独归档。
+ - **阻塞**：一个子任务真阻塞，只停依赖它的项，其余就绪项照常推进；没有可做的了，才按 [user-report.md](user-report.md) 第 6 节四行停下。
+ - **对父任务说交接**：逐个交接已批准、未交接的子任务；任一失败即停，已交接的不回滚。
+ 
+diff --git a/skills/taskrail/tests/test_decompose_contract.py b/skills/taskrail/tests/test_decompose_contract.py
+index 9342f6f..ebb275e 100644
+--- a/skills/taskrail/tests/test_decompose_contract.py
++++ b/skills/taskrail/tests/test_decompose_contract.py
+@@ -32,6 +32,13 @@ class SplitKindsTest(unittest.TestCase):
+         self.assertIn("两块之间有代码依赖，就是同一个 driver 的切片", ls)
+         self.assertIn("只拆一层", ls)
+ 
++    def test_children_live_under_subtasks_dir(self) -> None:
++        self.assertIn("和父任务的 `wizard/`、`design/`、`approve/` 并列", read("large-scope.md"))
++        self.assertIn("`ongoing/{parent}/subtasks/{sub}/TASK.md`", read("large-scope.md"))
++        self.assertIn("subtasks/{sub}/", read("contract.md"))
++        self.assertIn("`{parent}/subtasks/{sub}`", read("handoff.md"))
++        self.assertIn("<parent>/subtasks/<sub>", (ROOT.parent / "taskflow" / "scripts" / "check_handoff.py").read_text(encoding="utf-8"))
++
+     def test_roadmap_requirements(self) -> None:
+         ls = read("large-scope.md")
+         self.assertIn("子判据合起来覆盖总判据，彼此不重叠，依赖没有环", ls)

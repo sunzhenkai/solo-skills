@@ -42,7 +42,7 @@
 
 ## 下游建议
 
-`task-explore` / `taskflow` → 方案探索与任务编排；`service-manager` → 本地起服务验证。
+`taskrail` / `taskflow` → 方案探索与任务编排；`service-manager` → 本地起服务验证。
 
 ## 跨角色 redirect
 

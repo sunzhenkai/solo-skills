@@ -4,16 +4,16 @@ Driver 协议逐字块在 [driver-template.md](driver-template.md)，建 worktre
 
 ## 进度归属
 
-- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、且 `openspec validate --strict --type change {task}-<slice>` 通过后勾。
+- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、`openspec validate --strict --type change {task}-<slice>` 通过、这一片已提交到任务分支后勾。
 - 不另存完成度、暂缓或分支状态；暂缓原因写 driver `proposal.md` 验证记录。
 - 涉及面角色只有 `必须`（会改）/ `建议`（只读）/ `排除`。
 
 ## 实施中
 
-- 默认串行，一次一个子 change。
+- 默认串行，一次一个子 change；做完一个先提交、过片间检查点（Driver 协议），再展开、做下一个。
 - 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
 - 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
-- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；只提交到任务分支，不 push、不外发）。
+- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；提交留给编排者，不 push、不外发）。
 
 ## 收尾校核
 

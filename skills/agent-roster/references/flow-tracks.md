@@ -32,9 +32,9 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 
 | Stage | Resident | 派出 | 绑定 |
 |---|---|---|---|
-| 理解 | 是 | 否 | `$task-explore` `new` / `explore`（其 explore 只委托 `grilling`，不调用 `grill-with-docs`） |
-| 定方案 | 澄清、decide | 写产物时 | `$task-explore design` 可选 → `decide` → `handoff` → `$taskflow` `taskflow-new` → `$openspec-propose`。`handoff` 仍属本 Stage，不写代码 |
+| 理解 | 是 | 否 | `$taskrail` 建任务，走 wizard 与 design 第一步的 grill（自问自答，不调用 `grill-with-docs`） |
+| 定方案 | 澄清、approve | 写产物时 | `$taskrail` 的 design（写方案）→ approve → handoff → `$taskflow` `taskflow-new` → `$openspec-propose`。`handoff` 仍属本 Stage，不写代码 |
 | 方案评审 | 确认 Assignment | 只读 | 审 design + driver / 子 change 产物 |
 | 实现 | 确认 Assignment | 必须 | `$taskflow` 实施子 change |
 | 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
-| 收尾 | 确认 Assignment | 需要时 | 归档 driver；探索任务保持 handed-off，如需关闭另走 `$task-explore` 的 `archive`；可选 `$commit-push` |
+| 收尾 | 确认 Assignment | 需要时 | 归档 driver；任务过 `$taskrail` 完成清单后标 `done` 并归档；可选 `$commit-push` |

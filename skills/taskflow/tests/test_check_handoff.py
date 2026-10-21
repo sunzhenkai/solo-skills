@@ -23,6 +23,7 @@ slug: demo
 status: handed-off
 phase: propose
 tier: full
+criterion: "demo 接口 p95 < 200ms"
 driver: "demo-driver"
 ---
 """
@@ -54,10 +55,13 @@ class TestCheckHandoff(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
-    def write(self, text: str, slug: str = "demo") -> None:
+    def write(self, text: str, slug: str = "demo", approved: bool = True) -> None:
         d = self.root / "tasks" / "ongoing" / slug
         d.mkdir(parents=True, exist_ok=True)
         (d / "TASK.md").write_text(text, encoding="utf-8")
+        if approved:
+            (d / "approve").mkdir(exist_ok=True)
+            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
 
     def run_gate(self, slug: str = "demo") -> subprocess.CompletedProcess:
         return subprocess.run([sys.executable, str(SCRIPT), str(self.root), slug],
@@ -78,8 +82,30 @@ class TestCheckHandoff(unittest.TestCase):
         self.assertEqual(self.run_gate().returncode, 0)
 
     def test_yaml_block_meta(self) -> None:
-        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\n```\n" + HANDOFF_SVC)
+        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\ncriterion: x\ndriver: demo-driver\n```\n" + HANDOFF_SVC)
         self.assertEqual(self.run_gate().returncode, 0)
+
+    def test_requires_approval(self) -> None:
+        self.write(GOOD_META + HANDOFF_SVC, approved=False)
+        r = self.run_gate()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("APPROVED.md", r.stdout)
+
+    def test_requires_criterion(self) -> None:
+        self.write(GOOD_META.replace('criterion: "demo 接口 p95 < 200ms"', 'criterion: ""') + HANDOFF_SVC)
+        r = self.run_gate()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("criterion", r.stdout)
+
+    def test_requires_driver_name(self) -> None:
+        self.write(GOOD_META.replace('driver: "demo-driver"', "driver: null") + HANDOFF_SVC)
+        r = self.run_gate()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("demo-driver", r.stdout)
+
+    def test_child_task_driver_uses_leaf(self) -> None:
+        self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/subtasks/api")
+        self.assertEqual(self.run_gate("demo/subtasks/api").returncode, 0)
 
     def test_missing_task(self) -> None:
         r = self.run_gate("nope")
@@ -110,11 +136,11 @@ class TestCheckHandoff(unittest.TestCase):
         self.assertIn("binding digest", r.stdout)
 
     def test_bypass_requires_user_confirmed(self) -> None:
-        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
+        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "design"))
         self.assertEqual(self.run_gate().returncode, 1)
 
     def test_bypass_user_confirmed(self) -> None:
-        self.write('---\nstatus: ongoing\nphase: explore\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
+        self.write('---\nstatus: ongoing\nphase: design\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
         r = self.run_gate()
         self.assertEqual(r.returncode, 0)
         self.assertIn("BYPASS", r.stdout)
@@ -130,7 +156,7 @@ class TestEntryGateWiring(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.skill = skill_corpus(ROOT)
         cls.rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
-        cls.handoff = (ROOT.parent / "task-explore" / "references" / "handoff.md").read_text(encoding="utf-8")
+        cls.handoff = (ROOT.parent / "taskrail" / "references" / "handoff.md").read_text(encoding="utf-8")
 
     def test_skill_wires_gate(self) -> None:
         self.assertIn("入口门", self.skill)
@@ -146,26 +172,29 @@ class TestEntryGateWiring(unittest.TestCase):
 
 
 class TestTemplateCompat(unittest.TestCase):
-    """task-explore templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
+    """taskrail templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
 
     def run_on(self, text: str) -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as tmp:
             d = Path(tmp) / "tasks" / "ongoing" / "demo"
-            d.mkdir(parents=True)
+            (d / "approve").mkdir(parents=True)
+            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
             (d / "TASK.md").write_text(text, encoding="utf-8")
             return subprocess.run([sys.executable, str(SCRIPT), tmp, "demo"], capture_output=True, text=True)
 
     def test_template_task_md_passes(self) -> None:
         import re
-        tpl = (ROOT.parent / "task-explore" / "references" / "templates.md").read_text(encoding="utf-8")
+        tpl = (ROOT.parent / "taskrail" / "references" / "templates.md").read_text(encoding="utf-8")
         block = re.search(r"## TASK\.md\n\n```markdown\n(.*?)\n```\n", tpl, re.S).group(1)
-        text = block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
+        text = (block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
+                .replace("driver: null", 'driver: "demo-driver"'))
         text = re.sub(r"## 交接\n.*", "## 交接\n- 交付类别：服务\n- 适用门包：无\n", text, flags=re.S)
         r = self.run_on(text)
         self.assertEqual(r.returncode, 0, r.stdout)
 
     def test_bullet_meta_compat(self) -> None:
-        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n\n## 交接\n- 交付类别：服务\n- 适用门包：无\n")
+        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n- criterion: x\n- driver: demo-driver\n\n"
+                        "## 交接\n- 交付类别：服务\n- 适用门包：无\n")
         self.assertEqual(r.returncode, 0, r.stdout)
 
 

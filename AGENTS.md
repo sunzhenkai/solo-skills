@@ -52,21 +52,22 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 | 依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
-| `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
+| `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-- 任务编排入口是 **`taskrail`**；确认协议是 taskrail 的薄引用 `skills/taskrail/references/confirm-protocol.md`。有 `tasks/` 时 grill 只用 `grilling`（理由见 `task-explore/references/explore-design.md`）。
+- 任务编排入口是 **`taskrail`**；确认协议是 taskrail 的薄引用 `skills/taskrail/references/confirm-protocol.md`。design 第一步的 grill 由本仓自问自答（方法见 `taskrail/references/design.md`），不委托外部 skill。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
 ### task* 要点
 
-- 流程：`wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive`（档位 `skip` / `full`：skip 直接实现 + 验证、不建 driver；full 经 handoff 走 OpenSpec；handoff 是动作不是 phase）。
+- 流程：`wizard → design(grill) → approve → [handoff] → propose → apply → archive → done`（档位 `skip` / `full`：skip 直接实现 + 验证、不建 driver；full 经 handoff 走 OpenSpec；handoff 是动作不是 phase）。
+- 拆分：wizard 第 5 步定，默认不拆；同一份交付拆成一个 driver 下的切片（按依赖滚动展开、逐片提交），要分别交付的才拆子任务，放在父任务的 `subtasks/` 下（继承父任务意图，范围内不停；父任务验总判据收尾）。细则 `taskrail/references/large-scope.md`。
 - 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
 - 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
-- 三件套：`taskrail` + `task-explore` + `taskflow`。
-- 意图确认：wizard 第 1 步委托 `task-intent`（落 `wizard/intent.md`；goal 由另一个模型按 `task-intent/references/intent.md` 第 5 节清单代审）；explore 的 grill 在其后，只追细节不重问意图。
+- 两件套：`taskrail`（意图确认、探索、设计、审批、交接都是它的阶段细则）+ `taskflow`（交接后的执行）。
+- 意图确认：wizard 第 1 步按 `taskrail/references/intent.md`（落 `wizard/intent.md`；goal 由另一个模型按该文件第 5 节清单代审）；`taskrail intent <目标>` 只做这一步。design 第一步的 grill 在其后，只追细节不重问意图。
 - 跨 skill 常用词统一：**台账**（ledger，持久记账文件：task 系列的 `TASK.md`/`INDEX.md`、repo-manager 的 `.repo-manager.md`）、**交接**（handoff，动作；agent-roster 的 Handoff 指受派方的产出文件）、**grill**（自问自答拷问，trouble-grill 用于排查）。新文本沿用这三个词，不另造同义词。
 - 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 

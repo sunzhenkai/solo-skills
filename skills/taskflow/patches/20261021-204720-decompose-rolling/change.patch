@@ -1,0 +1,219 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index eece479..8e8c746 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -283,3 +283,17 @@ cases:
+         - 收口按 taskrail done.md「观感验收」
+       must_not:
+         - 沿用框架默认样式只点缀几处颜色就收工
++
++  - id: rolling-wave-expansion
++    kind: core
++    judge: deterministic
++    description: 子 change 按依赖分批展开，做完一片提交一次
++    given: driver 路线图有三片，第二、三片依赖第一片
++    expect:
++      must:
++        - propose 只建第一片的子 change，其余两片在实施段各占一条
++        - 第一片全勾、validate 通过后由编排者在 worktree 提交这一片，再勾实施项
++        - 片间检查点按第一片落地的代码起草后两片，调整记进「已做决定」
++      must_not:
++        - propose 一次备齐三片的子 change
++        - 检查点停下等用户
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 4db2501..1662cf5 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -35,11 +35,13 @@
+ ## Driver 协议
+ - 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）
+ - 子 change 一律命名 `{task}-<slice>`，与本 change 同一 planning root；跨 root 时在涉及面表显式记录 root 或 store id
+-- 实现进度只认子 change 自己的 `tasks.md`；本文件的 checkbox 只在对应子 change 全勾且 `validate --strict` 通过后才勾
++- 子 change 按依赖分批展开：依赖的实施项都已勾的切片才建子 change，起草时以 `worktrees/{task}` 里的代码为准
++- 实现进度只认子 change 自己的 `tasks.md`；本文件的实施项只在对应子 change 全勾、`validate --strict` 通过、这一片已提交到任务分支后才勾
++- 每勾掉一条实施项过一次片间检查点，不停人：按新认识补拆、合并或改顺序（只增删、改写未勾的实施项，记进 `TASK.md`「已做决定」），再展开依赖已满足的下一批；动到判据或范围的，按 taskrail 契约「意图变更」处理
+ - 两个根：planning root（`tasks/`、`openspec/changes/`）留在主工作树，只增量写本任务的目录，`openspec-*` 命令在这里跑；代码根是修改仓根目录下的 `worktrees/{task}`，读改代码、测试、回归、提交都在这里做，派给实现者的工作目录写它的绝对路径
+ - 涉及面里角色为 `必须` 的 git 修改仓一律建 worktree；修改仓不是 git 仓、或用户原话要求就地改时才在主工作树做，并记入 `TASK.md`「已做决定」。建法：先 fetch；基线默认 `origin/<默认分支>`，主工作树当前分支不是默认分支且领先于它时用 `HEAD`；执行 `git worktree add worktrees/{task} -b {task} <基线>`，分支已存在则 `git worktree add worktrees/{task} {task}`，worktree 已存在就复用；把 `worktrees/` 写进 `.git/info/exclude`；其他规则另有指定位置时以其为准。worktree 路径与基线记入「已做决定」。git 拒绝（如分支已在别处检出）时停下说明原因
+ - 主工作树里用户已有的改动和当前分支保持原样，不 stash / reset / 切分支。同一任务的 worker 共用这个 worktree，靠改动文件不重叠隔离
+-- 提交只落在任务分支 `{task}`，不 push、不合进默认分支。收尾提交后保留 worktree，清理留给用户
++- 提交由编排者做，每片一次、收尾一次，只落在任务分支 `{task}`，不 push、不合进默认分支。收尾提交后保留 worktree，清理留给用户
+ - 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+ - 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 四行说，不报编号
+ 
+@@ -52,26 +54,31 @@
+ 
+ ## propose 阶段的产出约定
+ 
+-`openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段建 worktree，实施段每个子 change 至少一条，收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
+-
+-收尾段按 [done.md](../../taskrail/references/done.md) 核对；缺证据不勾收尾条目。
+-
+-子 change 的 artifacts 在 propose 阶段一次性备齐（拆分粒度本身是提案决策），apply 阶段只做实施，不在实施循环里改 change 语义。
++`openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段建 worktree，实施段按 `wizard/plan.md`「路线图」一片一条（没有路线图时按方案定，通常就是一片），收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
+ 
+ ````markdown
+ ## 1. 准备
+ - [ ] 1.1 给涉及面里角色为必须的修改仓建 worktree `worktrees/{task}`（基线与命令见 Driver 协议），之后改代码、测试、提交都在 worktree 里做
+ 
+-## 2. 实施
+-- [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选且 validate --strict 通过
+-- [ ] 2.2 完成子 change `{task}-ui`：同 2.1（Web UI 做法见 taskrail `ui-delivery.md`）
++## 2. 实施（一片一条，依赖写在括号里）
++- [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选、validate --strict 通过、提交到任务分支
++- [ ] 2.2 完成子 change `{task}-ui`（依赖 2.1）：同 2.1（Web UI 做法见 taskrail `ui-delivery.md`）
+ 
+ ## 3. 收尾
+ - [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录
+ - [ ] 3.2 回填 proposal 验收标准
+-- [ ] 3.3 在 worktree 里把交付改动提交到任务分支 `{task}`（不 push）
++- [ ] 3.3 在 worktree 里把收尾改动提交到任务分支 `{task}`（不 push）
+ - [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、findings 全有处置（见 execution-discipline「收尾校核」）
+ - [ ] 3.5 归档全部子 change：逐个 `openspec archive {task}-<slice> --yes`（3.4 过了才跑）
+ ````
+ 
+-子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
++收尾段按 [done.md](../../taskrail/references/done.md) 核对；缺证据不勾收尾条目。子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
++
++### 滚动展开
++
++实施段一次列全，子 change 按依赖分批展开：
++
++- propose 只给依赖已满足的那批切片备齐子 change（在 planning root 对 `{task}-<slice>` 委托 stock `openspec-propose`），其余切片只在实施段占一条。
++- 每片做完：编排者在 worktree 只提交这一片的改动，勾掉实施项，过片间检查点（Driver 协议），再展开下一批。已勾的条目和已归档的子 change 不改写。
++- 后面切片的细节在展开时按当时的代码起草；没超出路线图那一行，就属于 approve 已批的范围。
++- 检查点不停人；动到判据或范围的，按 taskrail 契约「意图变更」处理。
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index 46f0910..7745705 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -4,16 +4,16 @@ Driver 协议逐字块在 [driver-template.md](driver-template.md)，建 worktre
+ 
+ ## 进度归属
+ 
+-- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、且 `openspec validate --strict --type change {task}-<slice>` 通过后勾。
++- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、`openspec validate --strict --type change {task}-<slice>` 通过、这一片已提交到任务分支后勾。
+ - 不另存完成度、暂缓或分支状态；暂缓原因写 driver `proposal.md` 验证记录。
+ - 涉及面角色只有 `必须`（会改）/ `建议`（只读）/ `排除`。
+ 
+ ## 实施中
+ 
+-- 默认串行，一次一个子 change。
++- 默认串行，一次一个子 change；做完一个先提交、过片间检查点（Driver 协议），再展开、做下一个。
+ - 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
+ - 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
+-- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；只提交到任务分支，不 push、不外发）。
++- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；提交留给编排者，不 push、不外发）。
+ 
+ ## 收尾校核
+ 
+diff --git a/skills/taskflow/references/multi-worker.md b/skills/taskflow/references/multi-worker.md
+index 1e05df9..842e01b 100644
+--- a/skills/taskflow/references/multi-worker.md
++++ b/skills/taskflow/references/multi-worker.md
+@@ -6,10 +6,10 @@
+ 
+ | 层 | 可以并行 | 必须串行 |
+ |----|----------|----------|
+-| 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段建 worktree；收尾段回归 / 回填 / 提交 / 归档 |
++| 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段建 worktree；片间检查点（逐片提交、调整余下切片）；收尾段回归 / 回填 / 提交 / 归档 |
+ | 同一 change 的 checkbox | 互不依赖且文件不重叠 | 有先后依赖、共享文件、或卡在用户决策上 |
+ 
+-每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突。同一任务的 worker 共用 `worktrees/{task}`（Driver 协议），靠改动文件不重叠隔离。worker 失败不是整轮结束的理由。
++每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突，并在片间检查点逐片提交（每次只提交那一片的文件）。同一任务的 worker 共用 `worktrees/{task}`（Driver 协议），靠改动文件不重叠隔离。worker 失败不是整轮结束的理由。
+ 
+ ## 派发前
+ 
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 4775f0b..fab17c5 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -15,13 +15,13 @@ description: "交接后的执行：check_handoff 入口门通过后用 `taskflow
+ | 阶段 | 入口 | 参数 |
+ |------|------|------|
+ | 立项 | 本文件「脚手架」（command `taskflow-new`） | 任务描述 |
+-| 提案 | stock `openspec-propose` | `{task}-driver` |
+-| 实施 | stock `openspec-apply-change` | `{task}-driver` |
++| 提案 | stock `openspec-propose` | `{task}-driver`；展开切片时为 `{task}-<slice>` |
++| 实施 | stock `openspec-apply-change` | `{task}-driver`，逐片 `{task}-<slice>` |
+ | 归档 | stock `openspec-archive-change` | `{task}-driver`（只归档 driver 自身） |
+ 
+ 方案未定时先 stock `openspec-explore`。只提供 `taskflow-new` 一个 command，其余复用 stock skill。
+ 
+-委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name `{task}-driver`；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
++委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name（`{task}-driver` 或 `{task}-<slice>`）；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
+ 
+ ## 经 taskrail 委托时
+ 
+@@ -56,7 +56,7 @@ exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自
+ 
+ ## 执行
+ 
+-propose / apply / 收尾前读 [references/execution-discipline.md](references/execution-discipline.md)。默认**串行**：一次做一个子 change，做完勾 checkbox 再下一个。
++propose / apply / 收尾前读 [references/execution-discipline.md](references/execution-discipline.md)。默认**串行**：一次做一个子 change；子 change 按依赖滚动展开，每做完一片提交一次、勾掉实施项，过片间检查点再展开下一批（driver-template「滚动展开」）。
+ 
+ - 派给实现者的输入由交接载荷生成：判据原文、交付类别、要产出的证据、指针；不手写省略验收的自由提示词。
+ - 完成按 [done.md](../taskrail/references/done.md)。
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 22a9943..703a8ac 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -136,11 +136,11 @@ class TestCheckHandoff(unittest.TestCase):
+         self.assertIn("binding digest", r.stdout)
+ 
+     def test_bypass_requires_user_confirmed(self) -> None:
+-        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "explore"))
++        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "design"))
+         self.assertEqual(self.run_gate().returncode, 1)
+ 
+     def test_bypass_user_confirmed(self) -> None:
+-        self.write('---\nstatus: ongoing\nphase: explore\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
++        self.write('---\nstatus: ongoing\nphase: design\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
+         r = self.run_gate()
+         self.assertEqual(r.returncode, 0)
+         self.assertIn("BYPASS", r.stdout)
+diff --git a/skills/taskflow/tests/test_rolling_wave_contract.py b/skills/taskflow/tests/test_rolling_wave_contract.py
+new file mode 100644
+index 0000000..ad5d40c
+--- /dev/null
++++ b/skills/taskflow/tests/test_rolling_wave_contract.py
+@@ -0,0 +1,40 @@
++"""滚动展开：依赖满足才展开子 change、逐片提交、片间检查点不停人。"""
++from __future__ import annotations
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++TEMPLATE = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
++PROTO = TEMPLATE.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
++
++
++class RollingWaveTest(unittest.TestCase):
++    def test_protocol_expands_ready_slices_from_worktree_code(self) -> None:
++        self.assertIn("依赖的实施项都已勾的切片才建子 change", PROTO)
++        self.assertIn("起草时以 `worktrees/{task}` 里的代码为准", PROTO)
++
++    def test_slice_item_checked_after_commit(self) -> None:
++        self.assertIn("这一片已提交到任务分支后才勾", PROTO)
++        self.assertIn("提交由编排者做，每片一次、收尾一次", PROTO)
++
++    def test_checkpoint_keeps_going(self) -> None:
++        self.assertIn("过一次片间检查点，不停人", PROTO)
++        self.assertIn("意图变更", PROTO)
++
++    def test_propose_expands_first_batch_only(self) -> None:
++        wave = TEMPLATE.split("### 滚动展开", 1)[1]
++        self.assertIn("propose 只给依赖已满足的那批切片备齐子 change", wave)
++        self.assertIn("属于 approve 已批的范围", wave)
++        self.assertIn("一片一条", TEMPLATE)
++
++    def test_runtime_files_point_to_checkpoint(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        disc = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
++        mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
++        for text in (skill, disc, mw):
++            self.assertIn("片间检查点", text)
++        self.assertIn("提交留给编排者", disc)
++
++
++if __name__ == "__main__":
++    unittest.main()

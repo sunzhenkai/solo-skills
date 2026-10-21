@@ -40,7 +40,7 @@
 
 ## 下游建议
 
-`task-explore` / `taskflow` → 方案探索与任务编排。
+`taskrail` / `taskflow` → 方案探索与任务编排。
 
 ## 跨角色 redirect
 

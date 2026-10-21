@@ -1,0 +1,41 @@
+diff --git a/skills/agent-roster/evals/cases.yaml b/skills/agent-roster/evals/cases.yaml
+index a8ebece..48440a6 100644
+--- a/skills/agent-roster/evals/cases.yaml
++++ b/skills/agent-roster/evals/cases.yaml
+@@ -282,7 +282,7 @@ cases:
+     given: Flow 开始
+     expect:
+       must:
+-        - grill-with-docs 或 taskrail 的 explore 在 Orchestrator 会话进行
++        - grill-with-docs 或 taskrail 的 grill 在 Orchestrator 会话进行
+         - spine 记录 Orchestrator 的 Kind 与 Model
+       must_not:
+         - 把 grill 派给另一个 Endpoint
+diff --git a/skills/agent-roster/references/flow-stages.md b/skills/agent-roster/references/flow-stages.md
+index 3d5e929..44bc1a4 100644
+--- a/skills/agent-roster/references/flow-stages.md
++++ b/skills/agent-roster/references/flow-stages.md
+@@ -6,7 +6,7 @@
+ 
+ Resident。不派出。
+ 
+-Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 wizard / explore。
++Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 wizard 与 grill。
+ 
+ 完成标准：任务一句话可检验；Track 已写入 spine；Orchestrator 的 Kind + Model 已记录。
+ 
+diff --git a/skills/agent-roster/references/flow-tracks.md b/skills/agent-roster/references/flow-tracks.md
+index 949e248..c93f01f 100644
+--- a/skills/agent-roster/references/flow-tracks.md
++++ b/skills/agent-roster/references/flow-tracks.md
+@@ -32,8 +32,8 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ 
+ | Stage | Resident | 派出 | 绑定 |
+ |---|---|---|---|
+-| 理解 | 是 | 否 | `$taskrail` 建任务并走 wizard / explore（explore 自问自答，不调用 `grill-with-docs`） |
+-| 定方案 | 澄清、approve | 写产物时 | `$taskrail` 的 design → approve → handoff → `$taskflow` `taskflow-new` → `$openspec-propose`。`handoff` 仍属本 Stage，不写代码 |
++| 理解 | 是 | 否 | `$taskrail` 建任务，走 wizard 与 design 第一步的 grill（自问自答，不调用 `grill-with-docs`） |
++| 定方案 | 澄清、approve | 写产物时 | `$taskrail` 的 design（写方案）→ approve → handoff → `$taskflow` `taskflow-new` → `$openspec-propose`。`handoff` 仍属本 Stage，不写代码 |
+ | 方案评审 | 确认 Assignment | 只读 | 审 design + driver / 子 change 产物 |
+ | 实现 | 确认 Assignment | 必须 | `$taskflow` 实施子 change |
+ | 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |

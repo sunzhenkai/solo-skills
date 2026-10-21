@@ -252,7 +252,7 @@ cases:
     given: 用户说「不走 taskrail，直接建 driver」
     expect:
       must:
-        - 没有 TASK.md 时按 task-explore 模板建最小的一份
+        - 没有 TASK.md 时按 taskrail 的 templates.md 建最小的一份
         - 元信息写 gate_bypass "<日期> user-confirmed: <用户原话>"，BYPASS 放行（exit 0、醒目警告）
         - 没验证到的门包项按 done.md 第 6 条记进「已做决定」
         - 缺 user-confirmed 或缺理由时 exit 1
@@ -283,3 +283,17 @@ cases:
         - 收口按 taskrail done.md「观感验收」
       must_not:
         - 沿用框架默认样式只点缀几处颜色就收工
+
+  - id: rolling-wave-expansion
+    kind: core
+    judge: deterministic
+    description: 子 change 按依赖分批展开，做完一片提交一次
+    given: driver 路线图有三片，第二、三片依赖第一片
+    expect:
+      must:
+        - propose 只建第一片的子 change，其余两片在实施段各占一条
+        - 第一片全勾、validate 通过后由编排者在 worktree 提交这一片，再勾实施项
+        - 片间检查点按第一片落地的代码起草后两片，调整记进「已做决定」
+      must_not:
+        - propose 一次备齐三片的子 change
+        - 检查点停下等用户

@@ -23,7 +23,7 @@ class OutputStyleTest(unittest.TestCase):
             s = Path(tmp) / "skills"
             (s / "taskrail").mkdir(parents=True)
             (s / "taskrail" / "SKILL.md").write_text("x" * 9000, encoding="utf-8")
-            ref = s / "task-intent" / "references"
+            ref = s / "taskrail" / "references"
             ref.mkdir(parents=True)
             (ref / "intent.md").write_text(
                 "## 3. 给用户的复述（自然口语）\n\n"

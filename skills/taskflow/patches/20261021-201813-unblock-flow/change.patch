@@ -1,0 +1,200 @@
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 9c30acc..4db2501 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -71,7 +71,7 @@
+ - [ ] 3.2 回填 proposal 验收标准
+ - [ ] 3.3 在 worktree 里把交付改动提交到任务分支 `{task}`（不 push）
+ - [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、findings 全有处置（见 execution-discipline「收尾校核」）
+-- [ ] 3.5 归档全部子 change
++- [ ] 3.5 归档全部子 change：逐个 `openspec archive {task}-<slice> --yes`（3.4 过了才跑）
+ ````
+ 
+ 子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
+diff --git a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+index 398b9cb..9c6e42b 100644
+--- a/skills/taskflow/scripts/check_handoff.py
++++ b/skills/taskflow/scripts/check_handoff.py
+@@ -7,8 +7,9 @@
+ 核对项（全部满足才 exit 0）：
+   1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/<sub> 作 slug）；
+   2. 元信息 status = handed-off，phase ∈ propose / apply / archive / done；
+-  3. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
+-  4. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
++  3. 已批准：approve/APPROVED.md 存在；元信息 criterion 非空；driver = <slug 末段>-driver；
++  4. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
++  5. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
+ 
+ 逃生口：元信息 `gate_bypass:` 值含 `user-confirmed` 且写明理由时，以 BYPASS 放行（exit 0，
+ 输出醒目警告）；只在用户原话明确要求跳过时写入，理由照录用户原话。
+@@ -80,6 +81,13 @@ def check(root: Path, slug: str) -> dict:
+         res["errors"].append(f"status 须为 handed-off，实为 {meta.get('status')!r}")
+     if meta.get("phase") not in ALLOWED_PHASES:
+         res["errors"].append(f"phase 须为 {'/'.join(ALLOWED_PHASES)}（approve 之后），实为 {meta.get('phase')!r}")
++    if not (task_md.parent / "approve" / "APPROVED.md").is_file():
++        res["errors"].append("缺 approve/APPROVED.md（方案未经 approve 冻结）")
++    if not meta.get("criterion"):
++        res["errors"].append("元信息缺 criterion（完成判据原文）")
++    want_driver = f"{slug.rstrip('/').rsplit('/', 1)[-1]}-driver"
++    if meta.get("driver") != want_driver:
++        res["errors"].append(f"driver 须为 {want_driver!r}，实为 {meta.get('driver')!r}")
+ 
+     body = section(text, "交接")
+     if body is None:
+@@ -100,7 +108,7 @@ def check(root: Path, slug: str) -> dict:
+ 
+ 
+ def main(argv: list[str] | None = None) -> int:
+-    ap = argparse.ArgumentParser(description="taskflow 入口门：核对 handoff 已成立且载荷带交付类别与门包")
++    ap = argparse.ArgumentParser(description="taskflow 入口门：核对方案已批准、handoff 已成立且载荷带交付类别与门包")
+     ap.add_argument("workspace_root", help="含 tasks/ 的工作区根")
+     ap.add_argument("slug", help="任务 slug（子任务写 parent/sub）")
+     ap.add_argument("--json", action="store_true", help="输出 JSON")
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index d0f49c2..7a0f4b6 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -23,6 +23,17 @@ description: "交接后的执行：check_handoff 入口门通过后用 `taskflow
+ 
+ 委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name `{task}-driver`；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
+ 
++## 经 taskrail 委托时
++
++stock `openspec-*` 里停下来问人的地方，由编排者按下表代答；停不停只看 taskrail [confirm-protocol.md](../taskrail/references/confirm-protocol.md)「停点」表。单独点名 taskflow 时按 stock 原样交互。
++
++| stock 的行为 | 在轨道里 |
++|---|---|
++| propose 完停下，等新请求再 apply | approve 放行即授权 propose 与 apply，propose 完接着 apply |
++| 同名 change 已存在，问继续还是新建 | 选继续，不问 |
++| 实现中不清楚或卡住，暂停并列选项 | 按 Driver 协议：该项保持未勾、验证记录写原因、做下一项；真阻塞按 user-report 第 5 节停 |
++| 归档前确认未勾项、问是否同步 spec | 收尾校核过了才归档；子 change 用 `openspec archive {task}-<slice> --yes`（同步 spec），未勾齐不归档 |
++
+ ## 入口门
+ 
+ 创建 `{task}-driver` 或子 change 前，第一步在工作区根跑：
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 3c553b1..2d23baf 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -23,6 +23,7 @@ slug: demo
+ status: handed-off
+ phase: propose
+ tier: full
++criterion: "demo 接口 p95 < 200ms"
+ driver: "demo-driver"
+ ---
+ """
+@@ -54,10 +55,13 @@ class TestCheckHandoff(unittest.TestCase):
+     def tearDown(self) -> None:
+         self.tmp.cleanup()
+ 
+-    def write(self, text: str, slug: str = "demo") -> None:
++    def write(self, text: str, slug: str = "demo", approved: bool = True) -> None:
+         d = self.root / "tasks" / "ongoing" / slug
+         d.mkdir(parents=True, exist_ok=True)
+         (d / "TASK.md").write_text(text, encoding="utf-8")
++        if approved:
++            (d / "approve").mkdir(exist_ok=True)
++            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
+ 
+     def run_gate(self, slug: str = "demo") -> subprocess.CompletedProcess:
+         return subprocess.run([sys.executable, str(SCRIPT), str(self.root), slug],
+@@ -78,9 +82,31 @@ class TestCheckHandoff(unittest.TestCase):
+         self.assertEqual(self.run_gate().returncode, 0)
+ 
+     def test_yaml_block_meta(self) -> None:
+-        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\n```\n" + HANDOFF_SVC)
++        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\ncriterion: x\ndriver: demo-driver\n```\n" + HANDOFF_SVC)
+         self.assertEqual(self.run_gate().returncode, 0)
+ 
++    def test_requires_approval(self) -> None:
++        self.write(GOOD_META + HANDOFF_SVC, approved=False)
++        r = self.run_gate()
++        self.assertEqual(r.returncode, 1)
++        self.assertIn("APPROVED.md", r.stdout)
++
++    def test_requires_criterion(self) -> None:
++        self.write(GOOD_META.replace('criterion: "demo 接口 p95 < 200ms"', 'criterion: ""') + HANDOFF_SVC)
++        r = self.run_gate()
++        self.assertEqual(r.returncode, 1)
++        self.assertIn("criterion", r.stdout)
++
++    def test_requires_driver_name(self) -> None:
++        self.write(GOOD_META.replace('driver: "demo-driver"', "driver: null") + HANDOFF_SVC)
++        r = self.run_gate()
++        self.assertEqual(r.returncode, 1)
++        self.assertIn("demo-driver", r.stdout)
++
++    def test_child_task_driver_uses_leaf(self) -> None:
++        self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/api")
++        self.assertEqual(self.run_gate("demo/api").returncode, 0)
++
+     def test_missing_task(self) -> None:
+         r = self.run_gate("nope")
+         self.assertEqual(r.returncode, 1)
+@@ -151,7 +177,8 @@ class TestTemplateCompat(unittest.TestCase):
+     def run_on(self, text: str) -> subprocess.CompletedProcess:
+         with tempfile.TemporaryDirectory() as tmp:
+             d = Path(tmp) / "tasks" / "ongoing" / "demo"
+-            d.mkdir(parents=True)
++            (d / "approve").mkdir(parents=True)
++            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
+             (d / "TASK.md").write_text(text, encoding="utf-8")
+             return subprocess.run([sys.executable, str(SCRIPT), tmp, "demo"], capture_output=True, text=True)
+ 
+@@ -159,13 +186,15 @@ class TestTemplateCompat(unittest.TestCase):
+         import re
+         tpl = (ROOT.parent / "task-explore" / "references" / "templates.md").read_text(encoding="utf-8")
+         block = re.search(r"## TASK\.md\n\n```markdown\n(.*?)\n```\n", tpl, re.S).group(1)
+-        text = block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
++        text = (block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
++                .replace("driver: null", 'driver: "demo-driver"'))
+         text = re.sub(r"## 交接\n.*", "## 交接\n- 交付类别：服务\n- 适用门包：无\n", text, flags=re.S)
+         r = self.run_on(text)
+         self.assertEqual(r.returncode, 0, r.stdout)
+ 
+     def test_bullet_meta_compat(self) -> None:
+-        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n\n## 交接\n- 交付类别：服务\n- 适用门包：无\n")
++        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n- criterion: x\n- driver: demo-driver\n\n"
++                        "## 交接\n- 交付类别：服务\n- 适用门包：无\n")
+         self.assertEqual(r.returncode, 0, r.stdout)
+ 
+ 
+diff --git a/skills/taskflow/tests/test_stock_delegation_contract.py b/skills/taskflow/tests/test_stock_delegation_contract.py
+new file mode 100644
+index 0000000..b5999b0
+--- /dev/null
++++ b/skills/taskflow/tests/test_stock_delegation_contract.py
+@@ -0,0 +1,32 @@
++"""经 taskrail 委托 stock openspec-* 时由编排者代答，停不停只看停点表。"""
++from __future__ import annotations
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++
++
++class StockDelegationTest(unittest.TestCase):
++    def test_section_and_stop_table_pointer(self) -> None:
++        self.assertIn("## 经 taskrail 委托时", SKILL)
++        self.assertIn("confirm-protocol.md", SKILL)
++        self.assertIn("停点", SKILL)
++
++    def test_propose_then_apply(self) -> None:
++        self.assertIn("approve 放行即授权 propose 与 apply", SKILL)
++
++    def test_existing_change_continue(self) -> None:
++        self.assertIn("选继续，不问", SKILL)
++
++    def test_apply_pause_follows_driver_protocol(self) -> None:
++        self.assertIn("该项保持未勾", SKILL)
++
++    def test_sub_change_archive_noninteractive(self) -> None:
++        self.assertIn("openspec archive {task}-<slice> --yes", SKILL)
++        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
++        self.assertIn("openspec archive {task}-<slice> --yes", t)
++
++
++if __name__ == "__main__":
++    unittest.main()

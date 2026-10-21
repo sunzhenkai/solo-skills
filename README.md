@@ -8,10 +8,8 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `taskrail` | **任务轨道（唯一编排入口）**：wizard → explore(+grill) → design → approve → [handoff] → propose → apply → archive；档位 skip（直接实现 + 验证）/ full（经 handoff 走 OpenSpec）；human/goal 两种确认模式；按完成清单收口；`tasks/` 可恢复 |
-| `task-intent` | **开工前意图确认**：详细探索上下文 → 1–3 句口语复述（做什么 / 怎么做 / 产出落点 / 下一步；字段清单只进 intent.md）→ 纠偏到确认（goal 由另一个模型按清单代审）；由 taskrail wizard 第 1 步委派 |
-| `task-explore` | explore / design / approve / handoff（`TASK.md.phase` 只许契约枚举） |
-| `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期 |
+| `taskrail` | **任务轨道（唯一编排入口）**：wizard（意图确认、拆分）→ design(grill) → approve → [handoff] → propose → apply → archive → done；档位 skip（直接实现 + 验证）/ full（经 handoff 走 OpenSpec）；大任务拆成切片或子任务（子任务继承意图，父任务验总判据收尾，续跑取下一个就绪项）；human/goal 两种确认模式；按完成清单收口；`tasks/` 可恢复；`taskrail intent` 只做意图确认 |
+| `taskflow` | 一个 driver change 编排一批子 change 的任务生命周期：子 change 按依赖滚动展开，逐片提交 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
 
 ### 跨 agent 委派
@@ -71,12 +69,12 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 
 ## 外部依赖
 
-上表的 skill 之间互引（如 `taskflow` 委托 `openspec-*`、`task-explore` 引用 `taskrail` 的参照库）都已在仓内解决；仍依赖下列**不在本仓库**的 skill / 工具（skill 目标目录同为 `~/.agents/skills`）：
+上表的 skill 之间互引（如 `taskrail` 交给 `taskflow`、`taskflow` 委托 `openspec-*`）都已在仓内解决；仍依赖下列**不在本仓库**的 skill / 工具（skill 目标目录同为 `~/.agents/skills`）：
 
 | 外部依赖 | 来源 | 被谁依赖 |
 | --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、task-explore、agent-roster（flow 模式） |
-| `grilling` | `mattpocock/skills` | task-explore / taskrail（有任务目录时的拷问） |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
+| `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 

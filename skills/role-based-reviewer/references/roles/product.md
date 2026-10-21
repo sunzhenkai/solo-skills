@@ -34,7 +34,7 @@
 
 ## 下游建议
 
-`task-explore` / `taskflow` → 方案探索与任务编排；OpenSpec（若项目有）→ 需求结构化。
+`taskrail` / `taskflow` → 方案探索与任务编排；OpenSpec（若项目有）→ 需求结构化。
 
 ## 跨角色 redirect
 

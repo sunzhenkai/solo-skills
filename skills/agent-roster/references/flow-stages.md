@@ -6,7 +6,7 @@
 
 Resident。不派出。
 
-Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$task-explore` 的 `new` / `explore`。
+Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 wizard 与 grill。
 
 完成标准：任务一句话可检验；Track 已写入 spine；Orchestrator 的 Kind + Model 已记录。
 

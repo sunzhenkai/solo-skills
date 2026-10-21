@@ -19,7 +19,7 @@ class RbrContractTest(unittest.TestCase):
         self.assertIn("只开 `engineer`", text)
 
     def test_no_intent_role(self) -> None:
-        # 意图代审由 taskrail confirm-protocol 派异源模型按 task-intent 清单做，不经本 skill 的角色
+        # 意图代审由 taskrail confirm-protocol 派异源模型按 taskrail intent.md 清单做，不经本 skill 的角色
         self.assertFalse((ROOT / "references" / "roles" / "intent.md").exists())
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertNotIn("`intent`", text)
