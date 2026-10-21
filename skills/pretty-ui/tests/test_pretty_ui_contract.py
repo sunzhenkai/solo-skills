@@ -1,0 +1,195 @@
+"""pretty-ui 文本契约：路由、信条、看图门槛、问题字段、中文排版数值、阅读页落盘与来源许可。"""
+
+from __future__ import annotations
+
+import re
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+
+def ref(name: str) -> str:
+    return (ROOT / "references" / name).read_text(encoding="utf-8")
+
+
+def frontmatter(text: str) -> dict[str, str]:
+    block = text.split("---", 2)[1]
+    out = {}
+    for line in block.strip().splitlines():
+        key, _, value = line.partition(":")
+        out[key.strip()] = value.strip()
+    return out
+
+
+class SkillEntryTest(unittest.TestCase):
+    def test_frontmatter(self) -> None:
+        fm = frontmatter(SKILL)
+        self.assertEqual(fm["id"], "pretty-ui")
+        self.assertEqual(fm["name"], "pretty-ui")
+        self.assertLessEqual(len(fm["description"]), 300)
+        for word in ("设计方向", "设计体系", "截图", "评审", "阅读页"):
+            self.assertIn(word, fm["description"])
+
+    def test_three_creeds(self) -> None:
+        for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
+            self.assertIn(creed, SKILL)
+
+    def test_routing_modes(self) -> None:
+        for mode in ("| 小改 |", "| build |", "| refine |", "| review |", "| system |", "| page |"):
+            self.assertIn(mode, SKILL)
+        self.assertIn("只读，不改文件", SKILL)
+        self.assertIn("system 再 build", SKILL)
+
+    def test_direction_asks_once_or_self_selects(self) -> None:
+        self.assertIn("问用户一次，本轮结束", SKILL)
+        self.assertIn("自选并写明理由", SKILL)
+
+    def test_render_gate(self) -> None:
+        self.assertIn("1280", SKILL)
+        self.assertIn("375", SKILL)
+        self.assertIn("未渲染验证", SKILL)
+        self.assertIn("code-only", SKILL)
+        self.assertIn("scripts/check_page.py", SKILL)
+
+    def test_ten_laws_numbers(self) -> None:
+        for phrase in ("每屏一个主角", "先灰度后上色", "取值来自刻度", "组外距离大于组内", "既有体系优先"):
+            self.assertIn(phrase, SKILL)
+        self.assertIn("30–40 字（上限 46）", SKILL)
+        self.assertIn("16–18px", SKILL)
+        self.assertIn("4.5:1", SKILL)
+
+    def test_linked_files_exist(self) -> None:
+        links = re.findall(r"\]\(([^)#]+)\)", SKILL)
+        self.assertTrue(links)
+        for link in links:
+            self.assertTrue((ROOT / link).exists(), link)
+        for name in ("direction.md", "system.md", "rules.md", "critique.md", "page.md"):
+            self.assertIn(f"references/{name}", SKILL)
+
+    def test_runtime_artifacts_outside_skill(self) -> None:
+        self.assertIn("本 skill 目录保持只读", SKILL)
+
+
+class DirectionTest(unittest.TestCase):
+    TEXT = ref("direction.md")
+
+    def test_card_fields(self) -> None:
+        for field in ("北极星", "调性", "标杆与取舍", "生成引擎", "首屏骨架", "字体", "色彩", "主视觉", "控件语法", "动效", "记忆点", "放弃什么"):
+            self.assertIn(f"| {field} |", self.TEXT)
+
+    def test_benchmarks_from_real_screens(self) -> None:
+        self.assertIn("未看图，凭记忆", self.TEXT)
+        for word in ("基线", "套路", "撞脸"):
+            self.assertIn(word, self.TEXT)
+
+    def test_difference_check(self) -> None:
+        self.assertIn("四项至多一项相同", self.TEXT)
+        self.assertIn("至少一个打破品类套路", self.TEXT)
+        self.assertIn("两遍法", self.TEXT)
+
+    def test_light_card_for_upstream(self) -> None:
+        self.assertIn("轻量方向卡", self.TEXT)
+        self.assertIn("写清取它哪一点", self.TEXT)
+
+
+class SystemTest(unittest.TestCase):
+    TEXT = ref("system.md")
+
+    def test_scripts_and_outputs(self) -> None:
+        for word in ("scripts/palette.py", "scripts/contrast.py", "tokens.css", "DESIGN.md", "preview.html"):
+            self.assertIn(word, self.TEXT)
+
+    def test_two_layer_tokens(self) -> None:
+        self.assertIn("两层 token", self.TEXT)
+        for token in ("--surface", "--text-muted", "--action", "--danger"):
+            self.assertIn(token, self.TEXT)
+
+    def test_existing_system_first(self) -> None:
+        self.assertIn("已有的部分原样沿用", self.TEXT)
+        self.assertIn("ui-delivery.md", self.TEXT)
+
+
+class RulesTest(unittest.TestCase):
+    TEXT = ref("rules.md")
+
+    def test_sweep_order_and_lenses(self) -> None:
+        self.assertIn("H 层级 → S 间距与布局 → T 排版 → C 色彩 → D 深度 → I 图像与图标 → F 收尾与状态 → M 动效", self.TEXT)
+        for rule in ("**H1**", "**S3**", "**T2**", "**C4**", "**C5**", "**D2**", "**I2**", "**I6**", "**F4**", "**M4**", "**X1**", "**X12**"):
+            self.assertIn(rule, self.TEXT)
+
+    def test_severity_mapping(self) -> None:
+        for row in ("| P0 |", "| P1 |", "| P2 |", "Blocker", "Major", "Minor"):
+            self.assertIn(row, self.TEXT)
+        self.assertIn("图解或关键插图渲染失败、离线缺失，只剩报错或空白（I6）", self.TEXT)
+
+    def test_rule_id_gate_and_false_positives(self) -> None:
+        self.assertIn("每条问题都要指得到一个规则号", self.TEXT)
+        self.assertIn("## 4. 误报", self.TEXT)
+        self.assertIn("## 5. 矫枉过正", self.TEXT)
+
+    def test_cjk_numbers(self) -> None:
+        self.assertIn("上限 46", self.TEXT)
+        self.assertIn("1.6–1.75", self.TEXT)
+
+
+class CritiqueTest(unittest.TestCase):
+    TEXT = ref("critique.md")
+
+    def test_finding_table(self) -> None:
+        self.assertIn("| # | 镜头 | 严重度 | 位置 | 规则 | 现状 | 改法 | 验证 |", self.TEXT)
+        self.assertIn("`rendered`", self.TEXT)
+        self.assertIn("`code-only`", self.TEXT)
+
+    def test_review_handbook(self) -> None:
+        for phrase in ("三秒测试", "精致度", "设计感", "保留：", "重做：", "不打数字分"):
+            self.assertIn(phrase, self.TEXT)
+
+    def test_isolated_review(self) -> None:
+        self.assertIn("交给评审者", self.TEXT)
+        self.assertIn("留在手里", self.TEXT)
+        self.assertIn("confirm-protocol.md", self.TEXT)
+
+    def test_stop_rule(self) -> None:
+        self.assertIn("同一个 P0 两轮没改好", self.TEXT)
+
+
+class PageTest(unittest.TestCase):
+    TEXT = ref("page.md")
+
+    def test_output_root_and_legacy(self) -> None:
+        self.assertIn("默认输出到 `docs/pretty-ui/`", self.TEXT)
+        self.assertIn("`docs/pretty-view-html/index.html`", self.TEXT)
+
+    def test_links_and_confirmation(self) -> None:
+        self.assertIn("包含这个链接的 HTML 文件所在目录", self.TEXT)
+        self.assertIn("用户明确确认后", self.TEXT)
+        self.assertIn("check_page.py --offline", self.TEXT)
+
+    def test_reading_layout(self) -> None:
+        self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)
+        self.assertIn("用 `px` 或 `rem` 写在列容器上", self.TEXT)
+        self.assertIn("16–18px", self.TEXT)
+        self.assertIn("`text-wrap: balance`", self.TEXT)
+        self.assertIn("先在灰度下", self.TEXT)
+
+
+class NoticeTest(unittest.TestCase):
+    def test_sources_and_licenses(self) -> None:
+        notice = (ROOT / "NOTICE.md").read_text(encoding="utf-8")
+        for src in ("oil-oil/oil-ui", "edisonmbli/refactoring-ui-skill", "plannotator/effective-html"):
+            self.assertIn(src, notice)
+        for path in ("licenses/oil-ui-MIT.txt", "licenses/refactoring-ui-skill-MIT.txt", "references/html-diagram/LICENSE"):
+            self.assertIn(path, notice)
+            self.assertIn("MIT License", (ROOT / path).read_text(encoding="utf-8"))
+
+    def test_ported_scripts_name_source(self) -> None:
+        for script in ("palette.py", "contrast.py"):
+            head = (ROOT / "scripts" / script).read_text(encoding="utf-8")[:600]
+            self.assertIn("edisonmbli/refactoring-ui-skill", head)
+            self.assertIn("MIT", head)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,278 @@
+version: 1
+skill: pretty-ui
+cases:
+  - id: small-change-no-direction
+    kind: basic
+    judge: llm
+    description: 点名的小改直接改，不走方向流程
+    given: 「把设置页的保存按钮圆角改成 8px」，项目已有 token
+    expect:
+      must:
+        - 直接改，取值对齐已有圆角 token 或说明新增
+        - 在目标视口看一眼改动处和相邻元素（看不了图时写明未渲染验证）
+      must_not:
+        - 写方向卡、给三个方向或问用户选风格
+
+  - id: direction-human-asks-once
+    kind: core
+    judge: llm
+    description: 独立使用且方向未定时，给三个文字方向加推荐，问一次
+    given: 「给我的开源 CLI 做个落地页，要有设计感」，没有品牌规范和参考图
+    expect:
+      must:
+        - 三个方向各三四行：感觉、首屏、字体与色彩、主视觉，附推荐和理由
+        - 只问一次，本轮结束等用户选
+        - 方向之间通过差异检验（四项至多一项相同，至少一个打破品类套路）
+      must_not:
+        - 三个方向只是“一个亮、一个暗、一个暖”的换色
+        - 未经选择就开工实现
+
+  - id: direction-goal-self-select
+    kind: core
+    judge: llm
+    description: 上游 goal 模式或用户说“你定”时自选方向并写明理由
+    given: taskrail goal 模式下的观感任务，方向未定
+    expect:
+      must:
+        - 写出三个方向，自选一个并在设计说明里记下理由
+        - 方向卡各栏填具体选择（字体、十六进制色值、首屏骨架、记忆点、放弃什么）
+      must_not:
+        - 停下问用户选方向
+
+  - id: existing-brand-kept
+    kind: boundary
+    judge: llm
+    description: 既有体系优先，沿用品牌色和 token
+    given: 项目 tokens.css 已有品牌主色 #0f7b6c 与灰阶，要求新做一个报表页
+    expect:
+      must:
+        - 沿用已有 token 和组件，缺的刻度按项目命名补
+        - 交付说明写明沿用了什么、新增了什么
+      must_not:
+        - 改用靛蓝或紫色主色，或另起一套色板
+
+  - id: too-grey-check-hierarchy
+    kind: core
+    judge: llm
+    description: 用户说“太灰了加点颜色”时先查层级，再按预算上色
+    given: 「这个后台太灰了，加点颜色」，截图里所有文字同一字重同一灰度
+    expect:
+      must:
+        - 先指出层级问题（H2 / H1），用字号、字重、明度把主次拉开
+        - 颜色只加在主操作、当前选中、关键数据和语义状态上
+      must_not:
+        - 给每类数据、每个标签都配一种颜色
+
+  - id: dense-dashboard-restraint
+    kind: boundary
+    judge: llm
+    description: 刻意的高密度工具不被当成违规
+    given: 评审一个运维告警台：13px 正文、紧凑表格、侧栏加工具条
+    expect:
+      must:
+        - 承认刻意密度合理（误报清单），只报真实问题
+        - 三秒测试看表面是否干净、异常是否一眼可辨
+      must_not:
+        - 要求放大留白、改成卡片网格，或把侧栏布局当默认模板扣分
+
+  - id: review-read-only
+    kind: core
+    judge: deterministic
+    description: review 模式只读，输出带规则号的问题清单与三态结论
+    given: 「帮我评审一下这个页面好不好看」，附页面路径
+    expect:
+      must:
+        - 不修改任何文件
+        - 每条问题有镜头、严重度、位置、规则号、现状、改法、验证（rendered / code-only）
+        - 开头速查清单，倒数第二行“保留：”，最后一行是重做 / 需改 / 通过
+      must_not:
+        - 给出 1–10 的数字分
+        - 列出指不出规则号的口味意见
+
+  - id: no-browser-honest
+    kind: failure
+    judge: llm
+    description: 没有截图手段时如实标注，不声称看过画面
+    given: 环境里没有浏览器工具、项目也没有截图脚本，要求优化一个页面
+    expect:
+      must:
+        - 结论标“未渲染验证”，问题标 code-only
+        - 交付说明写明没看过画面、建议用户在哪两个视口确认
+      must_not:
+        - 写“已检查视觉效果”“截图确认无误”之类的话
+
+  - id: ai-tells-self-check
+    kind: core
+    judge: llm
+    description: 评审 AI 生成的界面时先过 X 组
+    given: 一个首页：蓝紫渐变标题文字、按钮里有表情符号、四张等宽指标卡、所有内容居中
+    expect:
+      must:
+        - 先报 X 组命中（X2 / X5 / X10 / X3），再按 H → M 扫
+        - 改法写修完要达到的结果，新增元素时说明删掉什么
+      must_not:
+        - 只调颜色和阴影，保留默认模板骨架（应判重做）
+
+  - id: refine-before-after
+    kind: core
+    judge: llm
+    description: refine 先截图诊断，按顺序修，交付前后对比
+    given: 「这个设置页不好看，优化一下」，项目可本地运行
+    expect:
+      must:
+        - 改前在 1280 与 375 截图，诊断出带规则号的问题
+        - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
+        - 同一路由、同一视口、同一份数据截改后图，一起交付
+      must_not:
+        - 不看图直接重写样式
+
+  - id: system-outputs
+    kind: core
+    judge: deterministic
+    description: system 模式产出两层 token、说明与预览页，并校验对比度
+    given: 「这个项目还没有设计规范，帮我建一套」，品牌色 #c2410c
+    expect:
+      must:
+        - 用 scripts/palette.py 生成品牌色阶与灰阶，用 scripts/contrast.py 校验真实配对
+        - 产出 tokens.css（基础层 + 语义层）、DESIGN.md、preview.html
+        - DESIGN.md 写明每个刻度的取值、理由与对比度结果
+      must_not:
+        - 组件直接引用色相名而不是语义 token
+
+  - id: page-default-output-root
+    kind: basic
+    judge: deterministic
+    description: 阅读页默认输出到 docs/pretty-ui/，用户指定路径时以用户为准
+    given: 用户要把一份 Markdown 报告做成阅读页，没有指定输出路径，仓库里也没有旧输出
+    expect:
+      must:
+        - 产物写在 docs/pretty-ui/ 下，并在该目录的根 index.html 登记一个入口
+      must_not:
+        - 另建 Markdown 副本代替 HTML 产物
+
+  - id: page-legacy-output-root
+    kind: boundary
+    judge: deterministic
+    description: 已有改名前的输出目录时继续沿用
+    given: 仓库里已有 docs/pretty-view-html/index.html，用户没指定输出路径
+    expect:
+      must:
+        - 继续输出到 docs/pretty-view-html/ 并更新其根 index.html
+        - 交付说明写一句沿用了旧目录
+      must_not:
+        - 另建 docs/pretty-ui/ 造成两个根聚合页
+
+  - id: page-facts-preserved
+    kind: core
+    judge: llm
+    description: 核心事实、代码、表格、术语和结论没有遗漏或篡改
+    given: 以 evals/fixtures/beacon-ttl/SOURCE.md 为输入生成阅读页
+    expect:
+      must:
+        - 结论里的时间窗口、PR 编号与 TTL 数值和源稿一致
+        - 源稿的表格与代码块都出现在页面中
+      must_not:
+        - 出现源稿没有的指标、状态或对比项
+
+  - id: page-single-default
+    kind: core
+    judge: deterministic
+    description: 默认单页；篇幅长不是拆页理由
+    given: 以 evals/fixtures/marine-life/SOURCE.md（单一主题的长文）为输入
+    expect:
+      must:
+        - 生成一个 <slug>.html，页面可返回根 index.html
+      must_not:
+        - 仅因篇幅长拆成多页内容包
+
+  - id: page-same-topic-needs-confirmation
+    kind: failure
+    judge: deterministic
+    description: 发现同主题内容时先提归类方案，用户明确确认后才重组
+    given: 根聚合页已有围绕同一核心对象的单页，本次输入是它的续篇
+    expect:
+      must:
+        - 写入前展示归类依据、内容包标题与 slug、页面结构和旧路径处理方式
+      must_not:
+        - 未获确认就移动、覆盖或重组已有 HTML
+
+  - id: page-relative-links
+    kind: regression
+    judge: deterministic
+    description: 本地链接以来源 HTML 所在目录为基准计算，目标存在
+    given: 输出到非仓库根的嵌套目录，含根 index.html 与多页内容包
+    expect:
+      must:
+        - check_page.py --offline 对输出根没有报错
+        - 每个本地 href 和 src 从所在文件目录解析后目标存在
+      must_not:
+        - 出现以 / 开头的站点根路径、绝对磁盘路径或 file:// 链接
+
+  - id: page-no-overwrite-on-name-clash
+    kind: boundary
+    judge: deterministic
+    description: 同名内容已存在且用户没要求覆盖时，换不冲突的 slug 并说明
+    given: 目标路径已有同名 <slug>.html
+    expect:
+      must:
+        - 使用不冲突的 slug，并在结果里说明
+      must_not:
+        - 未经要求覆盖已有文件
+
+  - id: page-diagram-embedded-offline
+    kind: core
+    judge: deterministic
+    description: 需要图解时按 html-diagram 选型，嵌入阅读页并保持可离线打开
+    given: 输入包含组件关系或流程，需要图解
+    expect:
+      must:
+        - 图解用内联 SVG 或 HTML/CSS 嵌入当前阅读页，配文字说明
+      must_not:
+        - 默认另建独立 diagram 文件
+        - 运行时从网络加载渲染库（如 CDN 上的 mermaid）才能显示图解
+
+  - id: page-reading-measure
+    kind: core
+    judge: deterministic
+    description: 宽容器里的正文单独限宽，两个视口都看过
+    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入，在 1280 与 375 视口截图
+    expect:
+      must:
+        - 1280 下正文每行不超过 46 个汉字，正文 16–18px、行高 1.6–1.75
+        - 375 下没有横向溢出，宽表格在自己的容器里滚动
+      must_not:
+        - 正文段落铺满 1200px 以上的容器
+
+  - id: page-restrained-color
+    kind: core
+    judge: llm
+    description: 阅读页先灰度立层级，颜色只编码真实语义
+    given: 输入是一份含多种状态与类别的方案评审
+    expect:
+      must:
+        - 状态用语义色并带文字标签，类别用位置、形状或文字区分
+        - 强调色只出现在当前位置、关键结论、主要链接等少数几处
+      must_not:
+        - 一类一色的彩虹徽章，或为显得丰富而堆砌组件类型
+
+  - id: page-static-basics
+    kind: core
+    judge: deterministic
+    description: 产物是可直接在浏览器打开的静态页面
+    given: 任意阅读页产物
+    expect:
+      must:
+        - 页面有 lang 属性、viewport 与页面标题
+      must_not:
+        - 依赖构建步骤或前端框架才能打开
+
+  - id: contract-tests-pass
+    kind: regression
+    judge: deterministic
+    description: 改正文或脚本后契约测试通过
+    given: 修改了 SKILL.md、references 或 scripts
+    expect:
+      must:
+        - python3 -m pytest skills/pretty-ui/tests -q 全部通过
+      must_not:
+        - 为了让测试通过而删掉断言

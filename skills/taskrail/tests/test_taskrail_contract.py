@@ -58,7 +58,7 @@ class ContractTest(unittest.TestCase):
         d = read("references", "done.md")
         self.assertIn("唯一真源", d)
         self.assertIn("观感验收", d)
-        self.assertIn("pretty-view-html/references/frontend-design/REFERENCE.md", d)
+        self.assertIn("pretty-ui/references/direction.md", d)
 
     def test_wizard_delegates_task_intent(self) -> None:
         w = read("references", "phase-wizard.md")

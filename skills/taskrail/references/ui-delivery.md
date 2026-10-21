@@ -11,13 +11,13 @@
 
 ## Active Instance（统一视觉时用）
 
-- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze（有参照源先提炼 tokens / primitive）。
+- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 [pretty-ui 的 system.md](../../pretty-ui/references/system.md) 产出，有参照源先从参照提炼 tokens / primitive。
 - `tasks/` 只存指针与 digest（写在 `design/contract.md`），不复制 tokens / primitive 精确值。
 - apply 只消费不改 core；要改共享 token / pattern 就回 design 修订并重新 freeze，刷新 digest。
 
 ## 实现方法
 
-先做一条主流程代表页，two-pass：先定设计主旨与壳层，出初稿后再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。
+先做一条主流程代表页，按 [pretty-ui](../../pretty-ui/SKILL.md) 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。
 
 ## 机械门
 

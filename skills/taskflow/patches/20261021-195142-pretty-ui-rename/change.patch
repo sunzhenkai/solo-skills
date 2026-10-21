@@ -1,0 +1,13 @@
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 9332b0e..096d025 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -279,7 +279,7 @@ cases:
+     given: driver 的 Web UI 切片对应观感类目标
+     expect:
+       must:
+-        - 实现者先读 pretty-view-html/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
++        - 实现者先读 pretty-ui/references/frontend-design/REFERENCE.md，按计划里的视觉方向实现
+         - 收口按 taskrail done.md「观感验收」
+       must_not:
+         - 沿用框架默认样式只点缀几处颜色就收工

@@ -1,0 +1,2605 @@
+diff --git a/skills/pretty-ui/NOTICE.md b/skills/pretty-ui/NOTICE.md
+new file mode 100644
+index 0000000..798940c
+--- /dev/null
++++ b/skills/pretty-ui/NOTICE.md
+@@ -0,0 +1,12 @@
++# 来源与许可
++
++本 skill 融合了下列开源项目的方法。除标明“移植”的脚本和原样收录的图解参考外，正文都是按本 skill 的场景（中文界面、阅读页、上游任务流）用自己的话重写的，取舍和改动由本仓负责。
++
++| 来源 | 许可 | 用在哪里 | 许可全文 |
++| --- | --- | --- | --- |
++| [oil-oil/oil-ui](https://github.com/oil-oil/oil-ui)（参考版本 `7002e1a`） | MIT © 2026 oil-oil | 方向方法（品类与标杆、调性刻度、生成引擎、首屏骨架、方向卡、差异检验、记忆点）、评审手册（三秒测试、提升三项、重做与保留）、AI 默认样貌清单、中文行长阈值 | [licenses/oil-ui-MIT.txt](licenses/oil-ui-MIT.txt) |
++| [edisonmbli/refactoring-ui-skill](https://github.com/edisonmbli/refactoring-ui-skill)（参考版本 `4459662`） | MIT © 2026 Edison Li | 规则镜头与扫查顺序、严重度与问题字段、误报与矫枉过正、默认刻度；`scripts/palette.py`、`scripts/contrast.py` 由其 `generate_palette.py`、`check_contrast.py` 移植并改写 | [licenses/refactoring-ui-skill-MIT.txt](licenses/refactoring-ui-skill-MIT.txt) |
++| [plannotator/effective-html](https://github.com/plannotator/effective-html) 的 `html-diagram` | MIT © 2026 plannotator | 原样收录于 `references/html-diagram/REFERENCE.md`，只加了与本 skill 衔接的说明 | [references/html-diagram/LICENSE](references/html-diagram/LICENSE) |
++| [anthropics/skills](https://github.com/anthropics/skills) 的 `frontend-design` | Apache-2.0 | 早期版本曾原样收录；其中的设计思路已并入 `direction.md` 与 `rules.md` 的 X 组，收录副本已移除 | — |
++
++refactoring-ui-skill 的设计原则源自 Adam Wathan 与 Steve Schoger 的《Refactoring UI》。本 skill 只用自己的话复述方法和必要的数值阈值，没有收录书中的文字或插图；它与原书作者及 Tailwind Labs 没有关联。想系统学习这些原则，请阅读原书。
+diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
+index b465f55..7e17520 100644
+--- a/skills/pretty-ui/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -1,36 +1,77 @@
+ ---
+ id: pretty-ui
+ name: pretty-ui
+-description: 把已有上下文、文件、报告、方案或评审内容整理成适合浏览器阅读的静态 HTML 阅读页（单页或多页）。用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档时使用。
++description: 构建好看的界面：定设计方向、建设计体系（色阶、字阶、间距 token）、做页面或组件、看真实截图打磨与评审；也把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、说界面不好看要优化、要 UI 评审、要配色或设计规范、要网页阅读页时使用。
+ ---
+ 
+ # Pretty UI
+ 
+-把用户提供的上下文或文件转成美观、简洁、优雅且适合阅读的 HTML 文档。保留原内容的事实、术语和层次；可以重组信息以改善阅读，只表达输入里真实存在的内容。产物是可离线打开的阅读页；真实网站、组件开发或需部署的页面交给前端开发流程，独立图表产物交给对应图表 skill。
++做出一眼看得出被设计过的界面。三条信条贯穿所有模式：
+ 
+-默认输出到 `docs/pretty-view-html/`。用户指定其他路径时，以用户要求为准。
++- **地板靠规则**：层级、间距、排版、色彩、对比、状态按 [rules.md](references/rules.md) 扫查，每个问题都指得到规则号。
++- **天花板靠方向**：从品类、受众和内容推出一句北极星和一张方向卡，力气花在一个记忆点上，其余安静。
++- **以画面为准**：看过真实截图才算看过；读源码只能证明实现与设计一致，证明不了好看。
+ 
+-## 工作流
++## 路由
+ 
+-1. 阅读全部输入，确认主题、读者、内容边界与主要阅读任务。
+-2. 检查现有根聚合页和相关输出的标题、摘要与路径，判断是否存在可与本次内容共同维护的相同主题。
+-3. 若发现相同主题，先按 [references/organization.md](references/organization.md)「同主题内容包」提出归类方案，用户明确确认后再写入、移动或覆盖 HTML（重组会改动已有路径）。没有可靠同主题内容时直接继续。
+-4. 判断单页或多页。默认单页；只有内容由多个可独立阅读、分享或维护的主题组成，或用户明确要求时才拆成多页。篇幅长本身不是拆页理由。目录布局、相对链接计算与同名处理按 [references/organization.md](references/organization.md)。
+-5. 生成前读取 [references/frontend-design/REFERENCE.md](references/frontend-design/REFERENCE.md)，按本次主题确定配色、字体、版式和一个克制的视觉特征；导航、表达组件与阅读布局按 [references/visual-components.md](references/visual-components.md)。
+-6. 若内容需要架构图、流程图、关系图、状态图、时序图或其他 diagram，先读取 [references/html-diagram/REFERENCE.md](references/html-diagram/REFERENCE.md)，按其模型选择与绘制原则生成，并嵌入当前阅读页（默认不另建独立 diagram 文件）；图解配色与页面壳层使用同一套为本次内容选定的视觉语言。优先 HTML/CSS/SVG；仅在信息规模确需时使用 Canvas/WebGL，且保持可离线打开。
+-7. 直接生成可在浏览器打开的 `.html`；输入 Markdown 只是内容来源，不需要另建 Markdown 副本。
+-8. 更新内容入口与根聚合页（[references/organization.md](references/organization.md)「根聚合页」），然后逐条过下方完成检查。
++| 请求 | 模式 | 做法 |
++| --- | --- | --- |
++| 点名的小改：改色、调间距、改文案、删指定元素 | 小改 | 直接改；动了颜色、间距或样式，就在目标视口看一眼改动处和相邻元素 |
++| 新界面、整体改版、单组件打磨、照参考图还原 | build | 走下方主流程；照图还原时参考图就是方向，同视口截图并排比到位 |
++| 已有界面不好看、要优化 | refine | 先截图诊断出带规则号的问题，按扫查顺序修，沿用既有体系，交付前后对比 |
++| 只要评审 | review | 只读，不改文件；按 [critique.md](references/critique.md) 出问题清单 |
++| 配色、设计规范、项目还没有设计系统 | system | 按 [system.md](references/system.md) 生成刻度、校验对比度，产出 `tokens.css`、`DESIGN.md`、`preview.html` |
++| 把文件、报告、方案做成浏览器阅读页 | page | 按 [page.md](references/page.md) 落盘，视觉走 build 的轻量版 |
+ 
+-## 完成检查
++意图混合时按顺序串起来并说明，例如在没有设计系统的项目里做设置页，就是 system 再 build。多角色、按岗位的评审走 role-based-reviewer。
+ 
+-- 输入中的核心事实、代码、表格、术语和结论没有遗漏或篡改。
+-- 页面没有溢出、遮挡、过小文字、失效资源或明显的模板化装饰。
+-- 单页可返回根聚合页；多页具有包首页、完整页面地图和一致导航。
+-- 根 `index.html` 已包含本次内容的唯一入口。
+-- 发现同主题内容时，归类方案已获用户明确确认，实际路径与确认内容一致。
+-- 页面使用与主题相符的配色与表达组件，重点和状态有明确配色编码；吸顶顶部导航与偏宽自适应布局在窄屏下仍可用；若含 diagram，已按 html-diagram 选型并嵌入阅读页。
+-- 每个本地链接都以来源 HTML 文件所在目录解析，目标存在，且没有站点根路径、绝对磁盘路径或 `file://` 链接。
+-- 所有本地链接与资源路径有效，页面可直接在浏览器中打开。
++## build 主流程
++
++1. **探测**：技术栈、已有 token / 组件库 / 品牌规范、暗色模式、交付物形态（设计说明、原型、可运行界面）。
++2. **简报**：用户、主任务、真实内容、设备；把内容排成主 / 次 / 辅，动作排成一个主操作、几个次要、若干辅助。写进设计说明或文件头注释，让评审能核对。
++3. **方向**（未定才做）：按 [direction.md](references/direction.md) 认品类、拆标杆、定调性、写方向卡并做差异检验。独立使用且方向未定时，写三个文字方向加推荐，问用户一次，本轮结束；用户说“你定”、上游是 goal 模式或无人值守时，自选并写明理由。用户给了品牌、参考图或说清了风格，方向即定，只补方向卡缺的栏。
++4. **体系**：按 system.md 取值；新色阶用 `scripts/palette.py` 生成，文字与背景的配对用 `scripts/contrast.py` 校验。
++5. **构建**：先做一页代表页或一条关键流程。顺序：灰度下立层级 → 间距与分组 → 行长与节奏 → 上色 → 深度 → 收尾。空、加载、出错状态和像真的数据随功能一起做。
++6. **看图**：桌面 1280 与手机 375 各截一张，关键区域按 100% 看；修掉重叠、裁切、溢出和孤字。
++7. **批评**：按 critique.md 自查扫查、做减法；新界面和整体改版派隔离评审。按“重做 → P0 → P1 → 提升”的顺序改，“保留”的做法不磨平；两轮后仍有 P0 就停下说明。
++
++## 十条铁律
++
++每个任务都适用：
++
++1. **每屏一个主角**：强调靠压低旁边的元素，而不是继续给主角加码。
++2. **先灰度后上色**：字号、字重、明度和留白在灰度下就读得出主次；颜色只做强调和语义状态，强调色有用量预算。
++3. **取值来自刻度**：字号、间距、色阶、圆角、阴影、边框都从体系取；缺就先补 token。
++4. **组外距离大于组内**：标题贴近它下面的内容，标签贴近自己的控件。
++5. **正文限宽**：中文每行约 30–40 字（上限 46），英文 45–75 字符；宽表格、代码、图解在自己的容器里用满宽或横向滚动。
++6. **可读是门槛**：中文阅读页正文 16–18px、行高 1.6–1.75，产品界面正文 14–16px，密集工具 13–14px；正文对比度至少 4.5:1，大字至少 3:1。
++7. **有色底上用同色相降对比**，而不是灰字或半透明白；含义同时由文字或图标承载，颜色只是加强。
++8. **结构即信息**：编号、眉标、分隔线、卡片、标签只编码真实的顺序、层级或语义；一处分隔只用一种手段，容器只套一层。
++9. **内容像真的**：真实长度、不整齐的数据、说清动作的按钮文字；只呈现输入里真实存在的事实。
++10. **既有体系优先**：沿用项目的 token、组件、品牌色和字体，缺口按它的命名补；规则与项目的刻意约定冲突时指出冲突，约定先行。
++
++## 看图与证据
++
++- 截图工具按序选：宿主的浏览器工具 → 项目已有的截图或 e2e 工具 → taskrail 的 `scripts/ui_evidence_check.py`（需要 playwright）。都用不了时，结论标“未渲染验证”，问题标 `code-only`，交付里如实写没看过画面。
++- 生成的静态页面先跑 `python3 scripts/check_page.py <路径>`（脚本路径相对本 skill 目录）：报错项修好再交，提示项逐条改掉或在交付说明里写理由。
++- 截图、设计说明和评审记录放任务目录或项目约定位置，本 skill 目录保持只读。
++
++## 交付
++
++交付说明逐项写到：选定的方向与理由（沿用既有体系时写沿用了什么）；改了什么、哪些没做及原因；截图与证据路径；评审方式、轮次与结论（自查还是隔离评审）；减法删了什么；未验证项。
++
++## 按需读取
++
++| 文件 | 何时读 |
++| --- | --- |
++| [references/direction.md](references/direction.md) | build 要定方向；上游流程要求写视觉方向 |
++| [references/system.md](references/system.md) | system 模式；build 的体系步骤；补 token |
++| [references/rules.md](references/rules.md) | refine、review；build 的自查扫查 |
++| [references/critique.md](references/critique.md) | 看图取证、自查、派隔离评审、写问题清单 |
++| [references/page.md](references/page.md) | page 模式 |
++| [references/html-diagram/REFERENCE.md](references/html-diagram/REFERENCE.md) | 需要架构、流程、关系、状态、时序等图解 |
++
++来源与许可见 [NOTICE.md](NOTICE.md)。
+ 
+ ## 自进化
+ 
+diff --git a/skills/pretty-ui/evals/cases.yaml b/skills/pretty-ui/evals/cases.yaml
+index ce21ba1..e779aad 100644
+--- a/skills/pretty-ui/evals/cases.yaml
++++ b/skills/pretty-ui/evals/cases.yaml
+@@ -1,18 +1,168 @@
+ version: 1
+ skill: pretty-ui
+ cases:
+-  - id: default-output-root
++  - id: small-change-no-direction
+     kind: basic
++    judge: llm
++    description: 点名的小改直接改，不走方向流程
++    given: 「把设置页的保存按钮圆角改成 8px」，项目已有 token
++    expect:
++      must:
++        - 直接改，取值对齐已有圆角 token 或说明新增
++        - 在目标视口看一眼改动处和相邻元素（看不了图时写明未渲染验证）
++      must_not:
++        - 写方向卡、给三个方向或问用户选风格
++
++  - id: direction-human-asks-once
++    kind: core
++    judge: llm
++    description: 独立使用且方向未定时，给三个文字方向加推荐，问一次
++    given: 「给我的开源 CLI 做个落地页，要有设计感」，没有品牌规范和参考图
++    expect:
++      must:
++        - 三个方向各三四行：感觉、首屏、字体与色彩、主视觉，附推荐和理由
++        - 只问一次，本轮结束等用户选
++        - 方向之间通过差异检验（四项至多一项相同，至少一个打破品类套路）
++      must_not:
++        - 三个方向只是“一个亮、一个暗、一个暖”的换色
++        - 未经选择就开工实现
++
++  - id: direction-goal-self-select
++    kind: core
++    judge: llm
++    description: 上游 goal 模式或用户说“你定”时自选方向并写明理由
++    given: taskrail goal 模式下的观感任务，方向未定
++    expect:
++      must:
++        - 写出三个方向，自选一个并在设计说明里记下理由
++        - 方向卡各栏填具体选择（字体、十六进制色值、首屏骨架、记忆点、放弃什么）
++      must_not:
++        - 停下问用户选方向
++
++  - id: existing-brand-kept
++    kind: boundary
++    judge: llm
++    description: 既有体系优先，沿用品牌色和 token
++    given: 项目 tokens.css 已有品牌主色 #0f7b6c 与灰阶，要求新做一个报表页
++    expect:
++      must:
++        - 沿用已有 token 和组件，缺的刻度按项目命名补
++        - 交付说明写明沿用了什么、新增了什么
++      must_not:
++        - 改用靛蓝或紫色主色，或另起一套色板
++
++  - id: too-grey-check-hierarchy
++    kind: core
++    judge: llm
++    description: 用户说“太灰了加点颜色”时先查层级，再按预算上色
++    given: 「这个后台太灰了，加点颜色」，截图里所有文字同一字重同一灰度
++    expect:
++      must:
++        - 先指出层级问题（H2 / H1），用字号、字重、明度把主次拉开
++        - 颜色只加在主操作、当前选中、关键数据和语义状态上
++      must_not:
++        - 给每类数据、每个标签都配一种颜色
++
++  - id: dense-dashboard-restraint
++    kind: boundary
++    judge: llm
++    description: 刻意的高密度工具不被当成违规
++    given: 评审一个运维告警台：13px 正文、紧凑表格、侧栏加工具条
++    expect:
++      must:
++        - 承认刻意密度合理（误报清单），只报真实问题
++        - 三秒测试看表面是否干净、异常是否一眼可辨
++      must_not:
++        - 要求放大留白、改成卡片网格，或把侧栏布局当默认模板扣分
++
++  - id: review-read-only
++    kind: core
++    judge: deterministic
++    description: review 模式只读，输出带规则号的问题清单与三态结论
++    given: 「帮我评审一下这个页面好不好看」，附页面路径
++    expect:
++      must:
++        - 不修改任何文件
++        - 每条问题有镜头、严重度、位置、规则号、现状、改法、验证（rendered / code-only）
++        - 开头速查清单，倒数第二行“保留：”，最后一行是重做 / 需改 / 通过
++      must_not:
++        - 给出 1–10 的数字分
++        - 列出指不出规则号的口味意见
++
++  - id: no-browser-honest
++    kind: failure
++    judge: llm
++    description: 没有截图手段时如实标注，不声称看过画面
++    given: 环境里没有浏览器工具、项目也没有截图脚本，要求优化一个页面
++    expect:
++      must:
++        - 结论标“未渲染验证”，问题标 code-only
++        - 交付说明写明没看过画面、建议用户在哪两个视口确认
++      must_not:
++        - 写“已检查视觉效果”“截图确认无误”之类的话
++
++  - id: ai-tells-self-check
++    kind: core
++    judge: llm
++    description: 评审 AI 生成的界面时先过 X 组
++    given: 一个首页：蓝紫渐变标题文字、按钮里有表情符号、四张等宽指标卡、所有内容居中
++    expect:
++      must:
++        - 先报 X 组命中（X2 / X5 / X10 / X3），再按 H → M 扫
++        - 改法写修完要达到的结果，新增元素时说明删掉什么
++      must_not:
++        - 只调颜色和阴影，保留默认模板骨架（应判重做）
++
++  - id: refine-before-after
++    kind: core
++    judge: llm
++    description: refine 先截图诊断，按顺序修，交付前后对比
++    given: 「这个设置页不好看，优化一下」，项目可本地运行
++    expect:
++      must:
++        - 改前在 1280 与 375 截图，诊断出带规则号的问题
++        - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
++        - 同一路由、同一视口、同一份数据截改后图，一起交付
++      must_not:
++        - 不看图直接重写样式
++
++  - id: system-outputs
++    kind: core
+     judge: deterministic
+-    description: 默认输出到 docs/pretty-view-html/，用户指定路径时以用户为准
+-    given: 用户要把一份 Markdown 报告做成阅读页，没有指定输出路径
++    description: system 模式产出两层 token、说明与预览页，并校验对比度
++    given: 「这个项目还没有设计规范，帮我建一套」，品牌色 #c2410c
+     expect:
+       must:
+-        - 产物写在 docs/pretty-view-html/ 下，并在该目录的根 index.html 登记一个入口
++        - 用 scripts/palette.py 生成品牌色阶与灰阶，用 scripts/contrast.py 校验真实配对
++        - 产出 tokens.css（基础层 + 语义层）、DESIGN.md、preview.html
++        - DESIGN.md 写明每个刻度的取值、理由与对比度结果
++      must_not:
++        - 组件直接引用色相名而不是语义 token
++
++  - id: page-default-output-root
++    kind: basic
++    judge: deterministic
++    description: 阅读页默认输出到 docs/pretty-ui/，用户指定路径时以用户为准
++    given: 用户要把一份 Markdown 报告做成阅读页，没有指定输出路径，仓库里也没有旧输出
++    expect:
++      must:
++        - 产物写在 docs/pretty-ui/ 下，并在该目录的根 index.html 登记一个入口
+       must_not:
+         - 另建 Markdown 副本代替 HTML 产物
+ 
+-  - id: facts-preserved
++  - id: page-legacy-output-root
++    kind: boundary
++    judge: deterministic
++    description: 已有改名前的输出目录时继续沿用
++    given: 仓库里已有 docs/pretty-view-html/index.html，用户没指定输出路径
++    expect:
++      must:
++        - 继续输出到 docs/pretty-view-html/ 并更新其根 index.html
++        - 交付说明写一句沿用了旧目录
++      must_not:
++        - 另建 docs/pretty-ui/ 造成两个根聚合页
++
++  - id: page-facts-preserved
+     kind: core
+     judge: llm
+     description: 核心事实、代码、表格、术语和结论没有遗漏或篡改
+@@ -24,7 +174,7 @@ cases:
+       must_not:
+         - 出现源稿没有的指标、状态或对比项
+ 
+-  - id: single-page-default
++  - id: page-single-default
+     kind: core
+     judge: deterministic
+     description: 默认单页；篇幅长不是拆页理由
+@@ -35,7 +185,7 @@ cases:
+       must_not:
+         - 仅因篇幅长拆成多页内容包
+ 
+-  - id: same-topic-needs-confirmation
++  - id: page-same-topic-needs-confirmation
+     kind: failure
+     judge: deterministic
+     description: 发现同主题内容时先提归类方案，用户明确确认后才重组
+@@ -46,18 +196,19 @@ cases:
+       must_not:
+         - 未获确认就移动、覆盖或重组已有 HTML
+ 
+-  - id: relative-links-from-file-dir
++  - id: page-relative-links
+     kind: regression
+     judge: deterministic
+     description: 本地链接以来源 HTML 所在目录为基准计算，目标存在
+     given: 输出到非仓库根的嵌套目录，含根 index.html 与多页内容包
+     expect:
+       must:
++        - check_page.py --offline 对输出根没有报错
+         - 每个本地 href 和 src 从所在文件目录解析后目标存在
+       must_not:
+         - 出现以 / 开头的站点根路径、绝对磁盘路径或 file:// 链接
+ 
+-  - id: no-overwrite-on-name-clash
++  - id: page-no-overwrite-on-name-clash
+     kind: boundary
+     judge: deterministic
+     description: 同名内容已存在且用户没要求覆盖时，换不冲突的 slug 并说明
+@@ -68,19 +219,43 @@ cases:
+       must_not:
+         - 未经要求覆盖已有文件
+ 
+-  - id: diagram-embedded-offline
++  - id: page-diagram-embedded-offline
+     kind: core
+     judge: deterministic
+     description: 需要图解时按 html-diagram 选型，嵌入阅读页并保持可离线打开
+     given: 输入包含组件关系或流程，需要图解
+     expect:
+       must:
+-        - 图解嵌入当前阅读页，配文字说明
++        - 图解用内联 SVG 或 HTML/CSS 嵌入当前阅读页，配文字说明
+       must_not:
+         - 默认另建独立 diagram 文件
+-        - 依赖必须联网加载的脚本才能显示图解
++        - 运行时从网络加载渲染库（如 CDN 上的 mermaid）才能显示图解
++
++  - id: page-reading-measure
++    kind: core
++    judge: deterministic
++    description: 宽容器里的正文单独限宽，两个视口都看过
++    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入，在 1280 与 375 视口截图
++    expect:
++      must:
++        - 1280 下正文每行不超过 46 个汉字，正文 16–18px、行高 1.6–1.75
++        - 375 下没有横向溢出，宽表格在自己的容器里滚动
++      must_not:
++        - 正文段落铺满 1200px 以上的容器
++
++  - id: page-restrained-color
++    kind: core
++    judge: llm
++    description: 阅读页先灰度立层级，颜色只编码真实语义
++    given: 输入是一份含多种状态与类别的方案评审
++    expect:
++      must:
++        - 状态用语义色并带文字标签，类别用位置、形状或文字区分
++        - 强调色只出现在当前位置、关键结论、主要链接等少数几处
++      must_not:
++        - 一类一色的彩虹徽章，或为显得丰富而堆砌组件类型
+ 
+-  - id: static-page-basics
++  - id: page-static-basics
+     kind: core
+     judge: deterministic
+     description: 产物是可直接在浏览器打开的静态页面
+@@ -90,3 +265,14 @@ cases:
+         - 页面有 lang 属性、viewport 与页面标题
+       must_not:
+         - 依赖构建步骤或前端框架才能打开
++
++  - id: contract-tests-pass
++    kind: regression
++    judge: deterministic
++    description: 改正文或脚本后契约测试通过
++    given: 修改了 SKILL.md、references 或 scripts
++    expect:
++      must:
++        - python3 -m pytest skills/pretty-ui/tests -q 全部通过
++      must_not:
++        - 为了让测试通过而删掉断言
+diff --git a/skills/pretty-ui/licenses/oil-ui-MIT.txt b/skills/pretty-ui/licenses/oil-ui-MIT.txt
+new file mode 100644
+index 0000000..80fa9b5
+--- /dev/null
++++ b/skills/pretty-ui/licenses/oil-ui-MIT.txt
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 oil-oil
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/skills/pretty-ui/licenses/refactoring-ui-skill-MIT.txt b/skills/pretty-ui/licenses/refactoring-ui-skill-MIT.txt
+new file mode 100644
+index 0000000..f573b34
+--- /dev/null
++++ b/skills/pretty-ui/licenses/refactoring-ui-skill-MIT.txt
+@@ -0,0 +1,34 @@
++MIT License
++
++Copyright (c) 2026 Edison Li
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++---
++
++NOTE ON SCOPE
++
++This license covers the original work in this repository: the scripts, the
++reference documents, the skill definition, and the packaging.
++
++It does not, and cannot, grant any rights in the book "Refactoring UI" by
++Adam Wathan & Steve Schoger, which is a separate copyrighted work sold at
++refactoringui.com. This project is an unofficial, independent reimplementation
++of that book's principles, is not affiliated with or endorsed by its authors,
++and is not a substitute for it. See ATTRIBUTION.md.
+diff --git a/skills/pretty-ui/references/critique.md b/skills/pretty-ui/references/critique.md
+new file mode 100644
+index 0000000..9bc2300
+--- /dev/null
++++ b/skills/pretty-ui/references/critique.md
+@@ -0,0 +1,99 @@
++# 看图、批评与评审
++
++[pretty-ui](../SKILL.md) 的看图取证、自查、隔离评审与 review 模式读本页。规则号见 [rules.md](rules.md)。
++
++## 1. 取证
++
++- **视口**：桌面 1280 宽、手机 375 宽各截一张首屏和一张整页；三秒测试另把首屏缩到 480 宽（手机图缩到 180 宽）。关键区域按 100% 看，精致度按 200% 看。
++- **状态**：除了理想数据，再截空、加载、出错、长文本、数据很多这几种；有交互的，截默认、悬停或聚焦、选中、禁用。
++- **打开方式**：本地页面用 `python3 -m http.server --bind 127.0.0.1 <端口>` 起服务再打开，部分浏览器工具拦截 `file://`；用完关掉服务。
++- **滚动截图**：页面开了 `scroll-behavior: smooth` 时，截某一区域前用 `window.scrollTo({ top, behavior: "instant" })` 跳过去，免得截到滚动中途。
++- **改前改后**：refine 和上游要求对比时，同一路由、同一视口、同一份演示数据截两组。
++- **量一量**：浏览器工具能执行脚本时，在每个视口跑一次下面的片段，把结果和截图放在一起：
++
++```js
++(() => {
++  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [] };
++  for (const el of document.querySelectorAll("p, li, dd, blockquote, td")) {
++    const t = el.textContent.trim(), s = getComputedStyle(el), size = parseFloat(s.fontSize);
++    if (t.length < 30 || !el.offsetWidth) continue;
++    const zh = /[\u4e00-\u9fff]/.test(t), w = el.getBoundingClientRect().width;
++    const perLine = Math.round(zh ? w / size : w / (size * 0.5));
++    const lh = s.lineHeight === "normal" ? 1.2 : parseFloat(s.lineHeight) / size;
++    const tag = el.tagName.toLowerCase() + "「" + t.slice(0, 12) + "」";
++    if (perLine > (zh ? 46 : 95)) r.行太长.push(tag + " 约 " + perLine + (zh ? " 字" : " 字符"));
++    if (size < 12.5) r.字太小.push(tag + " " + size + "px");
++    if (lh < (zh ? 1.5 : 1.4)) r.行高过紧.push(tag + " " + lh.toFixed(2));
++  }
++  return r;
++})()
++```
++
++  表格单元格里的短行不算行太长；它只是线索，结论以截图为准。
++- **证据路径**：截图、量测结果、评审记录放任务目录或项目约定位置，交付说明里写路径。
++
++## 2. 自查
++
++1. 先过 rules.md 的 X 组，再按 H → S → T → C → D → I → F → M 扫，每条问题填进第 6 节的表。
++2. **做减法**：逐屏看哪些文字、面板、数据、装饰可以删或合并；填缝短句、界面上的设计说明、“示例”“仅供示意”照删。每加一个新元素，写明为它腾位置删掉了什么。删完主角更突出才算删对。
++3. **眯眼看**：只看明暗块面，确认主角就是第一眼看到的东西。
++4. 读一遍 `scripts/check_page.py` 的提示和量测结果，逐条处理。
++
++## 3. 隔离评审
++
++制作者很难看出自己的默认做法。新界面、整体改版、goal 模式的观感验收、用户要求评审时，派一个没参与制作的评审者：另一个模型或子代理（在 taskrail 任务里按其 `confirm-protocol.md`「另一个模型审」派）。
++
++- **交给评审者**：截图与量测结果的路径；任务和用户是谁；约束（品牌、字体、主色、不能动的组件和导航）；北极星、方向卡与参照（取它哪一点）；`check_page.py` 的提示；本节的评审手册。
++- **留在手里**：源代码、制作者对自己选择的辩护、上一轮的结论。第二轮起只把上一轮的问题清单交过去，让评审者逐条核对是否修好。
++- 评审者只评审，不改文件，不再派别的评审者。
++
++## 4. 评审手册
++
++拉高标准，以“这个品类里最好的团队会怎么做”为标尺。分清看得见的缺陷和个人偏好，没有明显问题就直说，不为凑数提意见。没看到、没法验证的写明；只有静态截图时，写“没看到动效”，不对操作流程下结论。
++
++0. **三秒测试**（先于一切细节）：看 480 宽缩略图三秒，再看把文字遮掉的版本三秒，写两句话：它像哪一年的哪一类产品；第一眼看到的是什么。像几年前的通用产品、组件库默认样子或素材库配图，直接写出来。说服型页面的主视觉换到别的产品上同样成立，说明辨识度不够；工具、后台沿用侧栏、工具条、表格等高效基线不算问题，看的是表面是否干净透气、核心关系和异常是否一眼可辨。
++1. **品类与标杆**：一句话说出品类，以及标杆在首屏怎么做；指出偏离共识的地方，判断是有意创新还是套了默认模板。
++2. **规则扫查**：X 组，再 H → M，每条问题带规则号。
++3. **动效**：主操作有没有反馈，状态切换看不看得出来路，首次进入有没有出场；说服型页面再看各区块是否按自己的内容出场。确实没做的写进问题，做得好不好放进提升。
++4. **提升**：缺陷清零常常只是及格。精致度、设计感、动效三项逐项表态，有看得见的差距才写，没有就写“没有”和依据。提升是把已有的东西做得更好，不是再加东西。
++   - **精致度**：200% 下哪个组件最粗糙（字距行距、图标与文字对齐、阴影描边、各状态一致性）；100% 下的中文断行、孤字、数字格式；整页标题和正文块的左边缘起点是否收在两三条锚线上。
++   - **设计感**：主角在缩略图里看不看得见；哪一处最接近品类最好水平、还差什么；哪一处仍是组件库默认样子。给每一屏的构图起一个词（分栏、大字列表、满版图……），同一个词连续出现两次或全页出现三次，就是模板复读。检查节奏与收尾：是否每一屏都塞进带底色或边框的盒子，首屏有风格、下面却退回通栏细线加默认输入框。
++   - **动效**：哪一处动得机械（匀速、各动各的、全页一律淡入上移、和操作接不上），哪一处最值得做出手感；手感用“动作 + 实物参照”写。
++5. **精简**：点名可以删的文字、面板、数据和装饰；删完主角没有变强、画面只是变空，或具体信息被套话替代，同样算问题。
++
++### 结论与输出
++
++- **结论三选一**：
++  - **重做**：首屏骨架仍是模型默认模板，或主视觉远低于同品类水准。第一条写“重做：”，点名要重做的区块和原因，这些区块不再列修补建议；在被否定的骨架上修补，只会把它修得更像样。
++  - **需改**：有 P0，或有影响观感的 P1。
++  - **通过**：没有 P0，剩下的 P1、P2 不影响主任务和观感，可以随交付说明列出。
++- **顺序**：开头一份速查清单，每行一条 `[P0-1 / 提升 1] 位置：现象 → 修完要达到的可验收结果`，方便逐条勾销；再给第 6 节的问题表；然后是提升。P0 全部列出，其余问题按影响排序取最重要的几条（问题与提升各不超过五条），更小的合成一句放最后。
++- **改法写目标**：写修完要达到什么，不替制作方定构图，不规定放多少对象和数据，不靠加功能、加数据换真实感；要求新增元素时，同一条里写明为它腾位置删掉什么。
++- **倒数第二行**写“保留：”，点名一两处修改时不能磨掉的做法，通常是这个方向最有辨识度的地方。
++- **最后一行**写结论（重做 / 需改 / 通过）。不打数字分：不同模型的分数没法比较，三态结论加问题清单才能直接指导下一步。
++
++## 5. 存量界面对齐评审
++
++用户要在现有产品里润色、而不是换风格时用这一节：标尺是产品自己的规范，而不是评审者理想中的风格，不给“重做”结论。
++
++- **规范来源**：成文规范，或从现有设计变量、共享组件和同类页面整理出的现状规范，加上不能动的品牌、字体、主色、组件库和导航。现状不一致时以多数做法为准，少数做法记为待统一；规范本身有问题的单独列出，交给用户决定。
++- **检查**：哪里用了规范以外的颜色、字号、圆角，哪里明明有现成组件却手写了一个；在规范范围内最影响完成度的三处（层级、对齐、留白、减法）；这次改动涉及的动效有没有到位、有没有把原来的改坏。
++- **输出**：客观的修正建议和可删的文字；不建议更换品牌色或字体。
++
++## 6. 问题表
++
++| # | 镜头 | 严重度 | 位置 | 规则 | 现状 | 改法 | 验证 |
++| --- | --- | --- | --- | --- | --- | --- | --- |
++| 1 | 色彩 | P0 | 订单列表 · 状态列 | C5 | 已取消与已完成只靠红绿区分 | 加状态文字与图标，颜色保留作加强 | rendered |
++
++- **镜头**：层级、间距布局、排版、色彩、深度、图像图标、收尾状态、动效、AI 默认样貌。
++- **位置**：截图里的区域名，或 `文件:行号`。
++- **验证**：在截图里看到的写 `rendered`，只从源码推断的写 `code-only`。
++- 排序：P0 在前，同级按扫查顺序。
++
++## 7. 迭代与停止
++
++- 按“重做 → P0 → P1 → 提升”的顺序改，“保留”的做法不动。
++- 每轮改完，同一路由、同一视口重新截图，评审者拿上一轮清单逐条核对。
++- 没有 P0、结论不是重做，就可以交付；剩余的 P1 和提升写进交付说明。
++- 同一个 P0 两轮没改好，停下说明卡在哪、试过什么、需要什么（在 taskrail 任务里按其「卡住」规则停）。
+diff --git a/skills/pretty-ui/references/direction.md b/skills/pretty-ui/references/direction.md
+new file mode 100644
+index 0000000..c7652c0
+--- /dev/null
++++ b/skills/pretty-ui/references/direction.md
+@@ -0,0 +1,130 @@
++# 设计方向（天花板）
++
++[pretty-ui](../SKILL.md) build 第 3 步、page 的轻量方向卡、上游流程要求“写视觉方向”时读本页。
++
++方向要达到的程度：这个品类里最好的团队会这样做，而且做出了这个产品自己的样子。只是“和模型平时做的不一样”还不够；辨识度来自一套语言的完整和细节，而不是题材少见。方向里的题材、材质、字体和配色，每次都从当前产品的内容、受众和使用场合里推出；撞上常见的流行风格时，要说得出它来自这个产品的理由，说不出就重选。
++
++## 1. 认品类，拆标杆
++
++1. **说出品类和标杆**：这是什么品类（如“项目管理工具”“作品画廊”“事故复盘文档”），这个品类里风格最鲜明的两三家是谁。
++2. **对着真实画面拆**：用浏览器或搜索取到标杆的首屏和一个关键控件的截图，存进任务目录再拆，记忆里的产品常常是它几年前的样子。拆成 6–10 条看得见的要素，每条写“它是什么样”和“为什么这样做”，覆盖控件形状与手感、字体、颜色、图标、状态反馈、动效、文案语气、首屏放了什么。拆出来只有“干净、留白、一种强调色”说明没拆到位。确实拿不到画面时，在方向卡“标杆与取舍”开头写“未看图，凭记忆”，并把字体、色彩、主视觉三栏标为待验证。
++3. **决定留什么、换什么**：拿本产品的受众、内容和场合逐条对照，理由同样成立的留下，不成立的换掉，换掉的部分由生成引擎给出替代。
++
++拆的时候分清三样东西：
++
++- **基线**：用户已经习惯的结构（画廊作品先行、商店购物车在右上角、后台有侧栏）。沿用它，用户不用重新学。
++- **套路**：这个品类人人都用的默认版式。一轮方向里至少有一个要打破它。
++- **撞脸**：字体、配色、主视觉和图标都和某个标杆一样，只换了名字。任何方向都要避开。
++
++## 2. 调性五刻度
++
++从题材、受众、品牌语气和使用场合推出调性，每个刻度写出取值和依据：
++
++| 刻度 | 两端 | 在画面上看什么 |
++| --- | --- | --- |
++| 能量 | 安静 ↔ 喧闹 | 饱和度、对比、元素是否碰撞 |
++| 完成度 | 粗粝 ↔ 精致 | 边缘处理、颗粒与噪点、对齐是否严格 |
++| 密度 | 疏 ↔ 密 | 留白尺度、叠层、网格纪律 |
++| 分量 | 轻 ↔ 重 | 字重、色块面积、阴影硬度 |
++| 严肃度 | 活泼 ↔ 庄重 | 圆角、插画语言、动效幅度 |
++
++任何组合都可以成立，失败的是没有依据的默认。最常见的失败：证据指向喧闹粗粝，交付的却是米色卡片、柔和阴影和大留白，被磨回了模型默认的“安静高级”。反过来，给本该安静的产品硬加颗粒和粗边框，同样是失败。证据已经锁定调性时，候选都留在这个调性里，在构图、色彩和主视觉上拉开。
++
++### 模糊词先翻译
++
++“高级、精致、克制、大气、有设计感、简洁”不能当设计理由，用户或自己说出这类词时，先翻译成看得见的决定：
++
++| 模糊词 | 翻译成什么 |
++| --- | --- |
++| 高级 | 先说是哪一种高级，再定字体对比、分隔方式、间距尺度和色相数量 |
++| 精致 | 公差：字距怎么调、对齐到几像素的网格、阴影最多几级、色相最多几种 |
++| 克制 | 预算：强调色不超过画面约 10%，动效幅度上限，色相数量上限 |
++| 大气 / 有冲击力 | 尺度：展示字多大、主图占多少面积、明暗对比多强；首屏只有一个主角 |
++| 简洁 | 密度档位，以及删掉什么、为什么删 |
++| 有设计感 | 哪一处做到了品类里少见的完成度：一个记忆点，加上全页一致的控件语法 |
++
++翻译不出看得见的决定的词，从理由里删掉。
++
++## 3. 用生成引擎起方向
++
++每个方向从一个具体的引擎出发，不同方向最好用不同的引擎；引擎的内容来自产品的证据。
++
++- **材质 × 环境**：一种材质放在一个具体环境里，由它推出光照、深度、边缘处理和动效阻尼。
++- **一个具体场景**：有时间、地点和光线的场景，由它推出质感和节奏。
++- **角色原型**：给产品一个具体性格，让性格决定字体和动作。
++- **设计运动或文化语法**：选一个和题材、受众或地域有真实联系的视觉传统，借它的语法，而不是贴它的图案。
++- **借另一个领域的表现形式**：只借最有辨识度的一两个手法，页面仍是原来的体裁，避免把道具一件件搬进来。
++- **有意打破常规**：激进的非对称、不和谐的配色与字体，但整体仍好看、功能完整。
++
++引擎决定结构、手感、质感和动效；颜色按下一节单独定。
++
++## 4. 定色彩
++
++颜色的第一来源是产品自己的品牌资产、实物和内容画面。没有现成主色时，避免直接拿引擎里材质或场景的固有色当主色，否则不同产品会撞进同一组颜色。按三步定：
++
++1. 写下品类最顺手的默认配色（底色 + 强调色），以及标杆各占了哪个色相和明暗。
++2. 每个方向定一套不同的色相家族或明确的黑白，用一句话写它来自产品的什么（内容、受众或品牌）。避开刚拆过的标杆配色；至少一个方向跳出品类默认配色。
++3. 写出至少三层：底色、主强调色，以及由它们派生的选中底、描边和禁用态。色阶按 [system.md](system.md) 生成。
++
++黑白灰加一种强调色、甚至完全不用彩色，也是完整的色彩身份，这时颜色交给内容。方向之间按色相家族或材质区分，明暗只是结果；“一个亮、一个暗、一个暖”是最典型的伪差异。
++
++## 5. 首屏骨架
++
++写文案之前先定骨架，先回答：用户来首屏是看什么、做什么？
++
++- **来看内容、挑东西或处理对象的页面**（文档、画廊、商店、信息流、工具、后台）：首屏就是第一排内容或工作区。导航、标题和筛选合起来不超过一两行，第一排内容完整出现在首屏，不放口号和“这个页面是干什么的”段落。浏览就让内容铺满，处理就让当前对象和动作挨在一起，详情按需展开。
++- **来被说服的页面**（落地页、品牌页、发布页）：首屏是一个论点。可选的骨架有大字排版、满版主视觉、产品实物特写、可操作的演示、对比前后、数字即主角、叙事开场、清单式陈列等；左右分栏是模型的默认答案，只在确有理由时用。介绍产品时让用户看到产品真正交付的东西（一份生成好的报表、一段处理后的数据），胜过文字承诺。
++- **两种都有**：以用户最常来做的事为准，横幅不能把第一排内容推出首屏。
++
++## 6. 方向卡
++
++每项都填具体选择，不填形容词：
++
++| 栏目 | 写到什么程度 |
++| --- | --- |
++| 北极星 | 一句能指导取舍的意图：第一感受是什么，整页围绕什么展开 |
++| 调性 | 五个刻度的取值与依据 |
++| 标杆与取舍 | 品类、拆了哪几家、截图存放路径（或“未看图，凭记忆”）；沿用了什么、换掉了什么、为什么 |
++| 生成引擎 | 哪一种、具体是什么、来自产品的什么证据 |
++| 首屏骨架 | 用户来首屏看什么；内容页写首屏能看到几个对象、页头占几行；说服型页面写选了哪种骨架，附 3–5 个方框的线框 |
++| 页面结构 | 首屏以下怎么组织，各主要区块长成什么形式 |
++| 字体 | 具体字族、字重和尺度关系：展示、正文、数据各用什么，相差多大；中文回退字体是什么 |
++| 色彩 | 十六进制色值与用途，至少三层，加一句来源 |
++| 主视觉 | 哪张图或哪个图形承担情绪与识别，来自复用、生成还是排版本身 |
++| 图标 | 用哪一套、描边粗细与端点，或者改用字符和编号 |
++| 控件语法 | 按钮、输入、选中、标签、状态共用的形状和手感，一句话写清：圆角多大、描边多粗、按下怎样变化 |
++| 动效 | 手感用“一个拟声词 + 一个实物动作”写；三处基本动效各怎么动 |
++| 记忆点 | 集中发力的一两处：在哪个时刻或位置，用什么材质、动作或画法 |
++| 放弃什么 | 这个方向主动不要的常见做法 |
++
++**两遍法**：方向卡写完、动手之前，拿它和“任何类似页面你都会给出的默认答案”对一遍；读起来像默认答案的栏目就改，并写下改了什么、为什么。确认之后严格按卡实现，每个颜色和字体决定都从卡里来。
++
++**轻量方向卡**（page 模式、小范围改版、上游计划里的“视觉方向”）：只写北极星、字体、色彩三层与来源、一个特征元素，再列几件参照（作品或既有页面，写清取它哪一点）和放弃什么。
++
++## 7. 差异检验
++
++方向卡写完、做首屏之前逐条过（用户给了品牌规范或在选定方向上派生版式时，字体与色彩共用，其余几条照样过）：
++
++- **比线框，不比描述**：各方向的首屏线框并排比；描述各不相同、线框都是“左大标题右小块”，就是同一骨架。
++- **四项至多一项相同**：首屏骨架、字体、色彩、主视觉四项里，任意两个方向至多一项相同。
++- **至少一个走到极端**：在证据允许的调性内，至少一个方向在构图、色彩和主视觉上都做明确选择；折中的方向至多一个。
++- **至少一个打破品类套路**：后台的“侧栏 + 顶栏 + 卡片网格”、落地页的“主视觉 + 特性 + 评价 + 按钮”、AI 与开发者工具的“黑底 + 紫蓝光晕 + 粒子”等。打破套路不等于抛弃基线。
++- **避开 AI 默认样貌**：对照 [rules.md](rules.md) 的 X 组；品牌或用户明确要求的除外。
++- **不撞脸**：每个方向和拆过的标杆并排看；沿用基线不算撞脸。
++- **眯眼看**：首屏做出来后眯起眼只看明暗块面，块面分布相似就回到骨架重做，不靠换装饰补救。
++
++## 8. 问用户的方式
++
++独立使用、方向未定时，把三个方向各用三四行写给用户：给人什么感觉、首屏长什么样、用什么字体和色彩、主视觉靠什么；附上推荐哪一个和理由，问一次：按其中一个直接做，还是三个都做成首屏比较。用户选定后补全方向卡再开工。自选时（用户说“你定”、上游 goal 模式、无人值守），同样写出三个方向，在设计说明里记下选了哪个和理由。
++
++## 9. 记忆点
++
++每个方向选一两处集中发力，其余保持安静。去这些地方找：
++
++- **用户的动作**：点按、拖动、切换、提交，比滚动更容易被记住。
++- **关键时刻**：完成任务、付款成功、上传、等结果；这些时刻情绪最强，一个小动作回报最高。
++- **边角页面**：空状态、加载、404、页脚，没人期待，最容易出彩。
++
++怎么想：让结果当场发生（被影响的东西当场变化，而不是只换一个图标）；把数字画成看得见的量（面积、长度、个数）；借这个领域里的真东西交付结果（音轨、图层、包裹、账单）；画法要说得出来源，选了就从主视觉一路用到图标和空状态。
++
++精修时，记忆点和其他有辨识度的选择写进“保留”，别被磨平。
+diff --git a/skills/pretty-ui/references/frontend-design/LICENSE.txt b/skills/pretty-ui/references/frontend-design/LICENSE.txt
+deleted file mode 100644
+index f433b1a..0000000
+--- a/skills/pretty-ui/references/frontend-design/LICENSE.txt
++++ /dev/null
+@@ -1,177 +0,0 @@
+-
+-                                 Apache License
+-                           Version 2.0, January 2004
+-                        http://www.apache.org/licenses/
+-
+-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+-
+-   1. Definitions.
+-
+-      "License" shall mean the terms and conditions for use, reproduction,
+-      and distribution as defined by Sections 1 through 9 of this document.
+-
+-      "Licensor" shall mean the copyright owner or entity authorized by
+-      the copyright owner that is granting the License.
+-
+-      "Legal Entity" shall mean the union of the acting entity and all
+-      other entities that control, are controlled by, or are under common
+-      control with that entity. For the purposes of this definition,
+-      "control" means (i) the power, direct or indirect, to cause the
+-      direction or management of such entity, whether by contract or
+-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+-      outstanding shares, or (iii) beneficial ownership of such entity.
+-
+-      "You" (or "Your") shall mean an individual or Legal Entity
+-      exercising permissions granted by this License.
+-
+-      "Source" form shall mean the preferred form for making modifications,
+-      including but not limited to software source code, documentation
+-      source, and configuration files.
+-
+-      "Object" form shall mean any form resulting from mechanical
+-      transformation or translation of a Source form, including but
+-      not limited to compiled object code, generated documentation,
+-      and conversions to other media types.
+-
+-      "Work" shall mean the work of authorship, whether in Source or
+-      Object form, made available under the License, as indicated by a
+-      copyright notice that is included in or attached to the work
+-      (an example is provided in the Appendix below).
+-
+-      "Derivative Works" shall mean any work, whether in Source or Object
+-      form, that is based on (or derived from) the Work and for which the
+-      editorial revisions, annotations, elaborations, or other modifications
+-      represent, as a whole, an original work of authorship. For the purposes
+-      of this License, Derivative Works shall not include works that remain
+-      separable from, or merely link (or bind by name) to the interfaces of,
+-      the Work and Derivative Works thereof.
+-
+-      "Contribution" shall mean any work of authorship, including
+-      the original version of the Work and any modifications or additions
+-      to that Work or Derivative Works thereof, that is intentionally
+-      submitted to Licensor for inclusion in the Work by the copyright owner
+-      or by an individual or Legal Entity authorized to submit on behalf of
+-      the copyright owner. For the purposes of this definition, "submitted"
+-      means any form of electronic, verbal, or written communication sent
+-      to the Licensor or its representatives, including but not limited to
+-      communication on electronic mailing lists, source code control systems,
+-      and issue tracking systems that are managed by, or on behalf of, the
+-      Licensor for the purpose of discussing and improving the Work, but
+-      excluding communication that is conspicuously marked or otherwise
+-      designated in writing by the copyright owner as "Not a Contribution."
+-
+-      "Contributor" shall mean Licensor and any individual or Legal Entity
+-      on behalf of whom a Contribution has been received by Licensor and
+-      subsequently incorporated within the Work.
+-
+-   2. Grant of Copyright License. Subject to the terms and conditions of
+-      this License, each Contributor hereby grants to You a perpetual,
+-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+-      copyright license to reproduce, prepare Derivative Works of,
+-      publicly display, publicly perform, sublicense, and distribute the
+-      Work and such Derivative Works in Source or Object form.
+-
+-   3. Grant of Patent License. Subject to the terms and conditions of
+-      this License, each Contributor hereby grants to You a perpetual,
+-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+-      (except as stated in this section) patent license to make, have made,
+-      use, offer to sell, sell, import, and otherwise transfer the Work,
+-      where such license applies only to those patent claims licensable
+-      by such Contributor that are necessarily infringed by their
+-      Contribution(s) alone or by combination of their Contribution(s)
+-      with the Work to which such Contribution(s) was submitted. If You
+-      institute patent litigation against any entity (including a
+-      cross-claim or counterclaim in a lawsuit) alleging that the Work
+-      or a Contribution incorporated within the Work constitutes direct
+-      or contributory patent infringement, then any patent licenses
+-      granted to You under this License for that Work shall terminate
+-      as of the date such litigation is filed.
+-
+-   4. Redistribution. You may reproduce and distribute copies of the
+-      Work or Derivative Works thereof in any medium, with or without
+-      modifications, and in Source or Object form, provided that You
+-      meet the following conditions:
+-
+-      (a) You must give any other recipients of the Work or
+-          Derivative Works a copy of this License; and
+-
+-      (b) You must cause any modified files to carry prominent notices
+-          stating that You changed the files; and
+-
+-      (c) You must retain, in the Source form of any Derivative Works
+-          that You distribute, all copyright, patent, trademark, and
+-          attribution notices from the Source form of the Work,
+-          excluding those notices that do not pertain to any part of
+-          the Derivative Works; and
+-
+-      (d) If the Work includes a "NOTICE" text file as part of its
+-          distribution, then any Derivative Works that You distribute must
+-          include a readable copy of the attribution notices contained
+-          within such NOTICE file, excluding those notices that do not
+-          pertain to any part of the Derivative Works, in at least one
+-          of the following places: within a NOTICE text file distributed
+-          as part of the Derivative Works; within the Source form or
+-          documentation, if provided along with the Derivative Works; or,
+-          within a display generated by the Derivative Works, if and
+-          wherever such third-party notices normally appear. The contents
+-          of the NOTICE file are for informational purposes only and
+-          do not modify the License. You may add Your own attribution
+-          notices within Derivative Works that You distribute, alongside
+-          or as an addendum to the NOTICE text from the Work, provided
+-          that such additional attribution notices cannot be construed
+-          as modifying the License.
+-
+-      You may add Your own copyright statement to Your modifications and
+-      may provide additional or different license terms and conditions
+-      for use, reproduction, or distribution of Your modifications, or
+-      for any such Derivative Works as a whole, provided Your use,
+-      reproduction, and distribution of the Work otherwise complies with
+-      the conditions stated in this License.
+-
+-   5. Submission of Contributions. Unless You explicitly state otherwise,
+-      any Contribution intentionally submitted for inclusion in the Work
+-      by You to the Licensor shall be under the terms and conditions of
+-      this License, without any additional terms or conditions.
+-      Notwithstanding the above, nothing herein shall supersede or modify
+-      the terms of any separate license agreement you may have executed
+-      with Licensor regarding such Contributions.
+-
+-   6. Trademarks. This License does not grant permission to use the trade
+-      names, trademarks, service marks, or product names of the Licensor,
+-      except as required for reasonable and customary use in describing the
+-      origin of the Work and reproducing the content of the NOTICE file.
+-
+-   7. Disclaimer of Warranty. Unless required by applicable law or
+-      agreed to in writing, Licensor provides the Work (and each
+-      Contributor provides its Contributions) on an "AS IS" BASIS,
+-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+-      implied, including, without limitation, any warranties or conditions
+-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+-      PARTICULAR PURPOSE. You are solely responsible for determining the
+-      appropriateness of using or redistributing the Work and assume any
+-      risks associated with Your exercise of permissions under this License.
+-
+-   8. Limitation of Liability. In no event and under no legal theory,
+-      whether in tort (including negligence), contract, or otherwise,
+-      unless required by applicable law (such as deliberate and grossly
+-      negligent acts) or agreed to in writing, shall any Contributor be
+-      liable to You for damages, including any direct, indirect, special,
+-      incidental, or consequential damages of any character arising as a
+-      result of this License or out of the use or inability to use the
+-      Work (including but not limited to damages for loss of goodwill,
+-      work stoppage, computer failure or malfunction, or any and all
+-      other commercial damages or losses), even if such Contributor
+-      has been advised of the possibility of such damages.
+-
+-   9. Accepting Warranty or Additional Liability. While redistributing
+-      the Work or Derivative Works thereof, You may choose to offer,
+-      and charge a fee for, acceptance of support, warranty, indemnity,
+-      or other liability obligations and/or rights consistent with this
+-      License. However, in accepting such obligations, You may act only
+-      on Your own behalf and on Your sole responsibility, not on behalf
+-      of any other Contributor, and only if You agree to indemnify,
+-      defend, and hold each Contributor harmless for any liability
+-      incurred by, or claims asserted against, such Contributor by reason
+-      of your accepting any such warranty or additional liability.
+-
+-   END OF TERMS AND CONDITIONS
+diff --git a/skills/pretty-ui/references/frontend-design/REFERENCE.md b/skills/pretty-ui/references/frontend-design/REFERENCE.md
+deleted file mode 100644
+index 26a2cbf..0000000
+--- a/skills/pretty-ui/references/frontend-design/REFERENCE.md
++++ /dev/null
+@@ -1,57 +0,0 @@
+----
+-name: frontend-design
+-description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
+-license: Complete terms in LICENSE.txt
+----
+-
+-# Frontend Design
+-
+-> Vendored reference from [anthropics/skills `skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design)（Apache-2.0，LICENSE.txt 随目录附带）。When invoked via `pretty-ui`, follow the parent Skill for page visual language and layout; this file supplies aesthetic-direction guidance.
+-
+-Approach this as the design lead at a small studio known for giving every client a visual identity that could not be mistaken for anyone else's. This client has already rejected proposals that felt templated, and is paying for a distinctive point of view: make deliberate, opinionated choices about palette, typography, and layout that are specific to this brief, and take one real aesthetic risk you can justify.
+-
+-## Ground it in the subject
+-
+-If the brief does not pin down what the product or subject is, pin it yourself before designing: name one concrete subject, its audience, and the page's single job, and state your choice. If there's any information in your memory about the human's preferences, context about what they're building, or designs you've made before – use that as a hint. The subject's own world, its materials, instruments, artifacts, and vernacular, is where distinctive choices come from. Build with the brief's real content and subject matter throughout.
+-
+-## Design principles
+-
+-For web designs, the hero is a thesis. Open with the most characteristic thing in the subject's world, in whatever form makes sense for it: a headline, an image, an animation, a live demo, an interactive moment. Be deliberate with your choice: a big number with a small label, supporting stats, and a gradient accent is the template answer, only use if that's truly the best option.
+-
+-Typography carries the personality of the page. Pair the display and body faces deliberately, not the same families you would reach for on any other project, and set a clear type scale with intentional weights, widths, and spacing. Make the type treatment itself a memorable part of the design, not a neutral delivery vehicle for the content.
+-
+-Structure is information. Structural devices, numbering, eyebrows, dividers, labels, should encode something true about the content, not decorate it. Many generic designs use numbered markers (01 / 02 / 03), but that's only appropriate if the content actually is a sequence - like a real process or a typed timeline where order carries information the reader needs. Question if choices like numbered markers actually make sense before incorporating them.
+-
+-Leverage motion deliberately. Think about where and if animation can serve the subject: a page-load sequence, a scroll-triggered reveal, hover micro-interactions, ambient atmosphere. An orchestrated moment usually lands harder than scattered effects; choose what the direction calls for. However, sometimes less is more, and extra animation contributes to the feeling that the design is AI-generated.
+-
+-Match complexity to the vision. Maximalist directions need elaborate execution; minimal directions need precision in spacing, type, and detail. Elegance is executing the chosen vision well.
+-
+-Consider written content carefully. Often a design brief may not contain real content, and it's up to you to come up with copy. Copy can make a design feel as templated as the design itself. See the below section on writing for more guidance.
+-
+-## Process: brainstorm, explore, plan, critique, build, critique again
+-
+-For calibration: AI-generated design right now clusters around three looks: (1) a warm cream background (near #F4F1EA) with a high-contrast serif display and a terracotta accent; (2) a near-black background with a single bright acid-green or vermilion accent; (3) a broadsheet-style layout with hairline rules, zero border-radius, and dense newspaper-like columns. All three are legitimate for some briefs, but they are defaults rather than choices, and they appear regardless of subject. Where the brief pins down a visual direction, follow it exactly — the brief's own words always win, including when it asks for one of these looks. Where it leaves an axis free, don't spend that freedom on one of these defaults. Just like a human designer who's hired, there's often a careful balance between doing what you're good at and taking each project as a chance to experiment and learn.
+-
+-Work in two passes. First, brainstorm a short design plan based on the human's design brief: create a compact token system with color, type, layout, and signature. Color: describe the palette as 4–6 named hex values. Type: the typefaces for 2+ roles (a characterful display face that's used with restraint, a complementary body face, and a utility face for captions or data if needed). Layout: a layout concept, using one-sentence prose descriptions and ASCII wireframes to ideate and compare. Signature: the single unique element this page will be remembered by that embodies the brief in an appropriate way.
+-
+-Then review that plan against the brief before building: if any part of it reads like the generic default you would produce for any similar page (work through a similar prompt to see if you arrive somewhere similar) rather than a choice made for this specific brief — revise that part, say what you changed and why. Only after you've confirmed the relative uniqueness of your design plan should you start to write the code, following the revised plan exactly and deriving every color and type decision from it.
+-
+-When writing the code, be careful of structuring your CSS selector specificities. It's easy to generate CSS classes that cancel each other out (especially with a type-based selector like .section and a element-based selector like .cta). This can happen often with paddings/margins between sections.
+-
+-Try to do a lot of this planning and iteration in your thinking, and only show ideas to the user when you have higher confidence it'll delight them.
+-
+-## Restraint and self-critique
+-
+-Spend your boldness in one place. Let the signature element be the one memorable thing, keep everything around it quiet and disciplined, and cut any decoration that does not serve the brief. Not taking a risk can be a risk itself! Build to a quality floor without announcing it: responsive down to mobile, visible keyboard focus, reduced motion respected. Critique your own work as you build, taking screenshots if your environment supports it – a picture is worth 1000 tokens. Consider Chanel's advice: before leaving the house, take a look in the mirror and remove one accessory. Human creators have memory and always try to do something new, so if you have a space to quickly jot down notes about what you've tried, it can help you in future passes.
+-
+-## More on writing in design
+-
+-Words appear in a design for one reason: to make it easier to understand, and therefore easier to use. They are design material, not decoration. Bring the same intentionality to copy that you would bring to spacing and color. Before writing anything, ask what the design needs to say, and how it can best be said to help the person navigate the experience.
+-
+-Write from the end user's side of the screen. Name things by what people control and recognize, never by how the system is built. A person manages notifications, not webhook config. Describe what something does in plain terms rather than selling it. Being specific is always better than being clever.
+-
+-Use active voice as default. A control should say exactly what happens when it's used: "Save changes," not "Submit." An action keeps the same name through the whole flow, so the button that says "Publish" produces a toast that says "Published." The vocabulary of an interface is the signposting for someone navigating the product. Cohesion and consistency are how people learn their way around.
+-
+-Treat failure and emptiness as moments for direction, not mood. Explain what went wrong and how to fix it, in the interface's voice rather than a person's. Errors don't apologize, and they are never vague about what happened. An empty screen is an invitation to act.
+-
+-Keep the register conversational and tuned: plain verbs, sentence case, no filler, with tone matched to the brand and the audience. Let each element do exactly one job. A label labels, an example demonstrates, and nothing quietly does double duty.
+diff --git a/skills/pretty-ui/references/html-diagram/LICENSE b/skills/pretty-ui/references/html-diagram/LICENSE
+new file mode 100644
+index 0000000..32ba103
+--- /dev/null
++++ b/skills/pretty-ui/references/html-diagram/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 plannotator
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/skills/pretty-ui/references/html-diagram/REFERENCE.md b/skills/pretty-ui/references/html-diagram/REFERENCE.md
+index b310e81..85684fc 100644
+--- a/skills/pretty-ui/references/html-diagram/REFERENCE.md
++++ b/skills/pretty-ui/references/html-diagram/REFERENCE.md
+@@ -5,7 +5,7 @@ description: Direct-invocation specialist for self-contained HTML diagrams whose
+ 
+ # HTML Diagram
+ 
+-> Vendored reference from [plannotator/effective-html `skills/html-diagram`](https://github.com/plannotator/effective-html/blob/main/skills/html-diagram/SKILL.md). When invoked via `pretty-ui`, follow the parent Skill for embedding, the page visual language, and page layout; this file supplies diagram modeling and rendering guidance.
++> Vendored reference from [plannotator/effective-html `skills/html-diagram`](https://github.com/plannotator/effective-html/blob/main/skills/html-diagram/SKILL.md). When invoked via `pretty-ui`, follow the parent Skill for embedding, the page visual language, and page layout; this file supplies diagram modeling and rendering guidance. MIT licensed; see [LICENSE](LICENSE) in this directory.
+ 
+ Build the smallest visual model that makes the relationship easier to understand than prose alone. Match the notation and visual language to the user's project and subject. Do not force every topic into the same SVG boxes and arrows.
+ 
+@@ -36,7 +36,7 @@ Use HTML and CSS, SVG, Canvas, or WebGL according to the information and scale.
+ 
+ Add sequencing, filtering, path tracing, pan and zoom, or animation only when it helps answer the stated question. Keep overlays dismissible, controls keyboard-accessible, and motion compatible with `prefers-reduced-motion`.
+ 
+-When used from `pretty-ui`, the parent Skill's selected palette and its frontend-design guidance (linked directly from the parent Skill) set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
++When used from `pretty-ui`, the parent Skill's direction card, tokens, and design rules (linked directly from the parent Skill) set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
+ 
+ ## Build and verify
+ 
+diff --git a/skills/pretty-ui/references/organization.md b/skills/pretty-ui/references/organization.md
+deleted file mode 100644
+index d93fb76..0000000
+--- a/skills/pretty-ui/references/organization.md
++++ /dev/null
+@@ -1,69 +0,0 @@
+-# 文件组织、链接与根聚合页
+-
+-[pretty-ui](../SKILL.md) 工作流第 2–4、8 步按本页落盘。
+-
+-## 文件组织
+-
+-名称使用简短、可辨识的 kebab-case slug。
+-
+-### 单页
+-
+-```text
+-docs/pretty-view-html/
+-├── index.html
+-└── <slug>.html
+-```
+-
+-单页文档本身是完整阅读入口，并提供返回根 `index.html` 的链接。
+-
+-### 多页
+-
+-```text
+-docs/pretty-view-html/
+-├── index.html
+-└── <slug>/
+-    ├── index.html
+-    ├── <topic-a>.html
+-    ├── <topic-b>.html
+-    └── assets/            # 可选，共享样式、脚本或图片
+-```
+-
+-- 包内 `index.html` 是该内容集的聚合页：说明主题、范围并列出全部页面。
+-- 内容页使用一致导航，至少能返回包首页；适合顺序阅读时再提供上一篇/下一篇。
+-- 页面较多且存在真实、稳定的父子分类时才增加分组目录；每个分组目录必须有自己的 `index.html`。默认不超过两级内容层次。
+-- 多页共享的样式和脚本只放一份在包内 `assets/`。
+-
+-### 本地链接
+-
+-所有本地 `href` 和 `src` 必须以**包含该链接的当前 HTML 文件所在目录**为基准计算相对路径。输出目录可能位于任意位置或嵌套层级，按实际目录逐级计算。
+-
+-- 本地链接只用 `./`、`../` 或不带前导斜杠的同级路径（站点根 `/…`、绝对磁盘路径、`file://` 都会在换目录后失效）。
+-- 链接里只写相对当前文件的路径，例如页面实际位于 `<output-root>/index.html` 时，内容入口写作 `./<slug>.html` 或 `./<slug>/index.html`，而不是 `<output-root>/<slug>.html`。
+-- 内容包首页链接同目录页面时使用 `./<topic>.html`；包内页面返回包首页通常使用 `./index.html`，返回上级聚合页通常使用 `../index.html`。存在更深层级时按实际目录逐级计算，不机械复制示例。
+-- 样式、脚本、图片、迁移页目标和导航链接遵守同一基准。HTTP(S) 外部链接不受此规则影响。
+-
+-必须先确定最终文件布局，再分别为每个 HTML 文件计算链接。写入后从每个来源文件的父目录解析全部本地 `href` 和 `src`，确认目标存在且没有越出预期输出范围。
+-
+-### 同主题内容包
+-
+-“相同主题”要求内容围绕同一核心对象、问题域或连续阅读任务，并且合并后有明确的共同维护价值；关键词重合、同一文档类型或宽泛领域相同不足以归类。
+-
+-发现相同主题后，写入前必须向用户展示：
+-
+-- 归类依据，以及拟纳入和明确不纳入的页面；
+-- 内容包标题、slug、页面结构和目标路径；
+-- 现有链接、根聚合页入口和旧路径的处理方式。
+-
+-只有用户明确确认该方案后，才将相关内容自动重组为同一个多页内容包。重组时保留旧路径的可达性，可用指向新入口的轻量迁移页承接旧链接；根聚合页只登记新的内容包入口。用户拒绝、要求调整或主题关系不可靠时，保持现有文件不动，并按用户选择继续。
+-
+-## 根聚合页
+-
+-`<output-root>/index.html` 是所有生成内容的总入口，默认位于 `docs/pretty-view-html/index.html`；用户指定输出路径时，`<output-root>` 就是该目录。根聚合页必须持续维护：
+-
+-- 每个单页或多页内容集只登记一个入口；多页指向包内 `index.html`。
+-- 展示清晰的标题、简短说明和必要的日期或类型信息，不暴露实现细节。
+-- 新增、移动、重命名或删除内容时同步更新，避免死链和重复条目。
+-- 已存在时保留原有内容与视觉语言，在其基础上增量更新；不存在时创建简洁的响应式索引页。
+-
+-写入前检查目标路径。若同名内容已存在且用户没有明确要求覆盖，选择不冲突的 slug 并在结果里说明；只有用户明确要求才覆盖。
+-
+diff --git a/skills/pretty-ui/references/page.md b/skills/pretty-ui/references/page.md
+new file mode 100644
+index 0000000..dde3e7b
+--- /dev/null
++++ b/skills/pretty-ui/references/page.md
+@@ -0,0 +1,130 @@
++# 阅读页（page 模式）
++
++[pretty-ui](../SKILL.md) 的 page 模式读本页：把用户给的上下文、文件、报告、方案或评审内容做成可离线打开的静态 HTML 阅读页。保留原内容的事实、术语和层次；可以重组信息以改善阅读，只呈现输入里真实存在的内容。输入的 Markdown 只是内容来源，直接产出 `.html`，不另建 Markdown 副本。
++
++## 1. 输出根
++
++- 默认输出到 `docs/pretty-ui/`，下文记作 `<output-root>`。
++- 仓库里已有 `docs/pretty-view-html/index.html`（本 skill 改名前的输出）且用户没指定路径时，继续用 `docs/pretty-view-html/` 作为 `<output-root>`，在交付说明里写一句。
++- 用户指定其他路径时，以用户要求为准。
++
++## 2. 流程
++
++1. **读全部输入**：确认主题、读者、内容边界和主要阅读任务（通读、查找、对比、照着操作）。
++2. **查现状**：定下 `<output-root>`，看根聚合页和已有输出的标题、摘要与路径，判断有没有可以共同维护的同主题内容。
++3. **同主题先确认**：发现同主题时按第 5 节提出归类方案，用户明确确认后再写入、移动或覆盖；没有可靠的同主题内容就直接继续。
++4. **单页还是多页**：默认单页；只有内容由多个可独立阅读、分享或维护的主题组成，或用户明确要求时才拆多页。篇幅长本身不是拆页理由。
++5. **轻量方向卡**：按 [direction.md](direction.md) 第 6 节写北极星、字体、色彩三层与来源、一个特征元素、参照和放弃什么，写在页面源码顶部的注释里。同一内容包共用一张卡；根聚合页已存在时沿用它的视觉语言。
++6. **生成**：布局按第 6 节，组件按第 7 节；需要架构、流程、关系、状态、时序等图解时，读 [html-diagram/REFERENCE.md](html-diagram/REFERENCE.md)，按它选型并嵌入当前阅读页，默认不另建独立图解文件。
++7. **检查与看图**：对 `<output-root>` 跑 `python3 scripts/check_page.py --offline <output-root>`，报错项修完；按 [critique.md](critique.md) 第 1 节在 1280 与 375 视口截图并量行长，修掉溢出、过长的行、孤字和被裁的表格；看不了图时在交付说明里写“未渲染验证”。
++8. **更新入口**：更新内容包首页与根聚合页（第 4 节），逐条过第 8 节的完成检查。
++
++## 3. 文件组织
++
++名称用简短、可辨识的 kebab-case slug。
++
++单页：
++
++```text
++<output-root>/
++├── index.html
++└── <slug>.html
++```
++
++单页文档本身是完整的阅读入口，并提供返回根 `index.html` 的链接。
++
++多页：
++
++```text
++<output-root>/
++├── index.html
++└── <slug>/
++    ├── index.html
++    ├── <topic-a>.html
++    ├── <topic-b>.html
++    └── assets/            # 可选，共享样式、脚本或图片
++```
++
++- 包内 `index.html` 是这个内容集的聚合页：说明主题、范围，并列出全部页面。
++- 内容页用一致的导航，至少能返回包首页；适合顺序阅读时再提供上一篇 / 下一篇。
++- 页面较多且有真实、稳定的父子分类时才加分组目录，每个分组目录有自己的 `index.html`；默认不超过两级内容层次。
++- 多页共享的样式和脚本只在包内 `assets/` 放一份。
++
++### 本地链接
++
++每个本地 `href` 和 `src` 都以**包含这个链接的 HTML 文件所在目录**为基准计算相对路径。输出目录可能在任意位置、任意层级，按实际目录逐级计算。
++
++- 本地链接只用 `./`、`../` 或不带前导斜杠的同级路径；站点根 `/…`、绝对磁盘路径和 `file://` 在换目录后都会失效。
++- 链接里只写相对当前文件的路径。例如页面位于 `<output-root>/index.html` 时，内容入口写 `./<slug>.html` 或 `./<slug>/index.html`，而不是 `<output-root>/<slug>.html`。
++- 包首页链接同目录页面用 `./<topic>.html`；包内页面返回包首页通常用 `./index.html`，返回上级聚合页通常用 `../index.html`。更深的层级按实际目录逐级计算，不机械照抄示例。
++- 样式、脚本、图片、迁移页目标和导航链接遵守同一基准；HTTP(S) 外部链接不受此限。
++
++先确定最终文件布局，再为每个 HTML 文件分别计算链接。写入后用 `check_page.py` 从每个文件的父目录解析全部本地链接，确认目标存在、没有越出输出范围。
++
++## 4. 根聚合页
++
++`<output-root>/index.html` 是全部生成内容的总入口，持续维护：
++
++- 每个单页或多页内容集只登记一个入口；多页指向包内 `index.html`。
++- 展示清楚的标题、一句说明和必要的日期或类型，不暴露实现细节。
++- 新增、移动、改名或删除内容时同步更新，保持没有死链和重复条目。
++- 已存在时保留原有内容与视觉语言，在其基础上增量更新；不存在时建一个简洁的响应式索引页，按索引页自己的阅读任务设计，不必套用某篇内容页的配色。
++
++写入前检查目标路径：同名内容已存在、用户又没明确要求覆盖时，换一个不冲突的 slug 并在结果里说明；用户明确要求才覆盖。
++
++## 5. 同主题内容包
++
++“同主题”指内容围绕同一个核心对象、问题域或连续的阅读任务，合并后有明确的共同维护价值；关键词重合、文档类型相同或领域大致相同都不够。
++
++发现同主题后，写入前向用户展示：
++
++- 归类依据，拟纳入和明确不纳入的页面；
++- 内容包标题、slug、页面结构和目标路径；
++- 现有链接、根聚合页入口和旧路径怎么处理。
++
++用户明确确认后，才把相关内容重组为同一个多页内容包。重组时保留旧路径可达，可以用指向新入口的轻量迁移页承接旧链接；根聚合页只登记新的内容包入口。用户拒绝、要求调整或主题关系不可靠时，现有文件保持不动，按用户的选择继续。
++
++## 6. 阅读布局
++
++- **导航**：每页一致的顶部导航，至少有根聚合页入口，内容包内再给包首页和当前位置。导航用 `position: sticky; top: 0`，背景足以遮住滚动内容；窄屏可换行或横向滚动，关键入口始终可见。
++- **两种宽度**：页面容器可以宽（约 1200–1440px，配合 `clamp()` 侧边距），承载表格、代码、图解和对照；连续正文单独限宽，中文每行 30–40 字（上限 46）。正文宽度用 `px` 或 `rem` 写在列容器上（如 18px × 38 字 ≈ 684px）；写成 `em` 时每个元素按自己的字号算，小字说明会比正文窄一截。正文列和宽内容共享同一条左边缘。
++- **字号与节奏**：正文 16–18px，行高 1.6–1.75；标题按字阶逐级拉开，标题离下文比离上文近；段落之间约一行的距离。
++- **换行**：标题用 `text-wrap: balance`，正文段落和列表项用 `text-wrap: pretty`，避免末行孤字；一行里的多项元信息用间距或标签分开，窄屏换行时不留下悬在行首行尾的 `/`、`·`。
++- **字体**：用 [system.md](system.md) 第 4 节的系统字体栈，一套无衬线加一套等宽通常就够；需要特征字体时随包附带字体文件，并保留中文回退。代码和等宽文字关掉连字（`font-variant-ligatures: none`），让 `<=`、`!=` 按原样显示。
++- **宽内容**：宽表格和代码块在自己的容器里横向滚动，页面本身不出现横向滚动条。
++- **语义与可达**：语义化 HTML，标题层级连续；有页面标题、`lang` 属性和 viewport；链接和控件文字清楚、有可见的键盘焦点和足够的对比度。
++- **动效**：服务阅读，默认克制，尊重 `prefers-reduced-motion`；纯阅读页不为“高级感”加动画。
++- **离线**：页面可以直接在浏览器打开；不依赖构建步骤、前端框架或联网加载的资源，图解用内联 SVG 或 HTML/CSS 画出来，而不是运行时从网络加载渲染库。
++
++## 7. 组件与用色
++
++按内容的职责选组件，组件服务扫描、对比和操作。普通叙述就用段落；只有内容本身是结构化的（对比、步骤、字段、状态）才用表格、步骤、定义列表这类组件。组件数量由内容决定，而不是预设一个“足够丰富”的数目。
++
++| 职责 | 优先组件 |
++| --- | --- |
++| 内容表达 | 结论 / 摘要条、导语、定义列表、关键引用 |
++| 标签 | 状态徽章、类型标签、版本或受众标记 |
++| 架构 / 可视化 | 分层架构、流程步骤、关系图、状态与时序图、时间线（按 html-diagram 选型） |
++| 对比 / 决策 | 对照表、方案并列、决策记录、取舍说明 |
++| 教程 / 操作 | 有序步骤、检查清单、命令与代码块、`kbd`、注意事项 |
++| 数据 / 状态 | 指标、进度、字段表、结果汇总 |
++
++用色：
++
++- 先在灰度下用字号、字重、明度和留白把层级立起来，再上色。
++- 强调色只留给少数几处：当前位置、关键结论、主要链接。
++- 语义色只表达真实的状态（成功、警告、危险、信息），并且同时有文字标签；没有状态含义的标签用中性底色。
++- 类别之间优先用位置、形状、文字区分，而不是一类一色；同一页里彩色徽章和标签一多，强调就失效了。
++- 同一内容包共用一套颜色含义；色值写成页面顶部 `:root` 里的 CSS 变量，组件里只引用变量。
++
++只呈现输入里真实存在的信息，不为好看虚构指标、状态或对比项；卡片、徽章和提示框只用来编码真实的职责或语义。
++
++## 8. 完成检查
++
++- 输入里的核心事实、代码、表格、术语和结论没有遗漏或篡改。
++- `check_page.py --offline` 没有报错；提示项已改掉或在交付说明里写了理由。
++- 1280 与 375 两个视口看过截图（或写明“未渲染验证”）：没有溢出、遮挡、过小文字；正文每行不超过 46 字。
++- 单页能返回根聚合页；多页有包首页、完整页面地图和一致导航。
++- 根 `index.html` 有本次内容的唯一入口。
++- 发现同主题内容时，归类方案已获用户明确确认，实际路径与确认内容一致。
++- 含图解时已按 html-diagram 选型并嵌入阅读页，离线可见。
+diff --git a/skills/pretty-ui/references/rules.md b/skills/pretty-ui/references/rules.md
+new file mode 100644
+index 0000000..d2a9040
+--- /dev/null
++++ b/skills/pretty-ui/references/rules.md
+@@ -0,0 +1,162 @@
++# 规则（地板）
++
++[pretty-ui](../SKILL.md) 的 refine、review 与 build 自查读本页。每条问题都要指得到一个规则号；指不出规则的意见算个人口味，要么找到规则，要么删掉。项目有成文设计规范时，规范先于本页；规则与项目的刻意约定冲突时，指出冲突，由用户决定。
++
++## 1. 扫查顺序
++
++```
++H 层级 → S 间距与布局 → T 排版 → C 色彩 → D 深度 → I 图像与图标 → F 收尾与状态 → M 动效
++```
++
++顺序有因果：层级没理顺时，同一个问题会同时冒充间距、颜色和边框问题；间距没理顺时，会多报一堆“该加边框”；颜色先于深度，因为多数深度手法本质是颜色关系；结构坏了谈收尾没有意义。乱序扫查会产出一修就消失的问题，清单读起来像噪音。
++
++评审 AI 生成的界面时，先过一遍 X 组：这些毛病最稳定，又最容易被生成它的模型自己漏看。
++
++## 2. 严重度
++
++| 级别 | 含义 | 对应 |
++| --- | --- | --- |
++| P0 | 影响可用：看不清、找不到、会出错 | Blocker |
++| P1 | 影响一致：偏离体系、层级打架 | Major |
++| P2 | 打磨：完成度与精致度 | Minor |
++
++P0 清单（即使用户只问了别的，也要报）：
++
++- 层级塌陷，看不出这一屏是干什么的（H1）。
++- 文字对比度不达标：正文低于 4.5:1，大字低于 3:1（C4）。
++- 含义只靠颜色传达（C5）。
++- 图片上的文字有一部分看不清（I2）。
++- 分组间距含糊，可能让人填错或点错（S3）。
++- 正文行长严重越界：中文每行超过 46 字或少于约 15 字，英文超出 45–75 字符很多（T2）。
++- 破坏性操作被做成页面主操作（H6）。
++- 在支持的视口里布局破损、内容被裁或溢出（S8）。
++- 依赖内容的视图没有空状态（F4）。
++- 图解或关键插图渲染失败、离线缺失，只剩报错或空白（I6）。
++
++## 3. 规则
++
++### H 层级
++
++- **H1** 每屏说得出唯一最重要的元素；强调靠压低竞争者，而不是继续给主角加码。
++- **H2** 主次靠字号、字重、明度三个杠杆配合；文字颜色不超过三档，字重不超过两档，界面文字字重不低于 400。
++- **H3** 标签是次要的：能直接表意的值就去掉“标签：值”的格式，或合并、降级标签；规格类内容里，用户扫视找的那一项才加重。
++- **H4** 标题大小按它在页面里的级别定，而不是按标签名（h1、h2）定；语义标签保留，样式单独写。
++- **H5** 图标比旁边的文字浅一两级；细线边框看不清时加粗而不是加深。
++- **H6** 每页一个主操作，次要操作用描边或弱底，辅助操作用链接样式；破坏性操作按级别排，只有在确认对话框里它才是主操作。
++- **H7** 内容页首屏是第一排内容或工作区，导航和标题区不把内容推出首屏。
++
++### S 间距与布局
++
++- **S1** 从宽松开始再收紧；密集的界面是刻意选择，写得出理由。
++- **S2** 间距、尺寸取自刻度；相邻两级刻度至少差约 25%，避免靠近却不同的值。
++- **S3** 组外距离大于组内：标题离下文比离上文近，标签离自己的控件比离上一组近，列表项之间小于列表与下一节之间。
++- **S4** 内容决定宽度：表单、卡片、正文各有最大宽度，而不是拉满视口；宽内容可以分栏。
++- **S5** 固定尺寸的元素（侧栏、图标、头像）用固定宽度；小视口里任何元素都不比大视口时更宽。
++- **S6** 手机布局是单独设计的，大元素缩得比小元素快；组件内边距随字号变化。
++- **S7** 对齐到少数几条锚线：整页的标题和正文块共享两三条左边缘起点。
++- **S8** 1280 与 375 两个视口都没有横向溢出、重叠、裁切；点击区域至少约 40×40px。
++- **S9** 一处分隔只用一种手段：间距、底色差、边框、阴影四选一，通常间距或底色差就够。
++
++### T 排版
++
++- **T1** 字号取自字阶，界面里同时使用的字号控制在五六种以内。
++- **T2** 正文限宽：中文每行约 30–40 字（上限 46），英文 45–75 字符；段落宽度独立于外层内容区。
++- **T3** 行高随字号和行宽变化：中文正文 1.6–1.75，英文正文 1.5–1.6，大标题 1.1–1.35。
++- **T4** 正文字号：中文阅读页 16–18px，产品界面 14–16px，密集工具 13–14px；小于 12px 的文字只用于非阅读性的标注。
++- **T5** 同一行里字号不同的元素按基线对齐。
++- **T6** 超过两三行的文字左对齐；表格里的数字列右对齐，数字用等宽数字。
++- **T7** 两端对齐只在开启断字的英文里用；中文正文默认左对齐即可。
++- **T8** 全大写的英文要放宽字距；中文界面里少用英文大写标签。
++- **T9** 大标题略收紧字距；中文标题不在末行留下单独一个字（`text-wrap: balance`）。
++- **T10** 链接密集的区域用较弱的链接样式（颜色或下划线二选一），正文中的链接要看得出能点。
++
++### C 色彩
++
++- **C1** 颜色取自色阶：灰阶约 8–10 级，主色和每个语义色各有 5–10 级；用时引用 token，而不是在用到的地方临时调亮、调暗或混色。
++- **C2** 色阶两端饱和度升高，黄、橙一类色相变深时转向橙红而不是发棕；灰阶带一致的冷暖。
++- **C3** 强调色有预算：主操作、当前选中、关键数据用它，其余交给灰阶；一屏里大块的深色饱和色块不压过主操作。
++- **C4** 每一组真实出现的文字 / 背景配对都量过：正文至少 4.5:1，大字至少 3:1，非文字元素至少 3:1。
++- **C5** 含义同时由文字、图标或形状承载，颜色只是加强。
++- **C6** 有色底上的次要文字用同色相的浅一级或深一级，而不是灰字或半透明白。
++- **C7** 语义色只表达状态，组件里用语义 token（`--danger`），而不是色相名（红色）。
++- **C8** 渐变两端的色相相差不超过约 30°，用于背景时对比要低，远离文字。
++- **C9** 暗色模式重新映射语义层：表面从深灰起步，有色元素降饱和后重新量对比度。
++
++### D 深度
++
++- **D1** 光源来自上方：阴影只向下偏移、不横向偏移；凸起元素上沿浅、下方有阴影，输入框这类凹陷元素上方有内阴影。
++- **D2** 阴影取自五级阴影，按离用户多近选：按钮小、下拉中、模态框大；同类组件阴影一致。
++- **D3** 按钮有按下状态，可拖动的元素拿起时升高；两段阴影各司其职，层级越高接触阴影越淡。
++- **D4** 扁平或暗色界面靠颜色关系表达深度；一个整体扁平的设计里，不突然出现一个柔光大阴影。
++
++### I 图像与图标
++
++- **I1** 图片质量配得上它占的面积；屏幕截图缩到看不清时，改为局部特写。
++- **I2** 图片上的文字在整张图上都读得清：用遮罩、降低图片对比或给文字垫底，只用到刚好够的程度。
++- **I3** 小图标按设计尺寸用，放大三四倍会显得粗糙；需要大图标时换大尺寸的图标或加底框。
++- **I4** 用户上传的图片放在固定比例的容器里裁切；白底图片和白色表面之间有分界。
++- **I5** 一个界面只用一套图标，描边粗细和端点一致；装饰性图标标 `aria-hidden`，只有图标的按钮有可读名称。
++- **I6** 图解和关键插图随页面一起交付：用内联 SVG 或 HTML/CSS 画出，配一句文字结论；运行时从网络加载渲染库的图，离线或语法出错时整块只剩报错。
++
++### F 收尾与状态
++
++- **F1** 列表符号、引号、链接和表单控件不停在浏览器默认样子。
++- **F2** 长页面有底色变化或分区节奏，而不是从头到尾一种背景。
++- **F3** 组件库的默认样子被调整进了方向：按钮、输入、选中、标签共用一套控件语法。
++- **F4** 每个依赖内容的视图都有设计过的空状态，空状态里只显示有用的入口，用不了的功能先隐藏。
++- **F5** 加载、出错、禁用、处理中各有自己的样子；状态变化时点击区域不变大变小，也不挤动旁边的布局。
++- **F6** 文案像真的：按钮写清动作（“保存草稿”而不是“提交”），错误信息说明原因和下一步，数字带单位和格式。
++- **F7** 键盘可达：每个可交互元素有清楚的 `:focus-visible` 样式，只在悬停时出现的入口也有键盘和触屏的到达方式。
++- **F8** 减法做过：填缝的小字、写在界面上的设计说明、“示例”“仅供示意”之类的字样删掉；删完主角更突出，而不是画面只是变空。
++
++### M 动效
++
++- **M1** 动效服务理解：反馈操作结果、交代元素从哪来到哪去、引导注意；一页里集中在一两处记忆点。
++- **M2** 只动 `transform` 和 `opacity`；常规交互 150–250ms，较大的转场 300–400ms；进入用减速、离开用加速。
++- **M3** 主操作有即时反馈，状态切换看得出来路；首屏内容不会停在透明的出场前状态。
++- **M4** 尊重 `prefers-reduced-motion`：关闭位移和缩放，只保留必要的淡入淡出。
++
++### X AI 默认样貌
++
++逐条看它是否在画面上。品牌、用户要求或写得出产品依据的做法不算；其余改掉，或在交付说明里写明它怎样服务方向。
++
++- **X1** 没有品牌依据的靛蓝、紫色主色，或直接套用品类最顺手的配色。
++- **X2** 蓝到紫、紫到粉的大跨度渐变，渐变文字，无来由的发光与光晕。
++- **X3** 所有内容居中对齐。
++- **X4** 一个间距值用到底，分组看不出来。
++- **X5** 表情符号当图标。
++- **X6** 每张卡片都带大阴影；边框、阴影、底色差叠在同一个元素上。
++- **X7** 每个动作都是实心按钮。
++- **X8** 处处圆角卡片、卡片里再套卡片、每个层级都画线框，画面被切碎。
++- **X9** 标题上方的眉标或编号标签，而内容并没有真实的顺序；给普通卡片加一条彩色单侧粗边线当装饰。
++- **X10** 没来由的“左边大标题 + 右边说明或图片”首屏；后台退回“四张等宽指标卡 + 满屏彩色胶囊”的模板。
++- **X11** 空泛的比喻式文案、填缝短句，以及只有理想数据、没有空和错的界面。
++- **X12** 中文界面里的英文大写标签、用系统字体拉开字距冒充品牌字标。
++
++## 4. 误报
++
++下面这些看起来像违规，其实不是；报出来会损害评审的可信度：
++
++- 刻意的高密度后台或数据工具（S1）。
++- `max-width: 36em`、`70ch` 这类按字数写的宽度值，它正是在表达行长规则（T2）。
++- 衬线字体：这是性格选择，不是错误。
++- 完全没有阴影：扁平设计成立，检查深度是否由颜色承担（D4）。
++- 居中的短标题或一两行的标语（T6）。
++- 视觉上隐藏的标题（H4）。
++- 同一列内容里宽度不同的段落与表格（T2）。
++- 确认对话框里醒目的红色删除按钮：这里破坏性操作就是主操作（H6）。
++- 上下不对称的标题外边距（S3）。
++- 两块不同的底色之间没有边框（S9）。
++- 侧栏当前项的指示条、正文引用的竖线（X9）。
++
++## 5. 矫枉过正
++
++规则用过头同样是问题：
++
++- 所有内容挤进一条窄居中栏：表格和图解需要更宽的空间（S4）。
++- 次要文字淡到读不清：规格类内容里标签和值只差一级（H3）。
++- 细线加深成满屏深色网格：要加粗并保持柔和的颜色（H5）。
++- 删光所有边框导致什么都分不开：是少用，而不是不用（S9）。
++- 数据工具上留出巨大的空白：刻意的密度是合理的（S1）。
++- 色阶越调越多：微调已有色阶可以，新增色阶会破坏体系（C1）。
++- 拟物的斜面和渐变：模拟光源点到为止（D1）。
+diff --git a/skills/pretty-ui/references/system.md b/skills/pretty-ui/references/system.md
+new file mode 100644
+index 0000000..d067ffd
+--- /dev/null
++++ b/skills/pretty-ui/references/system.md
+@@ -0,0 +1,139 @@
++# 设计体系（刻度与 token）
++
++[pretty-ui](../SKILL.md) 的 system 模式、build 第 4 步、补 token 时读本页。体系的作用是把每一次取值变成“从刻度里挑”，而不是每次凭感觉；同一个页面里出现第三个相近却不同的间距值，就是缺刻度的信号。
++
++## 1. 先盘点，再补缺
++
++动手前在项目里找已有的体系：`tokens.css`、CSS 变量、Tailwind 配置、主题文件、组件库、品牌规范、`DESIGN.md`。按下面 12 项列出“已有 / 部分 / 缺”：
++
++| 体系 | 内容 |
++| --- | --- |
++| 颜色 | 品牌色阶、灰阶、语义色（成功、警告、危险、信息）、暗色模式映射 |
++| 字体 | 字族与回退、字阶、字重、行高、字距 |
++| 间距 | 间距刻度、组件内边距、区块间距 |
++| 布局 | 容器宽度、栅格、断点、正文行宽 |
++| 圆角 | 一个统一的决定，加少量层级 |
++| 深度 | 阴影层级、层叠顺序、遮罩 |
++| 边框 | 粗细、颜色、什么时候用边框而不是间距或底色 |
++| 图标 | 图标集、尺寸、描边粗细 |
++| 控件 | 按钮层级、输入框、选中、标签、开关的共用形状与状态 |
++| 状态 | 悬停、按下、聚焦、禁用、加载、空、出错 |
++| 动效 | 时长、缓动、哪些属性可以动 |
++| 语气 | 按钮文案、提示、错误信息的写法 |
++
++已有的部分原样沿用，命名跟随项目；只补缺的刻度，并在 `DESIGN.md` 里写清哪些是新增的。
++
++## 2. 至多问一轮
++
++缺的项较多、又没有品牌规范时，在独立使用的前提下问用户一轮，最多三个问题，每题给推荐值：
++
++- 主色从哪里来：已有品牌色、参考产品，还是由方向卡推出。
++- 调性：安静 ↔ 喧闹、疏 ↔ 密、活泼 ↔ 庄重三个轴上靠哪边。
++- 是否需要暗色模式。
++
++用户说“你定”、上游是 goal 模式或无人值守时，按方向卡自定，在 `DESIGN.md` 写下理由。
++
++## 3. 颜色
++
++### 3.1 色阶
++
++- 每个色相一条 9 级色阶（100–900，需要时加 50 和 950）。品牌主色、灰阶、每个语义色各一条；装饰色按需再加。
++- 用 `scripts/palette.py` 生成，主色放在 500：
++
++```bash
++python3 scripts/palette.py --base '#0f7b6c' --name brand --css     # 输出 CSS 变量
++python3 scripts/palette.py --grey --temperature cool --css          # 冷灰阶
++python3 scripts/palette.py --base '#d97706' --name warning --json   # JSON 结构
++```
++
++- 算法：先定 500 和两端（100 最浅、900 最深），再二分出 700 / 300，再二分出 800 / 600 / 400 / 200；明度离 50% 越远饱和度越高，避免两端发灰；变浅时色相向亮色相（黄、青、品红）转、变深时向暗色相（红、绿、蓝）转，转动上限 20°，超过 30° 会读成另一种颜色。
++- 灰阶带温度：冷灰偏蓝、暖灰偏黄，与主色的冷暖一致；最浅一级停在接近白而不是纯白。
++- 生成后在真实界面里看：黄、青这类亮色相的 500 往往显得太浅，按眼睛调整，而不是死守算法输出。
++- 主色本身很深（明度低于约 30%）时调低 `--darkest`（如 12），让 900 仍比 500 深；语义色的浅底（50、100）容易漂到邻近色相（红变桃、绿变青），用较小的 `--cap` 或按眼睛挑一个，再用对比度脚本量过。
++
++### 3.2 对比度
++
++- 只校验界面里真实出现的文字 / 背景配对，用 `scripts/contrast.py`：
++
++```bash
++python3 scripts/contrast.py --pair '#6b7280' '#ffffff'
++python3 scripts/contrast.py --pair '#ffffff' '#0f7b6c' --size large
++python3 scripts/contrast.py --matrix pairs.json   # {"pairs": [{"name": "正文", "fg": "#…", "bg": "#…", "size": "normal"}]}
++```
++
++- 门槛：正文至少 4.5:1，18px 以上或 14px 粗体以上的大字至少 3:1；图标、输入框边框等非文字元素至少 3:1。
++- 不达标时两种修法优先：**翻转**（深色有色底上的浅字，改成同色浅底上的深色字），或**转色相**（文字色相向青、品红、黄转一点，在不变白的前提下提高对比）。
++
++### 3.3 语义与用量
++
++- 语义色只表达状态：危险、警告、成功、信息各有固定含义，同时配文字或图标。
++- 强调色有预算，常规界面约占画面一成；主操作、当前选中、关键数字用它，其余交给灰阶。
++- 有色底上的次要文字用同色相的浅一级或深一级，而不是灰色或半透明白。
++
++## 4. 字体
++
++- **字阶**（px）：12、14、16、18、20、24、30、36、48、60、72。13 只给密集工具的辅助文字。展示字号之间跳得开，正文附近的级差小。
++- **字重**：正文 400 或 500，强调 600 或 700，两档足够；低于 400 的字重只给大展示字。
++- **行高**：中文正文 1.6–1.75，英文正文 1.5–1.6；标题随字号变大而收紧，多行中文标题 1.2–1.35，大展示字 1.1–1.2。
++- **字距**：大标题略收紧，全大写的英文小标签放宽约 0.05em；中文正文保持默认字距。
++- **字族**：系统字体栈是可靠的默认，中文回退写全：
++
++```css
++--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
++  "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
++--font-serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", serif;
++--font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
++```
++
++- 方向卡指定了字体时，按需引入并保留上述回退；离线交付的页面只用系统字体或随包附带的字体文件。
++- 数字列和会跳动的数字用等宽数字（`font-variant-numeric: tabular-nums`）。
++
++## 5. 间距、布局、圆角、深度、边框
++
++- **间距刻度**（px）：4、8、12、16、24、32、48、64、96、128。从多到少：先给足留白，再按需要收紧。
++- **分组**：组内间距小于组间间距，相邻两级至少差一档；标签与控件之间的距离小于控件与下一组之间的距离。
++- **布局**：内容决定宽度，而不是“铺满屏幕”；表单、卡片、正文各有自己的最大宽度。中文正文 30–40 字一行（列宽 = 字号 × 字数，用 `px` 或 `rem` 写在正文列上），宽表格和图解可以更宽。
++- **圆角**：全局一个决定（方、微圆、圆），再分出小控件、卡片、浮层两三级；同一层级的元素圆角一致。
++- **阴影**（五级就够，先定最小和最大，中间大致线性填）：
++
++```css
++--shadow-1: 0 1px 3px rgb(0 0 0 / .2);
++--shadow-2: 0 4px 6px rgb(0 0 0 / .2);
++--shadow-3: 0 5px 15px rgb(0 0 0 / .2);
++--shadow-4: 0 10px 24px rgb(0 0 0 / .2);
++--shadow-5: 0 15px 35px rgb(0 0 0 / .2);
++```
++
++  阴影表达离用户多近：按钮 1 级、下拉菜单 3 级、模态框 5 级，按层级选而不是按好看选。光源来自上方，阴影只向下偏移、不横向偏移。需要更细腻时用两段阴影，一段紧贴的接触阴影、一段大而柔的环境阴影，层级越高接触阴影越淡。凸起元素的上沿用手挑的浅一级颜色，而不是叠半透明白。暗色模式里深度靠表面明度区分（越高的层越亮），阴影退居其次。
++- **边框**：1px 和 2px 两档。分隔优先用间距和底色差，边框留给输入框和需要明确边界的地方。
++
++## 6. 两层 token
++
++- **基础层**：原始刻度，如 `--color-brand-600`、`--space-4`、`--text-16`。
++- **语义层**：表达用途，引用基础层；组件只用语义层，这样暗色模式和换品牌只是重新映射。
++
++语义层最小集合：
++
++```css
++:root {
++  --surface: …;  --surface-raised: …;  --surface-sunken: …;
++  --text: …;  --text-secondary: …;  --text-muted: …;
++  --border: …;  --border-strong: …;
++  --action: …;  --action-hover: …;  --action-subtle: …;
++  --danger: …;  --warning: …;  --success: …;  --info: …;
++}
++```
++
++- **暗色模式**：重新映射语义层，而不是把颜色取反；表面从深灰起步而不是纯黑，文字用接近白的浅灰；有色元素降低饱和度、调整明度后重新校验对比度。
++
++## 7. 产出
++
++| 文件 | 内容 |
++| --- | --- |
++| `tokens.css` | 基础层与语义层的 CSS 变量；暗色模式用 `[data-theme="dark"]` 或 `prefers-color-scheme` 覆盖语义层 |
++| `DESIGN.md` | 方向卡摘要、每个刻度的取值与理由、哪些沿用项目既有、哪些新增、对比度校验结果、使用规则（什么时候用哪一级） |
++| `preview.html` | 一页看全体系：色阶、字阶样张（含中文）、间距、圆角、阴影、按钮与输入框的各个状态；离线可打开 |
++
++三个文件放在项目约定的位置；没有约定时放 `design-system/`。preview 页面同样跑 `scripts/check_page.py` 并截图看一眼。
++
++在 taskrail 任务里，这三个文件就是 Active Instance 的内容；版本目录、freeze 与摘要规则按 taskrail 的 `ui-delivery.md` 执行。
+diff --git a/skills/pretty-ui/references/visual-components.md b/skills/pretty-ui/references/visual-components.md
+deleted file mode 100644
+index 5fece35..0000000
+--- a/skills/pretty-ui/references/visual-components.md
++++ /dev/null
+@@ -1,47 +0,0 @@
+-# 视觉语言、表达组件与布局
+-
+-[pretty-ui](../SKILL.md) 工作流第 5–6 步按本页选色、选组件与布局；配色方法见 [frontend-design](frontend-design/REFERENCE.md)，图解见 [html-diagram](html-diagram/REFERENCE.md)。
+-
+-## 视觉语言与导航
+-
+-配色由本次内容的主题、读者与阅读任务决定。生成前按 [frontend-design](frontend-design/REFERENCE.md) 选定一组内聚色值并直接写入结果，不要求运行时读取主题文件。每次按内容选色，而非沿用固定色板或通用默认色。
+-
+-- 同一多页内容包共用一套视觉语言与色义映射。
+-- 根聚合页已存在时保留其原有视觉语言并增量更新；新建根聚合页时按索引页自身的阅读任务选色，不必套用某篇内容页的色板。
+-- 重点、状态与结构用选定色板中的强调色编码，而不是只靠字重或灰阶。
+-
+-每个页面使用一致的顶部导航栏，至少提供根聚合页入口，并在内容包内提供包首页和当前位置。导航栏采用 `position: sticky`、`top: 0` 和明确层级，背景必须足以遮住滚动内容；窄屏可换行或横向滚动，不能隐藏关键入口。
+-
+-## 表达组件
+-
+-按内容职责选用具有表达力的语义化组件；组件服务于扫描、对比和操作，不把普通段落一律卡片化。同一多页包共用一套组件语言与色义映射。生成前根据输入挑选足够的组件类型，让页面有真实的组件层次，而非“标题 + 灰段落”的模板页。
+-
+-| 职责 | 优先组件 | 用色提示 |
+-|------|----------|----------|
+-| 内容表达 | 结论/摘要条、导语、定义列表、关键引用、分段说明 | 结论可用主强调色或高亮色边框；引用可用信息色 |
+-| 标签 / 徽章 | 状态徽章、类型标签、优先级标记、版本/受众 chip | 状态映射错误/警告/成功语义色；类别用次级色区分 |
+-| 架构 / 可视化 | 分层架构、流程步骤、关系图、状态/时序图、图例、时间线（按 [html-diagram](html-diagram/REFERENCE.md) 选型） | 层级与连线用主色与信息色区分；图例颜色必须有语义 |
+-| 对比 / 决策 | 对照表、优劣矩阵、方案并列表、决策记录、取舍说明 | 正向用成功色、负向用错误色、权衡用警告色；决策结论加强调色 |
+-| 教程 / 操作 | 有序步骤、检查清单、命令/代码块、`kbd`、注意事项 callout | 步骤序号用主强调色；警告/阻断用警告或错误色 callout |
+-| 数据 / 状态 | 指标条、进度、状态面板、字段表、结果汇总 | 达标用成功色、异常用错误色、待定用警告色；关键数字可用高亮色 |
+-
+-约束：
+-
+-- 只表达输入中真实存在的信息；不为“好看”虚构指标、状态或对比项。
+-- 卡片、徽章和 callout 只用来编码真实职责或语义（装饰性编号、无意义图标行、卡片海洋都算模板化装饰）。
+-- 图解按 [html-diagram](html-diagram/REFERENCE.md) 选型与绘制；优先语义 HTML/CSS/SVG，复杂图必须配文字说明与图例，并嵌入阅读页而非默认拆成独立文件。
+-- 颜色不单独承担全部含义：同一状态同时提供文字标签，并保持足够对比度。
+-
+-## 阅读与布局要求
+-
+-- 内容优先：用清晰的信息层级、适宜行宽、稳定节奏和充足留白支持连续阅读。
+-- 桌面端默认采用偏宽的阅读布局：内容容器宜充分利用视口，常见上限可落在约 `1200–1600px`，配合响应式侧边距与 `clamp()` 内边距，而非传统窄文章栏。
+-- 连续长文段落可略收窄以保持行长可读；表格、代码、图解、对照与多栏区域使用内容容器的完整宽度。
+-- 按内容类型、主要阅读任务和视口自适应宽度；局部宽内容在自身容器内滚动，不撑破页面。
+-- 控制字体数量；装饰仅保留能帮助理解、建立辨识度或承载组件语义的元素。重点、状态与结构差异优先用选定色板中的强调色表达。
+-- 正文、表格、代码、引用、提示和图片都要在桌面与窄屏上易读；宽表格允许横向滚动，不能撑破页面。
+-- 使用语义化 HTML，保持标题层级连续，并提供明确的页面标题、语言属性和 viewport。
+-- 链接和控件具有清晰文本、可见键盘焦点与足够对比度；含义同时由文字承载。
+-- 动效必须服务阅读，默认克制，并尊重 `prefers-reduced-motion`。纯阅读页不为“高级感”强行动画。
+-- 优先生成可独立打开的静态页面。除非确有必要，不依赖构建步骤、前端框架或必须联网加载的资源。
+-
+diff --git a/skills/pretty-ui/scripts/check_page.py b/skills/pretty-ui/scripts/check_page.py
+new file mode 100644
+index 0000000..5f240a5
+--- /dev/null
++++ b/skills/pretty-ui/scripts/check_page.py
+@@ -0,0 +1,286 @@
++#!/usr/bin/env python3
++"""静态检查生成的 HTML 页面：本地链接、页面基本信息、联网依赖，以及常见的默认样貌提示。
++
++  python3 check_page.py docs/pretty-ui --offline
++  python3 check_page.py page.html other.html
++
++报错（退出码 1）：
++  - 本地 href / src / srcset / CSS url() 从所在文件的目录解析不到目标
++  - 站点根路径（/…）、file:// 或绝对磁盘路径的本地链接
++  - 缺 <html lang>、viewport 或 <title>
++  - 加 --offline 时，依赖联网加载的脚本、样式、字体、图片或模块
++提示（不影响退出码，方括号里是 references/rules.md 的规则号）：
++  渐变文字、表情符号当图标、去掉焦点轮廓却没有 :focus-visible、有动效却没有
++  prefers-reduced-motion、小于 12px 的字号、没走 CSS 变量的颜色、中文页面里的大写变换、
++  链接指向目录或检查目录之外。
++
++输入是目录时检查其中全部 .html。只依赖 Python 3 标准库。
++"""
++from __future__ import annotations
++
++import argparse
++import os
++import re
++import sys
++from html.parser import HTMLParser
++from urllib.parse import unquote
++
++SKIP_SCHEMES = ("mailto:", "tel:", "data:", "javascript:", "blob:", "about:", "sms:")
++RESOURCE_LINK_RELS = {"stylesheet", "icon", "shortcut", "apple-touch-icon", "preload", "modulepreload", "manifest", "prefetch"}
++RESOURCE_TAGS = {"script", "img", "source", "video", "audio", "iframe", "embed", "track", "input"}
++EMOJI_CONTEXTS = {"h1", "h2", "h3", "h4", "h5", "h6", "button", "a", "label", "summary", "th", "dt"}
++EMOJI_RE = re.compile(
++    "[\U0001F300-\U0001FAFF\u2600-\u2604\u2607-\u260F\u2613-\u26FF"
++    "\u2705\u2728\u274C\u2753-\u2757\u2795-\u2797\u2B50\u2B55\u231A\u231B\u23E9-\u23F3\u23F8-\u23FA]"
++)
++CSS_URL_RE = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", re.I)
++CSS_IMPORT_RE = re.compile(r"@import\s+['\"]([^'\"]+)['\"]", re.I)
++CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
++JS_REMOTE_IMPORT_RE = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]((?:https?:)?//[^'"]+)['"]""")
++COLOR_LITERAL_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(")
++FONT_SIZE_RE = re.compile(r"font-size\s*:\s*([\d.]+)(px|rem)\b", re.I)
++BLOCK_RE = re.compile(r"\{([^{}]*)\}")
++
++
++class PageParser(HTMLParser):
++    def __init__(self) -> None:
++        super().__init__(convert_charrefs=True)
++        self.lang: str | None = None
++        self.has_viewport = False
++        self.title_parts: list[str] = []
++        self.has_title_tag = False
++        self.refs: list[tuple[str, str, bool]] = []  # (url, 来源描述, 是否属于页面资源)
++        self.css: list[str] = []
++        self.scripts: list[str] = []
++        self.emoji_hits: list[str] = []
++        self._raw: str | None = None  # 正在读取的 style / script / title
++        self._ctx: dict[str, int] = {}
++
++    def handle_starttag(self, tag: str, attrs_list: list[tuple[str, str | None]]) -> None:
++        attrs = {k.lower(): (v or "") for k, v in attrs_list}
++        if tag == "html":
++            self.lang = attrs.get("lang", "").strip() or None
++        elif tag == "meta" and attrs.get("name", "").lower() == "viewport":
++            self.has_viewport = True
++        elif tag in ("title", "style", "script"):
++            self._raw = tag
++            if tag == "title":
++                self.has_title_tag = True
++        if tag in EMOJI_CONTEXTS:
++            self._ctx[tag] = self._ctx.get(tag, 0) + 1
++        if "style" in attrs:
++            self.css.append(attrs["style"])
++
++        if tag == "link":
++            rels = set(attrs.get("rel", "").lower().split())
++            if attrs.get("href"):
++                self.refs.append((attrs["href"], "<link href>", bool(rels & RESOURCE_LINK_RELS)))
++        elif tag == "a" or tag == "area":
++            if attrs.get("href"):
++                self.refs.append((attrs["href"], f"<{tag} href>", False))
++        else:
++            for key in ("src", "href", "xlink:href", "poster", "data"):
++                if attrs.get(key):
++                    resource = tag in RESOURCE_TAGS or key in ("src", "poster", "data") or tag in ("image", "use", "object")
++                    self.refs.append((attrs[key], f"<{tag} {key}>", resource))
++            if attrs.get("srcset"):
++                for part in attrs["srcset"].split(","):
++                    url = part.strip().split(" ")[0]
++                    if url:
++                        self.refs.append((url, f"<{tag} srcset>", True))
++
++    def handle_endtag(self, tag: str) -> None:
++        if tag == self._raw:
++            self._raw = None
++        if self._ctx.get(tag):
++            self._ctx[tag] -= 1
++
++    def handle_data(self, data: str) -> None:
++        if self._raw == "style":
++            self.css.append(data)
++        elif self._raw == "script":
++            self.scripts.append(data)
++        elif self._raw == "title":
++            self.title_parts.append(data)
++        elif any(self._ctx.values()) and EMOJI_RE.search(data):
++            self.emoji_hits.append(data.strip()[:20])
++
++
++def classify(url: str) -> str:
++    u = url.strip()
++    low = u.lower()
++    if not u or u.startswith("#") or low.startswith(SKIP_SCHEMES):
++        return "skip"
++    if low.startswith(("http://", "https://", "//")):
++        return "remote"
++    if low.startswith("file:"):
++        return "file"
++    if re.match(r"^[a-zA-Z]:[\\/]", u) or u.startswith("\\\\"):
++        return "abs"
++    if u.startswith("/"):
++        return "root"
++    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", u):
++        return "skip"
++    return "local"
++
++
++def css_blocks(fragments: list[str]) -> list[str]:
++    """样式表取最内层的声明块；style 属性没有花括号，整段算一个块。"""
++    blocks: list[str] = []
++    for frag in fragments:
++        frag = CSS_COMMENT_RE.sub("", frag)
++        blocks += BLOCK_RE.findall(frag) if "{" in frag else [frag]
++    return blocks
++
++
++def css_declarations(blocks: list[str]) -> list[tuple[str, str]]:
++    out = []
++    for block in blocks:
++        for decl in block.split(";"):
++            if ":" in decl:
++                prop, value = decl.split(":", 1)
++                out.append((prop.strip().lower(), value.strip()))
++    return out
++
++
++def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], list[str]]:
++    errors: list[str] = []
++    hints: list[str] = []
++    with open(path, encoding="utf-8", errors="replace") as fh:
++        text = fh.read()
++    p = PageParser()
++    p.feed(text)
++    p.close()
++    base = os.path.dirname(os.path.abspath(path))
++    css = CSS_COMMENT_RE.sub("", "\n".join(p.css))
++    blocks = css_blocks(p.css)
++    scripts = "\n".join(p.scripts)
++
++    if not p.lang:
++        errors.append("<html> 缺 lang 属性")
++    if not p.has_viewport:
++        errors.append('缺 <meta name="viewport">')
++    if not p.has_title_tag or not "".join(p.title_parts).strip():
++        errors.append("缺 <title> 或标题为空")
++
++    refs = list(p.refs)
++    refs += [(m.group(2), "CSS url()", True) for m in CSS_URL_RE.finditer(css)]
++    refs += [(m.group(1), "CSS @import", True) for m in CSS_IMPORT_RE.finditer(css)]
++    refs += [(m.group(1), "<script> import", True) for m in JS_REMOTE_IMPORT_RE.finditer(scripts)]
++
++    remote: list[str] = []
++    dir_links: list[str] = []
++    outside: list[str] = []
++    seen: set[tuple[str, str]] = set()
++    for url, where, resource in refs:
++        if (url, where) in seen:
++            continue
++        seen.add((url, where))
++        kind = classify(url)
++        if kind == "skip":
++            continue
++        if kind == "remote":
++            if resource:
++                remote.append(f"{url}（{where}）")
++            continue
++        if kind == "file":
++            errors.append(f"file:// 链接换目录后失效：{url}（{where}）")
++            continue
++        if kind == "abs":
++            errors.append(f"绝对磁盘路径换机器后失效：{url}（{where}）")
++            continue
++        if kind == "root":
++            errors.append(f"站点根路径离开当前目录就失效，改成相对当前文件的路径：{url}（{where}）")
++            continue
++        rel = unquote(re.split(r"[?#]", url, maxsplit=1)[0])
++        if not rel:
++            continue
++        target = os.path.normpath(os.path.join(base, rel))
++        if not os.path.exists(target):
++            errors.append(f"本地链接目标不存在：{url}（{where}，从 {os.path.relpath(base)} 解析）")
++            continue
++        if os.path.isdir(target):
++            dir_links.append(url)
++        if root and os.path.commonpath([os.path.abspath(root), target]) != os.path.abspath(root):
++            outside.append(url)
++
++    if remote:
++        msg = f"依赖联网资源 {len(remote)} 处，离线打不开：" + "；".join(remote[:3])
++        (errors if offline else hints).append(msg)
++    if dir_links:
++        hints.append("链接指向目录，直接打开文件时不会自动补 index.html，写全 …/index.html：" + "、".join(dir_links[:3]))
++    if outside:
++        hints.append("链接指向检查目录之外：" + "、".join(outside[:3]))
++
++    gradient_text = sum(1 for b in blocks if re.search(r"background-clip\s*:\s*text", b, re.I) and "gradient" in b.lower())
++    if gradient_text:
++        hints.append(f"[X2] 渐变文字 {gradient_text} 处")
++    if len(p.emoji_hits) >= 2:
++        hints.append(f"[X5] 标题、按钮、链接里的表情符号 {len(p.emoji_hits)} 处：" + "、".join(p.emoji_hits[:3]))
++    if re.search(r"outline\s*:\s*(none|0)\b", css, re.I) and ":focus-visible" not in css:
++        hints.append("[F7] 去掉了焦点轮廓，却没有 :focus-visible 样式")
++    if re.search(r"@keyframes|\banimation\s*:|\btransition\s*:", css, re.I) and "prefers-reduced-motion" not in css:
++        hints.append("[M4] 有动效，却没有 prefers-reduced-motion 的处理")
++    small = []
++    for value, unit in FONT_SIZE_RE.findall(css):
++        px = float(value) * (16 if unit.lower() == "rem" else 1)
++        if px < 12:
++            small.append(f"{value}{unit}")
++    if small:
++        hints.append(f"[T4] 小于 12px 的字号 {len(small)} 处：" + "、".join(sorted(set(small))[:5]))
++    literals = []
++    for prop, value in css_declarations(blocks):
++        if not prop.startswith("--") and COLOR_LITERAL_RE.search(value):
++            literals.append(f"{prop}: {value[:32]}")
++    if literals:
++        hints.append(f"[C1] 没走 CSS 变量的颜色 {len(literals)} 处：" + "；".join(literals[:3]))
++    if (p.lang or "").lower().startswith("zh"):
++        upper = len(re.findall(r"text-transform\s*:\s*uppercase", css, re.I))
++        if upper:
++            hints.append(f"[X12] 中文页面里的大写变换 {upper} 处")
++    return errors, hints
++
++
++def collect(paths: list[str]) -> list[tuple[str, str | None]]:
++    files: list[tuple[str, str | None]] = []
++    for item in paths:
++        if os.path.isdir(item):
++            for dirpath, dirnames, filenames in os.walk(item):
++                dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
++                for name in sorted(filenames):
++                    if name.lower().endswith((".html", ".htm")):
++                        files.append((os.path.join(dirpath, name), item))
++        elif os.path.isfile(item):
++            files.append((item, None))
++        else:
++            print(f"找不到：{item}", file=sys.stderr)
++            raise SystemExit(2)
++    return files
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    ap.add_argument("paths", nargs="+", help="HTML 文件或目录")
++    ap.add_argument("--offline", action="store_true", help="页面必须离线可用：联网资源算报错")
++    a = ap.parse_args()
++
++    files = collect(a.paths)
++    if not files:
++        print("没有找到 .html 文件", file=sys.stderr)
++        return 2
++    n_err = n_hint = 0
++    for path, root in files:
++        errors, hints = check_file(path, root, a.offline)
++        shown = os.path.relpath(path)
++        for e in errors:
++            print(f"ERROR {shown}: {e}")
++        for h in hints:
++            print(f"WARN  {shown}: {h}")
++        n_err += len(errors)
++        n_hint += len(hints)
++    print(f"检查 {len(files)} 个文件：{n_err} 个报错，{n_hint} 条提示")
++    return 1 if n_err else 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/skills/pretty-ui/scripts/contrast.py b/skills/pretty-ui/scripts/contrast.py
+new file mode 100644
+index 0000000..52b3c70
+--- /dev/null
++++ b/skills/pretty-ui/scripts/contrast.py
+@@ -0,0 +1,140 @@
++#!/usr/bin/env python3
++"""按 WCAG 对比度门槛校验文字 / 背景配对。
++
++移植并改写自 edisonmbli/refactoring-ui-skill 的 scripts/check_contrast.py
++（MIT © 2026 Edison Li，许可全文见 ../licenses/refactoring-ui-skill-MIT.txt）。
++改动：中文说明与修法提示。
++
++门槛：正文至少 4.5:1；18px 以上或 14px 粗体以上的大字至少 3:1。
++--brightness 报告感知亮度（解释为什么同样的 HSL 明度下黄色比蓝色显得亮）。
++
++只依赖 Python 3 标准库。
++
++  python3 contrast.py --pair '#6b7280' '#ffffff'
++  python3 contrast.py --pair '#ffffff' '#0f7b6c' --size large
++  python3 contrast.py --matrix pairs.json
++  python3 contrast.py --brightness '#eab308' '#2563eb'
++
++pairs.json：{"pairs": [{"name": "正文", "fg": "#111827", "bg": "#ffffff", "size": "normal"}]}
++
++有任何配对不达标时退出码为 1，输入有误时为 2，可直接当门禁用。
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import math
++import re
++import sys
++
++AA_NORMAL, AA_LARGE = 4.5, 3.0
++
++
++def hex_to_rgb(s: str) -> tuple[int, int, int]:
++    s = s.strip().lstrip("#")
++    if len(s) == 3:
++        s = "".join(c * 2 for c in s)
++    if len(s) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", s):
++        raise ValueError(f"不是十六进制颜色：{s}")
++    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
++
++
++def relative_luminance(rgb: tuple[int, int, int]) -> float:
++    """WCAG 2.x 相对亮度，4.5:1 等门槛按它定义。"""
++
++    def lin(c: int) -> float:
++        c /= 255.0
++        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
++
++    r, g, b = (lin(c) for c in rgb)
++    return 0.2126 * r + 0.7152 * g + 0.0722 * b
++
++
++def contrast_ratio(a: str, b: str) -> float:
++    la, lb = relative_luminance(hex_to_rgb(a)), relative_luminance(hex_to_rgb(b))
++    hi, lo = max(la, lb), min(la, lb)
++    return (hi + 0.05) / (lo + 0.05)
++
++
++def perceived_brightness(c: str) -> float:
++    """感知亮度 sqrt(0.299r² + 0.587g² + 0.114b²) / 255，和 WCAG 亮度不是一回事。"""
++    r, g, b = hex_to_rgb(c)
++    return math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b) / 255
++
++
++def verdict(ratio: float, size: str) -> tuple[bool, str]:
++    need = AA_LARGE if size == "large" else AA_NORMAL
++    ok = ratio >= need
++    label = "大字" if size == "large" else "正文"
++    return ok, f"{'PASS' if ok else 'FAIL'}  {ratio:.2f}:1（{label}需要 {need}:1）"
++
++
++def advise(fg: str, bg: str, size: str) -> list[str]:
++    tips = []
++    if perceived_brightness(bg) < 0.45:
++        tips.append("翻转：深色有色底上的浅字，改成同色相浅底上的深色字")
++        tips.append("或转色相：把文字色相向青、品红、黄转一点（不超过 20–30°），不变白也能提高对比")
++    else:
++        tips.append("把文字沿色阶往深处挪一两级")
++    if size == "normal":
++        tips.append("如果这是 18px 以上（或 14px 粗体以上）的大字，只需要 3:1，用 --size large 再查")
++    return tips
++
++
++def check_matrix(path: str, size: str) -> int:
++    try:
++        with open(path, encoding="utf-8") as fh:
++            data = json.load(fh)
++    except (OSError, json.JSONDecodeError) as e:
++        print(f"{path}：读不了（{e}）", file=sys.stderr)
++        return 2
++    pairs = data.get("pairs") if isinstance(data, dict) else None
++    if not pairs:
++        print(f"{path}：没有找到 pairs 数组；列出界面里真实出现的文字 / 背景组合", file=sys.stderr)
++        return 2
++    failures = 0
++    width = max((len(p.get("name", "")) for p in pairs), default=4)
++    for p in pairs:
++        s = p.get("size", size)
++        ok, line = verdict(contrast_ratio(p["fg"], p["bg"]), s)
++        failures += not ok
++        print(f"{p.get('name', ''):<{width}}  {p['fg']} 在 {p['bg']} 上  {line}")
++        if not ok:
++            for t in advise(p["fg"], p["bg"], s):
++                print(f"{'':<{width}}    → {t}")
++    print(f"\n{len(pairs) - failures}/{len(pairs)} 通过")
++    return 1 if failures else 0
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    ap.add_argument("--pair", nargs=2, metavar=("FG", "BG"), help="校验一组配对")
++    ap.add_argument("--matrix", metavar="PAIRS.JSON", help="校验一份配对清单")
++    ap.add_argument("--brightness", nargs="+", metavar="COLOR", help="报告感知亮度")
++    ap.add_argument("--size", choices=("normal", "large"), default="normal", help="normal 为正文（4.5:1），large 为大字（3:1）")
++    a = ap.parse_args()
++
++    try:
++        if a.brightness:
++            for c in a.brightness:
++                print(f"{c}  感知亮度 {perceived_brightness(c):.3f}  WCAG 亮度 {relative_luminance(hex_to_rgb(c)):.3f}")
++            return 0
++        if a.pair:
++            fg, bg = a.pair
++            ok, line = verdict(contrast_ratio(fg, bg), a.size)
++            print(f"{fg} 在 {bg} 上   {line}")
++            if not ok:
++                for t in advise(fg, bg, a.size):
++                    print(f"  → {t}")
++            return 0 if ok else 1
++        if a.matrix:
++            return check_matrix(a.matrix, a.size)
++    except (ValueError, KeyError) as e:
++        print(f"错误：{e}", file=sys.stderr)
++        return 2
++    ap.error("需要 --pair、--matrix 或 --brightness")
++    return 2
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/skills/pretty-ui/scripts/palette.py b/skills/pretty-ui/scripts/palette.py
+new file mode 100644
+index 0000000..6eb53dd
+--- /dev/null
++++ b/skills/pretty-ui/scripts/palette.py
+@@ -0,0 +1,217 @@
++#!/usr/bin/env python3
++"""生成一条 9 级色阶（100–900，可选 50 / 950）。
++
++移植并改写自 edisonmbli/refactoring-ui-skill 的 scripts/generate_palette.py
++（MIT © 2026 Edison Li，许可全文见 ../licenses/refactoring-ui-skill-MIT.txt）。
++改动：中文说明、新增 --css 输出 CSS 变量。
++
++算法：
++  1. 主色放 500，先定两端 100 / 900，再二分出 700 / 300，再二分出 800 / 600 / 400 / 200；
++  2. 明度离 50% 越远饱和度越高，避免两端发灰；
++  3. 变浅时色相向亮色相（黄、青、品红）转，变深时向暗色相（红、绿、蓝）转，转动有上限；
++  4. 灰阶带冷暖，最浅一级停在接近白而不是纯白。
++
++只依赖 Python 3 标准库。
++
++  python3 palette.py --base '#0f7b6c' --name brand
++  python3 palette.py --base 'hsl(15, 65%, 45%)' --extended --css
++  python3 palette.py --grey --temperature warm --css
++  python3 palette.py --base '#d97706' --name warning --json
++"""
++from __future__ import annotations
++
++import argparse
++import colorsys
++import json
++import re
++import sys
++
++BRIGHT_HUES = (60.0, 180.0, 300.0)  # 感知亮度的波峰：变浅时转向这里
++DARK_HUES = (0.0, 120.0, 240.0)  # 感知亮度的波谷：变深时转向这里
++
++
++def hex_to_hsl(s: str) -> tuple[float, float, float]:
++    s = s.strip().lstrip("#")
++    if len(s) == 3:
++        s = "".join(c * 2 for c in s)
++    if len(s) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", s):
++        raise ValueError(f"不是十六进制颜色：{s}")
++    r, g, b = (int(s[i:i + 2], 16) / 255 for i in (0, 2, 4))
++    h, light, sat = colorsys.rgb_to_hls(r, g, b)
++    return h * 360, sat * 100, light * 100
++
++
++def hsl_to_hex(h: float, s: float, light: float) -> str:
++    r, g, b = colorsys.hls_to_rgb((h % 360) / 360, light / 100, s / 100)
++    return "#%02x%02x%02x" % tuple(round(c * 255) for c in (r, g, b))
++
++
++def parse_color(s: str) -> tuple[float, float, float]:
++    """接受 #rgb、#rrggbb 或 hsl(h, s%, l%)。"""
++    m = re.match(r"hsl\(\s*([\d.]+)\s*[, ]\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*\)", s.strip(), re.I)
++    if m:
++        return float(m.group(1)), float(m.group(2)), float(m.group(3))
++    return hex_to_hsl(s)
++
++
++def fmt_hsl(h: float, s: float, light: float) -> str:
++    return f"hsl({h % 360:.0f}, {s:.0f}%, {light:.0f}%)"
++
++
++def _chroma_headroom(light: float) -> float:
++    """HSL 色度 = (1 - |2L-1|) * S，返回 (1 - |2L-1|)；越靠两端越小。"""
++    return max(1e-6, 1.0 - abs(2.0 * (light / 100.0) - 1.0))
++
++
++def compensate_saturation(s_base: float, l_base: float, l_target: float, strength: float = 0.55) -> float:
++    """明度离 50% 越远，饱和度抬得越高，让色度在感知上保持平稳。
++
++    strength 为 0 时关闭补偿，为 1 时完全保持色度（两端会很快顶到 100%）。
++    """
++    if s_base <= 0:
++        return 0.0
++    ratio = _chroma_headroom(l_base) / _chroma_headroom(l_target)
++    return min(100.0, s_base * (ratio ** strength))
++
++
++def _signed_delta(frm: float, to: float) -> float:
++    """最短的带符号角度差，范围 (-180, 180]。"""
++    return (to - frm + 180.0) % 360.0 - 180.0
++
++
++def _nearest(h: float, targets: tuple[float, ...], prefer: str = "auto") -> float:
++    """最近的目标色相；红色这类到两个目标等距时，按 prefer 决定偏暖还是偏冷。"""
++    if prefer in ("warm", "cool"):
++        want = 1.0 if prefer == "warm" else -1.0
++        ranked = sorted(targets, key=lambda t: (abs(_signed_delta(h, t)), -want * _signed_delta(h, t)))
++        return ranked[0]
++    return min(targets, key=lambda t: abs(_signed_delta(h, t)))
++
++
++def rotate_hue(h_base: float, l_base: float, l_target: float, cap: float = 20.0, prefer: str = "auto") -> float:
++    """变浅转向亮色相、变深转向暗色相；幅度随明度变化量增长，并被 cap 截断。"""
++    if l_target == l_base:
++        return h_base
++    lighten = l_target > l_base
++    target = _nearest(h_base, BRIGHT_HUES if lighten else DARK_HUES, prefer)
++    delta = _signed_delta(h_base, target)
++    span = (100.0 - l_base) if lighten else l_base
++    if span <= 0:
++        return h_base
++    progress = min(1.0, abs(l_target - l_base) / span)
++    return h_base + max(-cap, min(cap, delta * progress))
++
++
++def bisect_lightness(l_light: float, l_base: float, l_dark: float) -> dict[int, float]:
++    """900 / 500 / 100 → 700 / 300 → 800 / 600 / 400 / 200。"""
++    lv = {900: l_dark, 500: l_base, 100: l_light}
++    lv[700] = (lv[900] + lv[500]) / 2
++    lv[300] = (lv[500] + lv[100]) / 2
++    lv[800] = (lv[900] + lv[700]) / 2
++    lv[600] = (lv[700] + lv[500]) / 2
++    lv[400] = (lv[500] + lv[300]) / 2
++    lv[200] = (lv[300] + lv[100]) / 2
++    return lv
++
++
++def build_ramp(
++    base: tuple[float, float, float],
++    l_light: float | None = None,
++    l_dark: float | None = None,
++    strength: float = 0.55,
++    cap: float = 20.0,
++    extended: bool = False,
++    prefer: str = "auto",
++) -> dict[int, dict]:
++    h0, s0, l0 = base
++    l_light = 96.0 if l_light is None else l_light
++    l_dark = 21.0 if l_dark is None else l_dark
++    if not (l_dark < l0 < l_light):
++        raise ValueError(f"主色明度 {l0:.0f}% 要落在 --darkest {l_dark:.0f}% 与 --lightest {l_light:.0f}% 之间")
++    lv = bisect_lightness(l_light, l0, l_dark)
++    if extended:
++        lv[50] = l_light + (100.0 - l_light) * 0.55
++        lv[950] = l_dark * 0.55
++    out = {}
++    for stop in sorted(lv):
++        lt = lv[stop]
++        h = h0 if stop == 500 else rotate_hue(h0, l0, lt, cap, prefer)
++        s = s0 if stop == 500 else compensate_saturation(s0, l0, lt, strength)
++        out[stop] = {
++            "h": round(h % 360, 1),
++            "s": round(s, 1),
++            "l": round(lt, 1),
++            "hex": hsl_to_hex(h, s, lt),
++            "hsl": fmt_hsl(h, s, lt),
++        }
++    return out
++
++
++def grey_base(temperature: str, saturation: float) -> tuple[float, float, float]:
++    """冷灰偏蓝、暖灰偏黄橙，中性灰不带色相。"""
++    hue = {"cool": 220.0, "warm": 35.0, "neutral": 0.0}[temperature]
++    return hue, (0.0 if temperature == "neutral" else saturation), 50.0
++
++
++def to_css(name: str, ramp: dict[int, dict]) -> str:
++    lines = [":root {"]
++    lines += [f"  --color-{name}-{stop}: {c['hex']};" for stop, c in ramp.items()]
++    lines.append("}")
++    return "\n".join(lines)
++
++
++def main() -> int:
++    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    p.add_argument("--base", help="主色，如 '#0f7b6c' 或 'hsl(15,65%%,45%%)'；用项目真实的品牌色")
++    p.add_argument("--grey", action="store_true", help="生成灰阶")
++    p.add_argument("--temperature", choices=("cool", "warm", "neutral"), default="cool", help="灰阶冷暖（默认 cool）")
++    p.add_argument("--grey-saturation", type=float, default=12.0, help="灰阶带色的程度（默认 12）")
++    p.add_argument("--lightest", type=float, help="100 级的明度%%（默认 96，灰阶 98）")
++    p.add_argument("--darkest", type=float, help="900 级的明度%%（默认 21，灰阶 17）")
++    p.add_argument("--strength", type=float, default=0.55, help="饱和度补偿强度，0 关闭，1 完全保持色度")
++    p.add_argument("--cap", type=float, default=20.0, help="色相转动上限（度），超过 30 会读成另一种颜色")
++    p.add_argument("--extended", action="store_true", help="额外输出 50 与 950 两级")
++    p.add_argument(
++        "--toward",
++        choices=("auto", "warm", "cool"),
++        default="auto",
++        help="两个目标色相等距时（红色常见）的取向：warm 偏橙黄，cool 偏品红蓝",
++    )
++    p.add_argument("--name", default="color", help="色阶名，用于输出")
++    out = p.add_mutually_exclusive_group()
++    out.add_argument("--json", action="store_true", help="输出 JSON")
++    out.add_argument("--css", action="store_true", help="输出 CSS 变量 --color-<name>-<级>")
++    a = p.parse_args()
++
++    if a.cap > 30:
++        print("提示：--cap 超过 30° 会读成另一种颜色，而不是同色的深浅", file=sys.stderr)
++    try:
++        if a.grey:
++            base = grey_base(a.temperature, a.grey_saturation)
++            name = a.name if a.name != "color" else "neutral"
++            light = 98.0 if a.lightest is None else a.lightest
++            dark = 17.0 if a.darkest is None else a.darkest
++        elif a.base:
++            base, name, light, dark = parse_color(a.base), a.name, a.lightest, a.darkest
++        else:
++            p.error("需要 --base COLOR 或 --grey")
++        ramp = build_ramp(base, light, dark, a.strength, a.cap, a.extended, a.toward)
++    except ValueError as e:
++        print(f"错误：{e}", file=sys.stderr)
++        return 2
++
++    if a.json:
++        print(json.dumps({name: {str(k): v for k, v in ramp.items()}}, indent=2, ensure_ascii=False))
++    elif a.css:
++        print(to_css(name, ramp))
++    else:
++        print(f"{name}   主色 {fmt_hsl(*base)}   strength={a.strength} cap={a.cap}°")
++        print(f"{'级':>5}  {'hex':<9} {'hsl':<22}")
++        for stop, c in ramp.items():
++            mark = "  ← 主色" if stop == 500 else ""
++            print(f"{stop:>5}  {c['hex']:<9} {c['hsl']:<22}{mark}")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+new file mode 100644
+index 0000000..38fa709
+--- /dev/null
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -0,0 +1,195 @@
++"""pretty-ui 文本契约：路由、信条、看图门槛、问题字段、中文排版数值、阅读页落盘与来源许可。"""
++
++from __future__ import annotations
++
++import re
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++
++
++def ref(name: str) -> str:
++    return (ROOT / "references" / name).read_text(encoding="utf-8")
++
++
++def frontmatter(text: str) -> dict[str, str]:
++    block = text.split("---", 2)[1]
++    out = {}
++    for line in block.strip().splitlines():
++        key, _, value = line.partition(":")
++        out[key.strip()] = value.strip()
++    return out
++
++
++class SkillEntryTest(unittest.TestCase):
++    def test_frontmatter(self) -> None:
++        fm = frontmatter(SKILL)
++        self.assertEqual(fm["id"], "pretty-ui")
++        self.assertEqual(fm["name"], "pretty-ui")
++        self.assertLessEqual(len(fm["description"]), 300)
++        for word in ("设计方向", "设计体系", "截图", "评审", "阅读页"):
++            self.assertIn(word, fm["description"])
++
++    def test_three_creeds(self) -> None:
++        for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
++            self.assertIn(creed, SKILL)
++
++    def test_routing_modes(self) -> None:
++        for mode in ("| 小改 |", "| build |", "| refine |", "| review |", "| system |", "| page |"):
++            self.assertIn(mode, SKILL)
++        self.assertIn("只读，不改文件", SKILL)
++        self.assertIn("system 再 build", SKILL)
++
++    def test_direction_asks_once_or_self_selects(self) -> None:
++        self.assertIn("问用户一次，本轮结束", SKILL)
++        self.assertIn("自选并写明理由", SKILL)
++
++    def test_render_gate(self) -> None:
++        self.assertIn("1280", SKILL)
++        self.assertIn("375", SKILL)
++        self.assertIn("未渲染验证", SKILL)
++        self.assertIn("code-only", SKILL)
++        self.assertIn("scripts/check_page.py", SKILL)
++
++    def test_ten_laws_numbers(self) -> None:
++        for phrase in ("每屏一个主角", "先灰度后上色", "取值来自刻度", "组外距离大于组内", "既有体系优先"):
++            self.assertIn(phrase, SKILL)
++        self.assertIn("30–40 字（上限 46）", SKILL)
++        self.assertIn("16–18px", SKILL)
++        self.assertIn("4.5:1", SKILL)
++
++    def test_linked_files_exist(self) -> None:
++        links = re.findall(r"\]\(([^)#]+)\)", SKILL)
++        self.assertTrue(links)
++        for link in links:
++            self.assertTrue((ROOT / link).exists(), link)
++        for name in ("direction.md", "system.md", "rules.md", "critique.md", "page.md"):
++            self.assertIn(f"references/{name}", SKILL)
++
++    def test_runtime_artifacts_outside_skill(self) -> None:
++        self.assertIn("本 skill 目录保持只读", SKILL)
++
++
++class DirectionTest(unittest.TestCase):
++    TEXT = ref("direction.md")
++
++    def test_card_fields(self) -> None:
++        for field in ("北极星", "调性", "标杆与取舍", "生成引擎", "首屏骨架", "字体", "色彩", "主视觉", "控件语法", "动效", "记忆点", "放弃什么"):
++            self.assertIn(f"| {field} |", self.TEXT)
++
++    def test_benchmarks_from_real_screens(self) -> None:
++        self.assertIn("未看图，凭记忆", self.TEXT)
++        for word in ("基线", "套路", "撞脸"):
++            self.assertIn(word, self.TEXT)
++
++    def test_difference_check(self) -> None:
++        self.assertIn("四项至多一项相同", self.TEXT)
++        self.assertIn("至少一个打破品类套路", self.TEXT)
++        self.assertIn("两遍法", self.TEXT)
++
++    def test_light_card_for_upstream(self) -> None:
++        self.assertIn("轻量方向卡", self.TEXT)
++        self.assertIn("写清取它哪一点", self.TEXT)
++
++
++class SystemTest(unittest.TestCase):
++    TEXT = ref("system.md")
++
++    def test_scripts_and_outputs(self) -> None:
++        for word in ("scripts/palette.py", "scripts/contrast.py", "tokens.css", "DESIGN.md", "preview.html"):
++            self.assertIn(word, self.TEXT)
++
++    def test_two_layer_tokens(self) -> None:
++        self.assertIn("两层 token", self.TEXT)
++        for token in ("--surface", "--text-muted", "--action", "--danger"):
++            self.assertIn(token, self.TEXT)
++
++    def test_existing_system_first(self) -> None:
++        self.assertIn("已有的部分原样沿用", self.TEXT)
++        self.assertIn("ui-delivery.md", self.TEXT)
++
++
++class RulesTest(unittest.TestCase):
++    TEXT = ref("rules.md")
++
++    def test_sweep_order_and_lenses(self) -> None:
++        self.assertIn("H 层级 → S 间距与布局 → T 排版 → C 色彩 → D 深度 → I 图像与图标 → F 收尾与状态 → M 动效", self.TEXT)
++        for rule in ("**H1**", "**S3**", "**T2**", "**C4**", "**C5**", "**D2**", "**I2**", "**I6**", "**F4**", "**M4**", "**X1**", "**X12**"):
++            self.assertIn(rule, self.TEXT)
++
++    def test_severity_mapping(self) -> None:
++        for row in ("| P0 |", "| P1 |", "| P2 |", "Blocker", "Major", "Minor"):
++            self.assertIn(row, self.TEXT)
++        self.assertIn("图解或关键插图渲染失败、离线缺失，只剩报错或空白（I6）", self.TEXT)
++
++    def test_rule_id_gate_and_false_positives(self) -> None:
++        self.assertIn("每条问题都要指得到一个规则号", self.TEXT)
++        self.assertIn("## 4. 误报", self.TEXT)
++        self.assertIn("## 5. 矫枉过正", self.TEXT)
++
++    def test_cjk_numbers(self) -> None:
++        self.assertIn("上限 46", self.TEXT)
++        self.assertIn("1.6–1.75", self.TEXT)
++
++
++class CritiqueTest(unittest.TestCase):
++    TEXT = ref("critique.md")
++
++    def test_finding_table(self) -> None:
++        self.assertIn("| # | 镜头 | 严重度 | 位置 | 规则 | 现状 | 改法 | 验证 |", self.TEXT)
++        self.assertIn("`rendered`", self.TEXT)
++        self.assertIn("`code-only`", self.TEXT)
++
++    def test_review_handbook(self) -> None:
++        for phrase in ("三秒测试", "精致度", "设计感", "保留：", "重做：", "不打数字分"):
++            self.assertIn(phrase, self.TEXT)
++
++    def test_isolated_review(self) -> None:
++        self.assertIn("交给评审者", self.TEXT)
++        self.assertIn("留在手里", self.TEXT)
++        self.assertIn("confirm-protocol.md", self.TEXT)
++
++    def test_stop_rule(self) -> None:
++        self.assertIn("同一个 P0 两轮没改好", self.TEXT)
++
++
++class PageTest(unittest.TestCase):
++    TEXT = ref("page.md")
++
++    def test_output_root_and_legacy(self) -> None:
++        self.assertIn("默认输出到 `docs/pretty-ui/`", self.TEXT)
++        self.assertIn("`docs/pretty-view-html/index.html`", self.TEXT)
++
++    def test_links_and_confirmation(self) -> None:
++        self.assertIn("包含这个链接的 HTML 文件所在目录", self.TEXT)
++        self.assertIn("用户明确确认后", self.TEXT)
++        self.assertIn("check_page.py --offline", self.TEXT)
++
++    def test_reading_layout(self) -> None:
++        self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)
++        self.assertIn("用 `px` 或 `rem` 写在列容器上", self.TEXT)
++        self.assertIn("16–18px", self.TEXT)
++        self.assertIn("`text-wrap: balance`", self.TEXT)
++        self.assertIn("先在灰度下", self.TEXT)
++
++
++class NoticeTest(unittest.TestCase):
++    def test_sources_and_licenses(self) -> None:
++        notice = (ROOT / "NOTICE.md").read_text(encoding="utf-8")
++        for src in ("oil-oil/oil-ui", "edisonmbli/refactoring-ui-skill", "plannotator/effective-html"):
++            self.assertIn(src, notice)
++        for path in ("licenses/oil-ui-MIT.txt", "licenses/refactoring-ui-skill-MIT.txt", "references/html-diagram/LICENSE"):
++            self.assertIn(path, notice)
++            self.assertIn("MIT License", (ROOT / path).read_text(encoding="utf-8"))
++
++    def test_ported_scripts_name_source(self) -> None:
++        for script in ("palette.py", "contrast.py"):
++            head = (ROOT / "scripts" / script).read_text(encoding="utf-8")[:600]
++            self.assertIn("edisonmbli/refactoring-ui-skill", head)
++            self.assertIn("MIT", head)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_scripts.py b/skills/pretty-ui/tests/test_pretty_ui_scripts.py
+new file mode 100644
+index 0000000..547be84
+--- /dev/null
++++ b/skills/pretty-ui/tests/test_pretty_ui_scripts.py
+@@ -0,0 +1,155 @@
++"""pretty-ui 脚本：色阶单调、对比度数值、check_page 的报错与提示。"""
++
++from __future__ import annotations
++
++import importlib.util
++import json
++import subprocess
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SCRIPTS = ROOT / "scripts"
++
++
++def load(name: str):
++    spec = importlib.util.spec_from_file_location(f"pretty_ui_{name}", SCRIPTS / f"{name}.py")
++    mod = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(mod)
++    return mod
++
++
++def run(script: str, *args: str, cwd: str | None = None) -> subprocess.CompletedProcess:
++    return subprocess.run(
++        [sys.executable, str(SCRIPTS / script), *args], capture_output=True, text=True, cwd=cwd
++    )
++
++
++GOOD_PAGE = """<!doctype html>
++<html lang="zh-CN"><head><meta charset="utf-8">
++<meta name="viewport" content="width=device-width,initial-scale=1"><title>示例</title>
++<style>:root { --text: #1f2937; --bg: #ffffff; } body { color: var(--text); background: var(--bg); }</style>
++</head><body><a href="./sub/index.html">子页</a><a href="https://example.com">外链</a></body></html>
++"""
++
++SUB_PAGE = """<!doctype html>
++<html lang="zh-CN"><head><meta charset="utf-8">
++<meta name="viewport" content="width=device-width,initial-scale=1"><title>子页</title></head>
++<body><a href="../index.html">返回</a></body></html>
++"""
++
++
++class PaletteTest(unittest.TestCase):
++    pal = load("palette")
++
++    def test_ramp_lightness_monotonic_and_base_kept(self) -> None:
++        ramp = self.pal.build_ramp(self.pal.parse_color("#0f7b6c"))
++        stops = sorted(ramp)
++        self.assertEqual(stops, [100, 200, 300, 400, 500, 600, 700, 800, 900])
++        lightness = [ramp[s]["l"] for s in stops]
++        self.assertEqual(lightness, sorted(lightness, reverse=True))
++        self.assertEqual(ramp[500]["hex"], "#0f7b6c")
++
++    def test_hue_rotation_capped(self) -> None:
++        h0 = self.pal.parse_color("#2563eb")[0]
++        ramp = self.pal.build_ramp(self.pal.parse_color("#2563eb"), cap=20.0)
++        for c in ramp.values():
++            delta = abs((c["h"] - h0 + 180) % 360 - 180)
++            self.assertLessEqual(delta, 20.0 + 0.1)
++
++    def test_css_output(self) -> None:
++        r = run("palette.py", "--grey", "--css")
++        self.assertEqual(r.returncode, 0, r.stderr)
++        self.assertIn("--color-neutral-100:", r.stdout)
++        self.assertIn("--color-neutral-900:", r.stdout)
++
++    def test_bad_color_exit_2(self) -> None:
++        self.assertEqual(run("palette.py", "--base", "nope").returncode, 2)
++
++
++class ContrastTest(unittest.TestCase):
++    con = load("contrast")
++
++    def test_known_ratios(self) -> None:
++        self.assertAlmostEqual(self.con.contrast_ratio("#000000", "#ffffff"), 21.0, places=2)
++        self.assertGreaterEqual(self.con.contrast_ratio("#767676", "#ffffff"), 4.5)
++        self.assertLess(self.con.contrast_ratio("#777777", "#ffffff"), 4.5)
++
++    def test_exit_codes(self) -> None:
++        self.assertEqual(run("contrast.py", "--pair", "#767676", "#ffffff").returncode, 0)
++        self.assertEqual(run("contrast.py", "--pair", "#777777", "#ffffff").returncode, 1)
++        self.assertEqual(run("contrast.py", "--pair", "#777777", "#ffffff", "--size", "large").returncode, 0)
++
++    def test_matrix(self) -> None:
++        with tempfile.TemporaryDirectory() as d:
++            path = Path(d) / "pairs.json"
++            path.write_text(json.dumps({"pairs": [
++                {"name": "正文", "fg": "#111827", "bg": "#ffffff"},
++                {"name": "弱字", "fg": "#9ca3af", "bg": "#ffffff"},
++            ]}), encoding="utf-8")
++            r = run("contrast.py", "--matrix", str(path))
++            self.assertEqual(r.returncode, 1)
++            self.assertIn("1/2 通过", r.stdout)
++
++
++class CheckPageTest(unittest.TestCase):
++    def site(self, d: str, index: str = GOOD_PAGE, sub: str = SUB_PAGE) -> Path:
++        root = Path(d) / "out"
++        (root / "sub").mkdir(parents=True)
++        (root / "index.html").write_text(index, encoding="utf-8")
++        (root / "sub" / "index.html").write_text(sub, encoding="utf-8")
++        return root
++
++    def test_good_site_passes_offline(self) -> None:
++        with tempfile.TemporaryDirectory() as d:
++            r = run("check_page.py", "--offline", str(self.site(d)))
++            self.assertEqual(r.returncode, 0, r.stdout)
++            self.assertIn("0 个报错", r.stdout)
++
++    def test_broken_and_absolute_links_fail(self) -> None:
++        bad = GOOD_PAGE.replace('href="./sub/index.html"', 'href="./missing.html"').replace(
++            "</body>", '<a href="/docs/x.html">根</a><img src="file:///tmp/a.png" alt=""></body>'
++        )
++        with tempfile.TemporaryDirectory() as d:
++            r = run("check_page.py", str(self.site(d, index=bad)))
++            self.assertEqual(r.returncode, 1)
++            self.assertIn("本地链接目标不存在：./missing.html", r.stdout)
++            self.assertIn("站点根路径", r.stdout)
++            self.assertIn("file://", r.stdout)
++
++    def test_page_basics_required(self) -> None:
++        bare = "<html><head><title></title></head><body></body></html>"
++        with tempfile.TemporaryDirectory() as d:
++            r = run("check_page.py", str(self.site(d, sub=bare)))
++            self.assertEqual(r.returncode, 1)
++            for msg in ("缺 lang", "viewport", "<title>"):
++                self.assertIn(msg, r.stdout)
++
++    def test_remote_dependency_is_error_only_offline(self) -> None:
++        cdn = GOOD_PAGE.replace(
++            "</head>", '<script type="module">import m from "https://cdn.example.com/m.mjs";</script></head>'
++        )
++        with tempfile.TemporaryDirectory() as d:
++            root = self.site(d, index=cdn)
++            self.assertEqual(run("check_page.py", str(root)).returncode, 0)
++            r = run("check_page.py", "--offline", str(root))
++            self.assertEqual(r.returncode, 1)
++            self.assertIn("依赖联网资源", r.stdout)
++
++    def test_default_look_hints(self) -> None:
++        loud = GOOD_PAGE.replace(
++            "</style>",
++            "h1 { background: linear-gradient(90deg, var(--text), var(--bg)); background-clip: text; }"
++            " button { outline: none; transition: transform .2s; font-size: 11px; color: #6b7280; }</style>",
++        ).replace("<body>", "<body><h1>🚀 发布</h1><button>✨ 开始</button>")
++        with tempfile.TemporaryDirectory() as d:
++            r = run("check_page.py", str(self.site(d, index=loud)))
++            self.assertEqual(r.returncode, 0, r.stdout)
++            for tag in ("[X2]", "[X5]", "[F7]", "[M4]", "[T4]", "[C1]"):
++                self.assertIn(tag, r.stdout)
++
++
++if __name__ == "__main__":
++    unittest.main()

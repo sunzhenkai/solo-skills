@@ -1,0 +1,169 @@
+diff --git a/skills/pretty-view-html/SKILL.md b/skills/pretty-ui/SKILL.md
+similarity index 98%
+rename from skills/pretty-view-html/SKILL.md
+rename to skills/pretty-ui/SKILL.md
+index 10586cf..b465f55 100644
+--- a/skills/pretty-view-html/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -1,10 +1,10 @@
+ ---
+-id: pretty-view-html
+-name: pretty-view-html
++id: pretty-ui
++name: pretty-ui
+ description: 把已有上下文、文件、报告、方案或评审内容整理成适合浏览器阅读的静态 HTML 阅读页（单页或多页）。用户要求生成 HTML、网页阅读页、漂亮的 HTML 文档时使用。
+ ---
+ 
+-# Pretty View HTML
++# Pretty UI
+ 
+ 把用户提供的上下文或文件转成美观、简洁、优雅且适合阅读的 HTML 文档。保留原内容的事实、术语和层次；可以重组信息以改善阅读，只表达输入里真实存在的内容。产物是可离线打开的阅读页；真实网站、组件开发或需部署的页面交给前端开发流程，独立图表产物交给对应图表 skill。
+ 
+diff --git a/skills/pretty-view-html/evals/README.md b/skills/pretty-ui/evals/README.md
+similarity index 100%
+rename from skills/pretty-view-html/evals/README.md
+rename to skills/pretty-ui/evals/README.md
+diff --git a/skills/pretty-view-html/evals/cases.yaml b/skills/pretty-ui/evals/cases.yaml
+similarity index 99%
+rename from skills/pretty-view-html/evals/cases.yaml
+rename to skills/pretty-ui/evals/cases.yaml
+index 923e9d5..ce21ba1 100644
+--- a/skills/pretty-view-html/evals/cases.yaml
++++ b/skills/pretty-ui/evals/cases.yaml
+@@ -1,5 +1,5 @@
+ version: 1
+-skill: pretty-view-html
++skill: pretty-ui
+ cases:
+   - id: default-output-root
+     kind: basic
+diff --git a/skills/pretty-view-html/evals/fixtures/beacon-ttl/SOURCE.md b/skills/pretty-ui/evals/fixtures/beacon-ttl/SOURCE.md
+similarity index 96%
+rename from skills/pretty-view-html/evals/fixtures/beacon-ttl/SOURCE.md
+rename to skills/pretty-ui/evals/fixtures/beacon-ttl/SOURCE.md
+index 2e581da..e3c0e63 100644
+--- a/skills/pretty-view-html/evals/fixtures/beacon-ttl/SOURCE.md
++++ b/skills/pretty-ui/evals/fixtures/beacon-ttl/SOURCE.md
+@@ -1,6 +1,6 @@
+ # 灯塔网关 SEV-1：signed-url TTL 单位事故
+ 
+-这份草稿是 pretty-view-html 阅读页展示测试的源稿。灯塔网关（Beacon Gate）是虚构的个人文件分发网关。2026-08-12 的 TTL 单位错误、当晚热修复、以及热修复合入前的审查，是**同一件事**：已吊销链接仍能下载，根因在 `ttl_ms` 被当成秒写入 Redis。读者对象是值班工程师、跟动作项的研发，以及将要合入 `PR #1843` 的评审人。不是对外新闻稿，也不另写一份独立 code review。
++这份草稿是 pretty-ui 阅读页展示测试的源稿。灯塔网关（Beacon Gate）是虚构的个人文件分发网关。2026-08-12 的 TTL 单位错误、当晚热修复、以及热修复合入前的审查，是**同一件事**：已吊销链接仍能下载，根因在 `ttl_ms` 被当成秒写入 Redis。读者对象是值班工程师、跟动作项的研发，以及将要合入 `PR #1843` 的评审人。不是对外新闻稿，也不另写一份独立 code review。
+ 
+ ## 结论
+ 
+diff --git a/skills/pretty-view-html/evals/fixtures/marine-life/SOURCE.md b/skills/pretty-ui/evals/fixtures/marine-life/SOURCE.md
+similarity index 97%
+rename from skills/pretty-view-html/evals/fixtures/marine-life/SOURCE.md
+rename to skills/pretty-ui/evals/fixtures/marine-life/SOURCE.md
+index a31f197..7a7f9a0 100644
+--- a/skills/pretty-view-html/evals/fixtures/marine-life/SOURCE.md
++++ b/skills/pretty-ui/evals/fixtures/marine-life/SOURCE.md
+@@ -1,6 +1,6 @@
+ # 潮间带到深渊：一份海洋生物分层图鉴
+ 
+-这份草稿按深度整理海洋生境与代表物种，供 pretty-view-html 阅读页展示测试使用。读者对象是科普入门和要做一次潮间带断面记录的人，不是分类学论文。深度分层是稳定的领域关系：潮间带、浅海陆架、大洋中上层、深海与海沟。物种名、拉丁名和水层术语保持原文。
++这份草稿按深度整理海洋生境与代表物种，供 pretty-ui 阅读页展示测试使用。读者对象是科普入门和要做一次潮间带断面记录的人，不是分类学论文。深度分层是稳定的领域关系：潮间带、浅海陆架、大洋中上层、深海与海沟。物种名、拉丁名和水层术语保持原文。
+ 
+ ## 先记住三件事
+ 
+diff --git a/skills/pretty-view-html/examples/README.md b/skills/pretty-ui/examples/README.md
+similarity index 100%
+rename from skills/pretty-view-html/examples/README.md
+rename to skills/pretty-ui/examples/README.md
+diff --git a/skills/pretty-view-html/experience/README.md b/skills/pretty-ui/experience/README.md
+similarity index 100%
+rename from skills/pretty-view-html/experience/README.md
+rename to skills/pretty-ui/experience/README.md
+diff --git a/skills/pretty-view-html/experience/failures/.gitkeep b/skills/pretty-ui/experience/failures/.gitkeep
+similarity index 100%
+rename from skills/pretty-view-html/experience/failures/.gitkeep
+rename to skills/pretty-ui/experience/failures/.gitkeep
+diff --git a/skills/pretty-view-html/experience/patterns/.gitkeep b/skills/pretty-ui/experience/patterns/.gitkeep
+similarity index 100%
+rename from skills/pretty-view-html/experience/patterns/.gitkeep
+rename to skills/pretty-ui/experience/patterns/.gitkeep
+diff --git a/skills/pretty-view-html/experience/successes/.gitkeep b/skills/pretty-ui/experience/successes/.gitkeep
+similarity index 100%
+rename from skills/pretty-view-html/experience/successes/.gitkeep
+rename to skills/pretty-ui/experience/successes/.gitkeep
+diff --git a/skills/pretty-view-html/references/frontend-design/LICENSE.txt b/skills/pretty-ui/references/frontend-design/LICENSE.txt
+similarity index 100%
+rename from skills/pretty-view-html/references/frontend-design/LICENSE.txt
+rename to skills/pretty-ui/references/frontend-design/LICENSE.txt
+diff --git a/skills/pretty-view-html/references/frontend-design/REFERENCE.md b/skills/pretty-ui/references/frontend-design/REFERENCE.md
+similarity index 98%
+rename from skills/pretty-view-html/references/frontend-design/REFERENCE.md
+rename to skills/pretty-ui/references/frontend-design/REFERENCE.md
+index c45fcd7..26a2cbf 100644
+--- a/skills/pretty-view-html/references/frontend-design/REFERENCE.md
++++ b/skills/pretty-ui/references/frontend-design/REFERENCE.md
+@@ -6,7 +6,7 @@ license: Complete terms in LICENSE.txt
+ 
+ # Frontend Design
+ 
+-> Vendored reference from [anthropics/skills `skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design)（Apache-2.0，LICENSE.txt 随目录附带）。When invoked via `pretty-view-html`, follow the parent Skill for page visual language and layout; this file supplies aesthetic-direction guidance.
++> Vendored reference from [anthropics/skills `skills/frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design)（Apache-2.0，LICENSE.txt 随目录附带）。When invoked via `pretty-ui`, follow the parent Skill for page visual language and layout; this file supplies aesthetic-direction guidance.
+ 
+ Approach this as the design lead at a small studio known for giving every client a visual identity that could not be mistaken for anyone else's. This client has already rejected proposals that felt templated, and is paying for a distinctive point of view: make deliberate, opinionated choices about palette, typography, and layout that are specific to this brief, and take one real aesthetic risk you can justify.
+ 
+diff --git a/skills/pretty-view-html/references/html-diagram/REFERENCE.md b/skills/pretty-ui/references/html-diagram/REFERENCE.md
+similarity index 71%
+rename from skills/pretty-view-html/references/html-diagram/REFERENCE.md
+rename to skills/pretty-ui/references/html-diagram/REFERENCE.md
+index 3eceb6d..b310e81 100644
+--- a/skills/pretty-view-html/references/html-diagram/REFERENCE.md
++++ b/skills/pretty-ui/references/html-diagram/REFERENCE.md
+@@ -5,7 +5,7 @@ description: Direct-invocation specialist for self-contained HTML diagrams whose
+ 
+ # HTML Diagram
+ 
+-> Vendored reference from [plannotator/effective-html `skills/html-diagram`](https://github.com/plannotator/effective-html/blob/main/skills/html-diagram/SKILL.md). When invoked via `pretty-view-html`, follow the parent Skill for embedding, the page visual language, and page layout; this file supplies diagram modeling and rendering guidance.
++> Vendored reference from [plannotator/effective-html `skills/html-diagram`](https://github.com/plannotator/effective-html/blob/main/skills/html-diagram/SKILL.md). When invoked via `pretty-ui`, follow the parent Skill for embedding, the page visual language, and page layout; this file supplies diagram modeling and rendering guidance.
+ 
+ Build the smallest visual model that makes the relationship easier to understand than prose alone. Match the notation and visual language to the user's project and subject. Do not force every topic into the same SVG boxes and arrows.
+ 
+@@ -36,11 +36,11 @@ Use HTML and CSS, SVG, Canvas, or WebGL according to the information and scale.
+ 
+ Add sequencing, filtering, path tracing, pan and zoom, or animation only when it helps answer the stated question. Keep overlays dismissible, controls keyboard-accessible, and motion compatible with `prefers-reduced-motion`.
+ 
+-When used from `pretty-view-html`, the parent Skill's selected palette and its frontend-design guidance (linked directly from the parent Skill) set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
++When used from `pretty-ui`, the parent Skill's selected palette and its frontend-design guidance (linked directly from the parent Skill) set the surrounding composition and visual register. Keep the chosen diagram grammar, label legibility, and relationships authoritative over decorative treatment.
+ 
+ ## Build and verify
+ 
+-When used from `pretty-view-html`, embed the diagram in the reading page with essential CSS and JavaScript inline; do not emit a separate diagram HTML file unless the user asks for a standalone artifact. Otherwise deliver one self-contained HTML file. Require no build step or external service. Use accessible text alternatives and keep important meaning available without animation or color alone.
++When used from `pretty-ui`, embed the diagram in the reading page with essential CSS and JavaScript inline; do not emit a separate diagram HTML file unless the user asks for a standalone artifact. Otherwise deliver one self-contained HTML file. Require no build step or external service. Use accessible text alternatives and keep important meaning available without animation or color alone.
+ 
+ Inspect the result at wide and narrow widths. Check label collisions, clipped nodes, edge routing, reading order, keyboard operation, overflow, and every interactive state.
+ 
+diff --git a/skills/pretty-view-html/references/organization.md b/skills/pretty-ui/references/organization.md
+similarity index 98%
+rename from skills/pretty-view-html/references/organization.md
+rename to skills/pretty-ui/references/organization.md
+index 5abf4ee..d93fb76 100644
+--- a/skills/pretty-view-html/references/organization.md
++++ b/skills/pretty-ui/references/organization.md
+@@ -1,6 +1,6 @@
+ # 文件组织、链接与根聚合页
+ 
+-[pretty-view-html](../SKILL.md) 工作流第 2–4、8 步按本页落盘。
++[pretty-ui](../SKILL.md) 工作流第 2–4、8 步按本页落盘。
+ 
+ ## 文件组织
+ 
+diff --git a/skills/pretty-view-html/references/visual-components.md b/skills/pretty-ui/references/visual-components.md
+similarity index 95%
+rename from skills/pretty-view-html/references/visual-components.md
+rename to skills/pretty-ui/references/visual-components.md
+index 9883b50..5fece35 100644
+--- a/skills/pretty-view-html/references/visual-components.md
++++ b/skills/pretty-ui/references/visual-components.md
+@@ -1,6 +1,6 @@
+ # 视觉语言、表达组件与布局
+ 
+-[pretty-view-html](../SKILL.md) 工作流第 5–6 步按本页选色、选组件与布局；配色方法见 [frontend-design](frontend-design/REFERENCE.md)，图解见 [html-diagram](html-diagram/REFERENCE.md)。
++[pretty-ui](../SKILL.md) 工作流第 5–6 步按本页选色、选组件与布局；配色方法见 [frontend-design](frontend-design/REFERENCE.md)，图解见 [html-diagram](html-diagram/REFERENCE.md)。
+ 
+ ## 视觉语言与导航
+ 

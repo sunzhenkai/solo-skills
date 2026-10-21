@@ -1,0 +1,79 @@
+diff --git a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+index 243c36a..142b20c 100644
+--- a/skills/role-based-reviewer/references/roles/design.md
++++ b/skills/role-based-reviewer/references/roles/design.md
+@@ -2,7 +2,7 @@
+ 
+ 角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。
+ 
+-来源：参考 vercel-labs/web-interface-guidelines（可静态判定规则）、anthropics/frontend-design（微文案与 anti-slop）与 Nielsen/WCAG 启发式改写。
++来源：参考 vercel-labs/web-interface-guidelines（可静态判定规则）、anthropics/frontend-design（微文案与 anti-slop）与 Nielsen/WCAG 启发式改写；视觉条目另对照本仓 pretty-ui 的规则号（见第 5 节）。
+ 
+ ## 优先锚点
+ 
+@@ -65,10 +65,12 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ### 5. 视觉与一致性
+ 
++视觉意见落到 pretty-ui [rules.md](../../../pretty-ui/references/rules.md) 的规则号（H 层级、S 间距与布局、T 排版、C 色彩、D 深度、X AI 默认样貌），写成「规则号 + 现状 + 改法」；级别仍按本清单。
++
+ 32. 🟡 [代码] 颜色/间距/圆角/阴影/字体走 design token，diff 中不新增硬编码值
+ 33. 🟡 [代码] 语义色全程一致：错误=红、成功=绿、警告=黄，不混用
+ 34. 🟡 [代码] 同类组件与既有组件 API/命名/组织一致；重复实现应复用而非新造
+-35. ⚪ [代码] anti-slop：无生成式默认 tell（套用万能配色/版式套路、装饰性伪精致）
++35. ⚪ [代码] AI 默认样貌（anti-slop）：套用万能配色或版式套路、装饰性伪精致；逐条对照 rules.md 的 X 组（X1–X12），命中时写规则号
+ 36. ⚪ [运行态] 间距/对齐/排版实际渲染层次、字体加载闪烁（FOIT/FOUT）
+ 
+ ### 6. 响应式与适配
+@@ -108,7 +110,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ## 天花板参照集（仅当审阅边界给了参照集）
+ 
+-调用方带天花板参照集时，本角色按它出自己的意见，不受下面「不算问题」节「像素与间距口味」「设计趋势追逐」两条的免报保护——那两条针对的是**无可落条目**的审美主张，参照集正是把主张落到可指认件的机制。
++调用方带天花板参照集时，本角色按它出自己的意见，不受下面「不算问题」节「像素与间距口味」「设计趋势追逐」两条的免报保护——那两条针对的是**无可落条目**的审美主张，参照集正是把主张落到可指认件的机制。参照集通常来自 pretty-ui 方向卡的「标杆与取舍」，或轻量方向卡里的参照（写明取它哪一点）。
+ 
+ - 每条意见 MUST 指到参照集里的具体件，并写清差在哪（构图层级、间距节奏、字号阶梯、色彩关系等），不写「不够精致」「不够高级」这类无法对照的结论。
+ - 参照集未覆盖到的美学选择：报 Suggestion 并注明「参照集未覆盖」；不提「换一种更好看」的方向。
+@@ -118,7 +120,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ 门 3 已限定默认只报 Blocker/Major；本小节给「看起来像问题但不是」的角色级反例，评审时先对照再报。
+ 
+-- **像素与间距口味**：「这里看着太挤/太松」若无 token 判定可落（清单 56），不报；视觉审美结论须能指到具体条目。
++- **像素与间距口味**：「这里看着太挤/太松」落不到 token 判定（清单 56）或 pretty-ui 的间距规则（S2、S3）时不报；视觉审美结论须能指到具体条目或规则号。
+ - **设计趋势追逐**：「业界现在都做成 X」「这个风格过时了」不报；与既有规范一致即可。
+ - **超出 WCAG 强制的无障碍增强**：达到清单门槛后，额外的理想化要求（如全站 AAA 对比度）不报，可作 Suggestion 注明可选。
+ - **组件库未统一为某个库**：用什么组件库归项目约定；只有同类组件重复自造（清单 34）才报。
+@@ -126,7 +128,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ## 下游建议
+ 
+-设计规格 / Active Instance 修订交回 task* 的 design 阶段；修复类结论交回常规实现流程。
++设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交给 pretty-ui；修复类结论交回常规实现流程。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index dfceee5..b66398d 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -1,4 +1,4 @@
+-"""role-based-reviewer：三道门、意图审不在本 skill、design 速度节。"""
++"""role-based-reviewer：三道门、意图审不在本 skill、design 速度节与视觉规则号。"""
+ from __future__ import annotations
+ import unittest
+ from pathlib import Path
+@@ -29,6 +29,14 @@ class RbrContractTest(unittest.TestCase):
+         self.assertIn("## 调用范围与速度", text)
+         self.assertNotIn("tier=simple", text)
+ 
++    def test_design_visual_rule_ids(self) -> None:
++        roles = ROOT / "references" / "roles"
++        text = (roles / "design.md").read_text(encoding="utf-8")
++        self.assertIn("](../../../pretty-ui/references/rules.md)", text)
++        self.assertIn("级别仍按本清单", text)
++        self.assertIn("X 组（X1–X12）", text)
++        self.assertTrue((roles / "../../../pretty-ui/references/rules.md").resolve().is_file())
++
+     def test_no_silent_downgrade(self) -> None:
+         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("不静默改成同源自审", text)

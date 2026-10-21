@@ -1,0 +1,233 @@
+diff --git a/skills/pretty-view-html/SKILL.md b/skills/pretty-view-html/SKILL.md
+index 957542c..10586cf 100644
+--- a/skills/pretty-view-html/SKILL.md
++++ b/skills/pretty-view-html/SKILL.md
+@@ -31,3 +31,7 @@ description: 把已有上下文、文件、报告、方案或评审内容整理
+ - 页面使用与主题相符的配色与表达组件，重点和状态有明确配色编码；吸顶顶部导航与偏宽自适应布局在窄屏下仍可用；若含 diagram，已按 html-diagram 选型并嵌入阅读页。
+ - 每个本地链接都以来源 HTML 文件所在目录解析，目标存在，且没有站点根路径、绝对磁盘路径或 `file://` 链接。
+ - 所有本地链接与资源路径有效，页面可直接在浏览器中打开。
++
++## 自进化
++
++执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
+diff --git a/skills/pretty-view-html/evals/README.md b/skills/pretty-view-html/evals/README.md
+new file mode 100644
+index 0000000..830afe6
+--- /dev/null
++++ b/skills/pretty-view-html/evals/README.md
+@@ -0,0 +1,16 @@
++# Evals
++
++本 Skill 的可验证成功标准。任务完成前对照 `cases.yaml` 检查关键输出与约束。
++
++## 怎么跑
++
++1. 选出与当前任务相关的 cases（`kind` + 描述匹配）
++2. `judge: deterministic`：按 `expect.must` / `expect.must_not` 逐条核对，只报 pass/fail
++3. `judge: llm`：仅当无法确定性判断时使用；给出简短判定与依据，不编分数
++4. 任一条失败 → 先修输出再交卷，不要带着 fail 声称完成
++
++新增 case 必须能从 Skill 原文或真实回归事故找到依据。禁止虚构。
++
++## 素材
++
++`fixtures/` 下是虚构的源稿，供生成阅读页的 case 当输入。生成结果写到本 skill 目录之外（如任务目录或临时目录），不回写进 `fixtures/`。
+diff --git a/skills/pretty-view-html/evals/cases.yaml b/skills/pretty-view-html/evals/cases.yaml
+new file mode 100644
+index 0000000..923e9d5
+--- /dev/null
++++ b/skills/pretty-view-html/evals/cases.yaml
+@@ -0,0 +1,92 @@
++version: 1
++skill: pretty-view-html
++cases:
++  - id: default-output-root
++    kind: basic
++    judge: deterministic
++    description: 默认输出到 docs/pretty-view-html/，用户指定路径时以用户为准
++    given: 用户要把一份 Markdown 报告做成阅读页，没有指定输出路径
++    expect:
++      must:
++        - 产物写在 docs/pretty-view-html/ 下，并在该目录的根 index.html 登记一个入口
++      must_not:
++        - 另建 Markdown 副本代替 HTML 产物
++
++  - id: facts-preserved
++    kind: core
++    judge: llm
++    description: 核心事实、代码、表格、术语和结论没有遗漏或篡改
++    given: 以 evals/fixtures/beacon-ttl/SOURCE.md 为输入生成阅读页
++    expect:
++      must:
++        - 结论里的时间窗口、PR 编号与 TTL 数值和源稿一致
++        - 源稿的表格与代码块都出现在页面中
++      must_not:
++        - 出现源稿没有的指标、状态或对比项
++
++  - id: single-page-default
++    kind: core
++    judge: deterministic
++    description: 默认单页；篇幅长不是拆页理由
++    given: 以 evals/fixtures/marine-life/SOURCE.md（单一主题的长文）为输入
++    expect:
++      must:
++        - 生成一个 <slug>.html，页面可返回根 index.html
++      must_not:
++        - 仅因篇幅长拆成多页内容包
++
++  - id: same-topic-needs-confirmation
++    kind: failure
++    judge: deterministic
++    description: 发现同主题内容时先提归类方案，用户明确确认后才重组
++    given: 根聚合页已有围绕同一核心对象的单页，本次输入是它的续篇
++    expect:
++      must:
++        - 写入前展示归类依据、内容包标题与 slug、页面结构和旧路径处理方式
++      must_not:
++        - 未获确认就移动、覆盖或重组已有 HTML
++
++  - id: relative-links-from-file-dir
++    kind: regression
++    judge: deterministic
++    description: 本地链接以来源 HTML 所在目录为基准计算，目标存在
++    given: 输出到非仓库根的嵌套目录，含根 index.html 与多页内容包
++    expect:
++      must:
++        - 每个本地 href 和 src 从所在文件目录解析后目标存在
++      must_not:
++        - 出现以 / 开头的站点根路径、绝对磁盘路径或 file:// 链接
++
++  - id: no-overwrite-on-name-clash
++    kind: boundary
++    judge: deterministic
++    description: 同名内容已存在且用户没要求覆盖时，换不冲突的 slug 并说明
++    given: 目标路径已有同名 <slug>.html
++    expect:
++      must:
++        - 使用不冲突的 slug，并在结果里说明
++      must_not:
++        - 未经要求覆盖已有文件
++
++  - id: diagram-embedded-offline
++    kind: core
++    judge: deterministic
++    description: 需要图解时按 html-diagram 选型，嵌入阅读页并保持可离线打开
++    given: 输入包含组件关系或流程，需要图解
++    expect:
++      must:
++        - 图解嵌入当前阅读页，配文字说明
++      must_not:
++        - 默认另建独立 diagram 文件
++        - 依赖必须联网加载的脚本才能显示图解
++
++  - id: static-page-basics
++    kind: core
++    judge: deterministic
++    description: 产物是可直接在浏览器打开的静态页面
++    given: 任意阅读页产物
++    expect:
++      must:
++        - 页面有 lang 属性、viewport 与页面标题
++      must_not:
++        - 依赖构建步骤或前端框架才能打开
+diff --git a/skills/pretty-view-html/tests/fixtures/beacon-ttl/SOURCE.md b/skills/pretty-view-html/evals/fixtures/beacon-ttl/SOURCE.md
+similarity index 100%
+rename from skills/pretty-view-html/tests/fixtures/beacon-ttl/SOURCE.md
+rename to skills/pretty-view-html/evals/fixtures/beacon-ttl/SOURCE.md
+diff --git a/skills/pretty-view-html/tests/fixtures/marine-life/SOURCE.md b/skills/pretty-view-html/evals/fixtures/marine-life/SOURCE.md
+similarity index 100%
+rename from skills/pretty-view-html/tests/fixtures/marine-life/SOURCE.md
+rename to skills/pretty-view-html/evals/fixtures/marine-life/SOURCE.md
+diff --git a/skills/pretty-view-html/examples/README.md b/skills/pretty-view-html/examples/README.md
+new file mode 100644
+index 0000000..a2f4eaf
+--- /dev/null
++++ b/skills/pretty-view-html/examples/README.md
+@@ -0,0 +1,25 @@
++# Examples
++
++经过验证的优秀执行案例。执行复杂任务前先读这里，优先复用已验证方法。
++
++## 何时写入
++
++- 用户明确认可，或一次完成且明显优于以往
++- 路径可复用，不是一次性特例
++- 不含密钥、内部 URL、机器专属路径
++
++没有真实成功案例时保持本目录为空，只保留本 README。禁止编造。
++
++## 案例文件
++
++每个案例一个 markdown：`examples/<YYYYMMDD>-<slug>.md`
++
++必填：
++
++- Date
++- Skill
++- Task
++- Approach
++- Result
++- Why it was good
++- Reusable lessons
+diff --git a/skills/pretty-view-html/experience/README.md b/skills/pretty-view-html/experience/README.md
+new file mode 100644
+index 0000000..4433378
+--- /dev/null
++++ b/skills/pretty-view-html/experience/README.md
+@@ -0,0 +1,33 @@
++# Experience
++
++真实执行中的失败、成功与可复用规律。不要记录 trivial information。
++
++```text
++failures/  → 失败案例
++successes/ → 成功案例
++patterns/  → 从多个案例中提炼出的可复用规律
++```
++
++## 何时写入
++
++- 失败、用户纠正、明显成功
++- 新的有效执行方法
++- 可复用的经验
++
++## 何时不写入
++
++- 一次性环境问题（网络闪断、用户打错字）
++- 与 Skill 无关的闲聊
++- 尚未发生的「预期失败」
++
++## 条目格式
++
++`experience/<bucket>/<YYYYMMDD>-<slug>.md`
++
++必填：Date / Kind（failure | success | pattern）/ Skill / Context / What happened / Lesson。
++
++一次性特例在 Lesson 写明 `Experience only`，不要建议改 Skill。
++
++`patterns/` 至少要有 **两次以上** 同类 evidence 才建立。单次失败只进 `failures/`。
++
++空的 `failures/` `successes/` `patterns/` 各放一个 `.gitkeep`。
+diff --git a/skills/pretty-view-html/experience/failures/.gitkeep b/skills/pretty-view-html/experience/failures/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/pretty-view-html/experience/patterns/.gitkeep b/skills/pretty-view-html/experience/patterns/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/pretty-view-html/experience/successes/.gitkeep b/skills/pretty-view-html/experience/successes/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/pretty-view-html/tests/.gitignore b/skills/pretty-view-html/tests/.gitignore
+deleted file mode 100644
+index e233e55..0000000
+--- a/skills/pretty-view-html/tests/.gitignore
++++ /dev/null
+@@ -1 +0,0 @@
+-golden
+diff --git a/skills/pretty-view-html/tests/prompt.txt b/skills/pretty-view-html/tests/prompt.txt
+deleted file mode 100644
+index 9bf9d70..0000000
+--- a/skills/pretty-view-html/tests/prompt.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-基于 @skills/pretty-view-html/SKILL.md 生成里面测试内容为 html，并保存到 docs/pretty-view-html 中

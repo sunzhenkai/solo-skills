@@ -33,12 +33,17 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `service-manager` | 项目服务启停 / 状态 / 日志台账 |
 | `lark-cli` | 飞书 / Lark CLI 路由 |
 
+### 界面与设计
+
+| Skill | 用途 |
+| --- | --- |
+| `pretty-ui` | 构建好看的界面：设计方向、设计体系（token）、看真实截图打磨与评审；也把已有内容做成静态 HTML 阅读页 |
+
 ### 知识与内容
 
 | Skill | 用途 |
 | --- | --- |
 | `llm-wiki` | 本地 Markdown 知识 wiki 维护 |
-| `pretty-view-html` | 把已有内容做成浏览器阅读 HTML |
 | `role-chat` | 多视角角色对话陪练 |
 
 ### Skill 工具链（自进化）

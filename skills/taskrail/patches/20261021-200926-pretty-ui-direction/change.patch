@@ -1,0 +1,60 @@
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 7d0bd94..a388e0f 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -176,7 +176,7 @@ cases:
+     given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 full
+     expect:
+       must:
+-        - plan 质量属性写下视觉方向（读 frontend-design）与参照
++        - plan 质量属性写下视觉方向（读 pretty-ui 的 direction.md）与参照
+         - 截图前准备接近真实的演示数据，截改前 / 改后截图
+         - 派另一个模型对照参照审截图；有观感 Blocker / Major 就改、重截、再评
+         - 评审结论与截图路径记进验证记录
+diff --git a/skills/taskrail/references/done.md b/skills/taskrail/references/done.md
+index 575a155..807f961 100644
+--- a/skills/taskrail/references/done.md
++++ b/skills/taskrail/references/done.md
+@@ -15,7 +15,7 @@
+ 
+ 用户原话里有观感类目标（好看、设计感、体验）时加这一条验收，不看档位：
+ 
+-- **视觉方向**：动手前读 [../../pretty-ui/references/frontend-design/REFERENCE.md](../../pretty-ui/references/frontend-design/REFERENCE.md)，在 `wizard/plan.md`「质量属性」写下配色、字体、版式、一个特征元素，再列几件参照（作品或既有页面，写清取它哪一点）。
++- **视觉方向**：动手前读 [../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md)，在 `wizard/plan.md`「质量属性」写下配色、字体、版式、一个特征元素，再列几件参照（作品或既有页面，写清取它哪一点）。
+ - **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录。
+ - **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审，对照参照审截图（可用 `role-based-reviewer roles=design`）。
+   - goal：不停下问人。还有观感 Blocker / Major 就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停。
+diff --git a/skills/taskrail/tests/test_aesthetic_goal_contract.py b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+index deca789..c7f98ae 100644
+--- a/skills/taskrail/tests/test_aesthetic_goal_contract.py
++++ b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+@@ -1,4 +1,4 @@
+-"""观感验收：goal 自迭代、human 给用户看图；frontend-design 路径保留。"""
++"""观感验收：goal 自迭代、human 给用户看图；视觉方向指向 pretty-ui 的 direction.md。"""
+ from __future__ import annotations
+ import unittest
+ from pathlib import Path
+@@ -10,8 +10,8 @@ class AestheticGoalTest(unittest.TestCase):
+     def test_section_present(self) -> None:
+         self.assertIn("## 观感验收", DONE)
+ 
+-    def test_frontend_design_path(self) -> None:
+-        self.assertIn("pretty-ui/references/frontend-design/REFERENCE.md", DONE)
++    def test_direction_path(self) -> None:
++        self.assertIn("pretty-ui/references/direction.md", DONE)
+ 
+     def test_goal_vs_human(self) -> None:
+         self.assertIn("goal：不停下问人", DONE)
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index f340e0f..90c068e 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -58,7 +58,7 @@ class ContractTest(unittest.TestCase):
+         d = read("references", "done.md")
+         self.assertIn("唯一真源", d)
+         self.assertIn("观感验收", d)
+-        self.assertIn("pretty-ui/references/frontend-design/REFERENCE.md", d)
++        self.assertIn("pretty-ui/references/direction.md", d)
+ 
+     def test_wizard_delegates_task_intent(self) -> None:
+         w = read("references", "phase-wizard.md")

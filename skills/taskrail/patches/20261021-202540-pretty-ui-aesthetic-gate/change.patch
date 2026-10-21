@@ -1,0 +1,86 @@
+diff --git a/skills/taskrail/references/done.md b/skills/taskrail/references/done.md
+index 807f961..3273885 100644
+--- a/skills/taskrail/references/done.md
++++ b/skills/taskrail/references/done.md
+@@ -15,10 +15,10 @@
+ 
+ 用户原话里有观感类目标（好看、设计感、体验）时加这一条验收，不看档位：
+ 
+-- **视觉方向**：动手前读 [../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md)，在 `wizard/plan.md`「质量属性」写下配色、字体、版式、一个特征元素，再列几件参照（作品或既有页面，写清取它哪一点）。
+-- **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录。
+-- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审，对照参照审截图（可用 `role-based-reviewer roles=design`）。
+-  - goal：不停下问人。还有观感 Blocker / Major 就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停。
++- **视觉方向**：动手前按 [../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md) 第 6 节写轻量方向卡：北极星、字体、色彩三层与来源、一个特征元素、几件参照（作品或既有页面，写清取它哪一点）和放弃什么，记进 `wizard/plan.md`「质量属性」。
++- **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录；视口与行长量测按 [../../pretty-ui/references/critique.md](../../pretty-ui/references/critique.md) 第 1 节。
++- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审；交给评审者的材料和评审手册按 critique.md 第 3–4 节，对照参照看截图，问题带规则号，P0 / P1 即观感 Blocker / Major。要连交互、无障碍一起审时加 `role-based-reviewer roles=design`。
++  - goal：不停下问人。结论是重做或需改（还有观感 Blocker / Major）就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停。
+   - human：评审过了再把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算。
+ 
+ ## 可选附录（命中才读）
+diff --git a/skills/taskrail/references/ui-delivery.md b/skills/taskrail/references/ui-delivery.md
+index ba3d5f0..e9763e3 100644
+--- a/skills/taskrail/references/ui-delivery.md
++++ b/skills/taskrail/references/ui-delivery.md
+@@ -11,13 +11,13 @@
+ 
+ ## Active Instance（统一视觉时用）
+ 
+-- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze（有参照源先提炼 tokens / primitive）。
++- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 [pretty-ui 的 system.md](../../pretty-ui/references/system.md) 产出，有参照源先从参照提炼 tokens / primitive。
+ - `tasks/` 只存指针与 digest（写在 `design/contract.md`），不复制 tokens / primitive 精确值。
+ - apply 只消费不改 core；要改共享 token / pattern 就回 design 修订并重新 freeze，刷新 digest。
+ 
+ ## 实现方法
+ 
+-先做一条主流程代表页，two-pass：先定设计主旨与壳层，出初稿后再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。
++先做一条主流程代表页，按 [pretty-ui](../../pretty-ui/SKILL.md) 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。
+ 
+ ## 机械门
+ 
+diff --git a/skills/taskrail/tests/test_aesthetic_goal_contract.py b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+index c7f98ae..a7aa40d 100644
+--- a/skills/taskrail/tests/test_aesthetic_goal_contract.py
++++ b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+@@ -1,9 +1,12 @@
+-"""观感验收：goal 自迭代、human 给用户看图；视觉方向指向 pretty-ui 的 direction.md。"""
++"""观感验收：goal 自迭代、human 给用户看图；方向卡、取证与评审手册来自 pretty-ui。"""
+ from __future__ import annotations
++import re
+ import unittest
+ from pathlib import Path
+ 
+-DONE = (Path(__file__).resolve().parents[1] / "references" / "done.md").read_text(encoding="utf-8")
++REF = Path(__file__).resolve().parents[1] / "references"
++DONE = (REF / "done.md").read_text(encoding="utf-8")
++UI = (REF / "ui-delivery.md").read_text(encoding="utf-8")
+ 
+ 
+ class AestheticGoalTest(unittest.TestCase):
+@@ -12,6 +15,11 @@ class AestheticGoalTest(unittest.TestCase):
+ 
+     def test_direction_path(self) -> None:
+         self.assertIn("pretty-ui/references/direction.md", DONE)
++        self.assertIn("轻量方向卡", DONE)
++
++    def test_review_follows_pretty_ui_critique(self) -> None:
++        self.assertIn("pretty-ui/references/critique.md", DONE)
++        self.assertIn("问题带规则号，P0 / P1 即观感 Blocker / Major", DONE)
+ 
+     def test_goal_vs_human(self) -> None:
+         self.assertIn("goal：不停下问人", DONE)
+@@ -22,6 +30,15 @@ class AestheticGoalTest(unittest.TestCase):
+         self.assertIn("演示数据", DONE)
+         self.assertIn("改前 / 改后", DONE)
+ 
++    def test_active_instance_content_from_pretty_ui(self) -> None:
++        self.assertIn("pretty-ui/references/system.md", UI)
++        self.assertIn("two-pass", UI)
++
++    def test_pretty_ui_links_resolve(self) -> None:
++        for name, text in (("done.md", DONE), ("ui-delivery.md", UI)):
++            for target in re.findall(r"\]\((\.\./\.\./pretty-ui/[^)#]+)\)", text):
++                self.assertTrue((REF / target).resolve().is_file(), f"{name} → {target}")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
