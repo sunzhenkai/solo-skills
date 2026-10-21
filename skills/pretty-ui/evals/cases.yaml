@@ -13,19 +13,32 @@ cases:
       must_not:
         - 写方向卡、给三个方向或问用户选风格
 
-  - id: direction-human-asks-once
+  - id: direction-decide-no-ask
     kind: core
     judge: llm
-    description: 独立使用且方向未定时，给三个文字方向加推荐，问一次
+    description: 独立使用且方向未定时自选一个方向，用陈述句说决定，同一轮接着做
     given: 「给我的开源 CLI 做个落地页，要有设计感」，没有品牌规范和参考图
     expect:
       must:
-        - 三个方向各三四行：感觉、首屏、字体与色彩、主视觉，附推荐和理由
-        - 只问一次，本轮结束等用户选
-        - 方向之间通过差异检验（四项至多一项相同，至少一个打破品类套路）
+        - 写一张方向卡，加一行考虑过、放弃的两个方向与理由
+        - 方向卡过两遍法、X 组、不撞脸与打破一处品类套路
+        - 同一轮接着实现；human 模式在评审后把改前改后截图交给用户确认
+      must_not:
+        - 停下问用户选方向或风格
+        - 为只实现一个方向而写三个完整候选与线框
+
+  - id: direction-multiple-on-request
+    kind: boundary
+    judge: llm
+    description: 用户点名要多个方案时才出三个候选，附推荐并按推荐接着做
+    given: 「给我三个不同风格的方案比较一下」，没有品牌规范
+    expect:
+      must:
+        - 三个候选各三四行：感觉、首屏、字体与色彩、主视觉，附推荐和理由
+        - 候选之间通过差异检验（四项至多一项相同，至少一个打破品类套路）
+        - 按推荐的候选接着做，其余候选留在设计说明里
       must_not:
         - 三个方向只是“一个亮、一个暗、一个暖”的换色
-        - 未经选择就开工实现
 
   - id: direction-goal-self-select
     kind: core
@@ -34,10 +47,23 @@ cases:
     given: taskrail goal 模式下的观感任务，方向未定
     expect:
       must:
-        - 写出三个方向，自选一个并在设计说明里记下理由
+        - 只写一张方向卡，在设计说明里记下选择理由与放弃的两个方向
         - 方向卡各栏填具体选择（字体、十六进制色值、首屏骨架、记忆点、放弃什么）
+        - 标杆取 1–2 家首屏截图存进任务目录，并交给隔离评审者当参照
       must_not:
         - 停下问用户选方向
+
+  - id: build-light-component
+    kind: basic
+    judge: llm
+    description: 单组件打磨走 build 轻量，不写完整方向卡
+    given: 「把这个定价卡片打磨得好看一点」，项目已有 token
+    expect:
+      must:
+        - 写轻量方向卡（北极星、字体、色彩三层与来源、一个特征元素、参照、放弃什么）
+        - 按基础档在 1280 与 375 截图并自查
+      must_not:
+        - 写完整 14 栏方向卡，或上网截标杆
 
   - id: existing-brand-kept
     kind: boundary
@@ -120,11 +146,47 @@ cases:
     given: 「这个设置页不好看，优化一下」，项目可本地运行
     expect:
       must:
-        - 改前在 1280 与 375 截图，诊断出带规则号的问题
+        - 改前按基础档在 1280 与 375 截图，诊断出带规则号的问题
         - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
         - 同一路由、同一视口、同一份数据截改后图，一起交付
       must_not:
         - 不看图直接重写样式
+
+  - id: evidence-tiered-rounds
+    kind: core
+    judge: llm
+    description: 截图分档：首轮基础档，复审只截问题涉及处，状态档交付前截一次
+    given: goal 模式新界面，第一轮评审结论“需改”，问题集中在手机视口的表单区
+    expect:
+      must:
+        - 第二轮只重截 375 下表单区，评审者拿上一轮清单逐条核对
+        - 交付前最后一轮补截涉及的空、加载、出错等状态
+      must_not:
+        - 每轮重截全部视口和全部状态
+
+  - id: self-check-light-with-isolated-review
+    kind: core
+    judge: llm
+    description: 派了隔离评审时，制作者不重复完整扫查
+    given: goal 模式下新做一个后台首页，会派另一个模型审
+    expect:
+      must:
+        - 制作者做减法、眯眼看，处理 check_page 提示与量测结果
+        - 完整 X 组与 H → M 扫查和问题表由评审者出
+      must_not:
+        - 制作者和评审者各出一份完整问题表
+
+  - id: stop-rule-single-source
+    kind: regression
+    judge: llm
+    description: 收敛与停止只按 critique.md「迭代与停止」
+    given: goal 模式评审结论“需改”，没有 P0，只剩一条影响观感的 P1
+    expect:
+      must:
+        - 继续改并复审，直到结论是“通过”
+        - 同一个问题连续两轮没改好就停，说明卡在哪、试过什么、需要什么
+      must_not:
+        - 带着影响观感的 P1 宣布收敛
 
   - id: system-outputs
     kind: core
@@ -138,6 +200,7 @@ cases:
         - DESIGN.md 写明每个刻度的取值、理由与对比度结果
       must_not:
         - 组件直接引用色相名而不是语义 token
+        - 停下问用户主色、调性或是否要暗色模式
 
   - id: page-default-output-root
     kind: basic
@@ -185,16 +248,18 @@ cases:
       must_not:
         - 仅因篇幅长拆成多页内容包
 
-  - id: page-same-topic-needs-confirmation
+  - id: page-same-topic-no-reorg
     kind: failure
     judge: deterministic
-    description: 发现同主题内容时先提归类方案，用户明确确认后才重组
+    description: 发现同主题内容时照常写独立页，归类方案写进交付说明，不动已有文件
     given: 根聚合页已有围绕同一核心对象的单页，本次输入是它的续篇
     expect:
       must:
-        - 写入前展示归类依据、内容包标题与 slug、页面结构和旧路径处理方式
+        - 本次内容写成独立页面，并在根 index.html 登记入口
+        - 交付说明写出归类依据、内容包标题与 slug、页面结构和旧路径处理方式
       must_not:
-        - 未获确认就移动、覆盖或重组已有 HTML
+        - 移动、覆盖或重组已有 HTML
+        - 停下等用户确认后才写本次页面
 
   - id: page-relative-links
     kind: regression
@@ -254,6 +319,18 @@ cases:
         - 强调色只出现在当前位置、关键结论、主要链接等少数几处
       must_not:
         - 一类一色的彩虹徽章，或为显得丰富而堆砌组件类型
+
+  - id: page-from-template
+    kind: core
+    judge: llm
+    description: 阅读页从 assets/reading-page.html 起手
+    given: 任意阅读页任务
+    expect:
+      must:
+        - 复制模板后改标题、导航链接、方向卡注释与色值，正文换成真实内容
+        - 模板内置的字体栈、px 列宽、text-wrap、关连字、焦点与减少动效处理保留
+      must_not:
+        - 不看模板从零写一套样式
 
   - id: page-static-basics
     kind: core

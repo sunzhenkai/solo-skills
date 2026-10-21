@@ -15,10 +15,10 @@
 
 用户原话里有观感类目标（好看、设计感、体验）时加这一条验收，不看档位：
 
-- **视觉方向**：动手前按 [../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md) 第 6 节写轻量方向卡：北极星、字体、色彩三层与来源、一个特征元素、几件参照（作品或既有页面，写清取它哪一点）和放弃什么，记进 `wizard/plan.md`「质量属性」。
-- **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录；视口与行长量测按 [../../pretty-ui/references/critique.md](../../pretty-ui/references/critique.md) 第 1 节。
-- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审；交给评审者的材料和评审手册按 critique.md 第 3–4 节，对照参照看截图，问题带规则号，P0 / P1 即观感 Blocker / Major。要连交互、无障碍一起审时加 `role-based-reviewer roles=design`。
-  - goal：不停下问人。结论是重做或需改（还有观感 Blocker / Major）就按意见改、重截、再审，自己迭代到没有为止；每轮结论与截图路径记进验证记录。同一问题两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停。
+- **视觉方向**：动手前按 [pretty-ui SKILL.md](../../pretty-ui/SKILL.md)「轻量方向卡」写，记进 `wizard/plan.md`「质量属性」；新产品或整体改版写完整方向卡（[../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md) 第 6 节）。
+- **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录；截图档位与行长量测按 [../../pretty-ui/references/evidence.md](../../pretty-ui/references/evidence.md)。
+- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审；交给评审者的材料和评审手册按 [../../pretty-ui/references/critique.md](../../pretty-ui/references/critique.md)「隔离评审」「评审手册」两节，对照参照看截图，问题带规则号，P0 / P1 即观感 Blocker / Major。要连交互、无障碍一起审时加 `role-based-reviewer roles=design`。
+  - goal：不停下问人。结论不是通过就按意见改、按复审档重截、再审；收敛与停止按 critique.md「迭代与停止」（同一问题连续两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停）。每轮结论与截图路径记进验证记录。
   - human：评审过了再把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算。
 
 ## 可选附录（命中才读）

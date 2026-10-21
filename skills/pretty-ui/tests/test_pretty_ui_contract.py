@@ -1,4 +1,4 @@
-"""pretty-ui 文本契约：路由、信条、看图门槛、问题字段、中文排版数值、阅读页落盘与来源许可。"""
+"""pretty-ui 文本契约：路由、信条、说决定、看图分档、单一停止标准、问题字段、中文排版数值、阅读页模板与落盘、来源许可。"""
 
 from __future__ import annotations
 
@@ -42,9 +42,32 @@ class SkillEntryTest(unittest.TestCase):
         self.assertIn("只读，不改文件", SKILL)
         self.assertIn("system 再 build", SKILL)
 
-    def test_direction_asks_once_or_self_selects(self) -> None:
-        self.assertIn("问用户一次，本轮结束", SKILL)
-        self.assertIn("自选并写明理由", SKILL)
+    def test_direction_decided_not_asked(self) -> None:
+        self.assertIn("自选一个方向，写方向卡和理由，直接说决定、接着做", SKILL)
+        self.assertIn("用户点名要多个方案时才出三个候选", SKILL)
+        self.assertIn("| build 轻量 |", SKILL)
+
+    def test_confirm_modes(self) -> None:
+        self.assertIn("**goal 模式或无人值守**：不停下等确认", SKILL)
+        self.assertIn("对照参照页看改前改后截图", SKILL)
+        self.assertIn("**human 模式**", SKILL)
+        self.assertIn("用户说可以才算完成", SKILL)
+
+    def test_light_card_in_skill(self) -> None:
+        self.assertIn("## 轻量方向卡", SKILL)
+        self.assertIn("写清取它哪一点", SKILL)
+
+    def test_steps_have_done_criteria(self) -> None:
+        flow = SKILL.split("## build 主流程", 1)[1].split("## 轻量方向卡", 1)[0]
+        self.assertGreaterEqual(flow.count("完成："), 6)
+        self.assertIn("critique.md「迭代与停止」，那一节是唯一标准", flow)
+
+    def test_size_budget(self) -> None:
+        self.assertLess(len(SKILL.encode("utf-8")), 8192)
+
+    def test_evolution_pointer_only(self) -> None:
+        self.assertIn("经验沉淀与正文演进走 `skill-upgrader`", SKILL)
+        self.assertNotIn("cases.yaml", SKILL)
 
     def test_render_gate(self) -> None:
         self.assertIn("1280", SKILL)
@@ -65,8 +88,9 @@ class SkillEntryTest(unittest.TestCase):
         self.assertTrue(links)
         for link in links:
             self.assertTrue((ROOT / link).exists(), link)
-        for name in ("direction.md", "system.md", "rules.md", "critique.md", "page.md"):
+        for name in ("direction.md", "system.md", "evidence.md", "rules.md", "critique.md", "page.md"):
             self.assertIn(f"references/{name}", SKILL)
+        self.assertIn("assets/reading-page.html", SKILL)
 
     def test_runtime_artifacts_outside_skill(self) -> None:
         self.assertIn("本 skill 目录保持只读", SKILL)
@@ -81,6 +105,8 @@ class DirectionTest(unittest.TestCase):
 
     def test_benchmarks_from_real_screens(self) -> None:
         self.assertIn("未看图，凭记忆", self.TEXT)
+        self.assertIn("1–2 家标杆的首屏截图", self.TEXT)
+        self.assertIn("隔离评审的参照集", self.TEXT)
         for word in ("基线", "套路", "撞脸"):
             self.assertIn(word, self.TEXT)
 
@@ -88,10 +114,12 @@ class DirectionTest(unittest.TestCase):
         self.assertIn("四项至多一项相同", self.TEXT)
         self.assertIn("至少一个打破品类套路", self.TEXT)
         self.assertIn("两遍法", self.TEXT)
+        self.assertIn("### 出多个候选时", self.TEXT)
+        self.assertIn("## 8. 说决定", self.TEXT)
 
-    def test_light_card_for_upstream(self) -> None:
+    def test_light_card_points_to_skill(self) -> None:
         self.assertIn("轻量方向卡", self.TEXT)
-        self.assertIn("写清取它哪一点", self.TEXT)
+        self.assertIn("[SKILL.md](../SKILL.md)「轻量方向卡」", self.TEXT)
 
 
 class SystemTest(unittest.TestCase):
@@ -109,6 +137,11 @@ class SystemTest(unittest.TestCase):
     def test_existing_system_first(self) -> None:
         self.assertIn("已有的部分原样沿用", self.TEXT)
         self.assertIn("ui-delivery.md", self.TEXT)
+
+    def test_decides_missing_items(self) -> None:
+        self.assertIn("## 2. 缺项自定", self.TEXT)
+        self.assertIn("用陈述句写下决定与理由", self.TEXT)
+        self.assertIn("assets/reading-page.html", self.TEXT)
 
 
 class RulesTest(unittest.TestCase):
@@ -152,7 +185,28 @@ class CritiqueTest(unittest.TestCase):
         self.assertIn("confirm-protocol.md", self.TEXT)
 
     def test_stop_rule(self) -> None:
-        self.assertIn("同一个 P0 两轮没改好", self.TEXT)
+        self.assertIn("## 6. 迭代与停止", self.TEXT)
+        self.assertIn("唯一标准", self.TEXT)
+        self.assertIn("结论是“通过”", self.TEXT)
+        self.assertIn("同一个问题连续两轮没改好", self.TEXT)
+
+    def test_self_check_light_with_isolated_review(self) -> None:
+        self.assertIn("完整扫查和问题表交给评审者", self.TEXT)
+
+
+class EvidenceTest(unittest.TestCase):
+    TEXT = ref("evidence.md")
+
+    def test_tiers(self) -> None:
+        for tier in ("| 基础档 |", "| 状态档 |", "| 复审档 |"):
+            self.assertIn(tier, self.TEXT)
+        self.assertIn("桌面 1280 与手机 375 各截首屏和整页", self.TEXT)
+        self.assertIn("只截上一轮问题涉及的区域和视口", self.TEXT)
+
+    def test_tools_and_measure(self) -> None:
+        self.assertIn("未渲染验证", self.TEXT)
+        self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
+        self.assertIn("横向溢出", self.TEXT)
 
 
 class PageTest(unittest.TestCase):
@@ -164,8 +218,13 @@ class PageTest(unittest.TestCase):
 
     def test_links_and_confirmation(self) -> None:
         self.assertIn("包含这个链接的 HTML 文件所在目录", self.TEXT)
-        self.assertIn("用户明确确认后", self.TEXT)
+        self.assertIn("用户明确确认后另起一次改动", self.TEXT)
+        self.assertIn("已有文件不移动、不覆盖", self.TEXT)
         self.assertIn("check_page.py --offline", self.TEXT)
+
+    def test_starts_from_template(self) -> None:
+        self.assertIn("从 [assets/reading-page.html](../assets/reading-page.html) 起手", self.TEXT)
+        self.assertIn("[evidence.md](evidence.md) 的基础档", self.TEXT)
 
     def test_reading_layout(self) -> None:
         self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)

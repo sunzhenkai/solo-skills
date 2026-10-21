@@ -151,5 +151,19 @@ class CheckPageTest(unittest.TestCase):
                 self.assertIn(tag, r.stdout)
 
 
+class TemplateTest(unittest.TestCase):
+    def test_reading_page_template_is_clean_offline(self) -> None:
+        r = run("check_page.py", "--offline", str(ROOT / "assets" / "reading-page.html"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("0 个报错，0 条提示", r.stdout)
+
+    def test_template_carries_reading_defaults(self) -> None:
+        html = (ROOT / "assets" / "reading-page.html").read_text(encoding="utf-8")
+        for token in ("--font-sans", "--measure: 684px", "position: sticky", "text-wrap: balance",
+                      "text-wrap: pretty", "font-variant-ligatures: none", ":focus-visible",
+                      "prefers-reduced-motion", "tabular-nums", "轻量方向卡"):
+            self.assertIn(token, html)
+
+
 if __name__ == "__main__":
     unittest.main()

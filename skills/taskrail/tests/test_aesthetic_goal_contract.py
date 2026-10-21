@@ -17,6 +17,16 @@ class AestheticGoalTest(unittest.TestCase):
         self.assertIn("pretty-ui/references/direction.md", DONE)
         self.assertIn("轻量方向卡", DONE)
 
+    def test_light_card_from_pretty_ui_skill(self) -> None:
+        self.assertIn("../../pretty-ui/SKILL.md", DONE)
+        self.assertIn("「轻量方向卡」", DONE)
+
+    def test_evidence_and_single_stop_rule(self) -> None:
+        self.assertIn("pretty-ui/references/evidence.md", DONE)
+        self.assertIn("critique.md「迭代与停止」", DONE)
+        confirm = (REF / "confirm-protocol.md").read_text(encoding="utf-8")
+        self.assertIn("「迭代与停止」为准", confirm)
+
     def test_review_follows_pretty_ui_critique(self) -> None:
         self.assertIn("pretty-ui/references/critique.md", DONE)
         self.assertIn("问题带规则号，P0 / P1 即观感 Blocker / Major", DONE)

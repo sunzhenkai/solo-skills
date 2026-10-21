@@ -176,9 +176,9 @@ cases:
     given: 「/goal 提升 dashboard 观感，多用颜色和图表」，判为 full
     expect:
       must:
-        - plan 质量属性写下视觉方向（读 pretty-ui 的 direction.md）与参照
+        - plan 质量属性写下视觉方向（pretty-ui 的轻量方向卡，整体改版用 direction.md 完整卡）与参照
         - 截图前准备接近真实的演示数据，截改前 / 改后截图
-        - 派另一个模型对照参照审截图；有观感 Blocker / Major 就改、重截、再评
+        - 派另一个模型对照参照审截图；结论不是通过就改、按复审档重截、再评，收敛与停止按 pretty-ui critique.md「迭代与停止」
         - 评审结论与截图路径记进验证记录
       must_not:
         - 停下请用户看截图
