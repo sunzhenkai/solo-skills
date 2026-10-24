@@ -21,7 +21,8 @@ class SourceFirstTest(unittest.TestCase):
         self.assertIn("目标加它的直接依赖", INTENT)
 
     def test_correction_reread(self) -> None:
-        self.assertIn("先回第 1 节的一手资料重查", INTENT)
+        self.assertIn("用户指出错误先回一手资料重查", INTENT)
+        self.assertIn("只改受影响结论", INTENT)
 
     def test_user_report_source_first(self) -> None:
         ur = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")

@@ -1,52 +1,69 @@
-"""探索到交接的不可破契约：阶段动作、handoff 不是 phase、交接只带指针、无 decide 壳。"""
+"""references 可组合契约：统一结构、按需加载、无固定阶段命令。"""
 from __future__ import annotations
+
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+REF = ROOT / "references"
+ROUTED = ("plan", "explore", "diagnose", "grill", "design", "approve", "decompose", "verify", "close")
 
 
-def read(*p: str) -> str:
-    return ROOT.joinpath(*p).read_text(encoding="utf-8")
+def read(*parts: str) -> str:
+    return ROOT.joinpath(*parts).read_text(encoding="utf-8")
 
 
-class ExploreContractTest(unittest.TestCase):
-    def test_skill_under_8kb(self) -> None:
-        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
-
-    def test_public_commands(self) -> None:
+class ReferenceContractTest(unittest.TestCase):
+    def test_public_commands_are_task_operations(self) -> None:
         skill = read("SKILL.md")
-        for cmd in ("wizard", "design", "approve", "handoff"):
-            self.assertIn(f"`{cmd}`", skill)
-        self.assertNotIn("decide", skill)
-        self.assertNotIn("plan-review", skill)
-        self.assertFalse((ROOT / "references" / "commands.md").exists())
+        for command in (
+            "taskrail <一句话目标>", "taskrail goal: <一句话目标>",
+            "taskrail intent <一句话目标>", "taskrail resume [task-id]",
+            "taskrail explain [task-id]", "taskrail list",
+        ):
+            self.assertIn(command, skill)
+        for removed in ("taskrail wizard", "taskrail design", "taskrail approve", "taskrail handoff"):
+            self.assertNotIn(removed, skill)
 
-    def test_phase_not_command(self) -> None:
-        skill = read("SKILL.md")
-        self.assertIn("不是 `phase` 取值", skill)
-        self.assertIn("handed-off", skill)
-        self.assertIn("phase 置为 propose", skill)
+    def test_every_routed_reference_has_complete_contract(self) -> None:
+        required = ("## 目的", "## 进入条件", "## 跳过条件", "## 所需输入", "## 执行方法", "## 产出", "## 完成门", "## 退出与重入")
+        for name in ROUTED:
+            text = (REF / f"{name}.md").read_text(encoding="utf-8")
+            for heading in required:
+                self.assertIn(heading, text, f"{name}: {heading}")
 
-    def test_handoff_pointers_only(self) -> None:
-        h = read("references", "handoff.md")
-        self.assertIn("指针与判据", h)
-        self.assertIn("check_handoff.py", h)
-        self.assertNotIn("逐字复制", h)
+    def test_router_uses_evidence_and_prevents_oscillation(self) -> None:
+        router = read("references", "router.md")
+        self.assertIn("当前最关键不确定性", router)
+        self.assertIn("没有新证据", router)
+        self.assertIn("enter / skip / exit / reopen", router)
+        self.assertIn("代码任务不得跳过验证", router)
 
-    def test_approve_exit(self) -> None:
-        a = read("references", "approve.md")
-        self.assertIn("下一步只写 handoff", a)
+    def test_handoff_contains_pointers_not_full_design_copy(self) -> None:
+        handoff = read("references", "handoff.md")
+        self.assertIn("指针与判据", handoff)
+        self.assertIn("check_handoff.py", handoff)
+        self.assertIn("不复制完整方案", handoff)
+        self.assertNotIn("逐字复制", handoff)
 
-    def test_ledger_and_concurrency_split(self) -> None:
-        self.assertTrue((ROOT / "references" / "ledger.md").is_file())
-        self.assertTrue((ROOT / "references" / "ledger-concurrency.md").is_file())
-        self.assertTrue((ROOT / "references" / "large-scope.md").is_file())
+    def test_approve_returns_to_router_not_fixed_pipeline(self) -> None:
+        approve = read("references", "approve.md")
+        self.assertIn("返回 router", approve)
+        self.assertNotIn("下一步只写 handoff", approve)
+        self.assertIn("未选 OpenSpec 不强制 handoff", approve)
 
-    def test_templates_core(self) -> None:
-        t = read("references", "templates.md")
-        self.assertIn("已做决定", t)
-        self.assertIn("skip | full", t)
+    def test_templates_track_hot_state_and_decisions(self) -> None:
+        templates = read("references", "templates.md")
+        self.assertIn("current_ref: plan", templates)
+        self.assertIn("confirm_mode: human", templates)
+        self.assertIn("decisions.md / history.md", templates)
+        self.assertIn("superseded", templates)
+        self.assertNotIn("tier:", templates)
+
+    def test_ledger_and_concurrency_are_separate(self) -> None:
+        self.assertTrue((REF / "ledger.md").is_file())
+        self.assertTrue((REF / "ledger-concurrency.md").is_file())
+        self.assertTrue((REF / "decompose.md").is_file())
 
 
 if __name__ == "__main__":

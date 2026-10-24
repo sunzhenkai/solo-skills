@@ -25,14 +25,16 @@ class DesignAndHandoffTest(unittest.TestCase):
         self.assertIn("适用门包", h)
 
     def test_handoff_gate_before_driver(self) -> None:
-        """入口门要求 status=handed-off：改状态 → 跑 check → 建 driver，顺序反了就会被打回 handoff 死循环。"""
+        """新入口门：active + openspec + execute → 跑 check → 建 driver。"""
         h = (ROOT / "references" / "handoff.md").read_text(encoding="utf-8")
         steps = h.split("## 步骤", 1)[1]
-        i_status = steps.index("status: handed-off")
+        i_status = steps.index("status: active")
         i_check = steps.index("check_handoff.py")
-        i_driver = steps.index("脚手架建 driver")
+        i_driver = steps.index("建 driver")
         self.assertLess(i_status, i_check)
         self.assertLess(i_check, i_driver)
+        self.assertIn("execution: openspec", steps)
+        self.assertIn("不写 handed-off / phase", steps)
 
 
 if __name__ == "__main__":

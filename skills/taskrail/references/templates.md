@@ -1,92 +1,103 @@
 # 落盘模板
 
-元信息写在开头的 `---` frontmatter，字段与取值只在 [契约](contract.md)。按已知信息填，未知留空，不编造。
+新建与状态更新优先使用 `scripts/task_state.py`，不要手工复制整套文件。字段以 [contract.md](contract.md) 为准。
 
-## TASK.md
+## TASK.md（热状态）
 
 ```markdown
 ---
-slug: <slug>
-status: ongoing
-phase: wizard
-confirm_mode: <human | goal>
-tier: <skip | full>
-criterion: "<完成判据原文；没有就留空>"
+slug: <task-id>
+parent: null
+status: active
+current_ref: plan
+confirm_mode: human
+execution: null
+criterion: "<完成判据>"
 driver: null
-evidence_root: null
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
-
-# <Title>
+# <标题>
 
 ## 目标
-- <要达成什么>
+<一句话>
 
-## 不做
-- <只来自用户原话>
+## 完成判据
+<criterion 原文>
 
-## 方案
-<指向 wizard/plan.md 与 design/；上游给了现成方案就登记要点>
+## 下一动作
+<当前可执行动作>
 
-## 进展
-- YYYY-MM-DD：<本轮结论，一条一事>
+## 涉及仓库
+| repo_id | source_repo | worktree | branch | base |
+|---|---|---|---|---|
 
-## 已做决定
-
-唯一的决定清单：意图、grill、design、闸口和实现中定下的都追加到这里。
-
-| # | 决定 | 理由 | 可逆 | 来源阶段 |
-|---|------|------|------|----------|
-| D-1 | <定了什么> | <一句为什么> | 是 / 否 | wizard / design / approve / apply |
-
-## 验证
-<skip 档与拆成子任务的父任务：验证命令与结果>
-
-## 交接
-<handoff 时按 handoff.md 写>
+## 产物指针
+- PLAN.md
+- context/current.md
 ```
 
-子任务在 frontmatter 另加 `parent:`，`criterion` 用父任务路线图那一行的子判据；父任务的子任务清单就是 `wizard/plan.md`「路线图」，不另抄（见 [large-scope.md](large-scope.md)）。
+TASK 只保留恢复所需热信息；路由历史、长决定、原始证据分别放 history.md、decisions.md、evidence/。约 6 KB 后压缩下沉，不截断 criterion。
 
-## INDEX.md
+## PLAN.md
 
 ```markdown
-# Tasks
+# 当前计划
 
-派生索引；编辑单任务请改对应 `TASK.md`。
+## 当前步骤
+- [ ] <动作> — 验证：<命令或检查>
 
-## Ongoing
+## 验证策略
+<focused tests、回归、集成与证据落点>
 
-| 任务 | 标题 | 更新 | 一句话 | 路径 |
-|------|------|------|--------|------|
-
-## Archived
-
-| 任务 | 归档日 | 标题 | 一句话 | 路径 |
-|------|--------|------|--------|------|
+## 约束 / 回滚
+<按需>
 ```
 
-Ongoing 按更新日新到旧，Archived 按归档日新到旧。没有任务时只留表头。
+direct 的 PLAN checkbox 是实施进度；OpenSpec 实施进度只在 change checkbox。父子结构只写 ROADMAP，不在这里复制状态。
+
+## ROADMAP.md
+
+见 [decompose.md](decompose.md)。只在拆分时存在；集成项由父任务验收。
+
+## context/current.md
+
+```markdown
+# 当前事实与假设
+
+| 结论 | 状态 confirmed / assumed / refuted / superseded | 证据 | 失效条件 |
+|---|---|---|---|
+```
+
+约 8 KB 后把旧细节转 history / evidence，只留当前有效结论和指针。
+
+## decisions.md / history.md
+
+decisions 用 `D-n`、理由、来源和 `active / superseded`；被取代项写由哪个决定取代。history 追加日期、reference、enter / skip / exit / reopen、理由和产物路径；默认不加载。
+
+## SUMMARY.md
+
+```markdown
+# 交付总结
+
+## 结果与验证
+## 最终有效机制 / 根因
+## 被推翻的假设与认知更正
+## 关键决定
+## 可复用经验与长期文档链接
+## 剩余风险与后续项
+## 分支、worktree 与合入方式
+```
 
 ## design/<topic>.md
 
 ```markdown
-# <Title>
+# <标题>
+> 做什么、为什么、选哪条路。
 
-> 一段话：做什么、为什么、选哪条路。
-
-## 现状
-<已知事实与约束，链到代码 / 文档>
-
-## 方案
-<按 plan 步骤展开；图用 ASCII / Mermaid>
-
-## 取舍与回退
-<推荐 vs 放弃的方案、接受的取舍、选错了怎么撤>
-
+## 现状与证据
+## 契约 / 方案
+## 兼容性、取舍与回滚
+## 验证策略
 ## 未决
-- [ ] <仍未定的>
 ```
-
-按问题裁剪；对比表与设计依据格式见 [design-detail.md](design-detail.md)（可选）。

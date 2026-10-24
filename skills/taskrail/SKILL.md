@@ -1,16 +1,14 @@
 ---
 id: taskrail
 name: taskrail
-description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，按 wizard（意图确认、拆分）→ design(grill) → approve → handoff → propose → apply → archive 推进，大任务拆成切片或子任务滚动推进，按完成清单收口；human/goal 两种确认模式。在用户点名 taskrail、要求端到端推进任务、消息含 /goal、resume 或继续已有任务、要先确认理解对不对、要把大任务拆开分批做时使用。"
+description: "任务轨道：在 workspace 中维护任务与父子任务，按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；direct 或 OpenSpec 均可执行，统一验证与知识收口。用于端到端代码开发、跨项目需求、/goal、resume、自动拆任务或只确认意图。"
 ---
 
 # taskrail：任务轨道
 
 面向用户默认简体中文；命令名、路径、状态值保持原文。
 
-把一句目标变成按步骤推进、可恢复、做完符合预期的任务。意图确认、探索、设计、审批与交接都按本 skill 的阶段细则做，交付交给 `taskflow`，对用户的话按 [references/user-report.md](references/user-report.md)。
-
-契约真源（阶段、档位、目录、术语）：[references/contract.md](references/contract.md)。给人看的地图：`docs/task-flow/README.md`。
+把目标变成可恢复、可验证的开发任务。本 skill 负责事实、路由、父子任务和收口；代码实施交给 `taskflow`。契约真源：[references/contract.md](references/contract.md)；用户表达：[references/user-report.md](references/user-report.md)。
 
 ## 输入
 
@@ -18,55 +16,55 @@ description: "任务轨道：唯一对外编排入口。绑定 tasks/ 台账，�
 taskrail <一句话目标>
 taskrail goal: <一句话目标>
 taskrail intent <一句话目标>
-taskrail resume [slug]
+taskrail resume [task-id]
+taskrail explain [task-id]
 taskrail list
 ```
 
-消息含 `/goal`、`goal:` 前缀，或有进行中的 goal 且本条挂了本 skill → `confirm_mode: goal`；resume 沿用 `TASK.md.confirm_mode`，本条带 `/goal` 时改成 goal 并记入「已做决定」；其余 `human`。停在哪、两种模式在闸口上的差别见 [references/confirm-protocol.md](references/confirm-protocol.md)「停点」表。
+`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
 
-`taskrail intent`（或用户说「先确认你理解对了没」）只做意图确认：按 [references/intent.md](references/intent.md) 走到纠偏收敛就停。已绑定任务时落 `wizard/intent.md`；没有任务目录就只在对话里给复述，不建任务。
+## 绑定与恢复
 
-## 依赖
+按 [references/ledger.md](references/ledger.md) 确定 workspace、新建或恢复任务。台账热状态和 INDEX 更新使用：
 
-`taskflow`（full 档）、stock `openspec-*`（full 档，经 taskflow）。full 档的执行条件在定档时就查（phase-wizard 第 4 步）；缺哪个就说缺哪个和怎么装，不发明等价命令。stock skill 里停下问人的地方由编排者代答（taskflow「经 taskrail 委托时」）。
+```bash
+python3 <taskrail>/scripts/task_state.py <command> <workspace> ...
+```
 
-## 绑定
+resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 就绪行、`context/current.md` 和当前 reference；不默认读 history、全部子任务或全部 OpenSpec changes。driver 归档、目录位置或 checkbox 全勾都不能单独推出 done。
 
-细则见 [references/ledger.md](references/ledger.md)；建 `TASK.md` / INDEX 按 [references/templates.md](references/templates.md)；多会话同时写同一台账时读 [references/ledger-concurrency.md](references/ledger-concurrency.md)。
+## 动态主循环
 
-1. 先读 `tasks/INDEX.md`（无或漂移则按 `ongoing/` / `archive/` 重建）。
-2. 无绑定：自行判定新建或恢复，一句话说出决定和理由（同一件事就恢复，否则新建）。
-3. 新建：无 `tasks/` 就在仓库根建；推断 kebab-case `{slug}`，建 `tasks/ongoing/{slug}/TASK.md`，INDEX 追加一行。同名已存在不覆盖：同一件事就恢复，否则换名。
-4. `resume`：读 `TASK.md` 与阶段产物，按 user-report 的 resume 四行汇报，从当前 `phase` 继续；已 `handed-off` 的先按契约「交接后的位置」从 driver 状态推导并回写 `phase`；拆过的任务报做完了几项，从下一个就绪项继续（large-scope.md「续跑」）。`list` 打印 INDEX。
+每轮只做以下六步：
 
-## 主循环
+1. 读 TASK 热状态，核对目标和 `criterion`。
+2. 按 [references/router.md](references/router.md) 检查当前 reference 是否仍适用。
+3. 只加载命中的 reference；其统一结构见 [references/ref-contract.md](references/ref-contract.md)。
+4. 完成一个可检查动作，产生产物或证据。
+5. 用热状态脚本更新 TASK / INDEX，把路由原因追加到 `history.md`，决定写入 `decisions.md`。
+6. 重新路由；只在确认协议规定的停点或真阻塞时停。
 
-每轮：读 `phase` → 只加载该阶段细则 → 做完当前步 → 更新 `TASK.md`（`updated`、`phase`、指针、「已做决定」）→ 按档位进下一阶段；只在 confirm-protocol「停点」表列出的时机停。
+路由型 references（从这里直接打开，命中才读）：
 
-| phase | 动作 |
-|-------|------|
-| `wizard` | 读 [references/phase-wizard.md](references/phase-wizard.md)：先按 intent.md 落 `wizard/intent.md`，再写 `wizard/plan.md` 与 `criterion` / `tier`，要拆就出路线图，定稿 |
-| `design` | 读 [references/design.md](references/design.md)：先 grill 自问自答，再写 `design/`；要对比表 / 设计依据时读 [references/design-detail.md](references/design-detail.md) |
-| `approve` | 读 [references/approve.md](references/approve.md)：自查 → 闸口 → 冻结 |
-| `propose` | 未 `handed-off` 先按 [references/handoff.md](references/handoff.md) 交接；`check_handoff.py` 通过后委托 taskflow |
-| `apply` | full：委托 taskflow / `openspec-apply-change`，进度只认 checkbox，切片按依赖滚动展开；skip：直接实现 + 验证；父任务：按路线图逐项推进子任务 |
-| `archive` | 归档 driver（收尾校核已过） |
-| `done` | 完成清单已过：发完成通知（[user-report.md](references/user-report.md) 第 8 节），同轮任务归档（[references/archive-reopen.md](references/archive-reopen.md)）；子任务随父任务收尾 |
+| reference | 用途 |
+|---|---|
+| [plan.md](references/plan.md) | 当前最小计划与验证策略 |
+| [explore.md](references/explore.md) | 代码入口、依赖、约束与影响面 |
+| [diagnose.md](references/diagnose.md) | 复现、基线与根因证据 |
+| [grill.md](references/grill.md) | 关键取舍、冲突与未知 |
+| [design.md](references/design.md) | 契约、架构、兼容性与迁移 |
+| [approve.md](references/approve.md) | 必要的人或模型批准 |
+| [decompose.md](references/decompose.md) | 自动规划切片、`subtasks/` 与集成项 |
+| [verify.md](references/verify.md) | 判据、回归、集成与证据 |
+| [close.md](references/close.md) | SUMMARY、知识提升与归档；归档 / 重开见 [archive-reopen.md](references/archive-reopen.md) |
 
-`handoff` 是动作，不是 `phase` 取值：成功后 status 置为 handed-off、phase 置为 propose、写 driver。用户说关闭任务，或要把归档的任务拉回来，按 archive-reopen.md 做。
+`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按需走角色化只读评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
 
-**档位**：`skip` = wizard 定稿后直接实现 + 验证；`full` = 全路径。规则见契约「流程」。
+## 固定不变量
 
-**approve 出口**：唯一下一步是 handoff，细则只在契约「approve 出口与交接」。
-
-**命中才读**（均从这里直接打开）：Web UI → [references/ui-delivery.md](references/ui-delivery.md)；多 worker 并行 → [multi-worker.md](../taskflow/references/multi-worker.md)；要拆分，或推进 / 恢复拆过的任务 → [references/large-scope.md](references/large-scope.md)；full 档选型 / 外部集成 → [references/external-precedent.md](references/external-precedent.md)；质量画像 / 降级分级 / 验收打分或门包类别名 → [references/quality-appendix.md](references/quality-appendix.md)。
-
-## 完成
-
-按 [references/done.md](references/done.md) 逐条核对，全过才标 `done`。`handed-off` 或 checkbox 全勾但判据不成立都不算完成。标 `done` 后发完成通知，说清改动在哪、怎么合入，再把任务目录归档。
-
-## 边界
-
-- 提交只落在任务 worktree 的任务分支；不 push、不合进默认分支、不部署、不改线上数据；危险动作按确认协议停。
-- 进度：approve 前认 `TASK.md.phase`，之后认 OpenSpec checkbox。
-- 没有 worker 能力时主会话自做，不因此退出轨道。
+- 代码任务默认由 taskflow 在 git worktree 实施；direct 与 OpenSpec 仅差执行编排，不差隔离。
+- workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
+- 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
+- `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
+- `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
+- 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。

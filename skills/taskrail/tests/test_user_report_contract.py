@@ -26,7 +26,7 @@ class UserReportTest(unittest.TestCase):
 
     def test_contract_points_here(self) -> None:
         self.assertIn("user-report.md", CONTRACT)
-        self.assertIn("对用户说话", CONTRACT)
+        self.assertIn("用户表达", CONTRACT)
 
     def test_decision_ledger(self) -> None:
         self.assertIn("已做决定", UR)

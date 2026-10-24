@@ -13,13 +13,14 @@ sunzhenkai 的第一方 Agent Skills 集合（公开仓，MIT）：任务流编�
 
 ## 常用命令
 
-无构建、无 lint 配置；自动化门禁只有 pytest 契约测试。
+无构建、无 lint 配置；自动化门禁以契约测试和临时 git 仓集成测试为主。测试用 stdlib unittest 编写，可由 pytest 收集；没有 pytest 时用 unittest：
 
 ```bash
-python3 -m pytest skills -q               # 全部测试（秒级）
+python3 -m pytest skills -q               # 全部测试（有 pytest 时）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
+python3 -m unittest discover -s skills/<id>/tests -p 'test_*.py'
 
-make check-style    # 输出风格检查（意图复述字段齐全；SKILL.md >8KB、description 过长、引用链超一层、禁令词偏多只告警）
+make check-style    # 输出风格检查（SKILL.md >8KB、description 过长、引用链超一层、禁令词偏多只告警）
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
 make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
@@ -57,19 +58,21 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
-- 任务编排入口是 **`taskrail`**；确认协议是 taskrail 的薄引用 `skills/taskrail/references/confirm-protocol.md`。design 第一步的 grill 由本仓自问自答（方法见 `taskrail/references/design.md`），不委托外部 skill。
+- 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference，由本仓自问自答（方法见 `taskrail/references/grill.md`），不委托外部 skill。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
 ### task* 要点
 
-- 流程：`wizard → design(grill) → approve → [handoff] → propose → apply → archive → done`（档位 `skip` / `full`：skip 直接实现 + 验证、不建 driver；full 经 handoff 走 OpenSpec；handoff 是动作不是 phase）。
-- 拆分：wizard 第 5 步定，默认不拆；同一份交付拆成一个 driver 下的切片（按依赖滚动展开、逐片提交），要分别交付的才拆子任务，放在父任务的 `subtasks/` 下（继承父任务意图，范围内不停；父任务验总判据收尾）。细则 `taskrail/references/large-scope.md`。
-- 台账：凡经 taskrail 的任务进 `tasks/ongoing/{slug}/`，`TASK.md` 持 `phase` / `confirm_mode` / `criterion`；交付进度仍只认 OpenSpec checkbox。
+- 主干：`目标与 criterion → 当前最小计划 → 动态 references → verify → close`。不再维护 wizard、skip / full 双流程；handoff 仅是 OpenSpec 执行前的核对动作。
+- 动态环节：explore、diagnose、grill、design、approve、decompose、review 等按当前证据 enter / continue / skip / reopen；执行中也可重入。路由见 `taskrail/references/router.md`，统一结构见 `ref-contract.md`。
+- 自动拆分：decompose 判断不拆 / 切片 / 子任务；子任务立即创建在父任务 `subtasks/` 下，初始 pending 并继承确认方式，按依赖激活。必须原子交付的是同任务切片；可按契约独立交付的才建子任务。细则 `taskrail/references/decompose.md`。
+- 三个根：workspace 统一保存 `tasks/`、按需 `openspec/` 和 `worktrees/<task-id>/<repo-id>/`。direct 与 OpenSpec 的 git 代码修改都使用真正的 git worktree；跨项目可继续使用 OpenSpec，产物仍写 workspace。
+- 台账：`TASK.md` 持 `current_ref` / `confirm_mode` / `execution` / `criterion` / `driver` 等热状态；direct 进度看 PLAN checkbox，OpenSpec 看 change checkbox，父子结构看 ROADMAP 与子 TASK。INDEX 由 `taskrail/scripts/task_state.py` 重建，不是第二状态源。
 - 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。
-- 两件套：`taskrail`（意图确认、探索、设计、审批、交接都是它的阶段细则）+ `taskflow`（交接后的执行）。
-- 意图确认：wizard 第 1 步按 `taskrail/references/intent.md`（落 `wizard/intent.md`；goal 由另一个模型按该文件第 5 节清单代审）；`taskrail intent <目标>` 只做这一步。design 第一步的 grill 在其后，只追细节不重问意图。
+- 两件套：`taskrail`（意图、动态编排、拆分、恢复、验证与收口）+ `taskflow`（worktree、direct / OpenSpec 执行与证据）。是否拆分、是否 approve、执行适配器与确认方式相互正交。
+- 意图确认：按 `taskrail/references/intent.md`；`taskrail intent <目标>` 只做这一步。后续 grill 只追当前方案的关键未知或外部取舍，不固定重问意图。
 - 跨 skill 常用词统一：**台账**（ledger，持久记账文件：task 系列的 `TASK.md`/`INDEX.md`、repo-manager 的 `.repo-manager.md`）、**交接**（handoff，动作；agent-roster 的 Handoff 指受派方的产出文件）、**grill**（自问自答拷问，trouble-grill 用于排查）。新文本沿用这三个词，不另造同义词。
-- 术语：`skills/taskrail/references/contract.md`「术语」节；端到端回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
+- 术语：`skills/taskrail/references/contract.md`「术语」节；旧 handoff 兼容回归样例：`skills/taskrail/examples/minimal-webui/`（`tests/test_e2e_handoff_flow.py`）。
 
 ## Skill 设计原则
 
@@ -80,7 +83,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 ## 公开仓纪律
 
-- 提交前跑 `make check-names`、`make check-style`（`.project-denylist` 列具体项目名；确需保留的行加 `project-name-allow`）与 `~/.local/bin/pytest skills tests`（或环境中的 pytest）。
+- 提交前跑 `make check-names`、`make check-style`（`.project-denylist` 列具体项目名；确需保留的行加 `project-name-allow`）与 `python3 -m pytest skills -q`；无 pytest 时按上文用 unittest 分 Skill 运行。
 
 - **这是开源仓库**：任何提交都可能被公开检索，应避免提交隐私信息（密钥、内部 URL、主机名、内网地址、公司/项目名、真实任务描述）。写任何文件前自查一次。
 - **只放机制，不放数据**：名册、案例、路由规则、运行痕迹存使用者私有位置。

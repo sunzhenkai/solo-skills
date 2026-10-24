@@ -17,8 +17,9 @@ class DecisionBoundaryTest(unittest.TestCase):
         self.assertIn("直接定", UR)
 
     def test_ledger(self) -> None:
-        self.assertIn("已做决定", UR)
-        self.assertIn("难回头单独说", UR)
+        self.assertIn("已做决定写 decisions.md", UR)
+        self.assertIn("难回头决定", UR)
+        self.assertIn("单独说", UR)
 
 
 if __name__ == "__main__":

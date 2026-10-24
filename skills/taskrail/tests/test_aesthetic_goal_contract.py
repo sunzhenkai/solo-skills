@@ -23,7 +23,8 @@ class AestheticGoalTest(unittest.TestCase):
 
     def test_evidence_and_single_stop_rule(self) -> None:
         self.assertIn("pretty-ui/references/evidence.md", DONE)
-        self.assertIn("critique.md「迭代与停止」", DONE)
+        self.assertIn("critique.md", DONE)
+        self.assertIn("「迭代与停止」", DONE)
         confirm = (REF / "confirm-protocol.md").read_text(encoding="utf-8")
         self.assertIn("「迭代与停止」为准", confirm)
 

@@ -1,0 +1,1902 @@
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index fab17c5..9ecfa1e 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -1,65 +1,55 @@
+ ---
+ id: taskflow
+ name: taskflow
+-description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。taskrail 委派，或用户点名 taskflow / taskflow-new / 某个 `{task}-driver` 时使用。"
++description: "代码执行与隔离：在 workspace 为每个修改仓准备 git worktree，按 taskrail 路由选择 direct 或 OpenSpec；支持多仓、滚动切片、提交与验证。taskrail execute 委派、用户点名 taskflow / taskflow-new / 某个 driver，或需要隔离代码修改时使用。"
+ ---
+ 
+ # taskflow
+ 
+-面向用户默认简体中文；端到端推进、resume、/goal 走 taskrail。对用户报进度按 [user-report.md](../taskrail/references/user-report.md)，不报 checkbox 计数与字段。
++面向用户默认简体中文；端到端路由、resume、/goal 走 taskrail。用户表达按 [user-report.md](../taskrail/references/user-report.md)。
+ 
+-一个任务 = 一个 driver change `{task}-driver`，实现拆成子 change `{task}-<slice>`（同一 planning root；跨 root 时在 driver 涉及面表记录）。**进度只有 checkbox 一种真相**：不另建台账、索引或编号。术语见 [taskrail 契约「术语」](../taskrail/references/contract.md)。
++## 两个执行适配器，一套隔离协议
+ 
+-## 阶段路由
++- `direct`：按 TASK / PLAN 的当前 checkbox 实施，不建 driver。
++- `openspec`：建 `{task}-driver` 与子 changes，实施进度只看 change checkbox。
++- 两者都在 `<workspace>/worktrees/<task-id>/<repo-id>/` 改代码、测试、提交；workspace 统一持 `tasks/` 和 `openspec/`。
+ 
+-| 阶段 | 入口 | 参数 |
+-|------|------|------|
+-| 立项 | 本文件「脚手架」（command `taskflow-new`） | 任务描述 |
+-| 提案 | stock `openspec-propose` | `{task}-driver`；展开切片时为 `{task}-<slice>` |
+-| 实施 | stock `openspec-apply-change` | `{task}-driver`，逐片 `{task}-<slice>` |
+-| 归档 | stock `openspec-archive-change` | `{task}-driver`（只归档 driver 自身） |
++执行前必读 [references/worktree.md](references/worktree.md)，并对每个必须修改的仓库运行：
+ 
+-方案未定时先 stock `openspec-explore`。只提供 `taskflow-new` 一个 command，其余复用 stock skill。
+-
+-委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name（`{task}-driver` 或 `{task}-<slice>`）；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
++```bash
++python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json
++```
+ 
+-## 经 taskrail 委托时
++exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
+ 
+-stock `openspec-*` 里停下来问人的地方，由编排者按下表代答；停不停只看 taskrail [confirm-protocol.md](../taskrail/references/confirm-protocol.md)「停点」表。单独点名 taskflow 时按 stock 原样交互。
++## direct
+ 
+-| stock 的行为 | 在轨道里 |
+-|---|---|
+-| propose 完停下，等新请求再 apply | approve 放行即授权 propose 与 apply，propose 完接着 apply |
+-| 同名 change 已存在，问继续还是新建 | 选继续，不问 |
+-| 实现中不清楚或卡住，暂停并列选项 | 按 Driver 协议：该项保持未勾、验证记录写原因、做下一项；真阻塞按 user-report 第 5 节停 |
+-| 归档前确认未勾项、问是否同步 spec | 收尾校核过了才归档；子 change 用 `openspec archive {task}-<slice> --yes`（同步 spec），未勾齐不归档 |
++1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不需要 handoff / approve / driver。
++2. 读 [references/execution-discipline.md](references/execution-discipline.md)，在当前 worktree 实施一个连贯增量并跑 focused tests。
++3. 只更新 PLAN 实施 checkbox 与证据，提交由编排者做；提交后重新路由，不直接标 done。
+ 
+-## 入口门
++## OpenSpec
+ 
+-创建 `{task}-driver` 或子 change 前，第一步在工作区根跑：
++创建 driver 前按 taskrail handoff 写载荷，并在 workspace 跑 OpenSpec 入口门：
+ 
+ ```bash
+-python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
++python3 <taskflow>/scripts/check_handoff.py <workspace> <task-path>
+ ```
+ 
+-exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自己补写 `TASK.md` 绕过。核对项只在脚本里。
+-
+-用户原话明确要求「不走 taskrail 直接建 driver」时：没有 `TASK.md` 就按 taskrail [templates.md](../taskrail/references/templates.md) 建最小的一份，元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"` 再跑（脚本以 BYPASS 放行）。理由只照录用户原话；用户没说跳过就走 taskrail。
++用户原话明确要求绕过 taskrail 时，才可在 TASK 写 `gate_bypass: "<日期> user-confirmed: <原话>"`；不手写省略验收的自由提示词，未核对项仍须记录。门通过后 `taskflow-new`：
+ 
+-## 脚手架
++1. 在 workspace 执行 `openspec new change {task}-driver --goal "<目标 + criterion + 方案 / 批准指针>"`。
++2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。
++3. stock `openspec-*` 始终在 workspace 运行并显式给 change name；实现者 cwd 是对应 worktree。缺 skill / CLI 时说明安装，不发明等价命令。
+ 
+-`taskflow-new {任务描述}`，入口门通过后三步：
++## 经 taskrail 委托时
+ 
+-1. 定 `{task}`：有 `TASK.md` 时等于其 slug；否则由描述归纳 kebab-case（描述为空时说明需要任务描述）。
+-2. `openspec new change {task}-driver --goal "<目标 + criterion 原文 + 方案 / 批准路径；无 TASK.md 时为任务描述原文>"`。
+-3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；`tasks.md` 留给 propose。
++同名 change 选继续，不问；approve 放行即授权其范围内的 propose 与 apply，stock 的普通停顿由编排者按 [confirm-protocol.md](../taskrail/references/confirm-protocol.md) 停点表处理。单项做不了时该项保持未勾并继续其他就绪项；子 changes 全勾、验证和评审校核过后才 `openspec archive {task}-<slice> --yes`，不能用 `--yes` 掩盖未勾项。driver 归档后回 taskrail verify / close，不直接 done。
+ 
+-## 执行
++## 滚动与并行
+ 
+-propose / apply / 收尾前读 [references/execution-discipline.md](references/execution-discipline.md)。默认**串行**：一次做一个子 change；子 change 按依赖滚动展开，每做完一片提交一次、勾掉实施项，过片间检查点再展开下一批（driver-template「滚动展开」）。
++OpenSpec 切片按依赖滚动展开，每片提交一次，片间检查点只说决定并继续，只增删改未勾项；新交付边界回 taskrail decompose。direct 也可按 PLAN 增量滚动，不因此自动创建 driver。
+ 
+-- 派给实现者的输入由交接载荷生成：判据原文、交付类别、要产出的证据、指针；不手写省略验收的自由提示词。
+-- 完成按 [done.md](../taskrail/references/done.md)。
+-- Web UI → [ui-delivery.md](../taskrail/references/ui-delivery.md)；多 worker 并行 → [references/multi-worker.md](references/multi-worker.md)。
++默认串行；同任务同仓写操作串行，不同子任务或不同仓库才可并行，细则 [references/multi-worker.md](references/multi-worker.md)。worker 只收本人范围、criterion、契约、worktree 绝对路径和证据要求，返回摘要与路径，不回灌完整日志。
+ 
+-经验积累与 evals 不在运行路径上，见 [references/self-evolution.md](references/self-evolution.md)。
++完成验收与知识收口统一走 taskrail [done.md](../taskrail/references/done.md) / close，不在 taskflow 自行判 done。经验记录和进化只按 [self-evolution.md](references/self-evolution.md) 在运行闭环外执行。
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 8e8c746..59a9f4a 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -1,299 +1,298 @@
+ version: 1
+ skill: taskflow
+ cases:
+-  - id: one-driver-change
+-    kind: basic
++  - id: direct-uses-worktree-without-driver
++    kind: core
+     judge: deterministic
+-    description: 一个任务等于一个 {task}-driver，子 change 共享前缀
+-    given: 用户点名 taskflow 或要把任务拆成多个 OpenSpec change
++    description: direct 与 OpenSpec 共用隔离但不共用编排产物
++    given: taskrail 选择 direct 实施一个 git 代码任务
+     expect:
+       must:
+-        - 建 {task}-driver；子 change 命名 {task}-<slice>
+-        - 与 driver 同一 planning root；跨 root 时在涉及面表显式记录
++        - 运行 prepare_worktree.py，在返回的任务 worktree 改代码、测试和提交
++        - PLAN 记录实施进度，证据记录验证
+       must_not:
+-        - 另建 tasks/ 台账、索引文件或编号体系
++        - 创建 driver 或调用 check_handoff.py
++        - 在源 checkout 切分支或直接写代码
+ 
+-  - id: only-taskflow-new-command
+-    kind: basic
++  - id: openspec-workspace-driver
++    kind: core
+     judge: deterministic
+-    description: 只提供 taskflow-new；其余阶段委托 stock openspec-*
+-    given: 澄清 / 提案 / 实施 / 归档
++    description: OpenSpec 所有 planning 产物留在 workspace
++    given: taskrail 选择 OpenSpec，涉及一个或多个项目仓库
+     expect:
+       must:
+-        - explore/propose/apply/archive 委托对应 stock skill，参数为 {task}-driver
++        - 在 workspace 创建 task-driver 和 task-slice 子 changes
++        - 所有 openspec 命令以 workspace 为 cwd 并显式给 change name
++        - driver 的 .openspec.yaml 显式写 skip_specs true
+       must_not:
+-        - 另造等价的 taskflow-explore/propose/apply/archive 命令
++        - 因跨项目更换 planning root
++        - 在项目 checkout 内另建一套任务台账
+ 
+-  - id: skip-specs-required
+-    kind: basic
++  - id: multi-repository-worktrees
++    kind: core
+     judge: deterministic
+-    description: "driver 必须显式 skip_specs: true"
+-    given: taskflow-new 脚手架
++    description: 同一任务两个真实仓库分别获得 worktree
++    given: task demo 同时修改 backend 和 frontend 两个 git 仓
+     expect:
+       must:
+-        - 在 driver 的 .openspec.yaml 写入 skip_specs: true
++        - 分别准备 worktrees/demo/backend 和 worktrees/demo/frontend
++        - registry.json 同时登记两个 source、worktree、branch 和 base
++        - 两仓各自存在 task/demo 分支且互不覆盖
+       must_not:
+-        - 让 driver 带 spec 增量却不写 skip_specs
++        - 让两个仓库共用一个 worktree
++        - 把 repo_id 静默改绑到另一个 source
+ 
+-  - id: scaffold-three-steps
++  - id: no-remote-default-base
+     kind: core
+     judge: deterministic
+-    description: taskflow-new 固定三步且不写 tasks.md
+-    given: taskflow-new {任务描述}
++    description: 无 remote 也能创建和恢复
++    given: source 只有本地 main 和一个提交，没有 origin
+     expect:
+       must:
+-        - 归纳 kebab-case {task}（描述为空才问）
+-        - openspec new change {task}-driver --goal 任务描述原文
+-        - 写 skip_specs 并按模板写 proposal.md
+-        - 报告 change name、proposal 路径与待确认空缺，并提示 propose 应选继续已有 change
++        - 默认以 HEAD 为基线创建任务分支和 worktree
++        - 干净重跑返回 resumed，源仓仍在 main
+       must_not:
+-        - 脚手架阶段写 tasks.md
+-        - 改写或精简 Driver 协议固定文本
++        - 强制 fetch 或虚构 origin 默认分支
++        - 因无 remote 失败
+ 
+-  - id: driver-protocol-verbatim
+-    kind: core
++  - id: dirty-worktree-fails-preserving-work
++    kind: failure
+     judge: deterministic
+-    description: proposal.md 的 Driver 协议小节逐字写入
+-    given: 写 driver proposal
++    description: 脏任务 worktree 返回非零并保留现场
++    given: 已登记 worktree 含未提交修改
+     expect:
+       must:
+-        - Driver 协议与 SKILL 模板固定文本一致
+-        - 含 skip_specs、子 change 命名、checkbox 进度、两个根与必须仓建 worktree 规则、提交只到任务分支、一轮结束三条件
++        - prepare_worktree.py 返回非零，原修改逐字保留
++        - 用户先检查并处理后再恢复
+       must_not:
+-        - 改写、精简或挪走 Driver 协议
++        - stash、reset、覆盖或自动提交用户修改
+ 
+-  - id: propose-tasks-skeleton
++  - id: dirty-source-is-not-copied
+     kind: core
+     judge: deterministic
+-    description: propose 产出的 driver tasks.md 含准备/实施/收尾骨架
+-    given: openspec-propose 处理 {task}-driver
++    description: 源 checkout 的未提交修改不隐式进入任务分支
++    given: source 工作区有未提交修改，HEAD 可作为基线
+     expect:
+       must:
+-        - 准备段含给必须仓建 worktree 的条目
+-        - 实施段每个子 change 至少一条，且须 apply 至全勾且 validate --strict 通过
+-        - 收尾段含回归、回填验收、提交与归档全部子 change
++        - 新 worktree 来自显式基线提交，源修改保持原样
++        - 若需要以未提交修改为输入，先显式记录并获用户认可
+       must_not:
+-        - 在 apply 实施循环里改 change 语义或补拆子 change
++        - 自动复制源工作区修改
++        - 切换源仓分支或清理源工作区
+ 
+-  - id: checkbox-ssot
+-    kind: core
++  - id: branch-and-identity-collisions
++    kind: failure
+     judge: deterministic
+-    description: 进度只有 checkbox 一种真相
+-    given: 判断 driver 或子 change 完成度
++    description: 未登记分支和错误身份不能静默复用
++    given: 同名任务分支已存在但无 registry，或已有 worktree 的 branch/source 不匹配
+     expect:
+       must:
+-        - 子 change tasks.md 记实现进度，driver tasks.md 记编排进度
+-        - driver 实施 checkbox 仅在对应子 change 全勾且 validate --strict 通过后才勾
+-        - 暂缓原因写进 proposal 验证记录
++        - 返回非零并说明冲突，保留已有分支和目录
+       must_not:
+-        - 持久化第二份完成度、暂缓或分支状态记录
++        - 建 detached HEAD 掩盖冲突
++        - 复用不明身份的旧任务 worktree
+ 
+-  - id: fail-closed-must-repos
+-    kind: core
++  - id: nested-workspace-exclude
++    kind: edge
+     judge: deterministic
+-    description: 必须修改仓的代码改在 worktrees/{task}；tasks/ 与 openspec change 留在主工作树；主工作树与用户未提交改动不动
+-    given: 准备涉及面角色为必须的修改仓
++    description: 只有 worktree 位于 source 内才写 exclude
++    given: workspace 就是 source 项目根，或 workspace 与 source 分离
+     expect:
+       must:
+-        - openspec-* 在 planning root（主工作树）跑；改代码、测试、提交在 worktrees/{task}
+-        - 先 fetch；基线默认 origin/<默认分支>，当前分支不是默认分支且领先时用 HEAD；git worktree add worktrees/{task} -b {task} <基线>
+-        - 分支已存在用 git worktree add worktrees/{task} {task}；worktree 已存在则复用
+-        - 把 worktrees/ 写进 .git/info/exclude，worktree 路径与基线记入「已做决定」
+-        - 派给实现者的工作目录是 worktree 的绝对路径；同一任务的 worker 共用这个 worktree
+-        - 提交只落在任务分支 {task}；git 拒绝时停下说明原因
++        - 内嵌场景把对应顶层 worktrees 目录写 .git/info/exclude
++        - 分离场景不改 source exclude
+       must_not:
+-        - 在主工作树上切分支、stash 或 reset
+-        - 对建议/排除仓建 worktree
+-        - 分支已存在时用 origin/<默认分支> 作参数建出 detached HEAD
+-        - push、合进默认分支或收尾自动删除 worktree
++        - 修改项目 .gitignore
++        - 无条件写 exclude
+ 
+-  - id: round-end-three-only
++  - id: handoff-new-metadata-pass
+     kind: core
+     judge: deterministic
+-    description: 只有全勾、需用户决策、预算耗尽允许结束一轮
+-    given: apply {task}-driver 一轮
++    description: 新 OpenSpec 元信息通过入口门
++    given: TASK 为 active、execution openspec、current_ref execute，criterion 和 driver 正确，交接载荷完整
+     expect:
+       must:
+-        - 单项做不了保持未勾，写原因后继续其余项
+-        - 结束时逐条列出未勾项与原因
++        - check_handoff.py exit 0 后才创建 driver
++        - 有 approve 要求时读取 reviews 或旧 approve 下 APPROVED.md
+       must_not:
+-        - 把未完成项勾成完成
+-        - 用按 change 汇总的剩余数量代替逐条说明
+-        - 因一项卡住整轮停下
++        - 未跑入口门直接 openspec new change
++        - direct 使用该入口门
+ 
+-  - id: parallel-independent-units
+-    kind: core
++  - id: handoff-not-required-needs-reason
++    kind: boundary
+     judge: deterministic
+-    description: 有多 agent 时对独立 task / 子 change 并行，依赖项与收尾串行
+-    given: apply {task}-driver 且实施段有多个互不依赖的子 change，或某子 change 内有互不依赖的 checkbox
++    description: 无需 approve 必须有具体理由
++    given: router 判定普通可逆改动无需 approve，没有 APPROVED.md
+     expect:
+       must:
+-        - 有多 agent 能力时对无依赖、范围不重叠的 task 或子 change 并行委派
+-        - 每个子代理绑定 planning root 与 change name，只改自己范围
+-        - 主会话汇总，并在子 change 全勾且 validate --strict 通过后才勾 driver 编排项
++        - 交接节写批准 not-required 加具体理由后可通过
++        - 空 not-required 或无批准文件且无理由时失败
+       must_not:
+-        - 对有依赖、同范围重叠、准备段建 worktree 或收尾段条目并行
+-        - 另建第二份进度账本
+-        - 因子代理失败而整轮结束
++        - 用空标记代替理由
++        - 为无需 approve 的 direct 伪造批准文件
+ 
+-  - id: no-invented-openspec-commands
++  - id: handoff-rejects-direct-and-bad-path
+     kind: failure
+     judge: deterministic
+-    description: openspec-* 不可用时停下报告，不发明等价命令
+-    given: 当前环境没有 openspec-* skill
++    description: direct 和路径逃逸均被拒绝
++    given: TASK execution direct，或 task path 含父目录跳转
+     expect:
+       must:
+-        - 停下并给出可选项（dotf agents -c 或 openspec init --tools agents 装到全局，或 openspec CLI 直调）
++        - direct 返回非零并说明不走 OpenSpec 入口门
++        - 非 task-id 或 parent/subtasks/child 形式返回非零
+       must_not:
+-        - 自行发明等价命令并继续
++        - 读取 workspace tasks/ongoing 外的 TASK
++        - 自动改写元信息让门通过
+ 
+-  - id: no-unbound-delegation
+-    kind: failure
++  - id: legacy-handoff-compatible
++    kind: regression
+     judge: deterministic
+-    description: 委托必须在 driver planning root 下且显式给 {task}-driver
+-    given: 委托 openspec-explore/propose/apply/archive
++    description: 旧 handed-off 和 phase 任务仍可校验
++    given: 旧 TASK 含 handed-off、合法 phase、criterion、driver 和完整交接载荷
+     expect:
+       must:
+-        - 在 driver 的 planning root 下执行
+-        - 显式给出 change name {task}-driver
++        - 保留兼容读取并按原门校验，旧 approve 目录可用
+       must_not:
+-        - 缺绑定仍委托
++        - 把兼容读取变成恢复固定双流程
++        - 接受非法 legacy phase
+ 
+-  - id: archive-driver-only
++  - id: gate-bypass-user-only
+     kind: boundary
+     judge: deterministic
+-    description: stock 归档只归档 driver 自身；子 change 在收尾 checkbox 已归档
+-    given: 对 {task}-driver 执行 openspec-archive-change
++    description: gate_bypass 只能照录用户明确原话
++    given: 用户明确说不走 taskrail 直接建 driver
+     expect:
+       must:
+-        - 只归档 driver 自身，不做递归
++        - gate_bypass 含 user-confirmed 和原话，输出醒目 BYPASS 警告
++        - 未核对项在 decisions 或 SUMMARY 按实际降级记录
+       must_not:
+-        - 在 driver 归档步骤里再递归归档子 change（应收尾段已完成）
++        - 用户未要求时自行 bypass
++        - 用 agent 编的理由代替用户原话
+ 
+-  - id: skip-specs-regression
+-    kind: regression
++  - id: web-ui-handoff-digests
++    kind: failure
+     judge: deterministic
+-    description: 不写 skip_specs 会导致 validate --strict 失败
+-    given: 新建 driver 后跑 openspec status/validate
++    description: Web UI 交接缺 digest 不能通过
++    given: 交付类别 Web UI，但 Active Instance 根路径或 contract、binding、projection digest 任一缺失
+     expect:
+       must:
+-        - skip_specs 已写入；status --json 中 specs 为 skipped
++        - 入口门逐项 FAIL，补齐后重跑
+       must_not:
+-        - driver 无 spec 却未设 skip_specs
++        - 手写省略 UI 验收的自由提示词绕过
++        - 把缺证据标成 not_applicable 而不写理由
+ 
+-  - id: scaffold-must-leave-tasks-empty
+-    kind: regression
++  - id: scaffold-leaves-tasks-for-propose
++    kind: core
+     judge: deterministic
+-    description: 脚手架写满 tasks.md 会让 openspec-propose 空转
+-    given: taskflow-new 刚完成
++    description: driver 脚手架不抢 propose 的职责
++    given: 已创建 task-driver 并写 proposal
+     expect:
+       must:
+-        - tasks.md 不存在或未由脚手架写满，留给 propose
++        - skip_specs true 和 Driver 协议逐字落入 proposal
++        - tasks.md 留给 stock openspec-propose 生成准备、实施、收尾骨架
+       must_not:
+-        - 脚手架阶段把 tasks 写满
++        - 脚手架写满 tasks.md
++        - 改写或精简 Driver 协议
+ 
+-  - id: normal-delivery-input-context
++  - id: rolling-wave-and-checkbox-ssot
+     kind: core
+     judge: deterministic
+-    description: 正常交付实现者拿到交接载荷生成的输入；点名画像时一并给画像
+-    given: 派发普通复杂交付的实现者
++    description: 只展开就绪切片，逐片验证提交后勾编排项
++    given: driver 有三个切片，后两片依赖第一片
+     expect:
+       must:
+-        - 实现者收到判据原文、交付类别、本人范围、要产出的证据与指针；用户点名质量画像时另给画像或保留语义的子范围裁剪
+-        - 实现者收到本人范围的相关验收要求与运行约束
+-        - 完整 rubric 与跨范围审阅意见仍由审阅者持有
++        - propose 只展开依赖已满足的切片
++        - 子 change tasks.md 记实施，driver tasks.md 记编排
++        - 第一片全勾、validate strict 并提交后才勾 driver 项，再从当前 worktree 起草后片
+       must_not:
+-        - 普通任务默认盲派
+-        - 隐藏并发、无障碍、错误边界或运行假设等质量约束
++        - 一次按设想写满所有后片
++        - 在 ROADMAP 或父 driver 再复制一份子任务实施进度
+ 
+-  - id: blind-regression-input-isolation
+-    kind: core
++  - id: archive-never-masks-unchecked-work
++    kind: failure
+     judge: deterministic
+-    description: 仅显式 benchmark/regression 复跑隔离验收期望
+-    given: 任务显式标记 benchmark 或 regression 并派发盲测实现者
++    description: 未勾齐不能归档
++    given: 某子 change 仍有未勾项或验证未通过
+     expect:
+       must:
+-        - 实现者只收到同一份样例/需求原文与运行约束
+-        - 审阅者持有质量画像与 rubric，两边不共享
+-        - 复跑不追加事后提示
++        - 保持未勾并写原因，继续其他就绪项
++        - 只有全勾、validate 和评审校核过后才使用 archive yes 非交互命令
+       must_not:
+-        - 未标记 benchmark/regression 就盲派
+-        - 把质量画像、验收 rubric 或期望页面清单写进实现者 prompt
+-        - 靠私聊提示词传递未写进需求原文的期望
++        - 用 yes 掩盖未勾项
++        - 把未完成项勾成完成
+ 
+-  - id: entry-gate-handoff-pass
++  - id: stock-pauses-orchestrated
+     kind: core
+     judge: deterministic
+-    description: taskflow-new 前先跑 scripts/check_handoff.py；handoff 成立才建 driver
+-    given: tasks/ongoing/<slug>/TASK.md 元信息 status handed-off、phase ∈ propose/apply/archive/done，「## 交接」含交付类别与适用门包（Web UI 另含 Active Instance 根路径与 contract/binding/projection 三条 digest）
++    description: stock OpenSpec 普通停顿不额外打断任务
++    given: 经 taskrail 委托且同名 change 已存在，approve 已放行
+     expect:
+       must:
+-        - 建 driver / 派实现前执行 check_handoff.py <workspace-root> <slug>，exit 0（PASS）后才继续
+-        - 交接载荷里的交付类别与适用门包随 driver 带入实施
++        - 同名 change 选继续，不问
++        - 在批准范围内 propose 后接着 apply，普通停点由编排者代答
+       must_not:
+-        - 不跑入口门就直接 openspec new change {task}-driver
++        - 向用户问继续还是新建
++        - 把危险动作授权当成普通停顿自动放行
+ 
+-  - id: entry-gate-handoff-block
+-    kind: failure
++  - id: default-serial-and-independent-parallel
++    kind: core
+     judge: deterministic
+-    description: 入口门 exit 1 时拒绝建 driver 并回 taskrail
+-    given: TASK.md 缺失，或 status 非 handed-off / phase 仍在 approve 之前，或缺「## 交接」节、交付类别、适用门包，或 Web UI 缺任一 digest / Active Instance 根路径
++    description: 同任务同仓写串行，独立子任务或仓库才并行
++    given: 有多个实施单位，其中两个共享同一仓库，另外两个属于不同仓库
+     expect:
+       must:
+-        - 拒绝建 driver，逐条报告 FAIL 项，引导回 taskrail 走完 approve → handoff
++        - 默认串行，同任务同仓的代码写、测试、git index 和提交串行
++        - 不同子任务或不同仓库且无未完成依赖时才并行
+       must_not:
+-        - 手写省略 UI / 验收的自由提示词绕过入口门派实现
+-        - 自行补写 status / 交接载荷让门变绿
++        - 仅凭文件不重叠让多个写 worker 共享 worktree
++        - 并行父 TASK、driver 编排项或最终回归
+ 
+-  - id: entry-gate-bypass-user-only
+-    kind: boundary
++  - id: shared-contract-broadcast-and-sample
++    kind: core
+     judge: deterministic
+-    description: 用户原话要求跳过 taskrail 时，agent 照录原话写 gate_bypass，脚本以 BYPASS 放行
+-    given: 用户说「不走 taskrail，直接建 driver」
++    description: 共享面变化先广播，新交付形态样板先行
++    given: 多 worker 任务需要修改共享接口并铺开一种新交付形态
+     expect:
+       must:
+-        - 没有 TASK.md 时按 taskrail 的 templates.md 建最小的一份
+-        - 元信息写 gate_bypass "<日期> user-confirmed: <用户原话>"，BYPASS 放行（exit 0、醒目警告）
+-        - 没验证到的门包项按 done.md 第 6 条记进「已做决定」
+-        - 缺 user-confirmed 或缺理由时 exit 1
++        - 先冻结并广播接口、类型、共享组件和目录契约
++        - 先完成一个样板并验收，再铺开其他单位
+       must_not:
+-        - 用户没说跳过时写 gate_bypass
+-        - 用自己编的理由代替用户原话
++        - 各 worker 私下改变共享契约
++        - 未验证样板就全面铺开
+ 
+-  - id: web-ui-no-external-ui-skill
+-    kind: regression
++  - id: worker-input-and-output-budget
++    kind: core
+     judge: deterministic
+-    description: Web UI 实现不依赖仓外 ui-templates 系列 skill
+-    given: Web UI 切片需要实现代表页
++    description: worker 上下文按最小必要范围裁剪
++    given: 父任务有长历史、多个子任务和大量原始日志
+     expect:
+       must:
+-        - 按代表页 two-pass 方法实现并修订一条主流程代表页，消费 frozen Active Instance
+-        - 缺 Active Instance 时回 design 阶段在交付项目根建立并 freeze
++        - 输入仅含本人范围、criterion、必要契约、worktree 绝对路径和证据要求
++        - 返回摘要、修改与验证结果、路径和未决，原始日志留文件
+       must_not:
+-        - 要求安装或委托 ui-template-design / ui-template-apply / ui-template-author
++        - 输入完整历史、兄弟子任务或无关评审
++        - 把完整工具轨迹回灌父会话
+ 
+-  - id: aesthetic-visual-direction
++  - id: driver-archive-returns-to-taskrail
+     kind: core
+-    judge: llm
+-    description: 有观感目标的 Web UI 切片先定视觉方向再实现
+-    given: driver 的 Web UI 切片对应观感类目标
++    judge: deterministic
++    description: OpenSpec 收尾不等于任务完成
++    given: driver 和子 changes 已归档
+     expect:
+       must:
+-        - 实现者先读 pretty-ui/references/direction.md，按计划里的视觉方向实现
+-        - 收口按 taskrail done.md「观感验收」
++        - 回 taskrail verify 和 close，按 done.md 验证总判据与知识闭环
+       must_not:
+-        - 沿用框架默认样式只点缀几处颜色就收工
++        - 在 taskflow 自行标任务 done
++        - 自动 push、合默认分支或删除 worktree
+ 
+-  - id: rolling-wave-expansion
+-    kind: core
++  - id: missing-openspec-capability
++    kind: failure
+     judge: deterministic
+-    description: 子 change 按依赖分批展开，做完一片提交一次
+-    given: driver 路线图有三片，第二、三片依赖第一片
++    description: 缺 OpenSpec 能力不发明等价命令
++    given: 已选择 OpenSpec，但 CLI 或 stock skills 不可用
+     expect:
+       must:
+-        - propose 只建第一片的子 change，其余两片在实施段各占一条
+-        - 第一片全勾、validate 通过后由编排者在 worktree 提交这一片，再勾实施项
+-        - 片间检查点按第一片落地的代码起草后两片，调整记进「已做决定」
++        - 说明缺失能力和安装方式，保留任务与其他就绪项状态
+       must_not:
+-        - propose 一次备齐三片的子 change
+-        - 检查点停下等用户
++        - 编造等价 openspec 命令继续
++        - 静默改走 direct 或把任务标完成
+diff --git a/skills/taskflow/references/driver-template.md b/skills/taskflow/references/driver-template.md
+index 1662cf5..807f014 100644
+--- a/skills/taskflow/references/driver-template.md
++++ b/skills/taskflow/references/driver-template.md
+@@ -1,84 +1,61 @@
+ # taskflow：driver 模板与 propose 产出约定
+ 
+-由 [../SKILL.md](../SKILL.md)「脚手架」引用。本文件的 **Driver 协议** 块是建 worktree、一轮结束等规则的**唯一真源**，其余文件只引用不复述。
++仅 `execution: openspec` 使用。Driver 协议块逐字写入 proposal；通用 worktree 真源是 [worktree.md](worktree.md)。
+ 
+ ## 脚手架细则
+ 
+-`skip_specs: true` 必须显式写入：driver 无 spec 增量，不写这行会让 `openspec validate --strict` 失败；写了之后 `openspec status --change {task}-driver --json` 中 specs 为 `skipped`。
++`.openspec.yaml` 必须显式写 `skip_specs: true`。脚手架不写满 tasks.md，留给 stock openspec-propose；proposal 的 Driver 协议会进入 apply contextFiles。
+ 
+-**脚手架把 `tasks.md` 留给 propose 阶段**：stock `openspec-propose` 只处理未完成的 artifact，脚手架把 tasks 写满会让它空转，留出空缺才会读 proposal 并按协议产出登记了子 change 的 `tasks.md`。这也是协议必须写在 proposal 而不是别处的原因——`openspec instructions apply --json` 的 `contextFiles` 保证 proposal 必然被读到。
+-
+-### driver `proposal.md` 模板
+-
+-`Driver 协议` 小节是固定文本，逐字写入，不要改写或精简；其余小节按任务填写。
+-
+-填写「验收标准」时：任务描述含完成判据，第一条 checkbox 用判据原文；没有判据时按任务填写，不另造。`Why` 写目标、判据原文与方案 / 批准路径（指针，不复制原文）。这条验收标准不代替 driver `tasks.md` 的编排进度。
++## driver proposal 模板
+ 
+ ````markdown
+ ## Why
+-<任务描述>
++<目标、criterion、方案 / 批准指针>
+ 
+ ## What Changes
+-- 本 change 是 taskflow driver，不直接改代码，只编排子 change
++- 本 change 只编排子 changes，不直接改代码
+ 
+ ## Non-goals
+ - <...>
+ 
+ ## 涉及面
+-| 仓库 | 角色 | 说明 |
+-|------|------|------|
+-| . | 必须 | 会修改 |
++| repo_id | source_repo | worktree | 角色 | 说明 |
++|---|---|---|---|---|
+ 
+ ## 验收标准
+-- [ ] <...>
++- [ ] <criterion 原文>
+ 
+ ## Driver 协议
+ - 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）
+-- 子 change 一律命名 `{task}-<slice>`，与本 change 同一 planning root；跨 root 时在涉及面表显式记录 root 或 store id
+-- 子 change 按依赖分批展开：依赖的实施项都已勾的切片才建子 change，起草时以 `worktrees/{task}` 里的代码为准
+-- 实现进度只认子 change 自己的 `tasks.md`；本文件的实施项只在对应子 change 全勾、`validate --strict` 通过、这一片已提交到任务分支后才勾
+-- 每勾掉一条实施项过一次片间检查点，不停人：按新认识补拆、合并或改顺序（只增删、改写未勾的实施项，记进 `TASK.md`「已做决定」），再展开依赖已满足的下一批；动到判据或范围的，按 taskrail 契约「意图变更」处理
+-- 两个根：planning root（`tasks/`、`openspec/changes/`）留在主工作树，只增量写本任务的目录，`openspec-*` 命令在这里跑；代码根是修改仓根目录下的 `worktrees/{task}`，读改代码、测试、回归、提交都在这里做，派给实现者的工作目录写它的绝对路径
+-- 涉及面里角色为 `必须` 的 git 修改仓一律建 worktree；修改仓不是 git 仓、或用户原话要求就地改时才在主工作树做，并记入 `TASK.md`「已做决定」。建法：先 fetch；基线默认 `origin/<默认分支>`，主工作树当前分支不是默认分支且领先于它时用 `HEAD`；执行 `git worktree add worktrees/{task} -b {task} <基线>`，分支已存在则 `git worktree add worktrees/{task} {task}`，worktree 已存在就复用；把 `worktrees/` 写进 `.git/info/exclude`；其他规则另有指定位置时以其为准。worktree 路径与基线记入「已做决定」。git 拒绝（如分支已在别处检出）时停下说明原因
+-- 主工作树里用户已有的改动和当前分支保持原样，不 stash / reset / 切分支。同一任务的 worker 共用这个 worktree，靠改动文件不重叠隔离
+-- 提交由编排者做，每片一次、收尾一次，只落在任务分支 `{task}`，不 push、不合进默认分支。收尾提交后保留 worktree，清理留给用户
+-- 只有「checkbox 全勾」「需要用户决策」「本轮预算耗尽」三种情况允许结束一轮；单项做不了就保持未勾，在验证记录写一行原因后继续下一项；「需要用户决策」只停依赖该项的条目，其余条目继续
+-- 结束时在验证记录逐条列出未勾项与原因，不按 change 汇总；对用户按 user-report 四行说，不报编号
++- workspace 是唯一 planning root：`tasks/` 与本 driver / 子 changes 都在这里；所有 `openspec-*` 命令 cwd 都是 workspace，并显式给 change name
++- 子 change 命名 `{task}-<slice>`，与 driver 同 workspace；不同项目不是更换 planning root 的理由
++- 每个必须修改的 git 仓库先运行 `python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json`；代码、测试、项目文档和提交都在返回的 `<workspace>/worktrees/<task-id>/<repo-id>/`，失败时保留现场且不写代码
++- 源 checkout 的分支和未提交改动保持原样；不 stash / reset / 自动复制未提交改动，不 push、不合默认分支、不自动清理 worktree
++- 实现进度只认子 change 自己的 tasks.md；只有依赖的实施项都已勾的切片才建子 change；driver 实施项只在对应子 change 全勾、validate --strict 通过、这一片已提交到任务分支 `task/<task-id>` 后才勾
++- 子 change 按依赖滚动展开，起草时以对应 worktree 当前代码为准；提交由编排者做，每片一次、收尾一次；每片提交后过一次片间检查点，不停人，按新证据补拆、合并或改序，只增删改未勾项并记录 decisions / history；独立交付边界回 taskrail decompose，criterion 变化回 intent / 意图变更
++- 同任务同仓写操作串行；不同子任务或不同仓库才可并行。worker 输入只带本人范围、criterion、契约、worktree 绝对路径和证据要求，返回摘要与路径
++- 单项做不了保持未勾并在验证记录写原因，继续其他就绪项；真阻塞只停依赖项，不勾假完成
++- 子 change 全勾、validate --strict 与评审校核过后才 `openspec archive {task}-<slice> --yes`；未勾齐不归档
++- driver 归档后回 taskrail verify / close；driver 归档或 checkbox 全勾不等于任务 done
+ 
+ ## 验证记录
+ ````
+ 
+-### 脚手架输出
+-
+-报告 change name、`proposal.md` 路径与仍空缺的项，桥接 stock `openspec-propose`：它会问继续已有 change 还是新建，**选继续**。
+-
+-## propose 阶段的产出约定
+-
+-`openspec-propose` 对 driver 产出的 `tasks.md` 按下列骨架组织：准备段建 worktree，实施段按 `wizard/plan.md`「路线图」一片一条（没有路线图时按方案定，通常就是一片），收尾段含回归、回填验收、提交与逐个子 change 的归档条目。
++## propose 的 tasks.md 骨架
+ 
+-````markdown
++```markdown
+ ## 1. 准备
+-- [ ] 1.1 给涉及面里角色为必须的修改仓建 worktree `worktrees/{task}`（基线与命令见 Driver 协议），之后改代码、测试、提交都在 worktree 里做
++- [ ] 1.1 对涉及面每个必须修改仓运行 prepare_worktree.py，并把 repo / worktree / branch / base 写回 TASK
+ 
+-## 2. 实施（一片一条，依赖写在括号里）
+-- [ ] 2.1 完成子 change `{task}-api`：apply 至全部 checkbox 勾选、validate --strict 通过、提交到任务分支
+-- [ ] 2.2 完成子 change `{task}-ui`（依赖 2.1）：同 2.1（Web UI 做法见 taskrail `ui-delivery.md`）
++## 2. 实施（一片一条，依赖写括号）
++- [ ] 2.1 完成子 change `{task}-api`：全勾、validate --strict、提交到任务分支
++- [ ] 2.2 完成子 change `{task}-ui`（依赖 2.1）：同 2.1
+ 
+ ## 3. 收尾
+-- [ ] 3.1 全仓回归与静态检查，命令与结果写入 proposal 验证记录
+-- [ ] 3.2 回填 proposal 验收标准
+-- [ ] 3.3 在 worktree 里把收尾改动提交到任务分支 `{task}`（不 push）
+-- [ ] 3.4 归档前置校核：子 change 全勾且 validate 通过、findings 全有处置（见 execution-discipline「收尾校核」）
+-- [ ] 3.5 归档全部子 change：逐个 `openspec archive {task}-<slice> --yes`（3.4 过了才跑）
+-````
+-
+-收尾段按 [done.md](../../taskrail/references/done.md) 核对；缺证据不勾收尾条目。子 change 的归档是收尾段的普通 checkbox，在 apply 阶段完成。因此 driver 全勾时子 change 已全部 `openspec archive`，对 driver 执行 stock 归档不需要任何递归处理。
+-
+-### 滚动展开
+-
+-实施段一次列全，子 change 按依赖分批展开：
++- [ ] 3.1 在当前 worktree 跑回归与静态检查，结果写 proposal 验证记录
++- [ ] 3.2 回填验收标准与未勾原因
++- [ ] 3.3 提交收尾改动（不 push）
++- [ ] 3.4 校核子 changes、评审处置和证据；归档全部子 changes
++```
+ 
+-- propose 只给依赖已满足的那批切片备齐子 change（在 planning root 对 `{task}-<slice>` 委托 stock `openspec-propose`），其余切片只在实施段占一条。
+-- 每片做完：编排者在 worktree 只提交这一片的改动，勾掉实施项，过片间检查点（Driver 协议），再展开下一批。已勾的条目和已归档的子 change 不改写。
+-- 后面切片的细节在展开时按当时的代码起草；没超出路线图那一行，就属于 approve 已批的范围。
+-- 检查点不停人；动到判据或范围的，按 taskrail 契约「意图变更」处理。
++propose 只展开依赖已满足的切片；后续切片按当时 worktree 代码起草。已勾项和已归档 changes 不改写。父任务若有 subtasks，则每个子任务有自己的 driver 或 direct 路径，父任务不再持一个重复进度的 driver。
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index 7745705..48a5bd6 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -1,27 +1,26 @@
+-# taskflow：执行纪律
++# taskflow：direct / OpenSpec 执行纪律
+ 
+-Driver 协议逐字块在 [driver-template.md](driver-template.md)，建 worktree 与「一轮结束」规则只以它为准。
++worktree 唯一真源是 [worktree.md](worktree.md)；OpenSpec 固定 Driver 协议在 [driver-template.md](driver-template.md)。
+ 
+ ## 进度归属
+ 
+-- 子 change 的 `tasks.md` 记实现，driver 的 `tasks.md` 记编排。driver 某条实施项只在对应子 change 全勾、`openspec validate --strict --type change {task}-<slice>` 通过、这一片已提交到任务分支后勾。
+-- 不另存完成度、暂缓或分支状态；暂缓原因写 driver `proposal.md` 验证记录。
+-- 涉及面角色只有 `必须`（会改）/ `建议`（只读）/ `排除`。
++- direct：PLAN checkbox 记实施，evidence 记验证；不创建第二份完成度。
++- OpenSpec：子 change tasks.md 记实施，driver tasks.md 记编排；对应子 change 全勾、validate 通过、该片已提交后才勾 driver 项。
++- 父子结构只看 ROADMAP 与子 TASK，不在父 driver 再复制一套子任务进度。
++- 涉及仓库角色只有必须（会改）/ 建议（只读）/ 排除。
+ 
+ ## 实施中
+ 
+-- 默认串行，一次一个子 change；做完一个先提交、过片间检查点（Driver 协议），再展开、做下一个。
+-- 单项做不了就保持未勾，在验证记录写一行原因，继续下一项；只有真阻塞（[user-report.md](../../taskrail/references/user-report.md) 第 5 节）才停依赖它的条目，按 user-report 四行说。
+-- 发现会少交付的地方：不缩判据的记进「已做决定」继续；缩判据或交付面的是改判据，停下等用户。
+-- 实现者输入：判据原文、本人负责范围、相关验收要求与证据、运行约束（工作目录 = `worktrees/{task}` 的绝对路径；提交留给编排者，不 push、不外发）。
++- 一次完成一个连贯增量，先 focused tests，再提交；同任务同仓写操作串行。
++- 单项做不了保持未勾并写原因，继续其他就绪项；工具故障与代码根因分开，真阻塞只停依赖项。
++- 测试失败且原因明确继续 execute，原因不明回 diagnose；契约 / 方案不足回 design / grill；独立交付边界回 decompose。
++- 不缩小 criterion；确需缩小时回 intent / approve。
++- worker 输入只含本人范围、criterion、相关契约与证据、worktree 绝对路径；返回摘要、路径、未决，不回灌原始日志。
+ 
+ ## 收尾校核
+ 
+-对 driver 做 stock 归档前逐条核对：
+-
+-- 子 change 全勾且各自 `validate --strict` 通过；driver 实施项与之一致。
+-- 每轮评审的 Blocker / Major 都有处置（`fixed` / `accepted-recorded` 带理由）。
+-- 证据与当前代码一致（换代码后旧证据作废，重跑受影响部分）。
+-- [done.md](../../taskrail/references/done.md) 全过。
+-
+-`openspec archive` 报未勾时先回填真实状态或保持未勾，勾齐再归档：归档后记录不可回改，未勾齐就不归档（`--yes` 不用来盖过未勾项）。
++- 当前代码的验证证据有效；换代码后旧证据作废。
++- OpenSpec 子 changes 勾齐再归档，未勾齐就不归档；归档前 validate 通过，`--yes` 只用于已校核的非交互命令，不得掩盖未勾项。
++- 片间检查点只核对证据、提交和下一就绪片，不额外停人；提交由编排者做。
++- reviewer Blocker / Major 有 fixed 或 accepted-recorded 理由。
++- driver 归档只表示 OpenSpec 执行收尾，随后必须回 taskrail verify / close，并按 [done.md](../../taskrail/references/done.md) 验收；不直接标任务 done。
+diff --git a/skills/taskflow/references/multi-worker.md b/skills/taskflow/references/multi-worker.md
+index 842e01b..62a7585 100644
+--- a/skills/taskflow/references/multi-worker.md
++++ b/skills/taskflow/references/multi-worker.md
+@@ -1,26 +1,21 @@
+ # 多 worker 并行（附录）
+ 
+-默认串行 + checkbox。只有宿主有多 agent 能力、且有 ≥2 个**无未完成依赖、改动范围不重叠**的单位时才读本文件。并行只改变执行方式，完成度仍只认 checkbox。
++默认串行；只有宿主有多 agent 能力、且有至少两个无未完成依赖的单位时才读本附录并行。并行不改变进度真源，片间检查点仍由主会话统一核对。
+ 
+-## 可以并行什么
++## 可以与不可以
+ 
+-| 层 | 可以并行 | 必须串行 |
+-|----|----------|----------|
+-| 子 change | 落在不同修改仓，或已确认改动文件不重叠 | 可能改同一批文件或互相依赖契约；准备段建 worktree；片间检查点（逐片提交、调整余下切片）；收尾段回归 / 回填 / 提交 / 归档 |
+-| 同一 change 的 checkbox | 互不依赖且文件不重叠 | 有先后依赖、共享文件、或卡在用户决策上 |
++| 可以并行 | 必须串行 |
++|---|---|
++| 只读 explore / review | 同一任务同一仓库的代码写、测试、git index 与提交 |
++| 不同子任务 | 有未完成依赖或共享契约未冻结的单位 |
++| 不同修改仓的独立实施 | driver 编排项、父 TASK、收尾回归与归档 |
+ 
+-每个 worker 只领一个单位：在其 planning root 下执行并给出 change name；只改自己范围内的代码与自己的 checkbox；不勾 driver 编排项；不写 `建议` / `排除` 仓。主会话负责派发、汇总、处理冲突，并在片间检查点逐片提交（每次只提交那一片的文件）。同一任务的 worker 共用 `worktrees/{task}`（Driver 协议），靠改动文件不重叠隔离。worker 失败不是整轮结束的理由。
++不再让多个写 worker 仅靠“文件不重叠”共享一个 worktree。需要同仓写并行时第一版直接串行；不要临时发明 worker 分支和集成协议。
+ 
+-## 派发前
++## 派发与回收
+ 
+-- **先冻结共享面**：接口、类型、共享组件、目录与命名先落成仓库内的契约文件，再并行。
+-- **样板先行**：新类型的交付（新页面族、新服务形态）先只派一个样板切片做全、过评审，再让其余切片照它铺开。
+-
+-## 飞行中
+-
+-- **同类失败升级**：≥2 个 worker 报同一类失败，按契约或计划缺陷处理：停并行、回 design 修契约，再重新派发。
+-- **改共享面先广播**：主会话改 worker 会读的共享文件前，先通知改动点和影响面；动手写文件前核对它不在任何在跑 worker 的范围内。
+-
+-## 实现者输入
+-
+-正常交付给：需求原文与负责范围、判据与相关验收要求、运行约束、必要的既有契约。不必给完整评审意见与其它切片细节。只有任务显式标记 benchmark / regression 时才盲测复跑：只给同一份需求原文与运行约束，不给验收清单，不追加事后提示。
++- 先冻结接口、类型、共享组件和目录契约；改共享面先广播受影响的 worker，新交付形态样板先行，验收后再铺开。
++- 每个 worker 只领一个单位，输入含 criterion、负责范围、必要契约、worktree 绝对路径和证据要求；不给完整历史、兄弟子任务或无关评审。
++- worker 只写自己代码与证据，不写父 TASK 或 driver 编排项；主会话汇总并更新状态。
++- 返回只有结论、修改 / 验证摘要、路径和未决；原始日志留文件。
++- 两个以上 worker 出现同类失败时停并行，回 diagnose / design；一个 worker 失败不终止其他就绪项。
+diff --git a/skills/taskflow/references/worktree.md b/skills/taskflow/references/worktree.md
+new file mode 100644
+index 0000000..59e7811
+--- /dev/null
++++ b/skills/taskflow/references/worktree.md
+@@ -0,0 +1,39 @@
++# workspace 多仓 worktree 协议
++
++所有 direct / OpenSpec 代码路径共用。worktree 指 git worktree，不是普通目录复制。
++
++## 根与身份
++
++```text
++workspace/
++├── tasks/
++├── openspec/
++└── worktrees/<task-id>/<repo-id>/
++```
++
++source checkout 可在 workspace 内外；workspace 本身也可以是项目仓库。分支统一为 `task/<task-id>`，每个修改仓一个 worktree。repo_id 只在一个任务内唯一，task_id 在历史任务间也要避免误撞。
++
++## 唯一准备入口
++
++```bash
++python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--json]
++```
++
++脚本行为：
++
++- 校验 task / repo id，解析 source git root，默认基线为有效 origin/HEAD，否则 HEAD；不自动联网 fetch。
++- 新建幂等；已存在且干净的 worktree 核对 source、branch、common git dir 后恢复。
++- 未登记分支已存在、repo_id 指向其他 source、branch 不匹配时拒绝，不静默复用旧任务。
++- 脏 worktree 返回非 0 并保留现场；不得 stash / reset / 覆盖用户改动。
++- 注册表写 `worktrees/<task-id>/registry.json`，含 source、worktree、branch、base，供 resume 和崩溃恢复核对。
++- worktree 位于 source 内部时才把对应顶层目录写 `.git/info/exclude`。
++
++把脚本返回信息写 TASK「涉及仓库」。实现者只拿对应 worktree 绝对路径；OpenSpec 命令仍在 workspace 运行。
++
++## 修改、提交与恢复
++
++- 代码、项目文档、测试和提交都在 worktree；任务台账和 OpenSpec 在 workspace。
++- 源 checkout 当前分支与用户已有改动保持原样。需要以未提交改动为输入时先显式记录并获用户认可，不自动复制。
++- 编排者按连贯增量提交到 `task/<task-id>`；不 push、不合默认分支、不自动删除 worktree。
++- resume 重跑脚本；若脚本在 worktree 新建后、注册前中断，路径 + source + branch 可安全证明身份时恢复注册，否则停。
++- 非 git 目录或用户明确要求就地修改才可例外，写 decisions 和证据；不能据此把例外扩散到其他修改仓。
+diff --git a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+index 5fece82..ceb5a95 100644
+--- a/skills/taskflow/scripts/check_handoff.py
++++ b/skills/taskflow/scripts/check_handoff.py
+@@ -1,23 +1,10 @@
+ #!/usr/bin/env python3
+-"""taskflow 入口门：建 driver / 派实现前机械核对 handoff 是否成立。
++"""OpenSpec-only handoff gate; direct execution never uses this script.
+ 
+-用法：
+-  check_handoff.py <workspace-root> <slug> [--json]
+-
+-核对项（全部满足才 exit 0）：
+-  1. tasks/ongoing/<slug>/TASK.md 存在（子任务用 <parent>/subtasks/<sub> 作 slug）；
+-  2. 元信息 status = handed-off，phase ∈ propose / apply / archive / done；
+-  3. 已批准：approve/APPROVED.md 存在；元信息 criterion 非空；driver = <slug 末段>-driver；
+-  4. TASK.md「## 交接」节存在，且载荷含「交付类别」与「适用门包」两行（非空）；
+-  5. 交付类别含 Web UI 时，交接节另含 Active Instance 根路径与 contract / binding / projection 三条 digest。
+-
+-逃生口：元信息 `gate_bypass:` 值含 `user-confirmed` 且写明理由时，以 BYPASS 放行（exit 0，
+-输出醒目警告）；只在用户原话明确要求跳过时写入，理由照录用户原话。
+-
+-退出码：0 通过（或已登记 BYPASS）· 1 不通过 · 2 用法错误。
+-仅标准库，只读。
++Usage: check_handoff.py <workspace-root> <task-path> [--json]
++New tasks require status=active, execution=openspec and an execute/review/verify/close
++current_ref. Legacy handed-off/phase tasks remain readable for migration.
+ """
+-
+ from __future__ import annotations
+ 
+ import argparse
+@@ -27,72 +14,100 @@ import sys
+ from pathlib import Path
+ 
+ ALLOWED_PHASES = ("propose", "apply", "archive", "done")
+-REDIRECT = "拒绝建 driver / 派实现：先回 taskrail 走完 approve → handoff（taskrail references/handoff.md）。"
++ALLOWED_REFS = ("execute", "review", "verify", "close")
++SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
++REDIRECT = "拒绝建 driver：回 taskrail 补齐 OpenSpec handoff；approve 只在路由要求时执行。"
++
++
++def valid_task_path(value: str) -> bool:
++    parts = value.split("/")
++    return ((len(parts) == 1 and SAFE_ID.fullmatch(parts[0]) is not None) or
++            (len(parts) == 3 and parts[1] == "subtasks" and
++             SAFE_ID.fullmatch(parts[0]) is not None and SAFE_ID.fullmatch(parts[2]) is not None))
+ 
+ 
+ def parse_meta(text: str) -> dict[str, str]:
+-    """读 TASK.md 元信息：优先 `---` frontmatter，其次首个 ```yaml 块，再退到全文顶层 key: value（兼容 `- key: value` 列表行）。"""
+     block = None
+-    m = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
+-    if m:
+-        block = m.group(1)
++    match = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
++    if match:
++        block = match.group(1)
+     else:
+-        m = re.search(r"```ya?ml\s*\n(.*?)\n```", text, re.S)
+-        block = m.group(1) if m else text
++        match = re.search(r"```ya?ml\s*\n(.*?)\n```", text, re.S)
++        block = match.group(1) if match else text
+     meta: dict[str, str] = {}
+     for line in block.splitlines():
+-        mm = re.match(r"^[-*]?\s*([a-z_]+)\s*:\s*(.*?)\s*$", line)
+-        if mm and mm.group(1) not in meta:
+-            meta[mm.group(1)] = mm.group(2).strip().strip("\"'")
++        item = re.match(r"^[-*]?\s*([a-z_]+)\s*:\s*(.*?)\s*$", line)
++        if item and item.group(1) not in meta:
++            meta[item.group(1)] = item.group(2).strip().strip("\"'")
+     return meta
+ 
+ 
+ def section(text: str, title: str) -> str | None:
+-    m = re.search(rf"^##\s+{re.escape(title)}\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
+-    return m.group(1) if m else None
++    match = re.search(rf"^##\s+{re.escape(title)}\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
++    return match.group(1) if match else None
+ 
+ 
+ def field(body: str, name: str) -> str | None:
+-    m = re.search(rf"^\s*[-*]?\s*{re.escape(name)}\s*[:：]\s*(.*?)\s*$", body, re.M)
+-    if not m:
+-        return None
+-    return m.group(1).strip() or None
++    match = re.search(rf"^\s*[-*]?\s*{re.escape(name)}\s*[:：]\s*(.*?)\s*$", body, re.M)
++    return match.group(1).strip() or None if match else None
+ 
+ 
+ def check(root: Path, slug: str) -> dict:
+-    task_md = root / "tasks" / "ongoing" / slug / "TASK.md"
++    ongoing = root / "tasks" / "ongoing"
++    task_md = ongoing / slug / "TASK.md"
+     res: dict = {"task_md": str(task_md), "slug": slug, "errors": [], "warnings": [], "bypass": None}
++    if not valid_task_path(slug):
++        res["errors"].append("task path 须为 <task-id> 或 <parent>/subtasks/<child>")
++        return res
++    try:
++        task_md.resolve().relative_to(ongoing.resolve())
++    except ValueError:
++        res["errors"].append("task path 不能离开 workspace tasks/ongoing")
++        return res
+     if not task_md.is_file():
+         res["errors"].append(f"TASK.md 不存在：{task_md}")
+         return res
+     text = task_md.read_text(encoding="utf-8")
+     meta = parse_meta(text)
+-    res["status"], res["phase"] = meta.get("status"), meta.get("phase")
++    res.update(status=meta.get("status"), phase=meta.get("phase"), current_ref=meta.get("current_ref"), execution=meta.get("execution"))
+ 
+     bypass = meta.get("gate_bypass", "")
+     if bypass and bypass.lower() not in ("null", "none", "~"):
+         if "user-confirmed" in bypass and len(bypass.replace("user-confirmed", "").strip(" :：-")) >= 4:
+             res["bypass"] = bypass
+-            res["warnings"].append("BYPASS：入口门由用户确认豁免（TASK.md gate_bypass），门包未经机械核对，没验证到的项按 done.md 第 6 条记进「已做决定」。")
++            res["warnings"].append("BYPASS：用户原话确认豁免；未核对项必须在 decisions / SUMMARY 中按实际降级记录。")
+             return res
+-        res["errors"].append("gate_bypass 须含 `user-confirmed` 与用户原话。")
+-
+-    if meta.get("status") != "handed-off":
+-        res["errors"].append(f"status 须为 handed-off，实为 {meta.get('status')!r}")
+-    if meta.get("phase") not in ALLOWED_PHASES:
+-        res["errors"].append(f"phase 须为 {'/'.join(ALLOWED_PHASES)}（approve 之后），实为 {meta.get('phase')!r}")
+-    if not (task_md.parent / "approve" / "APPROVED.md").is_file():
+-        res["errors"].append("缺 approve/APPROVED.md（方案未经 approve 冻结）")
++        res["errors"].append("gate_bypass 须含 user-confirmed 与用户原话。")
++
++    body = section(text, "交接")
++    if body is None:
++        res["errors"].append("缺「## 交接」节（OpenSpec handoff 载荷）")
++        return res
++
++    legacy = meta.get("status") == "handed-off"
++    if legacy:
++        if meta.get("phase") not in ALLOWED_PHASES:
++            res["errors"].append(f"legacy phase 须为 {'/'.join(ALLOWED_PHASES)}，实为 {meta.get('phase')!r}")
++    else:
++        if meta.get("status") != "active":
++            res["errors"].append(f"status 须为 active，实为 {meta.get('status')!r}")
++        if meta.get("execution") != "openspec":
++            res["errors"].append("execution 须为 openspec；direct 不走本入口门")
++        if meta.get("current_ref") not in ALLOWED_REFS:
++            res["errors"].append(f"current_ref 须为 {'/'.join(ALLOWED_REFS)}，实为 {meta.get('current_ref')!r}")
++
+     if not meta.get("criterion"):
+         res["errors"].append("元信息缺 criterion（完成判据原文）")
+     want_driver = f"{slug.rstrip('/').rsplit('/', 1)[-1]}-driver"
+     if meta.get("driver") != want_driver:
+         res["errors"].append(f"driver 须为 {want_driver!r}，实为 {meta.get('driver')!r}")
+ 
+-    body = section(text, "交接")
+-    if body is None:
+-        res["errors"].append("缺「## 交接」节（handoff 载荷）")
+-        return res
++    approved = (task_md.parent / "reviews" / "APPROVED.md").is_file() or (task_md.parent / "approve" / "APPROVED.md").is_file()
++    approval = field(body, "批准") or ""
++    not_required = approval.startswith("not-required:") and len(approval.removeprefix("not-required:").strip()) > 0
++    if not approved and not not_required:
++        res["errors"].append("缺 reviews/APPROVED.md 或 approve/APPROVED.md；router 判定无需 approve 时须在交接节写 `批准：not-required: <理由>`")
++
+     cls = field(body, "交付类别")
+     packs = field(body, "适用门包")
+     res["delivery_class"], res["gate_packs"] = cls, packs
+@@ -108,26 +123,26 @@ def check(root: Path, slug: str) -> dict:
+ 
+ 
+ def main(argv: list[str] | None = None) -> int:
+-    ap = argparse.ArgumentParser(description="taskflow 入口门：核对方案已批准、handoff 已成立且载荷带交付类别与门包")
+-    ap.add_argument("workspace_root", help="含 tasks/ 的工作区根")
+-    ap.add_argument("slug", help="任务 slug（子任务写 parent/sub）")
+-    ap.add_argument("--json", action="store_true", help="输出 JSON")
+-    a = ap.parse_args(argv)
+-    root = Path(a.workspace_root)
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("workspace_root")
++    parser.add_argument("slug", help="task id or <parent>/subtasks/<child>")
++    parser.add_argument("--json", action="store_true")
++    args = parser.parse_args(argv)
++    root = Path(args.workspace_root)
+     if not root.is_dir():
+         print(f"USAGE: workspace_root 不是目录：{root}", file=sys.stderr)
+         return 2
+-    res = check(root, a.slug)
+-    ok = not res["errors"]
+-    res["ok"] = ok
+-    if a.json:
+-        print(json.dumps(res, ensure_ascii=False, indent=2))
++    result = check(root, args.slug)
++    ok = not result["errors"]
++    result["ok"] = ok
++    if args.json:
++        print(json.dumps(result, ensure_ascii=False, indent=2))
+     else:
+-        for w in res["warnings"]:
+-            print(f"WARN  {w}")
+-        for e in res["errors"]:
+-            print(f"FAIL  {e}")
+-        print("PASS  handoff 成立" if ok else f"BLOCK {REDIRECT}")
++        for warning in result["warnings"]:
++            print(f"WARN  {warning}")
++        for error in result["errors"]:
++            print(f"FAIL  {error}")
++        print("PASS  OpenSpec handoff 成立" if ok else f"BLOCK  {REDIRECT}")
+     return 0 if ok else 1
+ 
+ 
+diff --git a/skills/taskflow/scripts/prepare_worktree.py b/skills/taskflow/scripts/prepare_worktree.py
+new file mode 100644
+index 0000000..65f5860
+--- /dev/null
++++ b/skills/taskflow/scripts/prepare_worktree.py
+@@ -0,0 +1,215 @@
++#!/usr/bin/env python3
++"""Prepare or resume one task worktree without touching the source checkout.
++
++Usage: prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base REF] [--json]
++Only Python's standard library and the git CLI are required.
++"""
++from __future__ import annotations
++
++import argparse
++from contextlib import contextmanager
++from datetime import datetime, timezone
++import json
++import os
++from pathlib import Path
++import re
++import subprocess
++import sys
++import tempfile
++
++try:
++    import fcntl
++except ImportError:  # pragma: no cover - Windows fallback
++    fcntl = None
++
++SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
++
++
++class WorktreeError(Exception):
++    def __init__(self, message: str, code: int = 1):
++        super().__init__(message)
++        self.code = code
++
++
++def run_git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
++    proc = subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True)
++    if check and proc.returncode:
++        raise WorktreeError(proc.stderr.strip() or proc.stdout.strip() or "git command failed")
++    return proc
++
++
++def git_out(repo: Path, *args: str) -> str:
++    return run_git(repo, *args).stdout.strip()
++
++
++def canonical(path: Path) -> Path:
++    return path.expanduser().resolve()
++
++
++def atomic_json(path: Path, data: dict) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    fd, tmp = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
++    try:
++        with os.fdopen(fd, "w", encoding="utf-8") as handle:
++            json.dump(data, handle, ensure_ascii=False, indent=2, sort_keys=True)
++            handle.write("\n")
++            handle.flush()
++            os.fsync(handle.fileno())
++        os.replace(tmp, path)
++    finally:
++        if os.path.exists(tmp):
++            os.unlink(tmp)
++
++
++@contextmanager
++def workspace_lock(workspace: Path):
++    lock_path = workspace / "worktrees" / ".taskrail.lock"
++    lock_path.parent.mkdir(parents=True, exist_ok=True)
++    with lock_path.open("a+") as handle:
++        if fcntl is not None:
++            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
++        try:
++            yield
++        finally:
++            if fcntl is not None:
++                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
++
++
++def registry_path(workspace: Path, task_id: str) -> Path:
++    return workspace / "worktrees" / task_id / "registry.json"
++
++
++def load_registry(path: Path, task_id: str) -> dict:
++    if path.is_file():
++        return json.loads(path.read_text(encoding="utf-8"))
++    return {"version": 1, "task_id": task_id, "repos": {}}
++
++
++def validate_id(value: str, label: str) -> None:
++    if not SAFE_ID.fullmatch(value):
++        raise WorktreeError(f"{label} must be lowercase kebab-case (1-80 chars): {value!r}", 2)
++
++
++def source_root(source: Path) -> Path:
++    if not source.is_dir():
++        raise WorktreeError(f"source repository does not exist: {source}", 2)
++    return canonical(Path(git_out(source, "rev-parse", "--show-toplevel")))
++
++
++def common_dir(repo: Path) -> Path:
++    value = git_out(repo, "rev-parse", "--git-common-dir")
++    return canonical((repo / value) if not os.path.isabs(value) else Path(value))
++
++
++def default_base(source: Path) -> str:
++    head = run_git(source, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD", check=False)
++    if head.returncode == 0 and head.stdout.strip():
++        candidate = head.stdout.strip()
++        if run_git(source, "rev-parse", "--verify", candidate + "^{commit}", check=False).returncode == 0:
++            return candidate
++    return "HEAD"
++
++
++def ensure_exclude(source: Path, worktree: Path) -> None:
++    try:
++        relative = worktree.relative_to(source)
++    except ValueError:
++        return
++    if not relative.parts:
++        return
++    exclude_value = relative.parts[0] + "/"
++    exclude_path = Path(git_out(source, "rev-parse", "--git-path", "info/exclude"))
++    if not exclude_path.is_absolute():
++        exclude_path = source / exclude_path
++    exclude_path.parent.mkdir(parents=True, exist_ok=True)
++    existing = exclude_path.read_text(encoding="utf-8") if exclude_path.is_file() else ""
++    lines = existing.splitlines()
++    if exclude_value not in lines:
++        with exclude_path.open("a", encoding="utf-8") as handle:
++            if existing and not existing.endswith("\n"):
++                handle.write("\n")
++            handle.write(exclude_value + "\n")
++
++
++def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str | None) -> dict:
++    validate_id(task_id, "task-id")
++    validate_id(repo_id, "repo-id")
++    workspace.mkdir(parents=True, exist_ok=True)
++    workspace = canonical(workspace)
++    source = source_root(canonical((workspace / source) if not source.is_absolute() else source))
++    target = workspace / "worktrees" / task_id / repo_id
++    branch = f"task/{task_id}"
++    base = base or default_base(source)
++    reg_path = registry_path(workspace, task_id)
++
++    with workspace_lock(workspace):
++        registry = load_registry(reg_path, task_id)
++        previous = registry.get("repos", {}).get(repo_id)
++        if previous and canonical(Path(previous["source_repo"])) != source:
++            raise WorktreeError(f"repo id {repo_id!r} is already bound to another source repository", 4)
++
++        if target.exists():
++            if not target.is_dir():
++                raise WorktreeError(f"worktree target is not a directory: {target}", 4)
++            actual_root = canonical(Path(git_out(target, "rev-parse", "--show-toplevel")))
++            if actual_root != canonical(target):
++                raise WorktreeError(f"target is not a git worktree root: {target}", 4)
++            if common_dir(target) != common_dir(source):
++                raise WorktreeError(f"worktree belongs to another repository: {target}", 4)
++            if git_out(target, "branch", "--show-current") != branch:
++                raise WorktreeError(f"worktree branch mismatch at {target}; expected {branch}", 4)
++            if git_out(target, "status", "--porcelain"):
++                raise WorktreeError(f"worktree has uncommitted changes; preserve and inspect it first: {target}", 3)
++            action = "resumed"
++        else:
++            target.parent.mkdir(parents=True, exist_ok=True)
++            branch_exists = run_git(source, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0
++            if branch_exists:
++                if not previous:
++                    raise WorktreeError(f"branch {branch} already exists without a matching task registry entry", 4)
++                run_git(source, "worktree", "add", str(target), branch)
++                action = "reattached"
++            else:
++                if run_git(source, "rev-parse", "--verify", base + "^{commit}", check=False).returncode != 0:
++                    raise WorktreeError(f"base is not a valid commit: {base}", 2)
++                run_git(source, "worktree", "add", str(target), "-b", branch, base)
++                action = "created"
++        ensure_exclude(source, target)
++        record = {
++            "source_repo": str(source),
++            "worktree": str(target),
++            "branch": branch,
++            "base": base,
++            "repo_id": repo_id,
++        }
++        registry.setdefault("repos", {})[repo_id] = record
++        registry["updated"] = datetime.now(timezone.utc).isoformat()
++        atomic_json(reg_path, registry)
++        return {"ok": True, "action": action, **record}
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("workspace")
++    parser.add_argument("task_id")
++    parser.add_argument("repo_id")
++    parser.add_argument("source_repo")
++    parser.add_argument("--base")
++    parser.add_argument("--json", action="store_true")
++    args = parser.parse_args(argv)
++    try:
++        result = prepare(Path(args.workspace), args.task_id, args.repo_id, Path(args.source_repo), args.base)
++    except (WorktreeError, json.JSONDecodeError, OSError) as exc:
++        result = {"ok": False, "error": str(exc)}
++        code = exc.code if isinstance(exc, WorktreeError) else 1
++    else:
++        code = 0
++    if args.json or not result["ok"]:
++        print(json.dumps(result, ensure_ascii=False, indent=2))
++    else:
++        print(f"{result['action']}: {result['worktree']} ({result['branch']})")
++    return code
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 24e63bd..31517ed 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -1,7 +1,8 @@
+-"""taskflow 入口门 check_handoff.py：fixture 通过 / 拒绝，及 SKILL.md 接线文本锁。"""
+-
++"""OpenSpec 入口门：新状态、旧任务兼容、direct 拒绝、批准与载荷校验。"""
+ from __future__ import annotations
+ 
++import json
++import re
+ import subprocess
+ import sys
+ import tempfile
+@@ -9,17 +10,28 @@ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++SCRIPT = ROOT / "scripts" / "check_handoff.py"
++
+ 
+ def skill_corpus(root: Path) -> str:
+-    """SKILL.md 正文 + references/*.md：细则下沉到 references 后，文本契约按整个 skill 校核。"""
+     parts = [(root / "SKILL.md").read_text(encoding="utf-8")]
+-    parts += [p.read_text(encoding="utf-8") for p in sorted((root / "references").glob("*.md"))]
++    parts += [path.read_text(encoding="utf-8") for path in sorted((root / "references").glob("*.md"))]
+     return "\n".join(parts)
+ 
+-SCRIPT = ROOT / "scripts" / "check_handoff.py"
+ 
+ GOOD_META = """---
+ slug: demo
++status: active
++current_ref: execute
++confirm_mode: human
++execution: openspec
++criterion: "demo 接口 p95 < 200ms"
++driver: "demo-driver"
++---
++"""
++
++LEGACY_META = """---
++slug: demo
+ status: handed-off
+ phase: propose
+ tier: full
+@@ -27,6 +39,7 @@ criterion: "demo 接口 p95 < 200ms"
+ driver: "demo-driver"
+ ---
+ """
++
+ HANDOFF_SVC = """
+ # demo
+ 
+@@ -35,6 +48,7 @@ HANDOFF_SVC = """
+ - 适用门包：quality-appendix.md「服务 / 后端」
+ - driver：demo-driver
+ """
++
+ HANDOFF_UI = """
+ ## 交接
+ - 交付类别：Web UI
+@@ -47,7 +61,6 @@ HANDOFF_UI = """
+ 
+ 
+ class TestCheckHandoff(unittest.TestCase):
+-
+     def setUp(self) -> None:
+         self.tmp = tempfile.TemporaryDirectory()
+         self.root = Path(self.tmp.name)
+@@ -55,75 +68,108 @@ class TestCheckHandoff(unittest.TestCase):
+     def tearDown(self) -> None:
+         self.tmp.cleanup()
+ 
+-    def write(self, text: str, slug: str = "demo", approved: bool = True) -> None:
+-        d = self.root / "tasks" / "ongoing" / slug
+-        d.mkdir(parents=True, exist_ok=True)
+-        (d / "TASK.md").write_text(text, encoding="utf-8")
++    def write(self, text: str, slug: str = "demo", approved: bool = True, approval_dir: str = "reviews") -> None:
++        directory = self.root / "tasks" / "ongoing" / slug
++        directory.mkdir(parents=True, exist_ok=True)
++        (directory / "TASK.md").write_text(text, encoding="utf-8")
+         if approved:
+-            (d / "approve").mkdir(exist_ok=True)
+-            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
++            (directory / approval_dir).mkdir(exist_ok=True)
++            (directory / approval_dir / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
+ 
+-    def run_gate(self, slug: str = "demo") -> subprocess.CompletedProcess:
+-        return subprocess.run([sys.executable, str(SCRIPT), str(self.root), slug],
+-                              capture_output=True, text=True)
++    def run_gate(self, slug: str = "demo", json_output: bool = False) -> subprocess.CompletedProcess:
++        command = [sys.executable, str(SCRIPT), str(self.root), slug]
++        if json_output:
++            command.append("--json")
++        return subprocess.run(command, capture_output=True, text=True)
+ 
+     def test_help(self) -> None:
+-        r = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True)
+-        self.assertEqual(r.returncode, 0)
++        result = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True)
++        self.assertEqual(result.returncode, 0)
+ 
+-    def test_pass_service(self) -> None:
++    def test_new_openspec_metadata_passes(self) -> None:
+         self.write(GOOD_META + HANDOFF_SVC)
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 0, r.stdout)
+-        self.assertIn("PASS", r.stdout)
++        result = self.run_gate(json_output=True)
++        self.assertEqual(result.returncode, 0, result.stdout)
++        payload = json.loads(result.stdout)
++        self.assertTrue(payload["ok"])
++        self.assertEqual(payload["status"], "active")
++        self.assertEqual(payload["execution"], "openspec")
+ 
+     def test_pass_web_ui(self) -> None:
+         self.write(GOOD_META + HANDOFF_UI)
+         self.assertEqual(self.run_gate().returncode, 0)
+ 
+-    def test_yaml_block_meta(self) -> None:
+-        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\ncriterion: x\ndriver: demo-driver\n```\n" + HANDOFF_SVC)
++    def test_legacy_yaml_block_and_phase_remain_readable(self) -> None:
++        self.write("# demo\n\n```yaml\nstatus: handed-off\nphase: apply\ncriterion: x\ndriver: demo-driver\n```\n" + HANDOFF_SVC, approval_dir="approve")
+         self.assertEqual(self.run_gate().returncode, 0)
+ 
+-    def test_requires_approval(self) -> None:
++    def test_legacy_frontmatter_remains_readable(self) -> None:
++        self.write(LEGACY_META + HANDOFF_SVC, approval_dir="approve")
++        self.assertEqual(self.run_gate().returncode, 0)
++
++    def test_requires_approval_or_not_required_reason(self) -> None:
+         self.write(GOOD_META + HANDOFF_SVC, approved=False)
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("APPROVED.md", r.stdout)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("APPROVED.md", result.stdout)
++        self.assertIn("not-required", result.stdout)
++
++    def test_not_required_with_reason_passes_without_approval_file(self) -> None:
++        self.write(GOOD_META + HANDOFF_SVC + "- 批准：not-required: 普通可逆改动且用户未要求审批\n", approved=False)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 0, result.stdout)
++
++    def test_not_required_without_reason_fails(self) -> None:
++        self.write(GOOD_META + HANDOFF_SVC + "- 批准：not-required:   \n", approved=False)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("not-required", result.stdout)
++
++    def test_direct_is_rejected_by_openspec_gate(self) -> None:
++        self.write(GOOD_META.replace("execution: openspec", "execution: direct") + HANDOFF_SVC)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("direct 不走本入口门", result.stdout)
++
++    def test_invalid_status_and_current_ref_are_rejected(self) -> None:
++        text = GOOD_META.replace("status: active", "status: blocked").replace("current_ref: execute", "current_ref: plan")
++        self.write(text + HANDOFF_SVC)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("status", result.stdout)
++        self.assertIn("current_ref", result.stdout)
+ 
+     def test_requires_criterion(self) -> None:
+         self.write(GOOD_META.replace('criterion: "demo 接口 p95 < 200ms"', 'criterion: ""') + HANDOFF_SVC)
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("criterion", r.stdout)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("criterion", result.stdout)
+ 
+     def test_requires_driver_name(self) -> None:
+         self.write(GOOD_META.replace('driver: "demo-driver"', "driver: null") + HANDOFF_SVC)
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("demo-driver", r.stdout)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("demo-driver", result.stdout)
+ 
+     def test_child_task_driver_uses_leaf(self) -> None:
+         self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/subtasks/api")
+         self.assertEqual(self.run_gate("demo/subtasks/api").returncode, 0)
+ 
+     def test_missing_task(self) -> None:
+-        r = self.run_gate("nope")
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("taskrail", r.stdout)
++        result = self.run_gate("nope")
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("taskrail", result.stdout)
+ 
+-    def test_not_handed_off(self) -> None:
+-        self.write(GOOD_META.replace("handed-off", "ongoing").replace("propose", "approve") + HANDOFF_SVC)
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("status", r.stdout)
+-        self.assertIn("phase", r.stdout)
++    def test_path_traversal_is_rejected(self) -> None:
++        result = self.run_gate("../demo")
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("task path", result.stdout)
+ 
+     def test_missing_gate_packs(self) -> None:
+         self.write(GOOD_META + "\n## 交接\n- 交付类别：Web UI\n")
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("适用门包", r.stdout)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("适用门包", result.stdout)
+ 
+     def test_missing_handoff_section(self) -> None:
+         self.write(GOOD_META + "\n## 方案\n- 交付类别：服务\n")
+@@ -131,34 +177,34 @@ class TestCheckHandoff(unittest.TestCase):
+ 
+     def test_web_ui_requires_digests(self) -> None:
+         self.write(GOOD_META + HANDOFF_UI.replace("- binding digest：sha256:bbb\n", ""))
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 1)
+-        self.assertIn("binding digest", r.stdout)
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("binding digest", result.stdout)
+ 
+     def test_bypass_requires_user_confirmed(self) -> None:
+-        self.write(GOOD_META.replace("tier: full", 'gate_bypass: "agent decided"').replace("handed-off", "ongoing").replace("propose", "design"))
++        text = GOOD_META.replace('driver: "demo-driver"', 'gate_bypass: "agent decided"\ndriver: "demo-driver"')
++        self.write(text + HANDOFF_SVC)
+         self.assertEqual(self.run_gate().returncode, 1)
+ 
+     def test_bypass_user_confirmed(self) -> None:
+-        self.write('---\nstatus: ongoing\nphase: design\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
+-        r = self.run_gate()
+-        self.assertEqual(r.returncode, 0)
+-        self.assertIn("BYPASS", r.stdout)
++        self.write('---\nstatus: active\ngate_bypass: "2026-10-12 user-confirmed: one-off spike"\n---\n')
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 0)
++        self.assertIn("BYPASS", result.stdout)
+ 
+     def test_usage_error(self) -> None:
+-        r = subprocess.run([sys.executable, str(SCRIPT), str(self.root / "missing"), "x"], capture_output=True, text=True)
+-        self.assertEqual(r.returncode, 2)
++        result = subprocess.run([sys.executable, str(SCRIPT), str(self.root / "missing"), "x"], capture_output=True, text=True)
++        self.assertEqual(result.returncode, 2)
+ 
+ 
+ class TestEntryGateWiring(unittest.TestCase):
+-
+     @classmethod
+     def setUpClass(cls) -> None:
+         cls.skill = skill_corpus(ROOT)
+         cls.rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
+         cls.handoff = (ROOT.parent / "taskrail" / "references" / "handoff.md").read_text(encoding="utf-8")
+ 
+-    def test_skill_wires_gate(self) -> None:
++    def test_skill_wires_gate_and_bypass(self) -> None:
+         self.assertIn("入口门", self.skill)
+         self.assertIn("scripts/check_handoff.py", self.skill)
+         self.assertIn("不建 driver", self.skill)
+@@ -172,30 +218,26 @@ class TestEntryGateWiring(unittest.TestCase):
+ 
+ 
+ class TestTemplateCompat(unittest.TestCase):
+-    """taskrail templates.md 的 TASK.md 原样模板必须能过入口门：模板与脚本解析同步。"""
+-
+     def run_on(self, text: str) -> subprocess.CompletedProcess:
+         with tempfile.TemporaryDirectory() as tmp:
+-            d = Path(tmp) / "tasks" / "ongoing" / "demo"
+-            (d / "approve").mkdir(parents=True)
+-            (d / "approve" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
+-            (d / "TASK.md").write_text(text, encoding="utf-8")
++            directory = Path(tmp) / "tasks" / "ongoing" / "demo"
++            (directory / "reviews").mkdir(parents=True)
++            (directory / "reviews" / "APPROVED.md").write_text("已批准\n", encoding="utf-8")
++            (directory / "TASK.md").write_text(text, encoding="utf-8")
+             return subprocess.run([sys.executable, str(SCRIPT), tmp, "demo"], capture_output=True, text=True)
+ 
+-    def test_template_task_md_passes(self) -> None:
+-        import re
+-        tpl = (ROOT.parent / "taskrail" / "references" / "templates.md").read_text(encoding="utf-8")
+-        block = re.search(r"## TASK\.md\n\n```markdown\n(.*?)\n```\n", tpl, re.S).group(1)
+-        text = (block.replace("status: ongoing", "status: handed-off").replace("phase: wizard", "phase: propose")
+-                .replace("driver: null", 'driver: "demo-driver"'))
+-        text = re.sub(r"## 交接\n.*", "## 交接\n- 交付类别：服务\n- 适用门包：无\n", text, flags=re.S)
+-        r = self.run_on(text)
+-        self.assertEqual(r.returncode, 0, r.stdout)
++    def test_new_template_can_be_prepared_for_gate(self) -> None:
++        templates = (ROOT.parent / "taskrail" / "references" / "templates.md").read_text(encoding="utf-8")
++        match = re.search(r"## TASK\.md[^\n]*\n\n```markdown\n(.*?)\n```\n", templates, re.S)
++        self.assertIsNotNone(match)
++        text = match.group(1).replace("current_ref: plan", "current_ref: execute").replace("execution: null", "execution: openspec").replace("driver: null", 'driver: "demo-driver"')
++        text += "\n## 交接\n- 交付类别：服务\n- 适用门包：无\n"
++        result = self.run_on(text)
++        self.assertEqual(result.returncode, 0, result.stdout)
+ 
+     def test_bullet_meta_compat(self) -> None:
+-        r = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n- criterion: x\n- driver: demo-driver\n\n"
+-                        "## 交接\n- 交付类别：服务\n- 适用门包：无\n")
+-        self.assertEqual(r.returncode, 0, r.stdout)
++        result = self.run_on("# demo\n\n- status: handed-off\n- phase: propose\n- criterion: x\n- driver: demo-driver\n\n## 交接\n- 交付类别：服务\n- 适用门包：无\n")
++        self.assertEqual(result.returncode, 0, result.stdout)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskflow/tests/test_prepare_worktree.py b/skills/taskflow/tests/test_prepare_worktree.py
+new file mode 100644
+index 0000000..0821bb1
+--- /dev/null
++++ b/skills/taskflow/tests/test_prepare_worktree.py
+@@ -0,0 +1,137 @@
++from __future__ import annotations
++
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++
++SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "prepare_worktree.py"
++
++
++def git(repo: Path, *args: str) -> str:
++    proc = subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True)
++    if proc.returncode:
++        raise AssertionError(proc.stderr)
++    return proc.stdout.strip()
++
++
++class PrepareWorktreeTest(unittest.TestCase):
++    def setUp(self) -> None:
++        self.tmp = tempfile.TemporaryDirectory()
++        self.root = Path(self.tmp.name)
++        self.workspace = self.root / "workspace"
++        self.source = self.root / "source"
++        self.source.mkdir()
++        git(self.source, "init", "-b", "main")
++        git(self.source, "config", "user.email", "tests@example.invalid")
++        git(self.source, "config", "user.name", "Tests")
++        (self.source / "README.md").write_text("base\n", encoding="utf-8")
++        git(self.source, "add", "README.md")
++        git(self.source, "commit", "-m", "base")
++        self.workspace.mkdir()
++
++    def tearDown(self) -> None:
++        self.tmp.cleanup()
++
++    def run_prepare(self, task: str = "demo-task", repo: str = "app") -> subprocess.CompletedProcess:
++        return subprocess.run(
++            [sys.executable, str(SCRIPT), str(self.workspace), task, repo, str(self.source), "--json"],
++            text=True, capture_output=True,
++        )
++
++    def test_create_and_resume_without_remote(self) -> None:
++        created = self.run_prepare()
++        self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
++        payload = json.loads(created.stdout)
++        self.assertEqual(payload["action"], "created")
++        worktree = Path(payload["worktree"])
++        self.assertTrue(worktree.is_dir())
++        self.assertEqual(git(worktree, "branch", "--show-current"), "task/demo-task")
++        self.assertEqual(git(self.source, "branch", "--show-current"), "main")
++        resumed = self.run_prepare()
++        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
++        self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
++
++    def test_dirty_worktree_is_preserved_and_rejected(self) -> None:
++        created = json.loads(self.run_prepare().stdout)
++        worktree = Path(created["worktree"])
++        (worktree / "README.md").write_text("user work\n", encoding="utf-8")
++        result = self.run_prepare()
++        self.assertEqual(result.returncode, 3, result.stdout)
++        self.assertEqual((worktree / "README.md").read_text(encoding="utf-8"), "user work\n")
++
++    def test_unregistered_branch_collision_is_rejected(self) -> None:
++        git(self.source, "branch", "task/demo-task", "HEAD")
++        result = self.run_prepare()
++        self.assertEqual(result.returncode, 4, result.stdout)
++        self.assertFalse((self.workspace / "worktrees" / "demo-task" / "app").exists())
++
++    def test_workspace_inside_source_adds_exclude(self) -> None:
++        self.workspace = self.source
++        result = self.run_prepare(task="nested-task")
++        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
++        exclude = self.source / ".git" / "info" / "exclude"
++        self.assertIn("worktrees/", exclude.read_text(encoding="utf-8").splitlines())
++
++    def test_invalid_ids_cannot_escape_workspace(self) -> None:
++        result = self.run_prepare(task="../escape")
++        self.assertEqual(result.returncode, 2)
++        self.assertFalse((self.root / "escape").exists())
++
++
++    def make_second_repo(self) -> Path:
++        second = self.root / "second"
++        second.mkdir()
++        git(second, "init", "-b", "main")
++        git(second, "config", "user.email", "tests@example.invalid")
++        git(second, "config", "user.name", "Tests")
++        (second / "app.txt").write_text("second base\n", encoding="utf-8")
++        git(second, "add", "app.txt")
++        git(second, "commit", "-m", "base")
++        return second
++
++    def test_two_repositories_get_independent_worktrees_and_registrations(self) -> None:
++        second = self.make_second_repo()
++        first = self.run_prepare(repo="backend")
++        self.assertEqual(first.returncode, 0, first.stdout)
++        second_result = subprocess.run(
++            [sys.executable, str(SCRIPT), str(self.workspace), "demo-task", "frontend", str(second), "--json"],
++            text=True, capture_output=True,
++        )
++        self.assertEqual(second_result.returncode, 0, second_result.stdout)
++        first_payload = json.loads(first.stdout)
++        second_payload = json.loads(second_result.stdout)
++        self.assertNotEqual(first_payload["worktree"], second_payload["worktree"])
++        self.assertEqual(git(Path(first_payload["worktree"]), "branch", "--show-current"), "task/demo-task")
++        self.assertEqual(git(Path(second_payload["worktree"]), "branch", "--show-current"), "task/demo-task")
++        self.assertEqual(git(second, "branch", "--show-current"), "main")
++        registry = json.loads((self.workspace / "worktrees" / "demo-task" / "registry.json").read_text(encoding="utf-8"))
++        self.assertEqual(set(registry["repos"]), {"backend", "frontend"})
++        self.assertEqual(Path(registry["repos"]["frontend"]["source_repo"]), second.resolve())
++
++    def test_repo_id_cannot_be_rebound_to_another_source(self) -> None:
++        second = self.make_second_repo()
++        self.assertEqual(self.run_prepare().returncode, 0)
++        result = subprocess.run(
++            [sys.executable, str(SCRIPT), str(self.workspace), "demo-task", "app", str(second), "--json"],
++            text=True, capture_output=True,
++        )
++        self.assertEqual(result.returncode, 4, result.stdout)
++        registry = json.loads((self.workspace / "worktrees" / "demo-task" / "registry.json").read_text(encoding="utf-8"))
++        self.assertEqual(Path(registry["repos"]["app"]["source_repo"]), self.source.resolve())
++
++    def test_dirty_source_is_preserved_and_not_copied_into_worktree(self) -> None:
++        (self.source / "README.md").write_text("source user work\n", encoding="utf-8")
++        result = self.run_prepare()
++        self.assertEqual(result.returncode, 0, result.stdout)
++        payload = json.loads(result.stdout)
++        self.assertEqual((Path(payload["worktree"]) / "README.md").read_text(encoding="utf-8"), "base\n")
++        self.assertEqual((self.source / "README.md").read_text(encoding="utf-8"), "source user work\n")
++        self.assertEqual(git(self.source, "branch", "--show-current"), "main")
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/skills/taskflow/tests/test_rolling_wave_contract.py b/skills/taskflow/tests/test_rolling_wave_contract.py
+index ad5d40c..6e0849b 100644
+--- a/skills/taskflow/tests/test_rolling_wave_contract.py
++++ b/skills/taskflow/tests/test_rolling_wave_contract.py
+@@ -1,5 +1,6 @@
+-"""滚动展开：依赖满足才展开子 change、逐片提交、片间检查点不停人。"""
++"""滚动展开：就绪切片、逐片提交、检查点重路由而非固定停人。"""
+ from __future__ import annotations
++
+ import unittest
+ from pathlib import Path
+ 
+@@ -9,31 +10,33 @@ PROTO = TEMPLATE.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
+ 
+ 
+ class RollingWaveTest(unittest.TestCase):
+-    def test_protocol_expands_ready_slices_from_worktree_code(self) -> None:
++    def test_only_ready_slices_are_expanded_from_current_worktree(self) -> None:
+         self.assertIn("依赖的实施项都已勾的切片才建子 change", PROTO)
+-        self.assertIn("起草时以 `worktrees/{task}` 里的代码为准", PROTO)
++        self.assertIn("对应 worktree 当前代码为准", PROTO)
++        self.assertIn("propose 只展开依赖已满足的切片", TEMPLATE)
+ 
+-    def test_slice_item_checked_after_commit(self) -> None:
+-        self.assertIn("这一片已提交到任务分支后才勾", PROTO)
++    def test_driver_item_is_checked_after_validation_and_commit(self) -> None:
++        self.assertIn("这一片已提交到任务分支", PROTO)
++        self.assertIn("validate --strict", PROTO)
+         self.assertIn("提交由编排者做，每片一次、收尾一次", PROTO)
+ 
+-    def test_checkpoint_keeps_going(self) -> None:
+-        self.assertIn("过一次片间检查点，不停人", PROTO)
++    def test_checkpoint_re_routes_without_extra_stop(self) -> None:
++        self.assertIn("片间检查点，不停人", PROTO)
++        self.assertIn("只增删改未勾项", PROTO)
+         self.assertIn("意图变更", PROTO)
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("片间检查点只说决定并继续", skill)
+ 
+-    def test_propose_expands_first_batch_only(self) -> None:
+-        wave = TEMPLATE.split("### 滚动展开", 1)[1]
+-        self.assertIn("propose 只给依赖已满足的那批切片备齐子 change", wave)
+-        self.assertIn("属于 approve 已批的范围", wave)
++    def test_tasks_are_one_slice_per_item(self) -> None:
+         self.assertIn("一片一条", TEMPLATE)
+-
+-    def test_runtime_files_point_to_checkpoint(self) -> None:
+-        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-        disc = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
+-        mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
+-        for text in (skill, disc, mw):
+-            self.assertIn("片间检查点", text)
+-        self.assertIn("提交留给编排者", disc)
++        self.assertIn("已勾项和已归档 changes 不改写", TEMPLATE)
++        self.assertIn("父任务不再持一个重复进度的 driver", TEMPLATE)
++
++    def test_execution_discipline_keeps_commit_and_checkpoint_rules(self) -> None:
++        discipline = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
++        self.assertIn("提交由编排者做", discipline)
++        self.assertIn("片间检查点", discipline)
++        self.assertIn("未勾齐就不归档", discipline)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/taskflow/tests/test_stock_delegation_contract.py b/skills/taskflow/tests/test_stock_delegation_contract.py
+index b5999b0..392b399 100644
+--- a/skills/taskflow/tests/test_stock_delegation_contract.py
++++ b/skills/taskflow/tests/test_stock_delegation_contract.py
+@@ -14,7 +14,7 @@ class StockDelegationTest(unittest.TestCase):
+         self.assertIn("停点", SKILL)
+ 
+     def test_propose_then_apply(self) -> None:
+-        self.assertIn("approve 放行即授权 propose 与 apply", SKILL)
++        self.assertIn("approve 放行即授权其范围内的 propose 与 apply", SKILL)
+ 
+     def test_existing_change_continue(self) -> None:
+         self.assertIn("选继续，不问", SKILL)
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index e228596..1cf93c6 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -1,5 +1,6 @@
+-"""taskflow 不可破契约：入口门、driver 协议、串行默认、自进化移出运行路径。"""
++"""taskflow 核心契约：direct/OpenSpec 共用 worktree，OpenSpec 独占 handoff。"""
+ from __future__ import annotations
++
+ import unittest
+ from pathlib import Path
+ 
+@@ -7,40 +8,53 @@ ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+ class TaskflowContractTest(unittest.TestCase):
+-    def test_skill_under_8kb(self) -> None:
+-        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
++    def test_skill_identity_and_size(self) -> None:
++        raw = (ROOT / "SKILL.md").read_bytes()
++        self.assertLessEqual(len(raw), 8192)
++        text = raw.decode("utf-8")
++        self.assertRegex(text, r"(?m)^id: taskflow$")
++        self.assertRegex(text, r"(?m)^name: taskflow$")
++
++    def test_both_adapters_share_real_git_worktrees(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        worktree = (ROOT / "references" / "worktree.md").read_text(encoding="utf-8")
++        self.assertIn("两个执行适配器，一套隔离协议", skill)
++        self.assertIn("direct", skill)
++        self.assertIn("openspec", skill)
++        self.assertIn("prepare_worktree.py", skill)
++        self.assertIn("worktrees/<task-id>/<repo-id>/", worktree)
++        self.assertIn("git worktree", worktree)
++        self.assertIn("task/<task-id>", worktree)
+ 
+-    def test_entry_gate(self) -> None:
++    def test_direct_has_no_driver_or_handoff(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        direct = skill.split("## direct", 1)[1].split("## OpenSpec", 1)[0]
++        self.assertIn("不建 driver", skill)
++        self.assertIn("不需要 handoff / approve / driver", direct)
++        self.assertNotIn("check_handoff.py", direct)
++
++    def test_openspec_has_entry_gate(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("check_handoff.py", skill)
+-        self.assertIn("入口门", skill)
++        self.assertIn("gate_bypass", skill)
+         self.assertTrue((ROOT / "scripts" / "check_handoff.py").is_file())
+ 
+-    def test_driver_protocol_verbatim_block(self) -> None:
+-        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
+-        self.assertIn("## Driver 协议", t)
+-        self.assertIn("skip_specs: true", t)
+-        self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
+-
+-    def test_worktree_protocol(self) -> None:
+-        """两个根、worktree 命令正确（分支已存在不建 detached HEAD）、提交只到任务分支。"""
+-        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
+-        proto = t.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
+-        self.assertIn("planning root", proto)
+-        self.assertIn("代码根", proto)
+-        self.assertIn("git worktree add worktrees/{task} -b {task} <基线>", proto)
+-        self.assertIn("分支已存在则 `git worktree add worktrees/{task} {task}`", proto)
+-        self.assertIn(".git/info/exclude", proto)
+-        self.assertIn("不 push", proto)
+-        self.assertNotIn("去掉 `-b`", proto)
+-        self.assertNotIn("（可选）", t)
+-        rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
+-        self.assertIn("提交只落在任务 worktree 的任务分支", rail)
+-
+-    def test_serial_default(self) -> None:
++    def test_driver_protocol_uses_workspace_and_script(self) -> None:
++        template = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
++        self.assertIn("## Driver 协议", template)
++        self.assertIn("skip_specs: true", template)
++        self.assertIn("留给 stock openspec-propose", template)
++        self.assertIn("workspace 是唯一 planning root", template)
++        self.assertIn("prepare_worktree.py", template)
++        self.assertIn("不 push", template)
++
++    def test_default_serial_and_context_bounded_workers(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+-        self.assertIn("串行", skill)
+-        self.assertTrue((ROOT / "references" / "multi-worker.md").is_file())
++        workers = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
++        self.assertIn("默认串行", skill)
++        self.assertIn("默认串行", workers)
++        self.assertIn("不给完整历史、兄弟子任务或无关评审", workers)
++        self.assertIn("原始日志留文件", workers)
+ 
+     def test_self_evolution_out_of_runtime(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+@@ -48,13 +62,10 @@ class TaskflowContractTest(unittest.TestCase):
+         self.assertNotIn("## Self-evolution", skill)
+         self.assertTrue((ROOT / "references" / "self-evolution.md").is_file())
+ 
+-    def test_old_packs_removed(self) -> None:
+-        for name in ("acceptance-rubric.md", "delivery-quality-loop.md", "implementer-isolation.md"):
+-            self.assertFalse((ROOT / "references" / name).exists(), name)
+-
+-    def test_points_to_done(self) -> None:
++    def test_done_belongs_to_taskrail(self) -> None:
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("done.md", skill)
++        self.assertIn("不在 taskflow 自行判 done", skill)
+ 
+ 
+ if __name__ == "__main__":
