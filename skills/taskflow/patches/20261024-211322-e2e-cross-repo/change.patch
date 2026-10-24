@@ -1,0 +1,1701 @@
+From fc71576757196b50762977f162cf500a8b3deaf7 Mon Sep 17 00:00:00 2001
+From: "zhenkai.sun" <zhenkai.sun@qq.com>
+Date: Sat, 24 Oct 2026 21:13:48 +0800
+Subject: [PATCH] =?UTF-8?q?test:=20=E5=9B=BA=E5=8C=96=E8=B7=A8=E4=BB=93=20?=
+ =?UTF-8?q?E2E=20=E5=9B=9E=E5=BD=92=E8=84=9A=E6=9C=AC=EF=BC=88direct=20+?=
+ =?UTF-8?q?=20OpenSpec=20CLI=20=E5=8F=8C=E6=A8=A1=E5=BC=8F=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+scripts/e2e_cross_repo.py 一键建临时双 git 夹具仓，复现两条已验收跨仓路径并逐步断言；
+tests/test_e2e_cross_repo.py 提供结构契约与活体契约（缺 git/openspec 自动 skip）。
+---
+ scripts/e2e_cross_repo.py                     | 1555 +++++++++++++++++
+ .../proposal.md                               |   23 +
+ tests/test_e2e_cross_repo.py                  |   81 +
+ 3 files changed, 1659 insertions(+)
+ create mode 100644 scripts/e2e_cross_repo.py
+ create mode 100644 skills/taskflow/patches/20261024-211322-e2e-cross-repo/proposal.md
+ create mode 100644 tests/test_e2e_cross_repo.py
+
+diff --git a/scripts/e2e_cross_repo.py b/scripts/e2e_cross_repo.py
+new file mode 100644
+index 0000000..bbb4d9b
+--- /dev/null
++++ b/scripts/e2e_cross_repo.py
+@@ -0,0 +1,1555 @@
++#!/usr/bin/env python3
++"""跨仓 E2E 回归：taskrail / taskflow 的 direct 与 OpenSpec CLI 双模式。
++
++一键在临时目录创建两个 git 夹具仓，复现两条已验收的跨仓路径并逐步断言：
++
++  direct    taskrail 父任务 + 两个子任务 + git worktree + 父级集成
++            （只依赖 git 与 python3，不需要 openspec CLI）
++  openspec  handoff 门 -> driver -> 两个子 change -> strict validate
++            -> CLI archive -> 父级集成（额外需要 openspec CLI）
++
++用法：
++  python3 scripts/e2e_cross_repo.py [--mode all|direct|openspec]
++                                    [--root DIR] [--keep]
++                                    [--report PATH] [--openspec-bin PATH]
++
++退出码：0 全部通过；1 存在失败；2 用法 / 环境错误。
++报告默认写到当前目录 ./e2e-cross-repo-report-<timestamp>.md。
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import platform
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++import time
++from datetime import datetime
++from pathlib import Path
++from string import Template
++
++REPO_ROOT = Path(__file__).resolve().parent.parent
++SKILL_SCRIPTS = REPO_ROOT / "skills"
++TASK_STATE = SKILL_SCRIPTS / "taskrail" / "scripts" / "task_state.py"
++CHECK_HANDOFF = SKILL_SCRIPTS / "taskflow" / "scripts" / "check_handoff.py"
++PREPARE_WORKTREE = SKILL_SCRIPTS / "taskflow" / "scripts" / "prepare_worktree.py"
++
++GITIGNORE = "__pycache__/\n*.py[cod]\n"
++
++
++class E2eError(Exception):
++    """单个步骤失败；消息直接进入报告。"""
++
++
++class Step:
++    def __init__(self, mode: str, name: str, ok: bool, detail: str = "") -> None:
++        self.mode = mode
++        self.name = name
++        self.ok = ok
++        self.detail = detail
++
++
++class Reporter:
++    def __init__(self) -> None:
++        self.steps: list[Step] = []
++        self.env: dict[str, str] = {}
++
++    def record(self, mode: str, name: str, ok: bool, detail: str = "") -> None:
++        mark = "PASS" if ok else "FAIL"
++        self.steps.append(Step(mode, name, ok, detail))
++        suffix = f"  -- {detail}" if detail else ""
++        print(f"[{mark}] {mode}: {name}{suffix}", flush=True)
++        if not ok:
++            raise E2eError(f"{mode}: {name}: {detail}")
++
++    def render(self, root: Path | None, kept: bool) -> str:
++        lines = [
++            "# 跨仓 E2E 回归报告",
++            "",
++            f"- 时间：{datetime.now().isoformat(timespec='seconds')}",
++            f"- Python：{platform.python_version()}",
++            f"- git：{self.env.get('git', 'unknown')}",
++            f"- openspec CLI：{self.env.get('openspec', '未使用 / 未安装')}",
++            f"- 脚本：`scripts/e2e_cross_repo.py`（repo root：{REPO_ROOT}）",
++            f"- 临时根目录：{root if kept else '（已清理）'}",
++            "",
++            "## 步骤明细",
++            "",
++            "| 模式 | 步骤 | 结果 | 说明 |",
++            "|---|---|---|---|",
++        ]
++        for step in self.steps:
++            mark = "PASS" if step.ok else "FAIL"
++            detail = step.detail.replace("|", "\\|")
++            lines.append(f"| {step.mode} | {step.name} | {mark} | {detail} |")
++        failures = [s for s in self.steps if not s.ok]
++        lines += ["", "## 结论", ""]
++        lines.append("全部通过。" if not failures else f"{len(failures)} 个步骤失败，见上表。")
++        return "\n".join(lines) + "\n"
++
++
++def base_env() -> dict[str, str]:
++    env = dict(os.environ)
++    env.setdefault("GIT_AUTHOR_NAME", "e2e")
++    env.setdefault("GIT_AUTHOR_EMAIL", "e2e@example.invalid")
++    env.setdefault("GIT_COMMITTER_NAME", "e2e")
++    env.setdefault("GIT_COMMITTER_EMAIL", "e2e@example.invalid")
++    return env
++
++
++def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
++    proc = subprocess.run(
++        cmd,
++        cwd=str(cwd) if cwd else None,
++        env=env or base_env(),
++        capture_output=True,
++        text=True,
++    )
++    if proc.returncode != 0:
++        tail = "\n".join((proc.stdout + proc.stderr).splitlines()[-15:])
++        raise E2eError(f"命令失败（exit {proc.returncode}）：{' '.join(cmd)}\n{tail}")
++    return proc
++
++
++def run_json(cmd: list[str], cwd: Path) -> dict:
++    proc = run(cmd, cwd=cwd)
++    try:
++        return json.loads(proc.stdout)
++    except json.JSONDecodeError as exc:
++        raise E2eError(f"JSON 解析失败：{' '.join(cmd)}\n{proc.stdout[:500]}") from exc
++
++
++def git(repo: Path, *args: str) -> str:
++    return run(["git", "-C", str(repo), *args]).stdout.strip()
++
++
++def write_tree(root: Path, files: dict[str, str]) -> None:
++    for rel, content in files.items():
++        target = root / rel
++        target.parent.mkdir(parents=True, exist_ok=True)
++        target.write_text(content, encoding="utf-8")
++
++
++def init_source_repo(root: Path, name: str, readme: str) -> Path:
++    repo = root / "sources" / name
++    repo.mkdir(parents=True)
++    write_tree(repo, {"README.md": readme})
++    git(repo, "init", "-q", "-b", "main")
++    git(repo, "add", "-A")
++    git(repo, "commit", "-q", "-m", f"Prepare {name} acceptance baseline")
++    return repo
++
++
++def set_section(text: str, title: str, content: str) -> str:
++    section = f"## {title}\n{content.rstrip()}\n\n"
++    pattern = rf"^## {re.escape(title)}\n.*?(?=^## |\Z)"
++    updated, count = re.subn(pattern, section.rstrip() + "\n\n", text, flags=re.S | re.M)
++    return updated if count else text.rstrip() + "\n\n" + section
++
++
++def tick_plan(path: Path) -> None:
++    text = path.read_text(encoding="utf-8")
++    text = text.replace("- [ ]", "- [x]")
++    path.write_text(text, encoding="utf-8")
++
++
++def parse_test_count(output: str) -> int:
++    match = re.search(r"Ran (\d+) tests?", output)
++    if not match:
++        raise E2eError(f"无法从测试输出解析用例数：\n{output[-300:]}")
++    if "OK" not in output:
++        raise E2eError(f"测试未全部通过：\n{output[-500:]}")
++    return int(match.group(1))
++
++
++def run_unit_tests(worktree: Path, evidence_rel: str, write_evidence: bool = True) -> int:
++    # unittest -v 把结果写到 stderr；证据文件合并两个流。
++    # 复跑（driver 收尾 3.1）不覆盖已提交的证据：计时行每次不同，会弄脏 worktree。
++    proc = run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], cwd=worktree)
++    output = proc.stdout + proc.stderr
++    count = parse_test_count(output)
++    if write_evidence:
++        evidence = worktree / evidence_rel
++        evidence.parent.mkdir(parents=True, exist_ok=True)
++        evidence.write_text(output, encoding="utf-8")
++    return count
++
++
++def commit_all(worktree: Path, message: str) -> str:
++    git(worktree, "add", "-A")
++    git(worktree, "commit", "-q", "-m", message)
++    return git(worktree, "rev-parse", "--short", "HEAD")
++
++
++# ---------------------------------------------------------------------------
++# 夹具：direct 模式（异步报表 CSV 跨仓下载，父任务 + 两个子任务）
++# ---------------------------------------------------------------------------
++
++DIRECT_API_FILES = {
++    ".gitignore": GITIGNORE,
++    "pyproject.toml": (
++        "[project]\n"
++        'name = "acceptance-api"\n'
++        'version = "0.1.0"\n'
++        'description = "异步报表任务 API 验收仓"\n'
++        'requires-python = ">=3.9"\n'
++    ),
++    "api/__init__.py": (
++        '"""异步报表 API 验收包。"""\n\n'
++        "from .exporter import AsyncReportJobStore, JobNotFoundError, JobNotReadyError, JobStatus\n\n"
++        "__all__ = [\n"
++        '    "AsyncReportJobStore",\n'
++        '    "JobNotFoundError",\n'
++        '    "JobNotReadyError",\n'
++        '    "JobStatus",\n'
++        "]\n"
++    ),
++    "api/exporter.py": '''"""异步报表任务 API。"""
++
++from __future__ import annotations
++
++import csv
++import io
++from dataclasses import dataclass
++from typing import Iterable, Mapping
++
++
++class JobNotFoundError(KeyError):
++    """任务不存在。"""
++
++
++class JobNotReadyError(RuntimeError):
++    """任务未完成，暂不能读取结果。"""
++
++
++@dataclass(frozen=True)
++class JobStatus:
++    job_id: str
++    state: str
++    rows: int
++
++
++class AsyncReportJobStore:
++    """内存版异步任务仓库；外部只依赖公开方法。"""
++
++    def __init__(self) -> None:
++        self._pending: dict[str, list[dict[str, str]]] = {}
++        self._completed: dict[str, list[dict[str, str]]] = {}
++        self._sequence = 0
++
++    def submit(self, rows: Iterable[Mapping[str, str]]) -> str:
++        materialized = [dict(row) for row in rows]
++        if not materialized:
++            raise ValueError("rows 不能为空")
++        self._sequence += 1
++        job_id = f"job-{self._sequence:04d}"
++        self._pending[job_id] = materialized
++        return job_id
++
++    def finish_next(self) -> JobStatus:
++        if not self._pending:
++            raise LookupError("没有待完成任务")
++        job_id = next(iter(self._pending))
++        rows = self._pending.pop(job_id)
++        self._completed[job_id] = rows
++        return JobStatus(job_id=job_id, state="completed", rows=len(rows))
++
++    def status(self, job_id: str) -> JobStatus:
++        if job_id in self._pending:
++            return JobStatus(job_id=job_id, state="pending", rows=len(self._pending[job_id]))
++        if job_id in self._completed:
++            return JobStatus(job_id=job_id, state="completed", rows=len(self._completed[job_id]))
++        raise JobNotFoundError(job_id)
++
++    def result(self, job_id: str) -> bytes:
++        if job_id in self._pending:
++            raise JobNotReadyError(job_id)
++        if job_id not in self._completed:
++            raise JobNotFoundError(job_id)
++        rows = self._completed[job_id]
++        fieldnames = list(dict.fromkeys(key for row in rows for key in row))
++        output = io.StringIO(newline="")
++        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\\n")
++        writer.writeheader()
++        writer.writerows(rows)
++        return output.getvalue().encode("utf-8")
++''',
++    "tests/__init__.py": '"""API 验收测试。"""\n',
++    "tests/test_exporter.py": '''import unittest
++
++from api import AsyncReportJobStore, JobNotFoundError, JobNotReadyError
++
++
++class AsyncReportJobStoreTest(unittest.TestCase):
++    def test_submit_finish_and_read_result(self) -> None:
++        store = AsyncReportJobStore()
++        job_id = store.submit([{"name": "导出", "score": "98"}])
++
++        self.assertEqual(store.status(job_id).state, "pending")
++        with self.assertRaises(JobNotReadyError):
++            store.result(job_id)
++
++        status = store.finish_next()
++        self.assertEqual(status.state, "completed")
++        self.assertEqual(
++            store.result(job_id).decode("utf-8"),
++            "name,score\\n导出,98\\n",
++        )
++
++    def test_missing_job_has_explicit_error(self) -> None:
++        store = AsyncReportJobStore()
++        with self.assertRaises(JobNotFoundError):
++            store.status("job-9999")
++
++
++if __name__ == "__main__":
++    unittest.main()
++''',
++}
++
++DIRECT_WEB_FILES = {
++    ".gitignore": GITIGNORE,
++    "pyproject.toml": (
++        "[project]\n"
++        'name = "acceptance-web"\n'
++        'version = "0.1.0"\n'
++        'description = "报表下载客户端验收仓"\n'
++        'requires-python = ">=3.9"\n'
++    ),
++    "web/__init__.py": (
++        '"""报表下载客户端验收包。"""\n\n'
++        "from .report_client import ReportNotReadyError, download_report\n\n"
++        '__all__ = ["ReportNotReadyError", "download_report"]\n'
++    ),
++    "web/report_client.py": '''"""报表下载客户端。"""
++
++from __future__ import annotations
++
++from pathlib import Path
++from typing import Any
++
++
++class ReportNotReadyError(RuntimeError):
++    """报表任务未完成。"""
++
++
++def download_report(store: Any, job_id: str, destination: str | Path) -> Path:
++    status = store.status(job_id)
++    if getattr(status, "state", None) != "completed":
++        raise ReportNotReadyError(f"报表任务 {job_id} 尚未完成")
++
++    data = store.result(job_id)
++    path = Path(destination)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    temporary = path.with_name(f"{path.name}.tmp")
++    temporary.write_bytes(data)
++    temporary.replace(path)
++    return path
++''',
++    "tests/__init__.py": '"""Web 验收测试。"""\n',
++    "tests/test_report_client.py": '''import tempfile
++import unittest
++from dataclasses import dataclass
++from pathlib import Path
++
++from web import ReportNotReadyError, download_report
++
++
++@dataclass(frozen=True)
++class FakeStatus:
++    state: str
++
++
++class FakeStore:
++    def __init__(self, state: str, payload: bytes) -> None:
++        self._state = state
++        self._payload = payload
++
++    def status(self, job_id: str) -> FakeStatus:
++        return FakeStatus(self._state)
++
++    def result(self, job_id: str) -> bytes:
++        return self._payload
++
++
++class DownloadReportTest(unittest.TestCase):
++    def test_completed_job_writes_file_atomically(self) -> None:
++        store = FakeStore("completed", "name,score\\n导出,98\\n".encode("utf-8"))
++        with tempfile.TemporaryDirectory() as directory:
++            output = Path(directory) / "exports" / "report.csv"
++            result = download_report(store, "job-0001", output)
++            self.assertEqual(result, output)
++            self.assertEqual(output.read_bytes(), "name,score\\n导出,98\\n".encode("utf-8"))
++            self.assertFalse(output.with_name("report.csv.tmp").exists())
++
++    def test_pending_job_is_rejected(self) -> None:
++        store = FakeStore("pending", b"")
++        with tempfile.TemporaryDirectory() as directory:
++            with self.assertRaises(ReportNotReadyError):
++                download_report(store, "job-0001", Path(directory) / "report.csv")
++
++
++if __name__ == "__main__":
++    unittest.main()
++''',
++}
++
++DIRECT_INTEGRATION = '''"""真实组合两个任务 worktree 的集成验收。"""
++
++from pathlib import Path
++import sys
++
++
++def find_workspace(start: Path) -> Path:
++    for candidate in (start, *start.parents):
++        if (
++            (candidate / "worktrees" / "cross-repo-report" / "api-repo").is_dir()
++            and (candidate / "worktrees" / "cross-repo-report" / "web-repo").is_dir()
++        ):
++            return candidate
++    raise RuntimeError(f"找不到包含跨仓 worktrees 的 workspace：{start}")
++
++
++WORKSPACE = find_workspace(Path(__file__).resolve().parent)
++API_WORKTREE = WORKSPACE / "worktrees" / "cross-repo-report" / "api-repo"
++WEB_WORKTREE = WORKSPACE / "worktrees" / "cross-repo-report" / "web-repo"
++
++sys.path.insert(0, str(API_WORKTREE))
++sys.path.insert(0, str(WEB_WORKTREE))
++
++from api import AsyncReportJobStore  # noqa: E402
++from web import ReportNotReadyError, download_report  # noqa: E402
++
++
++def main() -> None:
++    store = AsyncReportJobStore()
++    job_id = store.submit([
++        {"name": "导出", "score": "98"},
++        {"name": "汇总", "score": "99"},
++    ])
++    assert store.status(job_id).state == "pending"
++
++    output = Path(__file__).parent / "integration-output" / "report.csv"
++    output.parent.mkdir(parents=True, exist_ok=True)
++    if output.exists():
++        output.unlink()
++    temporary = output.with_name("report.csv.tmp")
++    if temporary.exists():
++        temporary.unlink()
++
++    try:
++        download_report(store, job_id, output)
++        raise AssertionError("pending 任务不应被下载")
++    except ReportNotReadyError:
++        pass
++
++    finished = store.finish_next()
++    assert finished.state == "completed"
++    downloaded = download_report(store, job_id, output)
++    assert downloaded == output
++    assert output.read_text(encoding="utf-8") == "name,score\\n导出,98\\n汇总,99\\n"
++    assert not temporary.exists()
++
++    print("PASS: API 提交任务、Web 下载结果、CSV 内容一致且无临时文件")
++
++
++if __name__ == "__main__":
++    main()
++'''
++
++
++# ---------------------------------------------------------------------------
++# 夹具：OpenSpec 模式（库存快照 TSV 跨仓导出，driver + 两个子 change）
++# ---------------------------------------------------------------------------
++
++OPENSPEC_API_FILES = {
++    ".gitignore": GITIGNORE,
++    "pyproject.toml": (
++        "[project]\n"
++        'name = "openspec-acceptance-catalog-api"\n'
++        'version = "0.1.0"\n'
++        'description = "OpenSpec 跨仓验收 API"\n'
++        'requires-python = ">=3.9"\n'
++    ),
++    "catalog/__init__.py": (
++        '"""库存快照 API。"""\n\n'
++        "from .snapshots import (\n"
++        "    SnapshotNotFoundError,\n"
++        "    SnapshotNotReadyError,\n"
++        "    SnapshotStore,\n"
++        "    SnapshotValidationError,\n"
++        ")\n\n"
++        "__all__ = [\n"
++        '    "SnapshotNotFoundError",\n'
++        '    "SnapshotNotReadyError",\n'
++        '    "SnapshotStore",\n'
++        '    "SnapshotValidationError",\n'
++        "]\n"
++    ),
++    "catalog/snapshots.py": '''"""库存快照状态机。"""
++
++from __future__ import annotations
++
++from typing import Iterable, Mapping
++
++
++class SnapshotValidationError(ValueError):
++    """快照输入无效。"""
++
++
++class SnapshotNotFoundError(KeyError):
++    """快照不存在。"""
++
++
++class SnapshotNotReadyError(RuntimeError):
++    """快照尚未 ready。"""
++
++
++class SnapshotStore:
++    """内存库存快照仓库。"""
++
++    def __init__(self) -> None:
++        self._snapshots: dict[str, dict[str, object]] = {}
++        self._sequence = 0
++
++    def register(self, items: Iterable[Mapping[str, str]]) -> str:
++        materialized = [dict(item) for item in items]
++        if not materialized:
++            raise SnapshotValidationError("库存项不能为空")
++        self._sequence += 1
++        snapshot_id = f"snap-{self._sequence:04d}"
++        self._snapshots[snapshot_id] = {"items": materialized, "ready": False}
++        return snapshot_id
++
++    def mark_ready(self, snapshot_id: str) -> None:
++        snapshot = self._snapshots.get(snapshot_id)
++        if snapshot is None:
++            raise SnapshotNotFoundError(snapshot_id)
++        snapshot["ready"] = True
++
++    def is_ready(self, snapshot_id: str) -> bool:
++        snapshot = self._snapshots.get(snapshot_id)
++        if snapshot is None:
++            raise SnapshotNotFoundError(snapshot_id)
++        return bool(snapshot["ready"])
++
++    def snapshot_items(self, snapshot_id: str) -> list[dict[str, str]]:
++        snapshot = self._snapshots.get(snapshot_id)
++        if snapshot is None:
++            raise SnapshotNotFoundError(snapshot_id)
++        if not snapshot["ready"]:
++            raise SnapshotNotReadyError(snapshot_id)
++        items = snapshot["items"]
++        return [dict(item) for item in items]  # type: ignore[union-attr]
++''',
++    "tests/__init__.py": "",
++    "tests/test_snapshots.py": '''import unittest
++
++from catalog import (
++    SnapshotNotFoundError,
++    SnapshotNotReadyError,
++    SnapshotStore,
++    SnapshotValidationError,
++)
++
++
++class SnapshotStoreTest(unittest.TestCase):
++    def test_register_returns_unique_not_ready_snapshot(self) -> None:
++        store = SnapshotStore()
++        first = store.register([{"sku": "A-1", "count": "3"}])
++        second = store.register([{"sku": "B-2", "count": "5"}])
++
++        self.assertNotEqual(first, second)
++        self.assertFalse(store.is_ready(first))
++        self.assertFalse(store.is_ready(second))
++
++    def test_register_rejects_empty_items(self) -> None:
++        store = SnapshotStore()
++        with self.assertRaises(SnapshotValidationError):
++            store.register([])
++
++    def test_mark_ready_transitions_state(self) -> None:
++        store = SnapshotStore()
++        snapshot_id = store.register([{"sku": "A-1", "count": "3"}])
++        store.mark_ready(snapshot_id)
++        self.assertTrue(store.is_ready(snapshot_id))
++
++    def test_unknown_snapshot_raises_not_found(self) -> None:
++        store = SnapshotStore()
++        with self.assertRaises(SnapshotNotFoundError):
++            store.is_ready("snap-9999")
++        with self.assertRaises(SnapshotNotFoundError):
++            store.mark_ready("snap-9999")
++
++    def test_ready_snapshot_returns_ordered_copy(self) -> None:
++        store = SnapshotStore()
++        registered = [
++            {"sku": "A-1", "count": "3"},
++            {"sku": "B-2", "count": "5"},
++        ]
++        snapshot_id = store.register(registered)
++        with self.assertRaises(SnapshotNotReadyError):
++            store.snapshot_items(snapshot_id)
++
++        store.mark_ready(snapshot_id)
++        items = store.snapshot_items(snapshot_id)
++        self.assertEqual(items, registered)
++        items[0]["count"] = "999"
++        self.assertEqual(store.snapshot_items(snapshot_id), registered)
++
++
++if __name__ == "__main__":
++    unittest.main()
++''',
++}
++
++OPENSPEC_WEB_FILES = {
++    ".gitignore": GITIGNORE,
++    "pyproject.toml": (
++        "[project]\n"
++        'name = "catalog-export"\n'
++        'version = "0.1.0"\n'
++        'description = "Inventory snapshot export client for catalog-web"\n'
++        'requires-python = ">=3.9"\n'
++    ),
++    "catalog_export/__init__.py": (
++        '"""Inventory snapshot export client."""\n\n'
++        "from catalog_export.exporter import SnapshotExportNotReadyError, export_snapshot\n\n"
++        '__all__ = ["SnapshotExportNotReadyError", "export_snapshot"]\n'
++    ),
++    "catalog_export/exporter.py": '''"""Export a ready inventory snapshot to a stable UTF-8 TSV file."""
++
++from __future__ import annotations
++
++import pathlib
++
++
++class SnapshotExportNotReadyError(RuntimeError):
++    """Raised when exporting a snapshot that is not ready."""
++
++
++def export_snapshot(api, snapshot_id: str, destination) -> pathlib.Path:
++    """Export a ready snapshot to ``destination`` as UTF-8 TSV.
++
++    ``api`` only needs ``is_ready(snapshot_id) -> bool`` and
++    ``snapshot_items(snapshot_id) -> list[dict[str, str]]``.
++    The file is written atomically: a sibling ``*.tmp`` file is created
++    first, then moved over the destination, leaving no temp file behind.
++    """
++    if not api.is_ready(snapshot_id):
++        raise SnapshotExportNotReadyError(snapshot_id)
++
++    items = api.snapshot_items(snapshot_id)
++
++    lines = ["sku\\tcount"]
++    for item in items:
++        lines.append(f"{item['sku']}\\t{item['count']}")
++    payload = ("\\n".join(lines) + "\\n").encode("utf-8")
++
++    path = pathlib.Path(destination)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    tmp = path.with_name(path.name + ".tmp")
++    tmp.write_bytes(payload)
++    tmp.replace(path)
++    return path
++''',
++    "tests/__init__.py": "",
++    "tests/test_exporter.py": '''import tempfile
++import unittest
++from pathlib import Path
++
++from catalog_export.exporter import SnapshotExportNotReadyError, export_snapshot
++
++
++class FakeApi:
++    def __init__(self, ready, items):
++        self._ready = ready
++        self._items = items
++
++    def is_ready(self, snapshot_id):
++        return self._ready
++
++    def snapshot_items(self, snapshot_id):
++        return self._items
++
++
++class ExportSnapshotTest(unittest.TestCase):
++    def test_not_ready_raises_and_writes_nothing(self):
++        api = FakeApi(ready=False, items=[{"sku": "A-1", "count": "3"}])
++        with tempfile.TemporaryDirectory() as tmpdir:
++            dest = Path(tmpdir) / "out" / "catalog.tsv"
++            with self.assertRaises(SnapshotExportNotReadyError):
++                export_snapshot(api, "snap-1", dest)
++            self.assertFalse(dest.exists())
++            self.assertFalse(dest.with_name(dest.name + ".tmp").exists())
++            self.assertFalse((Path(tmpdir) / "out").exists())
++
++    def test_ready_writes_stable_utf8_tsv(self):
++        api = FakeApi(
++            ready=True,
++            items=[{"sku": "A-1", "count": "3"}, {"sku": "B-2", "count": "5"}],
++        )
++        with tempfile.TemporaryDirectory() as tmpdir:
++            dest = Path(tmpdir) / "nested" / "catalog.tsv"
++            result = export_snapshot(api, "snap-1", dest)
++            self.assertEqual(result, dest)
++            self.assertTrue(dest.exists())
++            self.assertEqual(
++                dest.read_bytes(),
++                "sku\\tcount\\nA-1\\t3\\nB-2\\t5\\n".encode("utf-8"),
++            )
++
++    def test_cjk_content_written_as_utf8(self):
++        api = FakeApi(ready=True, items=[{"sku": "商品-1", "count": "7"}])
++        with tempfile.TemporaryDirectory() as tmpdir:
++            dest = Path(tmpdir) / "catalog.tsv"
++            export_snapshot(api, "snap-2", dest)
++            self.assertEqual(
++                dest.read_bytes(),
++                "sku\\tcount\\n商品-1\\t7\\n".encode("utf-8"),
++            )
++
++    def test_no_tmp_file_left_after_success(self):
++        api = FakeApi(ready=True, items=[{"sku": "A-1", "count": "3"}])
++        with tempfile.TemporaryDirectory() as tmpdir:
++            dest = Path(tmpdir) / "catalog.tsv"
++            export_snapshot(api, "snap-1", dest)
++            self.assertEqual(
++                [p.name for p in Path(tmpdir).iterdir() if p.name.endswith(".tmp")],
++                [],
++            )
++
++
++if __name__ == "__main__":
++    unittest.main()
++''',
++}
++
++OPENSPEC_INTEGRATION = '''"""End-to-end cross-repo integration check for task openspec-cross-repo.
++
++Uses the real API worktree (SnapshotStore) and the real Web worktree
++(export_snapshot) together:
++  1. register items -> snapshot not ready -> export must fail explicitly
++  2. mark_ready -> export to catalog.tsv -> content must match snapshot
++  3. no *.tmp file left behind
++"""
++
++from __future__ import annotations
++
++import pathlib
++import sys
++import tempfile
++
++
++def find_workspace(start: pathlib.Path) -> pathlib.Path:
++    """Walk upward until a dir contains both expected worktrees."""
++    for candidate in [start, *start.parents]:
++        wt = candidate / "worktrees" / "openspec-cross-repo"
++        if (wt / "catalog-api").is_dir() and (wt / "catalog-web").is_dir():
++            return candidate
++    raise SystemExit("FAIL: workspace with both worktrees not found")
++
++
++def main() -> int:
++    workspace = find_workspace(pathlib.Path(__file__).resolve())
++    worktrees = workspace / "worktrees" / "openspec-cross-repo"
++    sys.path.insert(0, str(worktrees / "catalog-api"))
++    sys.path.insert(0, str(worktrees / "catalog-web"))
++
++    from catalog.snapshots import SnapshotStore  # noqa: E402
++    from catalog_export.exporter import (  # noqa: E402
++        SnapshotExportNotReadyError,
++        export_snapshot,
++    )
++
++    store = SnapshotStore()
++    snapshot_id = store.register([{"sku": "A-1", "count": "3"}, {"sku": "B-2", "count": "5"}])
++
++    with tempfile.TemporaryDirectory() as tmpdir:
++        dest = pathlib.Path(tmpdir) / "integration-output" / "catalog.tsv"
++
++        try:
++            export_snapshot(store, snapshot_id, dest)
++        except SnapshotExportNotReadyError:
++            print("PASS: export rejected before snapshot ready")
++        else:
++            print("FAIL: export succeeded before snapshot ready")
++            return 1
++        assert not dest.exists(), "FAIL: destination written before ready"
++
++        store.mark_ready(snapshot_id)
++        result = export_snapshot(store, snapshot_id, dest)
++        expected = "sku\\tcount\\nA-1\\t3\\nB-2\\t5\\n".encode("utf-8")
++        actual = result.read_bytes()
++        if actual != expected:
++            print(f"FAIL: content mismatch\\n  expected: {expected!r}\\n  actual:   {actual!r}")
++            return 1
++        print("PASS: exported TSV matches inventory snapshot")
++
++        tmp_leftover = [p.name for p in result.parent.iterdir() if p.name.endswith(".tmp")]
++        if tmp_leftover:
++            print(f"FAIL: temp files left: {tmp_leftover}")
++            return 1
++        print("PASS: no .tmp file left after export")
++
++        artifact = pathlib.Path(__file__).resolve().parent / "integration-output" / "catalog.tsv"
++        artifact.parent.mkdir(parents=True, exist_ok=True)
++        artifact.write_bytes(actual)
++        print(f"PASS: artifact written to {artifact}")
++
++    print("INTEGRATION PASS")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
++'''
++
++
++# ---------------------------------------------------------------------------
++# OpenSpec change 产物模板（结构对齐 CLI strict validate：requirement + scenario）
++# ---------------------------------------------------------------------------
++
++API_CHANGE_ARTIFACTS = {
++    "proposal.md": """# Proposal
++
++## Why
++
++`catalog-api` 目前只有空白基线，无法表达库存快照的生命周期；跨仓导出前必须先提供稳定、可测试的快照登记、就绪和读取行为。
++
++## What Changes
++
++- 新增 `inventory-snapshots` capability。
++- 新增库存快照登记行为：非空库存项 SHALL 生成稳定 snapshot id。
++- 新增快照就绪状态查询与标记行为。
++- 新增 ready 快照读取行为；未知或未 ready 的快照 SHALL 明确失败。
++
++## Capabilities
++
++### New Capabilities
++
++- `inventory-snapshots`: 提供库存快照登记、就绪状态流转和 ready 快照读取的 API 契约。
++
++### Modified Capabilities
++
++无。
++
++## Impact
++
++- 代码影响：`catalog-api` worktree 新增库存快照模块、测试和项目元数据。
++- API 影响：下游 Web 侧只依赖 `register / mark_ready / is_ready / snapshot_items` 的公开行为。
++- 依赖影响：仅 Python 标准库；不引入外部服务或第三方包。
++""",
++    "design.md": """# Design
++
++## Context
++
++本切片只修改 `catalog-api` worktree。基线为空 README，公开行为由 OpenSpec delta 定义，内部实现可以自由演进。
++
++## Approach
++
++- 新增 `catalog/__init__.py` 与 `catalog/snapshots.py`。
++- `SnapshotStore` 使用内存字典保存 snapshot id 到 `(items, ready)`；id 采用递增序号，进程内稳定且可测试。
++- 显式异常：`SnapshotValidationError`、`SnapshotNotFoundError`、`SnapshotNotReadyError`。
++- 读取返回注册时列表的浅拷贝，避免调用方修改内部状态。
++
++## Public API
++
++- `register(items: Iterable[Mapping[str, str]]) -> str`
++- `mark_ready(snapshot_id: str) -> None`
++- `is_ready(snapshot_id: str) -> bool`
++- `snapshot_items(snapshot_id: str) -> list[dict[str, str]]`
++
++## Tests
++
++- 覆盖有效登记、空列表拒绝、ready 流转、未知 id、未 ready 读取和 ready 内容一致性。
++- 验证命令：`python3 -m unittest discover -s tests -v`。
++
++## Open Questions
++
++无。
++""",
++    "specs/inventory-snapshots/spec.md": """# Spec Delta
++
++## Purpose
++
++`inventory-snapshots` 为跨仓库存导出提供稳定的快照生命周期契约，使 Web 侧能够在快照 ready 后读取一致的数据内容。
++
++## ADDED Requirements
++
++### Requirement: Register inventory snapshots
++The system SHALL accept a non-empty list of inventory items and return a stable snapshot identifier that can be used for readiness checks and content reads.
++
++#### Scenario: Register a valid snapshot
++- **WHEN** the caller registers a non-empty list of inventory items
++- **THEN** the system returns a unique snapshot identifier and the snapshot is not ready
++
++#### Scenario: Reject an empty snapshot
++- **WHEN** the caller registers an empty list of inventory items
++- **THEN** the system rejects the request with an explicit validation error
++
++### Requirement: Track snapshot readiness
++The system SHALL expose whether a registered snapshot is ready and SHALL allow an existing snapshot to transition from not ready to ready exactly once.
++
++#### Scenario: Transition registered snapshot to ready
++- **WHEN** the caller marks a registered snapshot as ready
++- **THEN** subsequent readiness checks return true
++
++#### Scenario: Reject readiness for unknown snapshot
++- **WHEN** the caller checks or marks an unknown snapshot
++- **THEN** the system raises an explicit not-found error
++
++### Requirement: Read ready snapshot contents
++The system SHALL return the registered inventory items for a snapshot only after that snapshot is ready.
++
++#### Scenario: Read a ready snapshot
++- **WHEN** the caller reads a ready snapshot
++- **THEN** the system returns the same ordered inventory items originally registered
++
++#### Scenario: Reject reading a not-ready snapshot
++- **WHEN** the caller reads a registered snapshot before it is ready
++- **THEN** the system raises an explicit not-ready error
++""",
++    "tasks.md": """# Tasks
++
++## 1. 实现库存快照 API
++
++- [ ] 1.1 在 `catalog-api` worktree 实现 `SnapshotStore`、三个显式异常和公开方法；验证方式：模块可导入，`register / mark_ready / is_ready / snapshot_items` 行为符合 design.md。
++- [ ] 1.2 补齐快照登记、ready 流转、未知 id、未 ready 和 ready 内容一致性的 unittest；验证方式：相关测试全部通过。
++
++## 2. 本切片验证
++
++- [ ] 2.1 在 `catalog-api` worktree 运行 `python3 -m unittest discover -s tests -v`；验证方式：所有测试通过，结果写入本 change 的证据记录。
++- [ ] 2.2 运行 `openspec validate openspec-cross-repo-api --strict`；验证方式：CLI 返回 valid。
++- [ ] 2.3 将本切片代码与测试一次性提交到 `task/openspec-cross-repo` 分支；验证方式：worktree 无未提交业务改动。
++""",
++}
++
++WEB_CHANGE_ARTIFACTS = {
++    "proposal.md": """# Proposal: openspec-cross-repo-web
++
++## Why
++
++父任务 openspec-cross-repo 要求 API 与 Web 两仓协同：API 仓（openspec-cross-repo-api）已经提供 ready 快照的读取契约，但 Web 仓还没有对应的导出客户端。需要为 Web 仓定义并实现快照导出能力，使父任务的跨仓集成（注册快照 → mark ready → 导出与快照内容一致的文件）可端到端完成。
++
++## What Changes
++
++### New Capabilities
++
++- `inventory-snapshot-export`: 根据 API ready 快照生成稳定导出文件（UTF-8 TSV）的客户端契约
++
++### Modified Capabilities
++
++（无）
++
++## Impact
++
++- 受影响代码：`catalog-web` 仓新增 `catalog_export` 包与测试
++- 依赖契约：API 仓 `SnapshotStore.is_ready(snapshot_id) -> bool` 与 `snapshot_items(snapshot_id) -> list[dict[str,str]]`
++- 验证方式：fake API 单测（不依赖 API worktree）+ 父级跨仓集成脚本
++""",
++    "design.md": """# Design: openspec-cross-repo-web
++
++## Context
++
++`catalog-web` 仓需要在不直接依赖 API 仓实现的前提下消费快照契约。API 仓（openspec-cross-repo-api 已归档）提供的公开契约为：
++
++- `SnapshotStore.register(items) -> snapshot_id`
++- `SnapshotStore.mark_ready(snapshot_id)`
++- `SnapshotStore.is_ready(snapshot_id) -> bool`
++- `SnapshotStore.snapshot_items(snapshot_id) -> list[dict[str,str]]`
++
++## 设计
++
++### 公开接口
++
++`catalog_export.exporter.export_snapshot(api, snapshot_id, destination) -> pathlib.Path`
++
++- `api`：任何实现了 `is_ready` / `snapshot_items` 两个方法的对象（结构性契约），使单测可以用 fake API 验证 Web 行为，不依赖 API worktree。
++- `destination`：目标文件路径（`str` 或 `pathlib.Path`）。
++- 返回值：写入完成的目标 `Path`。
++
++### 显式异常
++
++`SnapshotExportNotReadyError(RuntimeError)`：快照未 ready 时抛出，调用方可以明确捕获。
++
++### 导出流程
++
++1. `if not api.is_ready(snapshot_id): raise SnapshotExportNotReadyError(snapshot_id)`。
++2. `items = api.snapshot_items(snapshot_id)`。
++3. 表头固定为 `sku\\tcount`（字段顺序稳定），逐行 `item["sku"]` / `item["count"]`。
++4. 目标父目录 `mkdir(parents=True, exist_ok=True)`。
++5. 写同目录临时文件 `path.name + ".tmp"`，完成后 `Path.replace(path)` 原子替换，保证成功路径不留 `.tmp`。
++
++### 编码
++
++统一 UTF-8。测试中中文断言用 `"...".encode("utf-8")`，避免非 ASCII bytes literal。
++
++## 验证
++
++- 单测：`tests/test_exporter.py` 覆盖 not-ready 拒绝、ready 写 UTF-8 TSV、无临时文件残留；用 fake API，不导入 API 仓。
++- CLI：`openspec validate openspec-cross-repo-web --strict`。
++- 父级：跨仓集成脚本同时使用两个 worktree 的真实 `SnapshotStore` 与 `export_snapshot` 验证端到端行为。
++""",
++    "specs/inventory-snapshot-export/spec.md": """# inventory-snapshot-export Specification Delta
++
++## ADDED Requirements
++
++### Requirement: 导出前确认快照 ready
++
++客户端 SHALL 在导出前通过 API 确认 `snapshot_id` 对应的快照已 ready；快照未 ready 时 SHALL 以显式异常失败，不得产出任何输出文件。
++
++#### Scenario: 快照未 ready 时拒绝导出
++
++- **WHEN** 客户端对未 ready 的 `snapshot_id` 调用导出
++- **THEN** API 的 `is_ready` 返回 `false`，客户端抛出 `SnapshotExportNotReadyError`，目标路径不存在且无临时文件残留
++
++#### Scenario: 快照 ready 时允许导出
++
++- **WHEN** 客户端对已 `mark_ready` 的 `snapshot_id` 调用导出
++- **THEN** 导出正常完成并返回目标文件路径
++
++### Requirement: 生成字段顺序稳定的 UTF-8 TSV
++
++客户端 SHALL 从 API 读取快照项，并生成以 `sku\\tcount` 为表头、字段顺序稳定、内容为 UTF-8 编码的 TSV 文件。
++
++#### Scenario: 导出内容与快照一致
++
++- **WHEN** 快照包含 `[{"sku":"A-1","count":"3"},{"sku":"B-2","count":"5"}]` 且已 ready
++- **THEN** 导出文件内容为 `sku\\tcount\\nA-1\\t3\\nB-2\\t5\\n`（UTF-8 编码），含中文值时按 UTF-8 写入
++
++### Requirement: 原子写入目标文件
++
++客户端 SHALL 在同一目录先写临时文件，再原子替换目标文件；导出成功后不得残留任何 `.tmp` 文件。
++
++#### Scenario: 成功后无临时文件
++
++- **WHEN** 导出成功完成
++- **THEN** 目标文件的同目录不存在 `*.tmp` 文件
++
++#### Scenario: 目标父目录不存在时自动创建
++
++- **WHEN** 目标路径的父目录尚不存在
++- **THEN** 客户端自动创建父目录并完成导出
++""",
++    "tasks.md": """# Tasks
++
++## 1. 实现快照导出客户端
++- [ ] 1.1 在 `catalog-web` worktree 实现 `SnapshotExportNotReadyError` 与 `export_snapshot`；验证方式：fake API 下 ready / not-ready 行为符合 design.md。
++- [ ] 1.2 补齐 not-ready、TSV 内容和临时文件清理测试；验证方式：相关 unittest 全部通过。
++
++## 2. 本切片验证
++- [ ] 2.1 在 `catalog-web` worktree 运行 `python3 -m unittest discover -s tests -v`；验证方式：所有测试通过并写入 evidence。
++- [ ] 2.2 运行 `openspec validate openspec-cross-repo-web --strict`；验证方式：CLI valid。
++- [ ] 2.3 提交本切片到 `task/openspec-cross-repo`；验证方式：worktree 干净。
++""",
++}
++
++DRIVER_PROPOSAL = Template("""# Proposal
++
++## Why
++
++当前需要验证新版 taskflow 的真实 OpenSpec CLI 跨仓路径：一个 driver 编排两个仓库的滚动切片，规划产物留在 workspace，代码修改分别落在各仓库 git worktree，并通过 CLI 的 strict validate 与 archive 完成闭环。
++
++## What Changes
++
++- 本 change 只编排子 changes，不直接改代码。
++- 新增子 change `openspec-cross-repo-api`：在 `catalog-api` worktree 实现库存快照登记、就绪查询和快照读取。
++- 新增子 change `openspec-cross-repo-web`（依赖 API）：在 `catalog-web` worktree 实现按 API 快照生成导出文件。
++- 两个子 change 全勾并通过 `openspec validate <change> --strict` 后才归档；随后由父任务执行真实跨仓集成。
++
++## Capabilities
++
++### New Capabilities
++
++无。本 change 为 driver，`.openspec.yaml` 已设置 `skip_specs: true`，不引入系统 spec 增量。
++
++### Modified Capabilities
++
++无。
++
++## Impact
++
++| repo_id | source_repo | worktree | 角色 | 说明 |
++|---|---|---|---|---|
++| catalog-api | $api_src | $api_wt | API | `openspec-cross-repo-api` |
++| catalog-web | $web_src | $web_wt | Web | `openspec-cross-repo-web` |
++
++## Non-goals
++
++- 不引入网络服务、持久化数据库或第三方运行时依赖。
++- 不 push、不合入源仓默认分支、不自动清理 worktree。
++- 不验证 OpenSpec 以外的交付通道。
++
++## 验收标准
++
++- [x] API 与 Web 两仓按 OpenSpec 子 change 全勾并通过 validate --strict，跨仓集成能生成与库存快照一致的导出文件
++
++## Driver 协议
++
++- 本 change 无 spec 增量（`.openspec.yaml` 已设 `skip_specs: true`）。
++- workspace 是唯一 planning root：`tasks/` 与本 driver / 子 changes 都在这里；所有 `openspec` 命令 cwd 都是 workspace，并显式给 change name。
++- 子 change 命名 `openspec-cross-repo-{api,web}`，与 driver 同 workspace；跨仓库不是更换 planning root 的理由。
++- 每个必须修改的 git 仓库已通过 `prepare_worktree.py` 创建独立 worktree；代码、测试、项目文档和提交都在返回的 `<workspace>/worktrees/<task-id>/<repo-id>/`。
++- 源 checkout 的分支和未提交改动保持原样；不 stash / reset / 自动复制未提交改动，不 push、不合默认分支、不自动清理 worktree。
++- 实现进度只认子 change 自己的 `tasks.md`；只有依赖的实施项都已勾的切片才建子 change；driver 实施项只在对应子 change 全勾、`validate --strict` 通过、这一片已提交到任务分支 `task/openspec-cross-repo` 后才勾。
++- 子 change 按依赖滚动展开，起草时以对应 worktree 当前代码为准；提交由编排者做，每片一次、收尾一次。
++- 同任务同仓写操作串行；worker 输入只带本人范围、criterion、契约、worktree 绝对路径和证据要求，返回摘要与路径。
++- 子 change 全勾、`validate --strict` 与校核过后才 `openspec archive <change> --yes`；未勾齐不归档。
++- driver 归档后回 taskrail verify / close；driver 归档或 checkbox 全勾不等于任务 done。
++
++## 验证记录
++
++- API 仓（worktree `catalog-api`，分支 `task/openspec-cross-repo`，commit `$api_commit`）：`python3 -m unittest discover -s tests -v` 5 项全部通过。
++- Web 仓（worktree `catalog-web`，分支 `task/openspec-cross-repo`，commit `$web_commit`）：`python3 -m unittest discover -s tests -v` 4 项全部通过。
++- 子 change `openspec-cross-repo-api`：tasks 全勾，`openspec validate --strict` valid，`openspec archive --yes` 成功，归档为 `2026-10-24-openspec-cross-repo-api`，`specsUpdated: true`（+3 requirements）。
++- 子 change `openspec-cross-repo-web`：tasks 全勾，`openspec validate --strict` valid，`openspec archive --yes` 成功，归档为 `2026-10-24-openspec-cross-repo-web`，`specsUpdated: true`（+3 requirements）。
++- 父任务跨仓集成：`evidence/openspec_integration_check.py` 真实导入两个 worktree 的 `SnapshotStore` 与 `export_snapshot`，未 ready 拒绝导出、ready 后导出 `sku\\tcount\\nA-1\\t3\\nB-2\\t5\\n`、无 `.tmp` 残留，输出 `INTEGRATION PASS`。
++- 两个源仓 main 未被修改；两个 worktree 分支提交后均干净。
++""")
++
++DRIVER_DESIGN = Template("""# Design
++
++## Context
++
++本次验收覆盖真实 OpenSpec CLI 的 driver → 子 change → strict validate → archive 路径。两个仓库修改必须组合后满足父任务 criterion，因此采用一个 driver 下的滚动切片，而不是两个独立子任务。
++
++## 技术方案
++
++1. `catalog-api` worktree 提供 `SnapshotStore`：登记库存项、标记快照 ready、读取快照内容。
++2. `catalog-web` worktree 提供 `export_snapshot`：通过 API 公开方法读取 ready 快照，并把 TSV 内容原子写入目标文件。
++3. driver 不承载业务代码，只记录跨仓编排状态、验证证据和归档节奏。
++
++## Open Questions
++
++无。
++
++## 工作目录与身份
++
++- workspace：`$ws`
++- API worktree：`$api_wt`，分支 `task/openspec-cross-repo`
++- Web worktree：`$web_wt`，分支 `task/openspec-cross-repo`
++- 源 checkout 保持 main 干净，任何实现和提交只落在任务 worktree。
++
++## 测试与证据
++
++- 子 change 内记录本仓 unittest 命令与结果。
++- driver 只在子 change 全勾、strict validate 通过且对应 worktree 提交后勾切片项。
++- 父任务最终组合两个 worktree 当前代码，断言 TSV 内容与库存快照一致。
++
++## 风险与回退
++
++- 当前实现仅面向本地验收；持久化、网络边界和并发写入不在本次范围。
++- 任一片 validate 或测试失败时保持未勾，修复后复测；不回填假证据。
++""")
++
++DRIVER_TASKS = """# Tasks
++
++## 1. 准备
++
++- [ ] 1.1 对涉及面每个必须修改仓运行 `prepare_worktree.py`，并把 repo / worktree / branch / base 写回 TASK；验证方式：两个脚本调用均返回 `action: created`，且分支均为 `task/openspec-cross-repo`。
++
++## 2. 实施（一片一条，依赖写括号）
++
++- [ ] 2.1 完成子 change `openspec-cross-repo-api`：全勾、`openspec validate openspec-cross-repo-api --strict` 通过、提交到 API worktree 的 `task/openspec-cross-repo` 分支。
++- [ ] 2.2 完成子 change `openspec-cross-repo-web`（依赖 2.1）：全勾、`openspec validate openspec-cross-repo-web --strict` 通过、提交到 Web worktree 的 `task/openspec-cross-repo` 分支。
++
++## 3. 收尾
++
++- [ ] 3.1 在当前两个 worktree 复跑各自测试，并把结果写入 proposal 验证记录。
++- [ ] 3.2 在父任务 evidence 中运行真实跨仓集成验证，断言导出文件与库存快照一致。
++- [ ] 3.3 回填验收标准与未勾原因。
++- [ ] 3.4 校核子 changes、验证证据和任务分支提交；归档全部子 changes。
++"""
++
++
++# ---------------------------------------------------------------------------
++# 场景：direct（父任务 + 两个子任务）
++# ---------------------------------------------------------------------------
++
++DIRECT_CRITERION = "API 与 Web 两仓各自测试通过，父级跨仓集成能提交任务、完成并下载正确 CSV 文件"
++OPENSPEC_CRITERION = (
++    "API 与 Web 两仓按 OpenSpec 子 change 全勾并通过 validate --strict，"
++    "跨仓集成能生成与库存快照一致的导出文件"
++)
++
++
++def run_direct(root: Path, rep: Reporter) -> None:
++    mode = "direct"
++    started = time.monotonic()
++    base = root / "direct"
++    ws = base / "workspace"
++    ws.mkdir(parents=True)
++    task_id = "cross-repo-report"
++
++    api_src = init_source_repo(base, "api-repo", "# api-repo\n\n异步报表任务 API 验收基线。\n")
++    web_src = init_source_repo(base, "web-repo", "# web-repo\n\n报表下载客户端验收基线。\n")
++    api_base = git(api_src, "rev-parse", "--short", "HEAD")
++    web_base = git(web_src, "rev-parse", "--short", "HEAD")
++
++    run([sys.executable, str(TASK_STATE), "init", str(ws), task_id,
++         "--title", "实现跨仓异步报表下载", "--criterion", DIRECT_CRITERION])
++    rep.record(mode, "task_state init 父任务", True, f"基线 api={api_base} web={web_base}")
++
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--execution", "direct", "--current-ref", "decompose"])
++    for child, title, criterion in (
++        ("api-report", "实现异步报表任务 API",
++         "AsyncReportJobStore 可提交任务、查询状态、完成任务并读取与输入一致的 UTF-8 CSV；本仓相关 unittest 全部通过"),
++        ("web-download", "实现报表下载客户端",
++         "download_report 仅接受 completed 任务并原子写入目标文件；本仓相关 unittest 全部通过"),
++    ):
++        run([sys.executable, str(TASK_STATE), "init", str(ws), child,
++             "--title", title, "--criterion", criterion, "--parent", task_id])
++    rep.record(mode, "decompose 两个子任务", True, "api-report / web-download")
++
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--current-ref", "execute", "--next", "并行推进两个子任务的 worktree 实现"])
++
++    records = {}
++    for repo_id, src in (("api-repo", api_src), ("web-repo", web_src)):
++        out = run_json([sys.executable, str(PREPARE_WORKTREE), str(ws), task_id, repo_id, str(src), "--json"], cwd=ws)
++        if out.get("action") != "created":
++            raise E2eError(f"prepare_worktree 未返回 created：{out}")
++        records[repo_id] = out
++    registry = ws / "worktrees" / task_id / "registry.json"
++    rep.record(mode, "prepare_worktree ×2", registry.is_file(),
++               f"分支 {records['api-repo']['branch']}")
++
++    fixtures = {
++        "api-report": (DIRECT_API_FILES, "Implement async report job API", "api-unit-tests.txt"),
++        "web-download": (DIRECT_WEB_FILES, "Implement report download client", "web-unit-tests.txt"),
++    }
++    child_commits = {}
++    for child, (files, message, evidence_name) in fixtures.items():
++        repo_id = "api-repo" if child == "api-report" else "web-repo"
++        wt = Path(records[repo_id]["worktree"])
++        write_tree(wt, files)
++        count = run_unit_tests(wt, f"evidence/{evidence_name}")
++        commit = commit_all(wt, message)
++        child_commits[child] = commit
++        if git(wt, "status", "--porcelain"):
++            raise E2eError(f"worktree 提交后不干净：{wt}")
++        run([sys.executable, str(TASK_STATE), "update", str(ws), f"{task_id}/subtasks/{child}",
++             "--status", "active", "--current-ref", "execute"])
++        child_dir = ws / "tasks" / "ongoing" / task_id / "subtasks" / child
++        summary = child_dir / "SUMMARY.md"
++        summary.write_text(
++            f"# SUMMARY：{child}\n\n"
++            "## 结果与验证\n"
++            f"- 实现提交在 `{repo_id}` worktree 的 `task/{task_id}` 分支，commit `{commit}`。\n"
++            f"- `python3 -m unittest discover -s tests -v`：{count} 项测试全部通过"
++            f"（证据 `evidence/{evidence_name}`）。\n\n"
++            "## 剩余风险\n- 内存实现，仅用于流程验收。\n",
++            encoding="utf-8")
++        tick_plan(ws / "tasks" / "ongoing" / task_id / "subtasks" / child / "PLAN.md")
++        run([sys.executable, str(TASK_STATE), "update", str(ws), f"{task_id}/subtasks/{child}",
++             "--status", "done", "--current-ref", "close"])
++        rep.record(mode, f"子任务 {child} 完成", True, f"{count} 项测试通过，commit {commit}")
++
++    task_dir = ws / "tasks" / "ongoing" / task_id
++    evidence = task_dir / "evidence"
++    evidence.mkdir(parents=True, exist_ok=True)
++    (evidence / "integration_check.py").write_text(DIRECT_INTEGRATION, encoding="utf-8")
++    proc = run([sys.executable, str(evidence / "integration_check.py")], cwd=task_dir)
++    if "PASS" not in proc.stdout:
++        raise E2eError(f"集成脚本未输出 PASS：\n{proc.stdout}")
++    (evidence / "integration-tests.txt").write_text(proc.stdout, encoding="utf-8")
++    rep.record(mode, "父级跨仓集成（归档前）", True, proc.stdout.strip().splitlines()[-1])
++
++    tick_plan(task_dir / "PLAN.md")
++    (task_dir / "SUMMARY.md").write_text(
++        "# SUMMARY：实现跨仓异步报表下载\n\n"
++        "## 结果与验证\n"
++        f"- API 子任务 commit `{child_commits['api-report']}`，Web 子任务 commit `{child_commits['web-download']}`。\n"
++        "- 父级跨仓集成通过：pending 拒绝、completed 下载、CSV 内容一致且无临时文件。\n\n"
++        "## 剩余风险\n- 临时本地验收仓，分支未 push、未合入 main。\n",
++        encoding="utf-8")
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--current-ref", "verify"])
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--current-ref", "close", "--status", "done", "--next", "任务完成，等待同轮归档"])
++    rep.record(mode, "父任务 close 门禁", True, "SUMMARY + 子任务全 done")
++
++    archive_dir = ws / "tasks" / "archive" / datetime.now().date().isoformat() / task_id
++    archive_dir.parent.mkdir(parents=True, exist_ok=True)
++    task_dir.rename(archive_dir)
++    run([sys.executable, str(TASK_STATE), "rebuild-index", str(ws)])
++    index = (ws / "tasks" / "INDEX.md").read_text(encoding="utf-8")
++    rep.record(mode, "归档 + rebuild-index", "archive/" in index and "done" in index,
++               f"tasks/archive/<date>/{task_id}")
++
++    proc = run([sys.executable, str(archive_dir / "evidence" / "integration_check.py")], cwd=archive_dir)
++    rep.record(mode, "归档位置复跑集成", "PASS" in proc.stdout, "向上查找 workspace 生效")
++
++    for src in (api_src, web_src):
++        if git(src, "status", "--porcelain") or git(src, "branch", "--show-current") != "main":
++            raise E2eError(f"源仓 main 被修改：{src}")
++    rep.record(mode, "源仓 main 未动", True, f"api={api_base} web={web_base}")
++    rep.record(mode, "direct 模式完成", True, f"耗时 {time.monotonic() - started:.1f}s")
++
++
++# ---------------------------------------------------------------------------
++# 场景：OpenSpec CLI（driver + 两个子 change）
++# ---------------------------------------------------------------------------
++
++def driver_proposal(ctx: dict[str, str], filled: bool) -> str:
++    values = dict(ctx)
++    if not filled:
++        values["api_commit"] = "<待回填>"
++        values["web_commit"] = "<待回填>"
++    return DRIVER_PROPOSAL.safe_substitute(values)
++
++
++def run_openspec(root: Path, rep: Reporter, openspec_bin: str) -> None:
++    mode = "openspec"
++    started = time.monotonic()
++    base = root / "openspec"
++    ws = base / "workspace"
++    ws.mkdir(parents=True)
++    task_id = "openspec-cross-repo"
++
++    api_src = init_source_repo(base, "catalog-api", "# catalog-api\n\n库存快照 API 验收基线。\n")
++    web_src = init_source_repo(base, "catalog-web", "# catalog-web\n\n快照导出客户端验收基线。\n")
++
++    version = run([openspec_bin, "--version"]).stdout.strip()
++    rep.env["openspec"] = version
++    run([openspec_bin, "init", "--tools", "none", "--language", "zh-CN",
++         "--force", "--no-animation", "."], cwd=ws)
++    ctx = run_json([openspec_bin, "context", "--json"], cwd=ws)
++    # macOS 上 tempfile 返回 /var/...，CLI 解析后可能是 /private/var/...，比较 realpath。
++    rep.record(mode, "openspec init workspace",
++               os.path.realpath(ctx["root"]["path"]) == os.path.realpath(ws), version)
++
++    run([sys.executable, str(TASK_STATE), "init", str(ws), task_id,
++         "--title", "实现跨仓库存快照导出", "--criterion", OPENSPEC_CRITERION])
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--execution", "openspec", "--driver", f"{task_id}-driver",
++         "--current-ref", "execute", "--next", "通过 handoff 门后创建 OpenSpec driver"])
++
++    task_md = ws / "tasks" / "ongoing" / task_id / "TASK.md"
++    text = task_md.read_text(encoding="utf-8")
++    body = text.split("---", 2)[2]
++    body = set_section(body, "交接", (
++        "- 交付类别：服务 + 客户端\n"
++        "- 适用门包：无\n"
++        "- 完成判据：" + OPENSPEC_CRITERION + "\n"
++        "- 方案：PLAN.md / ROADMAP.md\n"
++        "- 批准：not-required: 本地临时验收仓、改动可逆且无共享环境风险\n"
++        "- 带进实现的未决：无\n"
++        f"- driver：{task_id}-driver"))
++    task_md.write_text(text.split("---", 2)[0] + "---" + text.split("---", 2)[1] + "---" + body, encoding="utf-8")
++
++    gate = run_json([sys.executable, str(CHECK_HANDOFF), str(ws), task_id, "--json"], cwd=ws)
++    rep.record(mode, "check_handoff 门", bool(gate.get("ok")), f"errors={gate.get('errors')}")
++
++    run([openspec_bin, "new", "change", f"{task_id}-driver", "--goal",
++         f"实现跨仓库存快照导出：{OPENSPEC_CRITERION}", "--json"], cwd=ws)
++    driver_dir = ws / "openspec" / "changes" / f"{task_id}-driver"
++    yaml_path = driver_dir / ".openspec.yaml"
++    yaml_path.write_text(yaml_path.read_text(encoding="utf-8").replace(
++        "schema: spec-driven\n", "schema: spec-driven\nskip_specs: true\n"), encoding="utf-8")
++
++    records = {}
++    for repo_id, src in (("catalog-api", api_src), ("catalog-web", web_src)):
++        out = run_json([sys.executable, str(PREPARE_WORKTREE), str(ws), task_id, repo_id, str(src), "--json"], cwd=ws)
++        if out.get("action") != "created":
++            raise E2eError(f"prepare_worktree 未返回 created：{out}")
++        records[repo_id] = out
++    rep.record(mode, "prepare_worktree ×2", True, f"分支 {records['catalog-api']['branch']}")
++
++    api_wt = Path(records["catalog-api"]["worktree"])
++    web_wt = Path(records["catalog-web"]["worktree"])
++    ctx_values = {
++        "api_src": str(api_src), "web_src": str(web_src),
++        "api_wt": str(api_wt), "web_wt": str(web_wt),
++        "ws": str(ws), "api_commit": "", "web_commit": "",
++    }
++    write_tree(driver_dir, {
++        "proposal.md": driver_proposal(ctx_values, filled=False),
++        "design.md": DRIVER_DESIGN.safe_substitute(ctx_values),
++        "tasks.md": DRIVER_TASKS,
++    })
++
++    text = task_md.read_text(encoding="utf-8")
++    body = text.split("---", 2)[2]
++    body = set_section(body, "涉及仓库", (
++        "| repo_id | source_repo | worktree | branch | base |\n"
++        "|---|---|---|---|---|\n"
++        f"| catalog-api | {api_src} | {api_wt} | task/{task_id} | {records['catalog-api']['base']} |\n"
++        f"| catalog-web | {web_src} | {web_wt} | task/{task_id} | {records['catalog-web']['base']} |"))
++    task_md.write_text(text.split("---", 2)[0] + "---" + text.split("---", 2)[1] + "---" + body, encoding="utf-8")
++
++    today = datetime.now().date().isoformat()
++
++    def sub_change(name: str, goal: str, artifacts: dict[str, str], wt: Path,
++                   files: dict[str, str], evidence_rel: str, message: str) -> tuple[str, int]:
++        run([openspec_bin, "new", "change", name, "--goal", goal, "--json"], cwd=ws)
++        change_dir = ws / "openspec" / "changes" / name
++        write_tree(change_dir, artifacts)
++        write_tree(wt, files)
++        count = run_unit_tests(wt, evidence_rel)
++        tasks_md = change_dir / "tasks.md"
++        tasks_md.write_text(tasks_md.read_text(encoding="utf-8").replace("- [ ]", "- [x]"),
++                            encoding="utf-8")
++        valid = run_json([openspec_bin, "validate", name, "--strict", "--json"], cwd=ws)
++        if not valid["items"][0]["valid"]:
++            raise E2eError(f"validate --strict 未通过：{valid}")
++        commit = commit_all(wt, message)
++        if git(wt, "status", "--porcelain"):
++            raise E2eError(f"worktree 提交后不干净：{wt}")
++        archived = run_json([openspec_bin, "archive", name, "--yes", "--json"], cwd=ws)
++        info = archived["archive"]
++        archive_ok = (
++            info["archivedAs"] == f"{today}-{name}"
++            and info.get("specsUpdated") is True
++            and (ws / "openspec" / "changes" / "archive" / info["archivedAs"]).is_dir()
++        )
++        rep.record(mode, f"子 change {name}", archive_ok,
++                   f"{count} 项测试，commit {commit}，specsUpdated={info.get('specsUpdated')}")
++        return commit, count
++
++    api_commit, _ = sub_change(
++        f"{task_id}-api",
++        "catalog-api 提供库存快照登记、就绪查询和快照读取；本 change 全勾并通过 validate --strict，相关测试通过",
++        API_CHANGE_ARTIFACTS, api_wt, OPENSPEC_API_FILES,
++        "evidence/api-unit-tests.txt", "Implement inventory snapshot API")
++    web_commit, _ = sub_change(
++        f"{task_id}-web",
++        "catalog-web 根据 catalog-api 的 ready 库存快照生成导出文件；本 change 全勾并通过 validate --strict，相关测试通过",
++        WEB_CHANGE_ARTIFACTS, web_wt, OPENSPEC_WEB_FILES,
++        "evidence/web-unit-tests.txt", "Implement inventory snapshot export client")
++
++    run_unit_tests(api_wt, "evidence/api-unit-tests.txt", write_evidence=False)
++    run_unit_tests(web_wt, "evidence/web-unit-tests.txt", write_evidence=False)
++
++    task_archive = ws / "tasks" / "ongoing" / task_id
++    evidence = task_archive / "evidence"
++    evidence.mkdir(parents=True, exist_ok=True)
++    (evidence / "openspec_integration_check.py").write_text(OPENSPEC_INTEGRATION, encoding="utf-8")
++    proc = run([sys.executable, str(evidence / "openspec_integration_check.py")], cwd=task_archive)
++    if "INTEGRATION PASS" not in proc.stdout:
++        raise E2eError(f"集成脚本未 PASS：\n{proc.stdout}")
++    (evidence / "openspec-integration-tests.txt").write_text(proc.stdout, encoding="utf-8")
++    rep.record(mode, "父级跨仓集成（driver 收尾前）", True, "INTEGRATION PASS")
++
++    ctx_values["api_commit"] = api_commit
++    ctx_values["web_commit"] = web_commit
++    (driver_dir / "proposal.md").write_text(driver_proposal(ctx_values, filled=True), encoding="utf-8")
++    driver_tasks = driver_dir / "tasks.md"
++    driver_tasks.write_text(driver_tasks.read_text(encoding="utf-8").replace("- [ ]", "- [x]"),
++                            encoding="utf-8")
++    valid = run_json([openspec_bin, "validate", f"{task_id}-driver", "--strict", "--json"], cwd=ws)
++    rep.record(mode, "driver validate --strict", bool(valid["items"][0]["valid"]),
++               f"issues={len(valid['items'][0]['issues'])} 条（skip_specs 提示）")
++    archived = run_json([openspec_bin, "archive", f"{task_id}-driver", "--yes", "--json"], cwd=ws)
++    rep.record(mode, "driver archive", archived["archive"]["archivedAs"] == f"{today}-{task_id}-driver",
++               archived["archive"]["archivedAs"])
++
++    for spec_name in ("inventory-snapshots", "inventory-snapshot-export"):
++        if not (ws / "openspec" / "specs" / spec_name / "spec.md").is_file():
++            raise E2eError(f"主 spec 未生成：{spec_name}")
++    rep.record(mode, "主 specs 已更新", True, "inventory-snapshots + inventory-snapshot-export")
++
++    (task_archive / "SUMMARY.md").write_text(
++        "# SUMMARY：实现跨仓库存快照导出\n\n"
++        "## 结果\n"
++        f"完成判据达成。API commit `{api_commit}`（5 项测试），Web commit `{web_commit}`（4 项测试）；"
++        "driver 与两个子 change 均已 CLI 归档。\n\n"
++        "## 剩余风险\n- 临时本地验收仓，分支未 push、未合入 main。\n",
++        encoding="utf-8")
++    tick_plan(task_archive / "PLAN.md")
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--current-ref", "verify"])
++    run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
++         "--current-ref", "close", "--status", "done", "--next", "任务完成，等待同轮归档"])
++    rep.record(mode, "父任务 close 门禁", True, "SUMMARY + 无未完成子任务")
++
++    archive_target = ws / "tasks" / "archive" / today / task_id
++    archive_target.parent.mkdir(parents=True, exist_ok=True)
++    task_archive.rename(archive_target)
++    run([sys.executable, str(TASK_STATE), "rebuild-index", str(ws)])
++    index = (ws / "tasks" / "INDEX.md").read_text(encoding="utf-8")
++    rep.record(mode, "归档 + rebuild-index", "archive/" in index and "done" in index,
++               f"tasks/archive/{today}/{task_id}")
++
++    proc = run([sys.executable, str(archive_target / "evidence" / "openspec_integration_check.py")],
++               cwd=archive_target)
++    rep.record(mode, "归档位置复跑集成", "INTEGRATION PASS" in proc.stdout, "向上查找 workspace 生效")
++
++    for src in (api_src, web_src):
++        if git(src, "status", "--porcelain"):
++            raise E2eError(f"源仓 main 被修改：{src}")
++    for wt in (api_wt, web_wt):
++        if git(wt, "status", "--porcelain"):
++            raise E2eError(f"worktree 不干净：{wt}")
++    rep.record(mode, "源仓与 worktree 终态干净", True,
++               f"api={api_commit} web={web_commit}")
++    rep.record(mode, "openspec 模式完成", True, f"耗时 {time.monotonic() - started:.1f}s")
++
++
++# ---------------------------------------------------------------------------
++# 入口
++# ---------------------------------------------------------------------------
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__,
++                                     formatter_class=argparse.RawDescriptionHelpFormatter)
++    parser.add_argument("--mode", choices=("all", "direct", "openspec"), default="all")
++    parser.add_argument("--root", help="复用已有目录而非新建临时目录（调试用）")
++    parser.add_argument("--keep", action="store_true", help="保留临时目录与产物")
++    parser.add_argument("--report", help="报告输出路径（默认当前目录）")
++    parser.add_argument("--openspec-bin", help="openspec CLI 路径（默认从 PATH 查找）")
++    args = parser.parse_args(argv)
++
++    if not shutil.which("git"):
++        print("FAIL: 未找到 git", file=sys.stderr)
++        return 2
++    for script in (TASK_STATE, CHECK_HANDOFF, PREPARE_WORKTREE):
++        if not script.is_file():
++            print(f"FAIL: skill 脚本缺失：{script}", file=sys.stderr)
++            return 2
++
++    rep = Reporter()
++    rep.env["git"] = run(["git", "--version"]).stdout.strip()
++
++    openspec_bin = args.openspec_bin or shutil.which("openspec")
++    modes = ("direct", "openspec") if args.mode == "all" else (args.mode,)
++    if "openspec" in modes and not openspec_bin:
++        print("FAIL: openspec CLI 未安装（--mode 包含 openspec）", file=sys.stderr)
++        return 2
++
++    root = Path(args.root) if args.root else Path(tempfile.mkdtemp(prefix="taskrail-e2e-"))
++    root.mkdir(parents=True, exist_ok=True)
++    exit_code = 0
++    try:
++        if "direct" in modes:
++            run_direct(root, rep)
++        if "openspec" in modes:
++            run_openspec(root, rep, openspec_bin)
++    except E2eError as exc:
++        rep.steps.append(Step("e2e", "未捕获步骤", False, str(exc).replace("\n", " / ")))
++        print(f"[FAIL] e2e: 未捕获步骤 -- {exc}", flush=True)
++        exit_code = 1
++
++    report_path = Path(args.report) if args.report else (
++        Path.cwd() / f"e2e-cross-repo-report-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md")
++    report_path.write_text(rep.render(root if args.keep else None, bool(args.keep)), encoding="utf-8")
++    print(f"报告：{report_path}")
++    if not args.keep and not args.root:
++        shutil.rmtree(root, ignore_errors=True)
++    failures = [s for s in rep.steps if not s.ok]
++    if failures:
++        print(f"FAIL: {len(failures)} 个步骤失败", file=sys.stderr)
++        return 1 if exit_code == 0 else exit_code
++    print("E2E PASS")
++    return exit_code
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/skills/taskflow/patches/20261024-211322-e2e-cross-repo/proposal.md b/skills/taskflow/patches/20261024-211322-e2e-cross-repo/proposal.md
+new file mode 100644
+index 0000000..5407b00
+--- /dev/null
++++ b/skills/taskflow/patches/20261024-211322-e2e-cross-repo/proposal.md
+@@ -0,0 +1,23 @@
++# Proposal: 固化跨仓 E2E 回归脚本
++
++## Why
++
++taskrail / taskflow 的跨仓能力已经过两条人工端到端验收（direct 父子任务 + OpenSpec CLI driver 双切片），但验收脚本与夹具散落在任务工作区，改 skill 后无法一键回归。
++
++## What Changes
++
++- 新增 `scripts/e2e_cross_repo.py`：一键在临时目录创建两个 git 夹具仓，复现两条验收路径并逐步断言：
++  - direct：父任务 + 两个子任务 + `prepare_worktree.py` + 父级集成 + close 归档；
++  - openspec：`check_handoff.py` 门 → driver（skip_specs）→ 两个子 change → `validate --strict` → `archive --yes` → 父级集成 → close 归档。
++- 新增 `tests/test_e2e_cross_repo.py`：结构契约（脚本存在、仅标准库导入、--help 可用）+ 活体契约（git 可用跑 direct，openspec CLI 可用跑 openspec，缺依赖自动 skip）。
++- 只加仓级脚本与测试，不改任何 skill 正文。
++
++## 影响面
++
++根 `scripts/` 与 `tests/` 各一个新文件；skill 正文零改动。
++
++## 验证
++
++- `python3 scripts/e2e_cross_repo.py --mode all`：direct 11 步 PASS（0.9s）、openspec 14 步 PASS（22.6s，CLI 1.14.1）。
++- 根 `tests/`：13 tests OK（含两个活体 E2E）；taskrail 131 tests OK；taskflow 58 tests OK。
++- `make check-names` / `make check-style` / `git diff HEAD --check`：全部通过。
+diff --git a/tests/test_e2e_cross_repo.py b/tests/test_e2e_cross_repo.py
+new file mode 100644
+index 0000000..a88ff1d
+--- /dev/null
++++ b/tests/test_e2e_cross_repo.py
+@@ -0,0 +1,81 @@
++"""E2E 跨仓回归脚本的契约测试。
++
++- 结构契约：脚本存在、只依赖 Python 标准库、提供 direct / openspec 两种模式。
++- 活体契约（git 可用时）：真实跑 direct 模式；openspec CLI 可用时再跑 openspec 模式。
++"""
++
++from __future__ import annotations
++
++import ast
++import shutil
++import subprocess
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parent.parent
++SCRIPT = REPO_ROOT / "scripts" / "e2e_cross_repo.py"
++
++STDLIB_OK = {
++    "__future__", "argparse", "json", "os", "platform", "re", "shutil",
++    "subprocess", "sys", "tempfile", "time", "datetime", "pathlib",
++    "string", "typing",
++}
++
++
++class E2eScriptContractTest(unittest.TestCase):
++    def test_script_exists(self) -> None:
++        self.assertTrue(SCRIPT.is_file(), f"缺少 {SCRIPT}")
++
++    def test_stdlib_only_imports(self) -> None:
++        tree = ast.parse(SCRIPT.read_text(encoding="utf-8"), filename=str(SCRIPT))
++        imported = set()
++        for node in ast.walk(tree):
++            if isinstance(node, ast.Import):
++                imported.update(alias.name.split(".")[0] for alias in node.names)
++            elif isinstance(node, ast.ImportFrom) and node.module:
++                imported.add(node.module.split(".")[0])
++        extra = imported - STDLIB_OK
++        self.assertEqual(extra, set(), f"scripts/ 只允许标准库依赖，实际：{sorted(extra)}")
++
++    def test_help_lists_modes(self) -> None:
++        proc = subprocess.run([sys.executable, str(SCRIPT), "--help"],
++                              capture_output=True, text=True)
++        self.assertEqual(proc.returncode, 0, proc.stderr)
++        self.assertIn("--mode", proc.stdout)
++        self.assertIn("openspec", proc.stdout)
++
++
++@unittest.skipUnless(shutil.which("git"), "需要 git")
++class E2eLiveDirectTest(unittest.TestCase):
++    def test_direct_mode_passes(self) -> None:
++        with tempfile.TemporaryDirectory() as tmp:
++            report = Path(tmp) / "report.md"
++            proc = subprocess.run(
++                [sys.executable, str(SCRIPT), "--mode", "direct", "--report", str(report)],
++                capture_output=True, text=True, timeout=600)
++            self.assertEqual(proc.returncode, 0,
++                             f"stdout:\n{proc.stdout[-2000:]}\nstderr:\n{proc.stderr[-2000:]}")
++            text = report.read_text(encoding="utf-8")
++            self.assertIn("direct 模式完成", text)
++            self.assertIn("全部通过", text)
++
++
++@unittest.skipUnless(shutil.which("openspec"), "需要 openspec CLI")
++class E2eLiveOpenspecTest(unittest.TestCase):
++    def test_openspec_mode_passes(self) -> None:
++        with tempfile.TemporaryDirectory() as tmp:
++            report = Path(tmp) / "report.md"
++            proc = subprocess.run(
++                [sys.executable, str(SCRIPT), "--mode", "openspec", "--report", str(report)],
++                capture_output=True, text=True, timeout=900)
++            self.assertEqual(proc.returncode, 0,
++                             f"stdout:\n{proc.stdout[-2000:]}\nstderr:\n{proc.stderr[-2000:]}")
++            text = report.read_text(encoding="utf-8")
++            self.assertIn("openspec 模式完成", text)
++            self.assertIn("全部通过", text)
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.50.1 (Apple Git-155)
+
