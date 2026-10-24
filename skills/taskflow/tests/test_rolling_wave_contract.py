@@ -1,5 +1,6 @@
-"""滚动展开：依赖满足才展开子 change、逐片提交、片间检查点不停人。"""
+"""滚动展开：就绪切片、逐片提交、检查点重路由而非固定停人。"""
 from __future__ import annotations
+
 import unittest
 from pathlib import Path
 
@@ -9,31 +10,33 @@ PROTO = TEMPLATE.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
 
 
 class RollingWaveTest(unittest.TestCase):
-    def test_protocol_expands_ready_slices_from_worktree_code(self) -> None:
+    def test_only_ready_slices_are_expanded_from_current_worktree(self) -> None:
         self.assertIn("依赖的实施项都已勾的切片才建子 change", PROTO)
-        self.assertIn("起草时以 `worktrees/{task}` 里的代码为准", PROTO)
+        self.assertIn("对应 worktree 当前代码为准", PROTO)
+        self.assertIn("propose 只展开依赖已满足的切片", TEMPLATE)
 
-    def test_slice_item_checked_after_commit(self) -> None:
-        self.assertIn("这一片已提交到任务分支后才勾", PROTO)
+    def test_driver_item_is_checked_after_validation_and_commit(self) -> None:
+        self.assertIn("这一片已提交到任务分支", PROTO)
+        self.assertIn("validate --strict", PROTO)
         self.assertIn("提交由编排者做，每片一次、收尾一次", PROTO)
 
-    def test_checkpoint_keeps_going(self) -> None:
-        self.assertIn("过一次片间检查点，不停人", PROTO)
+    def test_checkpoint_re_routes_without_extra_stop(self) -> None:
+        self.assertIn("片间检查点，不停人", PROTO)
+        self.assertIn("只增删改未勾项", PROTO)
         self.assertIn("意图变更", PROTO)
-
-    def test_propose_expands_first_batch_only(self) -> None:
-        wave = TEMPLATE.split("### 滚动展开", 1)[1]
-        self.assertIn("propose 只给依赖已满足的那批切片备齐子 change", wave)
-        self.assertIn("属于 approve 已批的范围", wave)
-        self.assertIn("一片一条", TEMPLATE)
-
-    def test_runtime_files_point_to_checkpoint(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        disc = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
-        mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
-        for text in (skill, disc, mw):
-            self.assertIn("片间检查点", text)
-        self.assertIn("提交留给编排者", disc)
+        self.assertIn("片间检查点只说决定并继续", skill)
+
+    def test_tasks_are_one_slice_per_item(self) -> None:
+        self.assertIn("一片一条", TEMPLATE)
+        self.assertIn("已勾项和已归档 changes 不改写", TEMPLATE)
+        self.assertIn("父任务不再持一个重复进度的 driver", TEMPLATE)
+
+    def test_execution_discipline_keeps_commit_and_checkpoint_rules(self) -> None:
+        discipline = (ROOT / "references" / "execution-discipline.md").read_text(encoding="utf-8")
+        self.assertIn("提交由编排者做", discipline)
+        self.assertIn("片间检查点", discipline)
+        self.assertIn("未勾齐就不归档", discipline)
 
 
 if __name__ == "__main__":

@@ -1,65 +1,55 @@
 ---
 id: taskflow
 name: taskflow
-description: "交接后的执行：check_handoff 入口门通过后用 `taskflow-new` 建 `{task}-driver`，拆成 OpenSpec change，委托 stock `openspec-*` propose/apply/archive，进度只认 checkbox。taskrail 委派，或用户点名 taskflow / taskflow-new / 某个 `{task}-driver` 时使用。"
+description: "代码执行与隔离：在 workspace 为每个修改仓准备 git worktree，按 taskrail 路由选择 direct 或 OpenSpec；支持多仓、滚动切片、提交与验证。taskrail execute 委派、用户点名 taskflow / taskflow-new / 某个 driver，或需要隔离代码修改时使用。"
 ---
 
 # taskflow
 
-面向用户默认简体中文；端到端推进、resume、/goal 走 taskrail。对用户报进度按 [user-report.md](../taskrail/references/user-report.md)，不报 checkbox 计数与字段。
+面向用户默认简体中文；端到端路由、resume、/goal 走 taskrail。用户表达按 [user-report.md](../taskrail/references/user-report.md)。
 
-一个任务 = 一个 driver change `{task}-driver`，实现拆成子 change `{task}-<slice>`（同一 planning root；跨 root 时在 driver 涉及面表记录）。**进度只有 checkbox 一种真相**：不另建台账、索引或编号。术语见 [taskrail 契约「术语」](../taskrail/references/contract.md)。
+## 两个执行适配器，一套隔离协议
 
-## 阶段路由
+- `direct`：按 TASK / PLAN 的当前 checkbox 实施，不建 driver。
+- `openspec`：建 `{task}-driver` 与子 changes，实施进度只看 change checkbox。
+- 两者都在 `<workspace>/worktrees/<task-id>/<repo-id>/` 改代码、测试、提交；workspace 统一持 `tasks/` 和 `openspec/`。
 
-| 阶段 | 入口 | 参数 |
-|------|------|------|
-| 立项 | 本文件「脚手架」（command `taskflow-new`） | 任务描述 |
-| 提案 | stock `openspec-propose` | `{task}-driver`；展开切片时为 `{task}-<slice>` |
-| 实施 | stock `openspec-apply-change` | `{task}-driver`，逐片 `{task}-<slice>` |
-| 归档 | stock `openspec-archive-change` | `{task}-driver`（只归档 driver 自身） |
+执行前必读 [references/worktree.md](references/worktree.md)，并对每个必须修改的仓库运行：
 
-方案未定时先 stock `openspec-explore`。只提供 `taskflow-new` 一个 command，其余复用 stock skill。
+```bash
+python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json
+```
 
-委托 `openspec-*` 时在 driver 的 planning root（主工作树）下执行，并显式给出 change name（`{task}-driver` 或 `{task}-<slice>`）；缺任一项不委托。代码改在 `worktrees/{task}`，两个根的分工见 Driver 协议。`openspec-*` 不可用时说明怎么装（`dotf agents -c` 或 `openspec init --tools agents`，或改用 openspec CLI 直调）。
+exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
+
+## direct
+
+1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不需要 handoff / approve / driver。
+2. 读 [references/execution-discipline.md](references/execution-discipline.md)，在当前 worktree 实施一个连贯增量并跑 focused tests。
+3. 只更新 PLAN 实施 checkbox 与证据，提交由编排者做；提交后重新路由，不直接标 done。
+
+## OpenSpec
+
+创建 driver 前按 taskrail handoff 写载荷，并在 workspace 跑 OpenSpec 入口门：
+
+```bash
+python3 <taskflow>/scripts/check_handoff.py <workspace> <task-path>
+```
+
+用户原话明确要求绕过 taskrail 时，才可在 TASK 写 `gate_bypass: "<日期> user-confirmed: <原话>"`；不手写省略验收的自由提示词，未核对项仍须记录。门通过后 `taskflow-new`：
+
+1. 在 workspace 执行 `openspec new change {task}-driver --goal "<目标 + criterion + 方案 / 批准指针>"`。
+2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。
+3. stock `openspec-*` 始终在 workspace 运行并显式给 change name；实现者 cwd 是对应 worktree。缺 skill / CLI 时说明安装，不发明等价命令。
 
 ## 经 taskrail 委托时
 
-stock `openspec-*` 里停下来问人的地方，由编排者按下表代答；停不停只看 taskrail [confirm-protocol.md](../taskrail/references/confirm-protocol.md)「停点」表。单独点名 taskflow 时按 stock 原样交互。
+同名 change 选继续，不问；approve 放行即授权其范围内的 propose 与 apply，stock 的普通停顿由编排者按 [confirm-protocol.md](../taskrail/references/confirm-protocol.md) 停点表处理。单项做不了时该项保持未勾并继续其他就绪项；子 changes 全勾、验证和评审校核过后才 `openspec archive {task}-<slice> --yes`，不能用 `--yes` 掩盖未勾项。driver 归档后回 taskrail verify / close，不直接 done。
 
-| stock 的行为 | 在轨道里 |
-|---|---|
-| propose 完停下，等新请求再 apply | approve 放行即授权 propose 与 apply，propose 完接着 apply |
-| 同名 change 已存在，问继续还是新建 | 选继续，不问 |
-| 实现中不清楚或卡住，暂停并列选项 | 按 Driver 协议：该项保持未勾、验证记录写原因、做下一项；真阻塞按 user-report 第 5 节停 |
-| 归档前确认未勾项、问是否同步 spec | 收尾校核过了才归档；子 change 用 `openspec archive {task}-<slice> --yes`（同步 spec），未勾齐不归档 |
+## 滚动与并行
 
-## 入口门
+OpenSpec 切片按依赖滚动展开，每片提交一次，片间检查点只说决定并继续，只增删改未勾项；新交付边界回 taskrail decompose。direct 也可按 PLAN 增量滚动，不因此自动创建 driver。
 
-创建 `{task}-driver` 或子 change 前，第一步在工作区根跑：
+默认串行；同任务同仓写操作串行，不同子任务或不同仓库才可并行，细则 [references/multi-worker.md](references/multi-worker.md)。worker 只收本人范围、criterion、契约、worktree 绝对路径和证据要求，返回摘要与路径，不回灌完整日志。
 
-```bash
-python3 <taskflow>/scripts/check_handoff.py <workspace-root> <slug>
-```
-
-exit 非 0 → 不建 driver，改走 taskrail（approve → handoff），不自己补写 `TASK.md` 绕过。核对项只在脚本里。
-
-用户原话明确要求「不走 taskrail 直接建 driver」时：没有 `TASK.md` 就按 taskrail [templates.md](../taskrail/references/templates.md) 建最小的一份，元信息写 `gate_bypass: "<YYYY-MM-DD> user-confirmed: <用户原话>"` 再跑（脚本以 BYPASS 放行）。理由只照录用户原话；用户没说跳过就走 taskrail。
-
-## 脚手架
-
-`taskflow-new {任务描述}`，入口门通过后三步：
-
-1. 定 `{task}`：有 `TASK.md` 时等于其 slug；否则由描述归纳 kebab-case（描述为空时说明需要任务描述）。
-2. `openspec new change {task}-driver --goal "<目标 + criterion 原文 + 方案 / 批准路径；无 TASK.md 时为任务描述原文>"`。
-3. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 `proposal.md`（**Driver 协议** 块逐字写入）；`tasks.md` 留给 propose。
-
-## 执行
-
-propose / apply / 收尾前读 [references/execution-discipline.md](references/execution-discipline.md)。默认**串行**：一次做一个子 change；子 change 按依赖滚动展开，每做完一片提交一次、勾掉实施项，过片间检查点再展开下一批（driver-template「滚动展开」）。
-
-- 派给实现者的输入由交接载荷生成：判据原文、交付类别、要产出的证据、指针；不手写省略验收的自由提示词。
-- 完成按 [done.md](../taskrail/references/done.md)。
-- Web UI → [ui-delivery.md](../taskrail/references/ui-delivery.md)；多 worker 并行 → [references/multi-worker.md](references/multi-worker.md)。
-
-经验积累与 evals 不在运行路径上，见 [references/self-evolution.md](references/self-evolution.md)。
+完成验收与知识收口统一走 taskrail [done.md](../taskrail/references/done.md) / close，不在 taskflow 自行判 done。经验记录和进化只按 [self-evolution.md](references/self-evolution.md) 在运行闭环外执行。

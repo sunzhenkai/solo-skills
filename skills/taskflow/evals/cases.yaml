@@ -1,299 +1,298 @@
 version: 1
 skill: taskflow
 cases:
-  - id: one-driver-change
-    kind: basic
-    judge: deterministic
-    description: 一个任务等于一个 {task}-driver，子 change 共享前缀
-    given: 用户点名 taskflow 或要把任务拆成多个 OpenSpec change
-    expect:
-      must:
-        - 建 {task}-driver；子 change 命名 {task}-<slice>
-        - 与 driver 同一 planning root；跨 root 时在涉及面表显式记录
-      must_not:
-        - 另建 tasks/ 台账、索引文件或编号体系
-
-  - id: only-taskflow-new-command
-    kind: basic
-    judge: deterministic
-    description: 只提供 taskflow-new；其余阶段委托 stock openspec-*
-    given: 澄清 / 提案 / 实施 / 归档
-    expect:
-      must:
-        - explore/propose/apply/archive 委托对应 stock skill，参数为 {task}-driver
-      must_not:
-        - 另造等价的 taskflow-explore/propose/apply/archive 命令
-
-  - id: skip-specs-required
-    kind: basic
-    judge: deterministic
-    description: "driver 必须显式 skip_specs: true"
-    given: taskflow-new 脚手架
-    expect:
-      must:
-        - 在 driver 的 .openspec.yaml 写入 skip_specs: true
-      must_not:
-        - 让 driver 带 spec 增量却不写 skip_specs
-
-  - id: scaffold-three-steps
+  - id: direct-uses-worktree-without-driver
     kind: core
     judge: deterministic
-    description: taskflow-new 固定三步且不写 tasks.md
-    given: taskflow-new {任务描述}
+    description: direct 与 OpenSpec 共用隔离但不共用编排产物
+    given: taskrail 选择 direct 实施一个 git 代码任务
     expect:
       must:
-        - 归纳 kebab-case {task}（描述为空才问）
-        - openspec new change {task}-driver --goal 任务描述原文
-        - 写 skip_specs 并按模板写 proposal.md
-        - 报告 change name、proposal 路径与待确认空缺，并提示 propose 应选继续已有 change
+        - 运行 prepare_worktree.py，在返回的任务 worktree 改代码、测试和提交
+        - PLAN 记录实施进度，证据记录验证
       must_not:
-        - 脚手架阶段写 tasks.md
-        - 改写或精简 Driver 协议固定文本
+        - 创建 driver 或调用 check_handoff.py
+        - 在源 checkout 切分支或直接写代码
 
-  - id: driver-protocol-verbatim
+  - id: openspec-workspace-driver
     kind: core
     judge: deterministic
-    description: proposal.md 的 Driver 协议小节逐字写入
-    given: 写 driver proposal
+    description: OpenSpec 所有 planning 产物留在 workspace
+    given: taskrail 选择 OpenSpec，涉及一个或多个项目仓库
     expect:
       must:
-        - Driver 协议与 SKILL 模板固定文本一致
-        - 含 skip_specs、子 change 命名、checkbox 进度、两个根与必须仓建 worktree 规则、提交只到任务分支、一轮结束三条件
+        - 在 workspace 创建 task-driver 和 task-slice 子 changes
+        - 所有 openspec 命令以 workspace 为 cwd 并显式给 change name
+        - driver 的 .openspec.yaml 显式写 skip_specs true
       must_not:
-        - 改写、精简或挪走 Driver 协议
+        - 因跨项目更换 planning root
+        - 在项目 checkout 内另建一套任务台账
 
-  - id: propose-tasks-skeleton
+  - id: multi-repository-worktrees
     kind: core
     judge: deterministic
-    description: propose 产出的 driver tasks.md 含准备/实施/收尾骨架
-    given: openspec-propose 处理 {task}-driver
+    description: 同一任务两个真实仓库分别获得 worktree
+    given: task demo 同时修改 backend 和 frontend 两个 git 仓
     expect:
       must:
-        - 准备段含给必须仓建 worktree 的条目
-        - 实施段每个子 change 至少一条，且须 apply 至全勾且 validate --strict 通过
-        - 收尾段含回归、回填验收、提交与归档全部子 change
+        - 分别准备 worktrees/demo/backend 和 worktrees/demo/frontend
+        - registry.json 同时登记两个 source、worktree、branch 和 base
+        - 两仓各自存在 task/demo 分支且互不覆盖
       must_not:
-        - 在 apply 实施循环里改 change 语义或补拆子 change
+        - 让两个仓库共用一个 worktree
+        - 把 repo_id 静默改绑到另一个 source
 
-  - id: checkbox-ssot
+  - id: no-remote-default-base
     kind: core
     judge: deterministic
-    description: 进度只有 checkbox 一种真相
-    given: 判断 driver 或子 change 完成度
+    description: 无 remote 也能创建和恢复
+    given: source 只有本地 main 和一个提交，没有 origin
     expect:
       must:
-        - 子 change tasks.md 记实现进度，driver tasks.md 记编排进度
-        - driver 实施 checkbox 仅在对应子 change 全勾且 validate --strict 通过后才勾
-        - 暂缓原因写进 proposal 验证记录
+        - 默认以 HEAD 为基线创建任务分支和 worktree
+        - 干净重跑返回 resumed，源仓仍在 main
       must_not:
-        - 持久化第二份完成度、暂缓或分支状态记录
+        - 强制 fetch 或虚构 origin 默认分支
+        - 因无 remote 失败
 
-  - id: fail-closed-must-repos
+  - id: dirty-worktree-fails-preserving-work
+    kind: failure
+    judge: deterministic
+    description: 脏任务 worktree 返回非零并保留现场
+    given: 已登记 worktree 含未提交修改
+    expect:
+      must:
+        - prepare_worktree.py 返回非零，原修改逐字保留
+        - 用户先检查并处理后再恢复
+      must_not:
+        - stash、reset、覆盖或自动提交用户修改
+
+  - id: dirty-source-is-not-copied
     kind: core
     judge: deterministic
-    description: 必须修改仓的代码改在 worktrees/{task}；tasks/ 与 openspec change 留在主工作树；主工作树与用户未提交改动不动
-    given: 准备涉及面角色为必须的修改仓
+    description: 源 checkout 的未提交修改不隐式进入任务分支
+    given: source 工作区有未提交修改，HEAD 可作为基线
     expect:
       must:
-        - openspec-* 在 planning root（主工作树）跑；改代码、测试、提交在 worktrees/{task}
-        - 先 fetch；基线默认 origin/<默认分支>，当前分支不是默认分支且领先时用 HEAD；git worktree add worktrees/{task} -b {task} <基线>
-        - 分支已存在用 git worktree add worktrees/{task} {task}；worktree 已存在则复用
-        - 把 worktrees/ 写进 .git/info/exclude，worktree 路径与基线记入「已做决定」
-        - 派给实现者的工作目录是 worktree 的绝对路径；同一任务的 worker 共用这个 worktree
-        - 提交只落在任务分支 {task}；git 拒绝时停下说明原因
+        - 新 worktree 来自显式基线提交，源修改保持原样
+        - 若需要以未提交修改为输入，先显式记录并获用户认可
       must_not:
-        - 在主工作树上切分支、stash 或 reset
-        - 对建议/排除仓建 worktree
-        - 分支已存在时用 origin/<默认分支> 作参数建出 detached HEAD
-        - push、合进默认分支或收尾自动删除 worktree
+        - 自动复制源工作区修改
+        - 切换源仓分支或清理源工作区
 
-  - id: round-end-three-only
+  - id: branch-and-identity-collisions
+    kind: failure
+    judge: deterministic
+    description: 未登记分支和错误身份不能静默复用
+    given: 同名任务分支已存在但无 registry，或已有 worktree 的 branch/source 不匹配
+    expect:
+      must:
+        - 返回非零并说明冲突，保留已有分支和目录
+      must_not:
+        - 建 detached HEAD 掩盖冲突
+        - 复用不明身份的旧任务 worktree
+
+  - id: nested-workspace-exclude
+    kind: edge
+    judge: deterministic
+    description: 只有 worktree 位于 source 内才写 exclude
+    given: workspace 就是 source 项目根，或 workspace 与 source 分离
+    expect:
+      must:
+        - 内嵌场景把对应顶层 worktrees 目录写 .git/info/exclude
+        - 分离场景不改 source exclude
+      must_not:
+        - 修改项目 .gitignore
+        - 无条件写 exclude
+
+  - id: handoff-new-metadata-pass
     kind: core
     judge: deterministic
-    description: 只有全勾、需用户决策、预算耗尽允许结束一轮
-    given: apply {task}-driver 一轮
+    description: 新 OpenSpec 元信息通过入口门
+    given: TASK 为 active、execution openspec、current_ref execute，criterion 和 driver 正确，交接载荷完整
     expect:
       must:
-        - 单项做不了保持未勾，写原因后继续其余项
-        - 结束时逐条列出未勾项与原因
+        - check_handoff.py exit 0 后才创建 driver
+        - 有 approve 要求时读取 reviews 或旧 approve 下 APPROVED.md
       must_not:
+        - 未跑入口门直接 openspec new change
+        - direct 使用该入口门
+
+  - id: handoff-not-required-needs-reason
+    kind: boundary
+    judge: deterministic
+    description: 无需 approve 必须有具体理由
+    given: router 判定普通可逆改动无需 approve，没有 APPROVED.md
+    expect:
+      must:
+        - 交接节写批准 not-required 加具体理由后可通过
+        - 空 not-required 或无批准文件且无理由时失败
+      must_not:
+        - 用空标记代替理由
+        - 为无需 approve 的 direct 伪造批准文件
+
+  - id: handoff-rejects-direct-and-bad-path
+    kind: failure
+    judge: deterministic
+    description: direct 和路径逃逸均被拒绝
+    given: TASK execution direct，或 task path 含父目录跳转
+    expect:
+      must:
+        - direct 返回非零并说明不走 OpenSpec 入口门
+        - 非 task-id 或 parent/subtasks/child 形式返回非零
+      must_not:
+        - 读取 workspace tasks/ongoing 外的 TASK
+        - 自动改写元信息让门通过
+
+  - id: legacy-handoff-compatible
+    kind: regression
+    judge: deterministic
+    description: 旧 handed-off 和 phase 任务仍可校验
+    given: 旧 TASK 含 handed-off、合法 phase、criterion、driver 和完整交接载荷
+    expect:
+      must:
+        - 保留兼容读取并按原门校验，旧 approve 目录可用
+      must_not:
+        - 把兼容读取变成恢复固定双流程
+        - 接受非法 legacy phase
+
+  - id: gate-bypass-user-only
+    kind: boundary
+    judge: deterministic
+    description: gate_bypass 只能照录用户明确原话
+    given: 用户明确说不走 taskrail 直接建 driver
+    expect:
+      must:
+        - gate_bypass 含 user-confirmed 和原话，输出醒目 BYPASS 警告
+        - 未核对项在 decisions 或 SUMMARY 按实际降级记录
+      must_not:
+        - 用户未要求时自行 bypass
+        - 用 agent 编的理由代替用户原话
+
+  - id: web-ui-handoff-digests
+    kind: failure
+    judge: deterministic
+    description: Web UI 交接缺 digest 不能通过
+    given: 交付类别 Web UI，但 Active Instance 根路径或 contract、binding、projection digest 任一缺失
+    expect:
+      must:
+        - 入口门逐项 FAIL，补齐后重跑
+      must_not:
+        - 手写省略 UI 验收的自由提示词绕过
+        - 把缺证据标成 not_applicable 而不写理由
+
+  - id: scaffold-leaves-tasks-for-propose
+    kind: core
+    judge: deterministic
+    description: driver 脚手架不抢 propose 的职责
+    given: 已创建 task-driver 并写 proposal
+    expect:
+      must:
+        - skip_specs true 和 Driver 协议逐字落入 proposal
+        - tasks.md 留给 stock openspec-propose 生成准备、实施、收尾骨架
+      must_not:
+        - 脚手架写满 tasks.md
+        - 改写或精简 Driver 协议
+
+  - id: rolling-wave-and-checkbox-ssot
+    kind: core
+    judge: deterministic
+    description: 只展开就绪切片，逐片验证提交后勾编排项
+    given: driver 有三个切片，后两片依赖第一片
+    expect:
+      must:
+        - propose 只展开依赖已满足的切片
+        - 子 change tasks.md 记实施，driver tasks.md 记编排
+        - 第一片全勾、validate strict 并提交后才勾 driver 项，再从当前 worktree 起草后片
+      must_not:
+        - 一次按设想写满所有后片
+        - 在 ROADMAP 或父 driver 再复制一份子任务实施进度
+
+  - id: archive-never-masks-unchecked-work
+    kind: failure
+    judge: deterministic
+    description: 未勾齐不能归档
+    given: 某子 change 仍有未勾项或验证未通过
+    expect:
+      must:
+        - 保持未勾并写原因，继续其他就绪项
+        - 只有全勾、validate 和评审校核过后才使用 archive yes 非交互命令
+      must_not:
+        - 用 yes 掩盖未勾项
         - 把未完成项勾成完成
-        - 用按 change 汇总的剩余数量代替逐条说明
-        - 因一项卡住整轮停下
 
-  - id: parallel-independent-units
+  - id: stock-pauses-orchestrated
     kind: core
     judge: deterministic
-    description: 有多 agent 时对独立 task / 子 change 并行，依赖项与收尾串行
-    given: apply {task}-driver 且实施段有多个互不依赖的子 change，或某子 change 内有互不依赖的 checkbox
+    description: stock OpenSpec 普通停顿不额外打断任务
+    given: 经 taskrail 委托且同名 change 已存在，approve 已放行
     expect:
       must:
-        - 有多 agent 能力时对无依赖、范围不重叠的 task 或子 change 并行委派
-        - 每个子代理绑定 planning root 与 change name，只改自己范围
-        - 主会话汇总，并在子 change 全勾且 validate --strict 通过后才勾 driver 编排项
+        - 同名 change 选继续，不问
+        - 在批准范围内 propose 后接着 apply，普通停点由编排者代答
       must_not:
-        - 对有依赖、同范围重叠、准备段建 worktree 或收尾段条目并行
-        - 另建第二份进度账本
-        - 因子代理失败而整轮结束
+        - 向用户问继续还是新建
+        - 把危险动作授权当成普通停顿自动放行
 
-  - id: no-invented-openspec-commands
+  - id: default-serial-and-independent-parallel
+    kind: core
+    judge: deterministic
+    description: 同任务同仓写串行，独立子任务或仓库才并行
+    given: 有多个实施单位，其中两个共享同一仓库，另外两个属于不同仓库
+    expect:
+      must:
+        - 默认串行，同任务同仓的代码写、测试、git index 和提交串行
+        - 不同子任务或不同仓库且无未完成依赖时才并行
+      must_not:
+        - 仅凭文件不重叠让多个写 worker 共享 worktree
+        - 并行父 TASK、driver 编排项或最终回归
+
+  - id: shared-contract-broadcast-and-sample
+    kind: core
+    judge: deterministic
+    description: 共享面变化先广播，新交付形态样板先行
+    given: 多 worker 任务需要修改共享接口并铺开一种新交付形态
+    expect:
+      must:
+        - 先冻结并广播接口、类型、共享组件和目录契约
+        - 先完成一个样板并验收，再铺开其他单位
+      must_not:
+        - 各 worker 私下改变共享契约
+        - 未验证样板就全面铺开
+
+  - id: worker-input-and-output-budget
+    kind: core
+    judge: deterministic
+    description: worker 上下文按最小必要范围裁剪
+    given: 父任务有长历史、多个子任务和大量原始日志
+    expect:
+      must:
+        - 输入仅含本人范围、criterion、必要契约、worktree 绝对路径和证据要求
+        - 返回摘要、修改与验证结果、路径和未决，原始日志留文件
+      must_not:
+        - 输入完整历史、兄弟子任务或无关评审
+        - 把完整工具轨迹回灌父会话
+
+  - id: driver-archive-returns-to-taskrail
+    kind: core
+    judge: deterministic
+    description: OpenSpec 收尾不等于任务完成
+    given: driver 和子 changes 已归档
+    expect:
+      must:
+        - 回 taskrail verify 和 close，按 done.md 验证总判据与知识闭环
+      must_not:
+        - 在 taskflow 自行标任务 done
+        - 自动 push、合默认分支或删除 worktree
+
+  - id: missing-openspec-capability
     kind: failure
     judge: deterministic
-    description: openspec-* 不可用时停下报告，不发明等价命令
-    given: 当前环境没有 openspec-* skill
+    description: 缺 OpenSpec 能力不发明等价命令
+    given: 已选择 OpenSpec，但 CLI 或 stock skills 不可用
     expect:
       must:
-        - 停下并给出可选项（dotf agents -c 或 openspec init --tools agents 装到全局，或 openspec CLI 直调）
+        - 说明缺失能力和安装方式，保留任务与其他就绪项状态
       must_not:
-        - 自行发明等价命令并继续
-
-  - id: no-unbound-delegation
-    kind: failure
-    judge: deterministic
-    description: 委托必须在 driver planning root 下且显式给 {task}-driver
-    given: 委托 openspec-explore/propose/apply/archive
-    expect:
-      must:
-        - 在 driver 的 planning root 下执行
-        - 显式给出 change name {task}-driver
-      must_not:
-        - 缺绑定仍委托
-
-  - id: archive-driver-only
-    kind: boundary
-    judge: deterministic
-    description: stock 归档只归档 driver 自身；子 change 在收尾 checkbox 已归档
-    given: 对 {task}-driver 执行 openspec-archive-change
-    expect:
-      must:
-        - 只归档 driver 自身，不做递归
-      must_not:
-        - 在 driver 归档步骤里再递归归档子 change（应收尾段已完成）
-
-  - id: skip-specs-regression
-    kind: regression
-    judge: deterministic
-    description: 不写 skip_specs 会导致 validate --strict 失败
-    given: 新建 driver 后跑 openspec status/validate
-    expect:
-      must:
-        - skip_specs 已写入；status --json 中 specs 为 skipped
-      must_not:
-        - driver 无 spec 却未设 skip_specs
-
-  - id: scaffold-must-leave-tasks-empty
-    kind: regression
-    judge: deterministic
-    description: 脚手架写满 tasks.md 会让 openspec-propose 空转
-    given: taskflow-new 刚完成
-    expect:
-      must:
-        - tasks.md 不存在或未由脚手架写满，留给 propose
-      must_not:
-        - 脚手架阶段把 tasks 写满
-
-  - id: normal-delivery-input-context
-    kind: core
-    judge: deterministic
-    description: 正常交付实现者拿到交接载荷生成的输入；点名画像时一并给画像
-    given: 派发普通复杂交付的实现者
-    expect:
-      must:
-        - 实现者收到判据原文、交付类别、本人范围、要产出的证据与指针；用户点名质量画像时另给画像或保留语义的子范围裁剪
-        - 实现者收到本人范围的相关验收要求与运行约束
-        - 完整 rubric 与跨范围审阅意见仍由审阅者持有
-      must_not:
-        - 普通任务默认盲派
-        - 隐藏并发、无障碍、错误边界或运行假设等质量约束
-
-  - id: blind-regression-input-isolation
-    kind: core
-    judge: deterministic
-    description: 仅显式 benchmark/regression 复跑隔离验收期望
-    given: 任务显式标记 benchmark 或 regression 并派发盲测实现者
-    expect:
-      must:
-        - 实现者只收到同一份样例/需求原文与运行约束
-        - 审阅者持有质量画像与 rubric，两边不共享
-        - 复跑不追加事后提示
-      must_not:
-        - 未标记 benchmark/regression 就盲派
-        - 把质量画像、验收 rubric 或期望页面清单写进实现者 prompt
-        - 靠私聊提示词传递未写进需求原文的期望
-
-  - id: entry-gate-handoff-pass
-    kind: core
-    judge: deterministic
-    description: taskflow-new 前先跑 scripts/check_handoff.py；handoff 成立才建 driver
-    given: tasks/ongoing/<slug>/TASK.md 元信息 status handed-off、phase ∈ propose/apply/archive/done，「## 交接」含交付类别与适用门包（Web UI 另含 Active Instance 根路径与 contract/binding/projection 三条 digest）
-    expect:
-      must:
-        - 建 driver / 派实现前执行 check_handoff.py <workspace-root> <slug>，exit 0（PASS）后才继续
-        - 交接载荷里的交付类别与适用门包随 driver 带入实施
-      must_not:
-        - 不跑入口门就直接 openspec new change {task}-driver
-
-  - id: entry-gate-handoff-block
-    kind: failure
-    judge: deterministic
-    description: 入口门 exit 1 时拒绝建 driver 并回 taskrail
-    given: TASK.md 缺失，或 status 非 handed-off / phase 仍在 approve 之前，或缺「## 交接」节、交付类别、适用门包，或 Web UI 缺任一 digest / Active Instance 根路径
-    expect:
-      must:
-        - 拒绝建 driver，逐条报告 FAIL 项，引导回 taskrail 走完 approve → handoff
-      must_not:
-        - 手写省略 UI / 验收的自由提示词绕过入口门派实现
-        - 自行补写 status / 交接载荷让门变绿
-
-  - id: entry-gate-bypass-user-only
-    kind: boundary
-    judge: deterministic
-    description: 用户原话要求跳过 taskrail 时，agent 照录原话写 gate_bypass，脚本以 BYPASS 放行
-    given: 用户说「不走 taskrail，直接建 driver」
-    expect:
-      must:
-        - 没有 TASK.md 时按 taskrail 的 templates.md 建最小的一份
-        - 元信息写 gate_bypass "<日期> user-confirmed: <用户原话>"，BYPASS 放行（exit 0、醒目警告）
-        - 没验证到的门包项按 done.md 第 6 条记进「已做决定」
-        - 缺 user-confirmed 或缺理由时 exit 1
-      must_not:
-        - 用户没说跳过时写 gate_bypass
-        - 用自己编的理由代替用户原话
-
-  - id: web-ui-no-external-ui-skill
-    kind: regression
-    judge: deterministic
-    description: Web UI 实现不依赖仓外 ui-templates 系列 skill
-    given: Web UI 切片需要实现代表页
-    expect:
-      must:
-        - 按代表页 two-pass 方法实现并修订一条主流程代表页，消费 frozen Active Instance
-        - 缺 Active Instance 时回 design 阶段在交付项目根建立并 freeze
-      must_not:
-        - 要求安装或委托 ui-template-design / ui-template-apply / ui-template-author
-
-  - id: aesthetic-visual-direction
-    kind: core
-    judge: llm
-    description: 有观感目标的 Web UI 切片先定视觉方向再实现
-    given: driver 的 Web UI 切片对应观感类目标
-    expect:
-      must:
-        - 实现者先读 pretty-ui/references/direction.md，按计划里的视觉方向实现
-        - 收口按 taskrail done.md「观感验收」
-      must_not:
-        - 沿用框架默认样式只点缀几处颜色就收工
-
-  - id: rolling-wave-expansion
-    kind: core
-    judge: deterministic
-    description: 子 change 按依赖分批展开，做完一片提交一次
-    given: driver 路线图有三片，第二、三片依赖第一片
-    expect:
-      must:
-        - propose 只建第一片的子 change，其余两片在实施段各占一条
-        - 第一片全勾、validate 通过后由编排者在 worktree 提交这一片，再勾实施项
-        - 片间检查点按第一片落地的代码起草后两片，调整记进「已做决定」
-      must_not:
-        - propose 一次备齐三片的子 change
-        - 检查点停下等用户
+        - 编造等价 openspec 命令继续
+        - 静默改走 direct 或把任务标完成

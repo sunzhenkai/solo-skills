@@ -1,5 +1,6 @@
-"""taskflow 不可破契约：入口门、driver 协议、串行默认、自进化移出运行路径。"""
+"""taskflow 核心契约：direct/OpenSpec 共用 worktree，OpenSpec 独占 handoff。"""
 from __future__ import annotations
+
 import unittest
 from pathlib import Path
 
@@ -7,40 +8,53 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TaskflowContractTest(unittest.TestCase):
-    def test_skill_under_8kb(self) -> None:
-        self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
+    def test_skill_identity_and_size(self) -> None:
+        raw = (ROOT / "SKILL.md").read_bytes()
+        self.assertLessEqual(len(raw), 8192)
+        text = raw.decode("utf-8")
+        self.assertRegex(text, r"(?m)^id: taskflow$")
+        self.assertRegex(text, r"(?m)^name: taskflow$")
 
-    def test_entry_gate(self) -> None:
+    def test_both_adapters_share_real_git_worktrees(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        worktree = (ROOT / "references" / "worktree.md").read_text(encoding="utf-8")
+        self.assertIn("两个执行适配器，一套隔离协议", skill)
+        self.assertIn("direct", skill)
+        self.assertIn("openspec", skill)
+        self.assertIn("prepare_worktree.py", skill)
+        self.assertIn("worktrees/<task-id>/<repo-id>/", worktree)
+        self.assertIn("git worktree", worktree)
+        self.assertIn("task/<task-id>", worktree)
+
+    def test_direct_has_no_driver_or_handoff(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        direct = skill.split("## direct", 1)[1].split("## OpenSpec", 1)[0]
+        self.assertIn("不建 driver", skill)
+        self.assertIn("不需要 handoff / approve / driver", direct)
+        self.assertNotIn("check_handoff.py", direct)
+
+    def test_openspec_has_entry_gate(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("check_handoff.py", skill)
-        self.assertIn("入口门", skill)
+        self.assertIn("gate_bypass", skill)
         self.assertTrue((ROOT / "scripts" / "check_handoff.py").is_file())
 
-    def test_driver_protocol_verbatim_block(self) -> None:
-        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
-        self.assertIn("## Driver 协议", t)
-        self.assertIn("skip_specs: true", t)
-        self.assertIn("脚手架把 `tasks.md` 留给 propose 阶段", t)
+    def test_driver_protocol_uses_workspace_and_script(self) -> None:
+        template = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
+        self.assertIn("## Driver 协议", template)
+        self.assertIn("skip_specs: true", template)
+        self.assertIn("留给 stock openspec-propose", template)
+        self.assertIn("workspace 是唯一 planning root", template)
+        self.assertIn("prepare_worktree.py", template)
+        self.assertIn("不 push", template)
 
-    def test_worktree_protocol(self) -> None:
-        """两个根、worktree 命令正确（分支已存在不建 detached HEAD）、提交只到任务分支。"""
-        t = (ROOT / "references" / "driver-template.md").read_text(encoding="utf-8")
-        proto = t.split("## Driver 协议", 1)[1].split("## 验证记录", 1)[0]
-        self.assertIn("planning root", proto)
-        self.assertIn("代码根", proto)
-        self.assertIn("git worktree add worktrees/{task} -b {task} <基线>", proto)
-        self.assertIn("分支已存在则 `git worktree add worktrees/{task} {task}`", proto)
-        self.assertIn(".git/info/exclude", proto)
-        self.assertIn("不 push", proto)
-        self.assertNotIn("去掉 `-b`", proto)
-        self.assertNotIn("（可选）", t)
-        rail = (ROOT.parent / "taskrail" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("提交只落在任务 worktree 的任务分支", rail)
-
-    def test_serial_default(self) -> None:
+    def test_default_serial_and_context_bounded_workers(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("串行", skill)
-        self.assertTrue((ROOT / "references" / "multi-worker.md").is_file())
+        workers = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
+        self.assertIn("默认串行", skill)
+        self.assertIn("默认串行", workers)
+        self.assertIn("不给完整历史、兄弟子任务或无关评审", workers)
+        self.assertIn("原始日志留文件", workers)
 
     def test_self_evolution_out_of_runtime(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -48,13 +62,10 @@ class TaskflowContractTest(unittest.TestCase):
         self.assertNotIn("## Self-evolution", skill)
         self.assertTrue((ROOT / "references" / "self-evolution.md").is_file())
 
-    def test_old_packs_removed(self) -> None:
-        for name in ("acceptance-rubric.md", "delivery-quality-loop.md", "implementer-isolation.md"):
-            self.assertFalse((ROOT / "references" / name).exists(), name)
-
-    def test_points_to_done(self) -> None:
+    def test_done_belongs_to_taskrail(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("done.md", skill)
+        self.assertIn("不在 taskflow 自行判 done", skill)
 
 
 if __name__ == "__main__":

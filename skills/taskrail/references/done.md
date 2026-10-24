@@ -1,27 +1,21 @@
 # 完成清单（唯一真源）
 
-把 `status` / `phase` 标 `done` 前逐条核对；任一条缺证据就不标。不靠记忆，不用「整体看没问题」代替。
+`status: done` 前逐条核对；driver 归档、checkbox 全勾、目录已归档都不能代替本清单。
 
-1. **判据成立**：`criterion` 原文成立，有验证命令与结果。skip 档写在 `TASK.md`「验证」节；full 档写在 driver `proposal.md` 验证记录，且相关 checkbox 全勾；拆成子任务的父任务写在父 `TASK.md`「验证」节，且子任务全部 `done`。
-2. **做完的样子**：对照 `wizard/intent.md`（若有），「做完的样子」逐条成立，「不做」没被越界。
-3. **交付标准**：`wizard/plan.md` 列出的交付标准全过（写「无」则只看判据）。
-4. **观感**：用户原话有观感目标时，下方「观感验收」已过。
-5. **评审意见**：做过评审的，每条 Blocker / Major 都有处置——`fixed` 或 `accepted-recorded`（带理由）。
-6. **没验证的不算过**：判据或交付标准里没验证到的项，写进「已做决定」说明少交付了什么、为什么；会缩小判据或交付面的，按真阻塞停下等用户（[user-report.md](user-report.md) 第 5 节）。
-
-`handed-off`、propose 完、checkbox 全勾但判据不成立 → 不标 `done`。
+1. **判据成立**：criterion 原文成立，有当前代码的命令与结果。direct 证据在 PLAN / evidence，OpenSpec 在 driver proposal 验证记录。
+2. **意图未漂移**：输出形态、“不做”和用户限制均满足。
+3. **交付标准**：PLAN / design 中的交付标准全过。
+4. **父子闭环**：所有直接子任务 done，父 ROADMAP 集成项和总判据已验证。
+5. **评审处置**：Blocker / Major 均 fixed 或 accepted-recorded 带理由。
+6. **观感**：用户原话有观感目标时，下方验收已过。
+7. **知识闭环**：SUMMARY.md 已写结果、验证、认知更正、可复用经验、剩余风险和合入方式。
+8. **不少交付**：未验证项不能算过；缩小 criterion 或交付面必须回 intent / approve 获放行。
 
 ## 观感验收
 
-用户原话里有观感类目标（好看、设计感、体验）时加这一条验收，不看档位：
+- 动手前按 [pretty-ui](../../pretty-ui/SKILL.md) 的「轻量方向卡」写视觉方向，整体改版用完整方向卡；规则见 [direction.md](../../pretty-ui/references/direction.md)，记录于 PLAN 质量属性。
+- 用接近真实的演示数据，按 [evidence.md](../../pretty-ui/references/evidence.md) 在同路由同视口留改前 / 改后证据；代码变更后旧证据失效。
+- 按 [critique.md](../../pretty-ui/references/critique.md) 派另一个模型审，问题带规则号，P0 / P1 即观感 Blocker / Major；迭代与停止以该文件「迭代与停止」为准。
+- **goal：不停下问人**，按证据自迭代；**human：**评审过后由用户看截图，用户说可以才算完成。每轮结论与证据路径写验证记录。
 
-- **视觉方向**：动手前按 [pretty-ui SKILL.md](../../pretty-ui/SKILL.md)「轻量方向卡」写，记进 `wizard/plan.md`「质量属性」；新产品或整体改版写完整方向卡（[../../pretty-ui/references/direction.md](../../pretty-ui/references/direction.md) 第 6 节）。
-- **截图**：先备接近真实的演示数据（够多条、长短文本、多种状态），同一路由、同一视口截改前 / 改后两组，放进证据目录；截图档位与行长量测按 [../../pretty-ui/references/evidence.md](../../pretty-ui/references/evidence.md)。
-- **另一个模型审**：按 [confirm-protocol.md](confirm-protocol.md)「另一个模型审」派审；交给评审者的材料和评审手册按 [../../pretty-ui/references/critique.md](../../pretty-ui/references/critique.md)「隔离评审」「评审手册」两节，对照参照看截图，问题带规则号，P0 / P1 即观感 Blocker / Major。要连交互、无障碍一起审时加 `role-based-reviewer roles=design`。
-  - goal：不停下问人。结论不是通过就按意见改、按复审档重截、再审；收敛与停止按 critique.md「迭代与停止」（同一问题连续两轮没改好，按 [user-report.md](user-report.md) 第 5 节「卡住」停）。每轮结论与截图路径记进验证记录。
-  - human：评审过了再把改前 / 改后截图给用户看，用户说可以才算完成；没回话不算。
-
-## 可选附录（命中才读）
-
-- Web UI 交付：[ui-delivery.md](ui-delivery.md)
-- 用户点名质量画像 / 降级分级 / 验收打分，或 full 档交付面广：[quality-appendix.md](quality-appendix.md)
+命中才读 [ui-delivery.md](ui-delivery.md)、[quality-appendix.md](quality-appendix.md) 和上述 pretty-ui 细则。

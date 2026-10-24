@@ -1,22 +1,17 @@
 # archive 与 reopen
 
-原则：不覆盖、先列未结项、多项检查合成一次说明。
+原则：不覆盖、保留未结项、整树移动、INDEX 可重建。
 
-## archive（任务归档）
+## archive
 
-把任务整树移到 `tasks/archive/{yyyy-mm-dd}/{slug}`，分两种情况：
-
-- **做完归档**：完成清单过、标 `done` 后同轮归档，属记账，一句话说明；`status` 保持 `done`。子任务做完留在父任务的 `subtasks/` 下，随父任务一起归档。
-- **未完成关闭**：用户明确说关闭才搬，`status: archived`。方案已冻结、含实施动作且未 `handed-off` 时改走 handoff；用户明确放弃或不实施时照常关闭。
-
-**搬之前一次说清**：未结子任务（有则停）；未决条数（可随归档关闭）；曾交接的 driver 进度（读不到写「进度未知」，只报告不回写）；指向旧路径的链接（我会改指新路径）。目标路径已存在：停下说明冲突，不改任何文件。
-
-**步骤**：写回进展 → 按上面两种情况写 `status`，加 `archived` 日期与归档记录（结论、关闭原因、未决、driver 现状）→ 写 `SUMMARY.md`（一屏内人读时间线，读不到写「未记录」）→ 移动整树 → 更新 INDEX → 确认新路径可读、旧路径已不存在 → 清除绑定。
+- 完成归档：close 已完成、status done 后同轮把父任务整树移到 `tasks/archive/<yyyy-mm-dd>/<task-id>`；子任务留在 subtasks。
+- 未完成关闭：只有用户明确放弃 / 关闭才执行，status archived；不能写成 done 或伪造成成功 SUMMARY。
+- 搬之前核对未结子任务、未决、driver / worktree 现状和目标路径冲突。目标已存在则停，不覆盖。
+- 步骤：写回热状态与 SUMMARY → 记录 archived 日期 → 原子移动整树 → `task_state.py rebuild-index <workspace>` → 确认新路径可读、旧路径不存在 → 清绑定。
+- driver 已在 workspace openspec 中归档不等于任务可归档；仍须 close。
 
 ## reopen
 
-把归档任务搬回 `ongoing/`，或撤回 `handed-off`（目录不动，只改状态）。状态以 `TASK.md` 为准，不按目录猜。
+用户明确 reopen 才动。先报告归档任务、driver 和 worktree 现状；目标 ongoing 路径冲突则停。
 
-**动之前**：目标路径已存在则停；曾交接的报告 driver 现状，driver 不删；用户明确说 reopen 才动。
-
-**步骤**：`status` 回 `ongoing`，加 `reopened` 日期，已有记录不删不改 → 归档任务整树搬回；`handed-off` 的只在交接节追加撤回原因 → INDEX 改回 Ongoing、去掉 `→ driver` 尾注 → 绑定并按四行汇报。
+将整树搬回 ongoing，status 回 active，写 reopened 日期和原因，不删旧 SUMMARY / history / decisions；重建 INDEX，绑定后按 reconcile 和 router 从受影响 reference 继续。旧 driver 不自动删除或复用到新任务。

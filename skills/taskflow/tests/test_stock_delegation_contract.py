@@ -14,7 +14,7 @@ class StockDelegationTest(unittest.TestCase):
         self.assertIn("停点", SKILL)
 
     def test_propose_then_apply(self) -> None:
-        self.assertIn("approve 放行即授权 propose 与 apply", SKILL)
+        self.assertIn("approve 放行即授权其范围内的 propose 与 apply", SKILL)
 
     def test_existing_change_continue(self) -> None:
         self.assertIn("选继续，不问", SKILL)
