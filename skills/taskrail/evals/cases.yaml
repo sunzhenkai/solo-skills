@@ -31,15 +31,16 @@ cases:
   - id: intent-source-first-and-boundary
     kind: core
     judge: llm
-    description: 意图按一手资料确定边界，不把实现设计提前塞进意图
-    given: 用户要求只读现状页，目标项目说明显示两个直接依赖
+    description: 意图按一手资料确定边界，human 复述后明确确认
+    given: human 用户要求只读现状页，目标项目说明显示两个直接依赖
     expect:
       must:
         - 先读用户原话、已有任务和必要项目资料，再给 1 至 3 句复述
         - 范围覆盖目标与直接依赖，criterion 可检查
-        - 当前实现步骤交给 PLAN
+        - 当前实现步骤交给 PLAN，复述后等用户明确确认
       must_not:
         - 询问资料中已有答案
+        - 未确认意图就进入实施
         - 顺手增加数据迁移、重构或增删改目标
 
   - id: intent-change-and-cognition-correction
@@ -64,10 +65,36 @@ cases:
     expect:
       must:
         - 两种模式使用相同的动态路由、worktree 和完成清单
-        - human 在命中的停点等明确放行，goal 由另一个模型审阅收敛
+        - human 在意图和首次 execute 前的当前 PLAN 等明确确认，goal 简要复述且不等用户
+        - router 选中 approve 时 human 等放行，goal 由另一个模型审阅收敛
       must_not:
         - 因 goal 自动选择 OpenSpec 或跳过高风险批准
         - 因 human 固定增加每个 reference 的停顿
+
+  - id: implementation-plan-confirmation
+    kind: core
+    judge: llm
+    description: human 实施方案确认、记录与实质变更失效
+    given: human 意图已确认，首次 execute 前 PLAN 已就绪，随后实施范围发生实质变化
+    expect:
+      must:
+        - 首次写代码前展示范围、步骤、验证和必要回滚并等明确确认
+        - PLAN 记录确认状态、依据和范围，实质变化后重新确认
+      must_not:
+        - 用意图确认代替实施方案确认
+        - 因 checkbox 进度或补证据重复停下确认
+
+  - id: non-stop-progress-recap
+    kind: core
+    judge: llm
+    description: 非停点简要复述进度并继续
+    given: goal 的意图或方案节点，或两种模式的普通 reference 切换、片间检查点
+    expect:
+      must:
+        - 用 1 至 2 句说明目前结果或判断与接下来动作，然后继续
+      must_not:
+        - 以要不要或你看行吗收尾并等待回复
+        - 把非停点复述记为用户确认
 
   - id: true-blocker-never-auto-approved
     kind: edge
@@ -164,14 +191,16 @@ cases:
   - id: child-scope-and-approval
     kind: core
     judge: deterministic
-    description: 子任务继承父意图和批准范围
+    description: 子任务继承父意图和批准范围，实施前确认自己的 PLAN
     given: 父任务已批准 ROADMAP，子任务实现未超自己的子判据
     expect:
       must:
         - 子任务继承父 confirm_mode、意图和 ROADMAP 自己那一行
         - 范围内不重复停 approve，超范围才重入 intent 或 approve
+        - human 子任务首次 execute 前确认自己的当前 PLAN
       must_not:
         - 为每个子任务复制完整父上下文
+        - 用父意图或 approve 代替子任务实施确认
         - 静默扩大子判据
 
   - id: blocked-child-only-stops-dependency-chain

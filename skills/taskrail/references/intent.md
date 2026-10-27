@@ -4,8 +4,8 @@
 
 ## 先定做多少
 
-- 原话已说清改什么、怎么算完成：只读必要目标处，给一两句复述并写 criterion。
-- resume 已有 confirmed / assumed 意图且未失效：沿用，不重做。
+- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。
+- resume 已有 confirmed 意图且未失效：沿用，不重做；assumed 在 human 下补确认，goal 按确认协议处理。criterion 或意图变化使旧确认失效。
 - 子任务继承父意图与 ROADMAP 自己那一行，不重新确认；超出子判据才回 intent。
 - 纯问答直接回答，不建任务。
 
@@ -17,8 +17,8 @@
 
 1. 按上述顺序读取，只取理解目标和判据所需内容。
 2. 用 1–3 句第一人称口语说明做什么、产出落在哪、接下来怎样；决定与假设写 decisions / context，不逐字段打印。需要用户纠偏时说“理解偏了请纠正”，但不把它当成每个普通步骤的固定尾问。
-3. human 下需要确认时按 [confirm-protocol.md](confirm-protocol.md) 停；goal 下按同一协议审。用户没回话不算确认。
-4. 把结构化意图写 `context/current.md`，criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责。
+3. human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后才进入后续 plan / execute；goal 按同一协议简要复述，需审阅时异源审，不等待用户。用户没回话不算确认。
+4. 把结构化意图与确认状态写 `context/current.md`，criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责。
 
 ## 覆盖清单
 - 要干嘛：<目标>；为什么：<原因>

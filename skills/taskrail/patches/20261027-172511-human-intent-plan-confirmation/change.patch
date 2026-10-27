@@ -1,0 +1,329 @@
+diff --git a/skills/taskrail/references/intent.md b/skills/taskrail/references/intent.md
+index ce72005..f117953 100644
+--- a/skills/taskrail/references/intent.md
++++ b/skills/taskrail/references/intent.md
+@@ -4,8 +4,8 @@
+ 
+ ## 先定做多少
+ 
+-- 原话已说清改什么、怎么算完成：只读必要目标处，给一两句复述并写 criterion。
+-- resume 已有 confirmed / assumed 意图且未失效：沿用，不重做。
++- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。
++- resume 已有 confirmed 意图且未失效：沿用，不重做；assumed 在 human 下补确认，goal 按确认协议处理。criterion 或意图变化使旧确认失效。
+ - 子任务继承父意图与 ROADMAP 自己那一行，不重新确认；超出子判据才回 intent。
+ - 纯问答直接回答，不建任务。
+ 
+@@ -17,8 +17,8 @@
+ 
+ 1. 按上述顺序读取，只取理解目标和判据所需内容。
+ 2. 用 1–3 句第一人称口语说明做什么、产出落在哪、接下来怎样；决定与假设写 decisions / context，不逐字段打印。需要用户纠偏时说“理解偏了请纠正”，但不把它当成每个普通步骤的固定尾问。
+-3. human 下需要确认时按 [confirm-protocol.md](confirm-protocol.md) 停；goal 下按同一协议审。用户没回话不算确认。
+-4. 把结构化意图写 `context/current.md`，criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责。
++3. human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后才进入后续 plan / execute；goal 按同一协议简要复述，需审阅时异源审，不等待用户。用户没回话不算确认。
++4. 把结构化意图与确认状态写 `context/current.md`，criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责。
+ 
+ ## 覆盖清单
+ - 要干嘛：<目标>；为什么：<原因>
+diff --git a/skills/taskrail/references/plan.md b/skills/taskrail/references/plan.md
+index dc97753..8f9b8d2 100644
+--- a/skills/taskrail/references/plan.md
++++ b/skills/taskrail/references/plan.md
+@@ -4,10 +4,10 @@
+ 把 criterion 变成当前可执行的一小组动作，不预设后续所有细节。
+ 
+ ## 进入条件
+-目标与 criterion 已明确，但 PLAN.md 缺失、已失效或下一动作不可执行。
++目标与 criterion 已明确，但 PLAN.md 缺失、已失效或下一动作不可执行；或即将 execute 而当前实施内容尚未完成所需确认。
+ 
+ ## 跳过条件
+-PLAN 与当前事实一致，下一步和验证方式明确；直接沿用。
++PLAN 与当前事实一致，下一步和验证方式明确；若下一步是 execute，当前模式所需的实施确认已完成且覆盖当前实施内容。
+ 
+ ## 所需输入
+ TASK 目标 / criterion、用户限制、context/current 和已有相关产物。
+@@ -15,14 +15,17 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物
+ ## 执行方法
+ 1. 写当前最少的动作与对应验证；没有把握的后续只写触发条件，不提前细化。
+ 2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
+-3. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
+-4. 出现交付边界时转 decompose，不在 PLAN 再抄一份父子状态。
++3. 只读 explore / diagnose 可沿当前最小计划继续。首次 execute 前或实施方案实质变化后，human 按 [confirm-protocol.md](confirm-protocol.md) 展示改动范围、步骤、验证与必要回滚并等明确确认；goal 简要复述方案后继续。
++4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；只更新 checkbox 或证据不改变状态。
++5. 每个实际执行的子任务首次 execute 前确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
++6. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
++7. 出现交付边界时转 decompose，不在 PLAN 再抄一份父子状态。
+ 
+ ## 产出
+-`PLAN.md`：当前步骤、验证策略、必要约束和产物指针。
++`PLAN.md`：当前步骤、验证策略、必要约束、产物指针和实施确认记录。
+ 
+ ## 完成门
+-每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。
++每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。进入 execute 前，human 的当前实施内容必须为 confirmed，goal 已简要复述；确认前不得进入 execute 或写代码。
+ 
+ ## 退出与重入
+-按 router 选下一 reference。新事实使步骤失效时只改未执行部分，已勾项保留证据。
++按 router 选下一 reference。新事实使步骤失效时只改未执行部分，已勾项保留证据；实施内容实质变化时重入本环节并重新确认。
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 5f922a9..8fc68fb 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -1,19 +1,20 @@
+ # 确认协议（薄）
+ 
+-确认方式与路由、执行方式正交。闸口只回答放行 / 改后放行 / 停；说话方式见 [user-report.md](user-report.md)。
++确认方式与路由、执行方式正交。闸口只回答放行 / 改后放行 / 停；说话方式与非停点复述见 [user-report.md](user-report.md)。
+ 
+ ## 停点
+ 
+ | 时机 | human | goal |
+ |---|---|---|
+-| 意图或 criterion 需要确认 / 变更 | 停，等用户确认或纠偏 | 异源模型审，收敛继续；危险动作本身不放行 |
++| 新意图形成，或意图 / criterion 变更 | 复述后停，等用户明确确认或纠偏；已确认且未失效的 resume 不重停 | 简要复述；需审阅时异源模型审，收敛继续；危险动作本身不放行 |
++| 首次 execute 前或实施方案实质变更 | 呈现改动范围、步骤、验证与必要回滚，停等明确确认；checkbox 进度不重停 | 简要复述当前方案并继续；router 选中 approve 时仍按下行审 |
+ | router 选中 approve | 停，呈现推荐、取舍与回滚 | 异源模型审，收敛继续 |
+-| 子任务未超父 ROADMAP 范围和子判据 | 不单独停 | 同左 |
++| 子任务未超父 ROADMAP 范围和子判据 | 意图、approve 不重复停；PLAN 按上述实施确认规则 | 同左 |
+ | 用户原话有观感目标 | 评审后给用户看改前 / 改后，认可才完成 | 异源模型审截图并迭代 |
+-| 普通 reference 切换、片间检查点、就绪子任务之间 | 说决定继续 | 同左 |
++| 普通 reference 切换、片间检查点、就绪子任务之间 | 简要复述已完成、当前判断和下一步，继续且不等回复 | 同左 |
+ | 真阻塞 / 危险动作 | 停并说明需要什么 | 同左 |
+ 
+-用户没回话不算确认；单独“继续”不授权删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）等真阻塞动作。任何审阅都不放行真阻塞。stock OpenSpec 自带的普通停顿由编排者按 taskflow 规则处理，不算额外停点。
++意图确认与实施方案确认是两个独立停点。用户没回话不算确认；非停点复述不需要回复，也不能记为确认。单独“继续”不授权删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）等真阻塞动作。任何审阅都不放行真阻塞。stock OpenSpec 自带的普通停顿由编排者按 taskflow 规则处理，不算额外停点。
+ 
+ ## 闸口前自查
+ 
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 5282a0d..fe53f1a 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -14,13 +14,14 @@ current_ref、status、driver、change id、checkbox 编号、criterion、slice
+ 
+ 先读代码、配置、文档和历史任务；能查到的不写成假设、不拿去问。用户纠正后先回一手资料重查，再说改了什么与出处。
+ 
+-## 4. 说决定，不提问
+-
+-1. 普通可回头取舍（普通可逆取舍）按推荐直接定，用陈述句带一句理由；不以“要不要 / 你看行吗”收尾。
+-2. 真阻塞才停：删除或迁移数据、改共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）、缺凭据或只有用户知道的信息。停时说清影响与需要什么。
+-3. 已做决定写 decisions.md；难回头决定（接口、schema、存储、对外命名、依赖、数据迁移）单独说“我定了 X，因为 Y”，但不把陈述当成危险动作授权。
+-4. 同一验证连败两次、同一 P0 / P1 两轮未解、写不出可检查 criterion、意图仍对不上时停止盲试；先按 router 换动作，只有缺外部输入才 blocked。
+-5. 记账、建任务、更新 INDEX、选择就绪子任务直接做，一句话说明。
++## 4. 停点确认，其余简述并继续
++
++1. 普通可回头取舍（普通可逆取舍）说决定，不提问：按推荐直接定，用陈述句带一句理由；不以“要不要 / 你看行吗”收尾。意图、实施方案、approve 等停点按 [confirm-protocol.md](confirm-protocol.md) 等明确回复。
++2. 执行中除确认协议停点外，真阻塞才停：删除或迁移数据、改共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）、缺凭据或只有用户知道的信息。停时说清影响与需要什么。
++3. 未命中停点的 reference 切换、片间检查点、就绪子任务切换，以及 goal 下不需人工确认的意图 / 方案节点，用 1–2 句复述：“目前 <已完成或当前判断>；接下来 <下一动作>。”开始时尚无进度就说当前理解与第一个动作。复述不等回复、不构成用户确认。
++4. 已做决定写 decisions.md；难回头决定（接口、schema、存储、对外命名、依赖、数据迁移）单独说“我定了 X，因为 Y”，但不把陈述当成危险动作授权。
++5. 同一验证连败两次、同一 P0 / P1 两轮未解、写不出可检查 criterion、意图仍对不上时停止盲试；先按 router 换动作，只有缺外部输入才 blocked。
++6. 记账、建任务、更新 INDEX、选择就绪子任务直接做，一句话说明。
+ 
+ ## 5. resume / explain / 阻塞
+ 
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index b56a58c..fe9685a 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -52,9 +52,14 @@ TASK 只保留恢复所需热信息；路由历史、长决定、原始证据分
+ 
+ ## 约束 / 回滚
+ <按需>
++
++## 实施确认
++- 状态：pending | confirmed | not-required
++- 依据：<human 写用户明确确认原话与日期；goal 写简要复述已给出>
++- 范围：<覆盖的当前实施步骤与验证策略>
+ ```
+ 
+-direct 的 PLAN checkbox 是实施进度；OpenSpec 实施进度只在 change checkbox。父子结构只写 ROADMAP，不在这里复制状态。
++human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范围、步骤或验证策略实质变化后回 pending；只更新 checkbox 或证据不改变状态。direct 的 PLAN checkbox 是实施进度；OpenSpec 实施进度只在 change checkbox。父子结构只写 ROADMAP，不在这里复制状态。
+ 
+ ## ROADMAP.md
+ 
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index e2608b4..f0c92ae 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -7,7 +7,7 @@
+ 1. 检查 criterion：为空或不可检查，回 [intent.md](intent.md)；代码任务没有当前最小计划，进 [plan.md](plan.md)。
+ 2. 当前 reference 的输入与完成门仍成立才 continue；产物已满足且没有失效信号就 skip / exit。
+ 3. 按下表选能解决当前最关键不确定性的一个 reference；一次只选一个。
+-4. 代码实施统一进 taskflow execute；实施后有证据才进 verify，最终 close。
++4. 代码实施统一进 taskflow execute；PLAN 未满足完成门（含当前模式所需的实施确认）不得进入。实施后有证据才进 verify，最终 close。
+ 5. 把 enter / skip / exit / reopen 与一句理由追加到 history.md；不维护第二份完成百分比。
+ 
+ ## 信号与选择
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index cb9db8f..d1f4155 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -20,6 +20,8 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
+ 
+ 固定不变的是：目标与 criterion → 当前最小计划 → 动态 references → verify → close。中间不设固定顺序和 skip/full 档位。
+ 
++意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度复述不改变路由，也不要求用户回复。
++
+ 每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”；统一结构见 [ref-contract.md](ref-contract.md)。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
+ 
+ ## 3. TASK.md 状态
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 4fb13bf..ba4d973 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -31,15 +31,16 @@ cases:
+   - id: intent-source-first-and-boundary
+     kind: core
+     judge: llm
+-    description: 意图按一手资料确定边界，不把实现设计提前塞进意图
+-    given: 用户要求只读现状页，目标项目说明显示两个直接依赖
++    description: 意图按一手资料确定边界，human 复述后明确确认
++    given: human 用户要求只读现状页，目标项目说明显示两个直接依赖
+     expect:
+       must:
+         - 先读用户原话、已有任务和必要项目资料，再给 1 至 3 句复述
+         - 范围覆盖目标与直接依赖，criterion 可检查
+-        - 当前实现步骤交给 PLAN
++        - 当前实现步骤交给 PLAN，复述后等用户明确确认
+       must_not:
+         - 询问资料中已有答案
++        - 未确认意图就进入实施
+         - 顺手增加数据迁移、重构或增删改目标
+ 
+   - id: intent-change-and-cognition-correction
+@@ -64,11 +65,37 @@ cases:
+     expect:
+       must:
+         - 两种模式使用相同的动态路由、worktree 和完成清单
+-        - human 在命中的停点等明确放行，goal 由另一个模型审阅收敛
++        - human 在意图和首次 execute 前的当前 PLAN 等明确确认，goal 简要复述且不等用户
++        - router 选中 approve 时 human 等放行，goal 由另一个模型审阅收敛
+       must_not:
+         - 因 goal 自动选择 OpenSpec 或跳过高风险批准
+         - 因 human 固定增加每个 reference 的停顿
+ 
++  - id: implementation-plan-confirmation
++    kind: core
++    judge: llm
++    description: human 实施方案确认、记录与实质变更失效
++    given: human 意图已确认，首次 execute 前 PLAN 已就绪，随后实施范围发生实质变化
++    expect:
++      must:
++        - 首次写代码前展示范围、步骤、验证和必要回滚并等明确确认
++        - PLAN 记录确认状态、依据和范围，实质变化后重新确认
++      must_not:
++        - 用意图确认代替实施方案确认
++        - 因 checkbox 进度或补证据重复停下确认
++
++  - id: non-stop-progress-recap
++    kind: core
++    judge: llm
++    description: 非停点简要复述进度并继续
++    given: goal 的意图或方案节点，或两种模式的普通 reference 切换、片间检查点
++    expect:
++      must:
++        - 用 1 至 2 句说明目前结果或判断与接下来动作，然后继续
++      must_not:
++        - 以要不要或你看行吗收尾并等待回复
++        - 把非停点复述记为用户确认
++
+   - id: true-blocker-never-auto-approved
+     kind: edge
+     judge: llm
+@@ -164,14 +191,16 @@ cases:
+   - id: child-scope-and-approval
+     kind: core
+     judge: deterministic
+-    description: 子任务继承父意图和批准范围
++    description: 子任务继承父意图和批准范围，实施前确认自己的 PLAN
+     given: 父任务已批准 ROADMAP，子任务实现未超自己的子判据
+     expect:
+       must:
+         - 子任务继承父 confirm_mode、意图和 ROADMAP 自己那一行
+         - 范围内不重复停 approve，超范围才重入 intent 或 approve
++        - human 子任务首次 execute 前确认自己的当前 PLAN
+       must_not:
+         - 为每个子任务复制完整父上下文
++        - 用父意图或 approve 代替子任务实施确认
+         - 静默扩大子判据
+ 
+   - id: blocked-child-only-stops-dependency-chain
+diff --git a/skills/taskrail/tests/test_intent_contract.py b/skills/taskrail/tests/test_intent_contract.py
+index a4f5993..4ac8a9d 100644
+--- a/skills/taskrail/tests/test_intent_contract.py
++++ b/skills/taskrail/tests/test_intent_contract.py
+@@ -26,6 +26,11 @@ class IntentContractTest(unittest.TestCase):
+         self.assertIn("P0 / P1 挡路", confirm)
+         self.assertIn("任何审阅都不放行真阻塞", confirm)
+ 
++    def test_human_intent_requires_explicit_confirmation(self) -> None:
++        self.assertIn("human 对新意图或变更一律", INTENT)
++        self.assertIn("明确确认后才进入后续 plan / execute", INTENT)
++        self.assertIn("assumed 在 human 下补确认", INTENT)
++
+     def test_points_user_report(self) -> None:
+         self.assertIn("user-report.md", INTENT)
+ 
+diff --git a/skills/taskrail/tests/test_confirm_contract.py b/skills/taskrail/tests/test_confirm_contract.py
+index 7487ad0..6b675ba 100644
+--- a/skills/taskrail/tests/test_confirm_contract.py
++++ b/skills/taskrail/tests/test_confirm_contract.py
+@@ -25,6 +25,24 @@ class ConfirmContractTest(unittest.TestCase):
+         self.assertIn("user-report.md", self.text)
+         self.assertIn("说决定，不提问", self.ur)
+ 
++    def test_human_intent_and_plan_are_separate_gates(self) -> None:
++        self.assertIn("意图确认与实施方案确认是两个独立停点", self.text)
++        self.assertIn("首次 execute 前或实施方案实质变更", self.text)
++        self.assertIn("停等明确确认", self.text)
++
++    def test_plan_confirmation_record_and_invalidation(self) -> None:
++        plan = (ROOT / "references" / "plan.md").read_text(encoding="utf-8")
++        templates = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
++        self.assertIn("确认前不得进入 execute 或写代码", plan)
++        self.assertIn("实施内容实质变化时重入本环节并重新确认", plan)
++        self.assertIn("只更新 checkbox 或证据不改变状态", plan)
++        self.assertIn("## 实施确认", templates)
++        self.assertIn("pending | confirmed | not-required", templates)
++
++    def test_non_stop_recap_does_not_wait(self) -> None:
++        self.assertIn("继续且不等回复", self.text)
++        self.assertIn("非停点复述不需要回复", self.text)
++
+     def test_no_suspension_five_tuple(self) -> None:
+         self.assertFalse((ROOT / "references" / "suspension.md").exists())
+         self.assertNotIn("挂起五元组", self.text)
+diff --git a/skills/taskrail/tests/test_user_report_contract.py b/skills/taskrail/tests/test_user_report_contract.py
+index 4bfb120..4a37a6a 100644
+--- a/skills/taskrail/tests/test_user_report_contract.py
++++ b/skills/taskrail/tests/test_user_report_contract.py
+@@ -32,6 +32,11 @@ class UserReportTest(unittest.TestCase):
+         self.assertIn("已做决定", UR)
+         self.assertIn("难回头", UR)
+ 
++    def test_non_stop_progress_recap(self) -> None:
++        self.assertIn("未命中停点", UR)
++        self.assertIn("1–2 句", UR)
++        self.assertIn("复述不等回复、不构成用户确认", UR)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/taskrail/tests/test_decompose_contract.py b/skills/taskrail/tests/test_decompose_contract.py
+index de17665..40aa990 100644
+--- a/skills/taskrail/tests/test_decompose_contract.py
++++ b/skills/taskrail/tests/test_decompose_contract.py
+@@ -38,11 +38,13 @@ class DecomposeContractTest(unittest.TestCase):
+         self.assertIn("依赖无环", text)
+         self.assertIn("集成项", text)
+ 
+-    def test_child_inherits_scope_without_duplicate_approval(self) -> None:
++    def test_child_scope_and_plan_confirmation(self) -> None:
+         self.assertIn("子任务继承父意图", read("intent.md"))
+         self.assertIn("不重新确认", read("intent.md"))
+         self.assertIn("子任务未超父 ROADMAP 范围和子判据", read("confirm-protocol.md"))
++        self.assertIn("意图、approve 不重复停；PLAN", read("confirm-protocol.md"))
+         self.assertIn("由父批准覆盖，不逐个停", read("approve.md"))
++        self.assertIn("每个实际执行的子任务", read("plan.md"))
+ 
+     def test_parent_is_coordinator_and_must_verify_integration(self) -> None:
+         contract = read("contract.md")

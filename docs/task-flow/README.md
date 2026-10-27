@@ -34,7 +34,7 @@ flowchart LR
 | 当前 reference | explore、diagnose、grill、design、approve、decompose 等的 enter / skip / reopen | 当前最关键不确定性、已有产物和失效证据 |
 | 交付结构 | 不拆、切片、子任务 | 是否必须原子落地、能否按契约独立实施验证、交付节奏与集成边界 |
 | 执行适配器 | direct、OpenSpec | 是否需要正式 change / 长期 spec / 跨会话编排产物，而不是任务看起来大不大 |
-| 确认方式 | human、goal | 人确认还是另一个模型审阅；不改变路由和执行方式 |
+| 确认方式 | human、goal | human 在意图、实施方案等停点明确确认；goal 简要复述并按需异源审；不改变路由和执行方式 |
 
 所有 git 代码修改默认都使用任务 worktree。`direct` 不等于“直接在源仓改”，`goal` 也不等于“自动 OpenSpec”。
 
@@ -86,13 +86,13 @@ taskrail list                  # 查看任务索引
 
 “把按钮文案‘提交’改成‘保存’，并跑相关测试。”
 
-可能路径：只读目标处 → 写 criterion 和最小 PLAN → 跳过 explore / diagnose / grill / design / approve / decompose → 在任务 worktree 走 direct → 验证 → close。不会仅因步骤少就跳过测试，也不会创建 driver。
+默认 human 的可能路径：只读目标处 → 复述意图与 criterion 并等确认 → 写最小 PLAN 并等实施确认 → 跳过 explore / diagnose / grill / design / approve / decompose → 在任务 worktree 走 direct → 验证 → close。不会仅因步骤少就跳过测试，也不会创建 driver。
 
 ### 例 B：原因不明的失败，先 diagnose
 
 “最近导出经常超时，帮我修好。”
 
-可能路径：先固定版本、输入和环境，留下复现与基线 → 证明原因 → 必要时 explore 或 grill → 实施 → 回归与性能对比。改动小不能作为跳过根因证据的理由；连续失败没有新证据时会换动作，而不是盲试。
+默认 human 下，意图确认后先固定版本、输入和环境，留下复现与基线 → 证明原因 → 必要时 explore 或 grill → 形成并确认实施方案 → 实施 → 回归与性能对比。改动小不能作为跳过根因证据的理由；连续失败没有新证据时会换动作，而不是盲试。
 
 ### 例 C：跨项目需求，自动 subtasks + 按需 OpenSpec
 
@@ -144,7 +144,7 @@ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <
 
 ### direct
 
-按 TASK / PLAN 的当前步骤实施，不建 driver，不走 handoff 门。适合不需要正式 OpenSpec 产物的任务；仍需 worktree、验证和 close。
+按 TASK / PLAN 的当前步骤实施，不建 driver，不走 handoff 门。适合不需要正式 OpenSpec 产物的任务；仍需 worktree、验证和 close。human 进入实施前当前 PLAN 必须已确认，goal 需已简要复述。
 
 ### OpenSpec
 
@@ -160,10 +160,11 @@ driver 和子 changes 都在 workspace；子 change 按依赖滚动展开，全�
 
 ## 8. human、goal 与停点
 
-- human：命中意图、criterion 或 approve 停点时明确放行；普通 reference 切换和就绪项之间说决定继续。
-- goal：由另一个模型审阅收敛后继续；派不出时记录降级自审，不能宣称异源通过。
+- human：新意图形成或变更后等明确确认；首次 execute 前或实施方案实质变化后再次等明确确认；router 选中 approve 时也等放行。有效且已确认的 resume 不重复停。
+- goal：意图与 PLAN 简要复述且不等用户；需审阅时及 router 选中 approve 时由另一个模型审阅收敛，派不出时记录降级自审，不能宣称异源通过。
+- 未命中停点的 reference 切换、片间检查点和就绪子任务切换，两种模式都用 1–2 句说明目前结果与下一动作，继续且不等回复；复述不算用户确认。
 - 两种模式都不会自动放行删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改 criterion、缺凭据等真阻塞。
-- 子任务在父 ROADMAP 和子判据范围内不重复停 approve；超范围才重入 intent / approve。
+- 子任务在父 ROADMAP 和子判据范围内不重复停意图或 approve；human 子任务首次 execute 前仍确认自己的 PLAN，超范围才重入 intent / approve。
 
 ## 9. 进度、知识与认知更正
 
@@ -171,7 +172,7 @@ driver 和子 changes 都在 workspace；子 change 按依赖滚动展开，全�
 
 用户改目标或新证据推翻认知时：
 
-1. 回 intent，必要时重新批准 criterion。
+1. 回 intent 按确认协议重新确认意图 / criterion，并使受影响的 PLAN 确认失效。
 2. 旧认知标 `refuted` / `superseded`，保留当前结论与证据。
 3. 只使受影响的计划、设计和未勾项失效，不重写无关历史。
 4. 已归档 OpenSpec 历史不改；需要时新增修订子 change。

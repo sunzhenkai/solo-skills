@@ -20,6 +20,8 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
 
 固定不变的是：目标与 criterion → 当前最小计划 → 动态 references → verify → close。中间不设固定顺序和 skip/full 档位。
 
+意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度复述不改变路由，也不要求用户回复。
+
 每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”；统一结构见 [ref-contract.md](ref-contract.md)。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
 
 ## 3. TASK.md 状态

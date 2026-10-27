@@ -32,6 +32,11 @@ class UserReportTest(unittest.TestCase):
         self.assertIn("已做决定", UR)
         self.assertIn("难回头", UR)
 
+    def test_non_stop_progress_recap(self) -> None:
+        self.assertIn("未命中停点", UR)
+        self.assertIn("1–2 句", UR)
+        self.assertIn("复述不等回复、不构成用户确认", UR)
+
 
 if __name__ == "__main__":
     unittest.main()

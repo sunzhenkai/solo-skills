@@ -26,6 +26,11 @@ class IntentContractTest(unittest.TestCase):
         self.assertIn("P0 / P1 挡路", confirm)
         self.assertIn("任何审阅都不放行真阻塞", confirm)
 
+    def test_human_intent_requires_explicit_confirmation(self) -> None:
+        self.assertIn("human 对新意图或变更一律", INTENT)
+        self.assertIn("明确确认后才进入后续 plan / execute", INTENT)
+        self.assertIn("assumed 在 human 下补确认", INTENT)
+
     def test_points_user_report(self) -> None:
         self.assertIn("user-report.md", INTENT)
 

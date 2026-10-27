@@ -7,7 +7,7 @@
 1. 检查 criterion：为空或不可检查，回 [intent.md](intent.md)；代码任务没有当前最小计划，进 [plan.md](plan.md)。
 2. 当前 reference 的输入与完成门仍成立才 continue；产物已满足且没有失效信号就 skip / exit。
 3. 按下表选能解决当前最关键不确定性的一个 reference；一次只选一个。
-4. 代码实施统一进 taskflow execute；实施后有证据才进 verify，最终 close。
+4. 代码实施统一进 taskflow execute；PLAN 未满足完成门（含当前模式所需的实施确认）不得进入。实施后有证据才进 verify，最终 close。
 5. 把 enter / skip / exit / reopen 与一句理由追加到 history.md；不维护第二份完成百分比。
 
 ## 信号与选择

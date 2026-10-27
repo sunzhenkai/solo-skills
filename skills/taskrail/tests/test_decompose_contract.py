@@ -38,11 +38,13 @@ class DecomposeContractTest(unittest.TestCase):
         self.assertIn("依赖无环", text)
         self.assertIn("集成项", text)
 
-    def test_child_inherits_scope_without_duplicate_approval(self) -> None:
+    def test_child_scope_and_plan_confirmation(self) -> None:
         self.assertIn("子任务继承父意图", read("intent.md"))
         self.assertIn("不重新确认", read("intent.md"))
         self.assertIn("子任务未超父 ROADMAP 范围和子判据", read("confirm-protocol.md"))
+        self.assertIn("意图、approve 不重复停；PLAN", read("confirm-protocol.md"))
         self.assertIn("由父批准覆盖，不逐个停", read("approve.md"))
+        self.assertIn("每个实际执行的子任务", read("plan.md"))
 
     def test_parent_is_coordinator_and_must_verify_integration(self) -> None:
         contract = read("contract.md")

@@ -52,9 +52,14 @@ TASK 只保留恢复所需热信息；路由历史、长决定、原始证据分
 
 ## 约束 / 回滚
 <按需>
+
+## 实施确认
+- 状态：pending | confirmed | not-required
+- 依据：<human 写用户明确确认原话与日期；goal 写简要复述已给出>
+- 范围：<覆盖的当前实施步骤与验证策略>
 ```
 
-direct 的 PLAN checkbox 是实施进度；OpenSpec 实施进度只在 change checkbox。父子结构只写 ROADMAP，不在这里复制状态。
+human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范围、步骤或验证策略实质变化后回 pending；只更新 checkbox 或证据不改变状态。direct 的 PLAN checkbox 是实施进度；OpenSpec 实施进度只在 change checkbox。父子结构只写 ROADMAP，不在这里复制状态。
 
 ## ROADMAP.md
 
