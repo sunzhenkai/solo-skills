@@ -50,8 +50,8 @@ Python 但不是 API（CLI / 库 / 脚本）→ 告知 v1 未覆盖并停下。
 
 - **python-api 默认**：FastAPI + Pydantic / OpenAPI + SQLAlchemy；asyncio · uvicorn；pytest · httpx；uv，推荐 Ruff 与 mypy / pyright。
   例外：要 Admin / MTV / Django 生态 → Django（特定场景再用，随 Django ORM 与 DRF）；Flask、Litestar、Tortoise 仅用户点名；模型与 schema 一体 → SQLModel；需要后台任务再用 Celery · Dramatiq · ARQ 之一；浏览器 E2E → Playwright。
-- **frontend 默认**：Vite 路径——TypeScript + React + Vite + Tailwind CSS + shadcn/ui，TanStack Query、Zustand、Zod、OpenAPI / Zod 契约，Playwright E2E + Vitest。
-  例外：SSR / RSC / SEO / App Router / 全栈路由，或点名 Next.js → **Next.js 路径**（`create-next-app` 承担构建与服务端，其余层不变；一次只走一条，Vite 与 Next 并存不允许）；有表单时加 React Hook Form。
+- **frontend 默认**：Vite 路径——React + TypeScript + Vite；Tailwind CSS + CSS Variables / Design Tokens；shadcn/ui + Radix UI；Lucide React；TanStack Query + Zod；项目级 `DESIGN.md` + 组件与页面模式；Storybook + Playwright + 视觉回归。
+  例外：SSR / RSC / SEO / App Router / 全栈路由，或点名 Next.js → **Next.js 路径**（`create-next-app` 承担构建与服务端，其余层不变；一次只走一条，Vite 与 Next 并存不允许）；有表单时加 React Hook Form；需要客户端全局状态再用 Zustand；需要单元测试再用 Vitest；动效用 Motion 按需。
 
 包管理器：用户指定优先；否则 Python `uv`、前端 `pnpm`。缺失时列入依赖缺口并**询问是否补齐**（安装，或改用回退：Python venv + pip，前端 npm）；切换包管理器与全局安装都以用户同意为前提。
 

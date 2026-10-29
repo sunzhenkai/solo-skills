@@ -37,6 +37,9 @@ class ContractTest(unittest.TestCase):
             "React",
             "Next.js",
             "Playwright",
+            "Storybook",
+            "Zustand",
+            "Vitest",
         ):
             self.assertNotIn(needle, fm)
 
@@ -94,21 +97,32 @@ class ContractTest(unittest.TestCase):
         for needle in (
             "TypeScript",
             "TanStack Query",
-            "Zustand",
             "Zod",
             "React Hook Form",
             "OpenAPI",
             "Playwright",
-            "Vitest",
+            "Storybook",
+            "Lucide",
+            "Radix",
+            "DESIGN.md",
+            "Design Tokens",
+            "Motion",
             "Next.js",
+            "Zustand",
+            "Vitest",
         ):
             self.assertIn(needle, skill)
             self.assertIn(needle, fe)
         self.assertIn("| 层 | 选择 | 建议 |", fe)
         self.assertIn("需要表单再用", fe)
+        self.assertIn("需要客户端全局状态再用", fe)
+        self.assertIn("需要动效再用", fe)
+        self.assertIn("需要单元测试再用", fe)
+        self.assertIn("toHaveScreenshot", fe)
         self.assertIn("playwright", fe.lower())
-        self.assertIn("vitest", fe.lower())
+        self.assertIn("storybook", fe.lower())
         self.assertIn("react-hook-form", fe)
+        self.assertIn("tokens.css", fe)
 
     def test_nextjs_path(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -127,6 +141,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("route.ts", fe)
         self.assertIn("next-env.d.ts", fe)
         self.assertIn("pnpm build", fe)
+        self.assertIn("storybook build", fe)
         self.assertIn("align 对照（Next.js 路径）", fe)
 
     def test_nextjs_not_in_frontmatter(self) -> None:
@@ -158,3 +173,5 @@ class ContractTest(unittest.TestCase):
         self.assertIn("react-ts", fe)
         self.assertIn("shadcn", fe)
         self.assertIn("Tailwind", fe)
+        self.assertIn("DESIGN.md", fe)
+        self.assertIn("lucide-react", fe)

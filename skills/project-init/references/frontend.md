@@ -9,7 +9,7 @@
 
 两条路径共用同一分层与包管理器约定，只换项目骨架、Build 与服务端承担者。**禁止 Vite 与 Next 并存**（例如在 Next 项目里再塞一份 Vite 配置）。
 
-**工具命令优先**：先跑 `pnpm create vite` / `create-next-app` / `shadcn init`。官方 CLI 可用时不要手写 `package.json`、Vite / Next 或 Tailwind 配置来「等价生成」。CLI 缺失时先按 `SKILL.md` 询问是否补齐。
+**工具命令优先**：先跑 `pnpm create vite` / `create-next-app` / `shadcn init` / Storybook init。官方 CLI 可用时不要手写 `package.json`、Vite / Next 或 Tailwind 配置来「等价生成」。CLI 缺失时先按 `SKILL.md` 询问是否补齐。
 
 ## 分层
 
@@ -21,15 +21,20 @@
 | UI Framework | React | 必选 |
 | Build | Vite | 默认（Vite 路径） |
 | Build / Framework | Next.js | 特定场景再用（SSR / RSC / SEO / App Router / 全栈路由；承担构建与服务端） |
-| CSS | Tailwind CSS | 默认 |
-| UI | shadcn/ui | 强烈推荐 |
+| CSS | Tailwind CSS + CSS Variables / Design Tokens | 默认 |
+| UI | shadcn/ui + Radix UI | 强烈推荐 |
+| Icons | Lucide React | 默认 |
+| Motion | Motion | 需要动效再用 |
 | Server State | TanStack Query | 推荐 |
-| Client State | Zustand | 推荐 |
 | Validation | Zod | 推荐 |
+| Design Spec | 项目级 `DESIGN.md` + 组件与页面模式 | 强烈推荐 |
 | Form | React Hook Form | 需要表单再用 |
-| API Contract | OpenAPI / Zod | 强烈推荐 |
+| Client State | Zustand | 需要客户端全局状态再用 |
+| API Contract | OpenAPI / Zod | 有 OpenAPI spec 再用 |
+| Component Docs | Storybook | 推荐 |
 | E2E | Playwright | 必选 |
-| Unit | Vitest | 推荐 |
+| Visual Regression | Playwright `toHaveScreenshot` | 推荐 |
+| Unit | Vitest | 需要单元测试再用 |
 
 ## 建议 → init 行为
 
@@ -40,9 +45,13 @@
 | 强烈推荐 | 默认装入；用户明确拒绝才省略 | 列为应补（除非用户已拒绝） |
 | 推荐 | 默认装入；用户明确拒绝才省略 | 列为建议补，确认后再改 |
 | 需要表单再用 | **不预装** | 仅当项目已有表单、或用户要加表单时才提议 |
+| 需要客户端全局状态再用 | **不预装** | 仅当已有跨页/跨树客户端状态、或用户要加时才提议 |
+| 需要动效再用 | **不预装** | 仅当用户要过渡/手势等动效时才提议 |
+| 需要单元测试再用 | **不预装** | 仅当用户要组件/函数单测时才提议 |
+| 有 OpenAPI spec 再用 | **无 spec 不装 codegen**；有本地/用户给出的 spec 再用官方 codegen | 有 spec 无契约时列为应补；无 spec 不虚构 |
 | 特定场景再用 | **不作为默认**；仅用户点名该场景 | 已采用则按该场景对照，不改回默认 |
 
-Next.js 属于「特定场景再用」：仅当用户明确要 SSR / RSC / SEO / App Router 等、或点名 Next.js 时走下方 **Next.js 路径**（官方 `create-next-app`，TypeScript），再按 shadcn 的 Next 指南接入。不要与 Vite 并存。其余层（TS、React、Tailwind、shadcn、Query、Zustand、Zod、Playwright、Vitest）仍然适用，Build 改由 Next 承担；具体落地见 Next.js 路径一节。
+Next.js 属于「特定场景再用」：仅当用户明确要 SSR / RSC / SEO / App Router 等、或点名 Next.js 时走下方 **Next.js 路径**（官方 `create-next-app`，TypeScript），再按 shadcn 的 Next 指南接入。不要与 Vite 并存。其余层（TS、React、Tailwind + tokens、shadcn/Radix、Lucide、Query、Zod、DESIGN.md、Storybook、Playwright、视觉回归）仍然适用，Build 改由 Next 承担；具体落地见 Next.js 路径一节。
 
 ## Vite 路径（默认）
 
@@ -57,7 +66,7 @@ pnpm create vite . --template react-ts
 
 若 CLI 拒绝非空目录：先确认里面只有安全占位文件；可用官方文档中的 force 类参数，或在临时空目录生成再移入用户确认过的文件。禁止覆盖已有 `src/`。
 
-然后按 **shadcn/ui 当前 Vite 指南**初始化（会安装 Tailwind 并写 `components.json`）。优先非交互：
+然后按 **shadcn/ui 当前 Vite 指南**初始化（会安装 Tailwind、写入 CSS Variables 主题，并写 `components.json`）。优先非交互：
 
 ```bash
 pnpm dlx shadcn@latest init -d
@@ -70,7 +79,7 @@ pnpm dlx shadcn@latest init -d
 pnpm dlx shadcn@latest add button
 ```
 
-空壳：极简占位（标题 + 一个 shadcn `Button`）即可，不要一次装整套组件。
+空壳：极简占位（标题 + 一个 shadcn `Button` + 一个 Lucide 图标）即可，不要一次装整套组件。Radix 原语由 shadcn 组件依赖引入，**不要**再单独 `add` 一整套 `@radix-ui/*`。
 
 ### 各层落地（Vite 路径）
 
@@ -80,14 +89,20 @@ pnpm dlx shadcn@latest add button
 |----|--------|
 | Language / UI Framework | `react-ts` 模板；禁止改回 JavaScript |
 | Build | 保留 Vite；用户未点名 Next 时不要换成 Next |
-| CSS / UI | 跟随 `shadcn init`；`src/components/ui/` 只放 shadcn 生成物 |
+| CSS / Tokens | 跟随 `shadcn init` 的 CSS Variables；在 `src/styles/tokens.css`（或 shadcn 主题文件旁）放可扩展的 Design Tokens 骨架（颜色 / 间距 / 圆角语义变量），在入口 CSS `@import`；Tailwind 主题映射到这些变量，业务样式只引用 token，不写散落色值 |
+| UI | 跟随 `shadcn init`；`src/components/ui/` 只放 shadcn 生成物（底层为 Radix） |
+| Icons | 确认 `lucide-react` 已随 shadcn 安装；占位里用一个图标即可 |
+| Motion | **不安装** `motion`，除非用户要动效 |
 | Server State | 安装 `@tanstack/react-query`；在根部挂 `QueryClientProvider`（空配置，不写业务 query） |
-| Client State | 安装 `zustand`；`src/stores/` 只放可扩展的空 store 骨架，不放领域字段 |
-| Validation | 安装 `zod`；与 API Contract 共用 |
+| Validation | 安装 `zod`；与 API 运行时校验共用 |
+| Design Spec | 写项目根 `DESIGN.md`：方向一句话、token 命名约定、组件模式（放 `src/components/`，`ui/` 留给 shadcn）、页面模式（一页一主任务、空/加载/错误态）；完整色阶与对比度校验留给后续 pretty-ui，init 只留可填模板，不虚构品牌色阶 |
 | Form | 不安装 `react-hook-form`，除非用户要表单 |
-| API Contract | 安装 `zod`。有 OpenAPI 文档（本地 `openapi.json` / 用户给出的 spec）时用官方 codegen（如 `openapi-typescript`）生成客户端，Zod 做运行时校验；**没有 spec 时不要虚构一整份 OpenAPI**。建 `src/lib/api/`：`client.ts` 薄封装 + 一个与健康检查对应的 Zod schema 作为合同示例 |
+| Client State | 不安装 `zustand`，除非用户要客户端全局状态 |
+| API Contract | 有 OpenAPI 文档（本地 `openapi.json` / 用户给出的 spec）时用官方 codegen（如 `openapi-typescript`）生成客户端，Zod 做运行时校验；**没有 spec 时不要虚构一整份 OpenAPI**。建 `src/lib/api/`：`client.ts` 薄封装 + 一个与健康检查对应的 Zod schema 作为合同示例 |
+| Component Docs | 按当时官方 Vite + React 指南初始化 Storybook；为占位 `Button`（或 `App`）写一条 CSF 故事即可，不要一次铺满 |
 | E2E | 安装 `@playwright/test`，写 `playwright.config.ts` 与一条访问根路径的 smoke spec。init **不**默认下载浏览器二进制；README 写明 `playwright install` 后再跑 E2E |
-| Unit | 安装 `vitest`（及官方 React 测试搭档，如 jsdom + Testing Library）；能跑通一条渲染占位的测试即可 |
+| Visual Regression | 在 Playwright 中加一条对根路径（或约定 Storybook 静态页）的 `toHaveScreenshot`；基线目录写入 `.gitignore` 的例外约定写进 README（首次本地/`--update-snapshots` 生成）。不引入 Chromatic 等 SaaS，除非用户点名 |
+| Unit | 不安装 `vitest`，除非用户要单元测试 |
 
 不要默认再加 React Router、MUI、Ant Design 等。用户点名则加，并在摘要标明偏离。
 
@@ -101,44 +116,46 @@ pnpm dlx shadcn@latest add button
   tsconfig.json
   tsconfig.app.json          # 以 CLI 实际产出为准
   vite.config.ts
-  vitest.config.ts           # 或并入 vite.config.ts，以官方推荐为准
   playwright.config.ts
   components.json
+  DESIGN.md
   index.html
   README.md
   .gitignore
+  .storybook/                # Storybook 配置，以官方 CLI 为准
   e2e/
     smoke.spec.ts
+    visual.spec.ts           # toHaveScreenshot
   src/
     main.tsx                 # QueryClientProvider
     App.tsx
-    index.css
-    test/
-      setup.ts               # 若 Vitest 需要
+    index.css                # @import tokens
+    styles/
+      tokens.css             # Design Tokens 骨架
     lib/
       utils.ts
       api/
         client.ts
         health.ts            # Zod schema 示例
-    stores/
-      app-store.ts
-    components/ui/
+    components/
+      ui/                    # 仅 shadcn
+      ui/button.stories.tsx  # 或 stories 约定目录，以 Storybook 为准
 ```
 
 - 路径别名 `@/` 必须在 tsc 与 Vite 中都有效。
 - 业务组件放 `src/components/`（`ui/` 留给 shadcn）。
-- 不要提交 `node_modules/`。`.gitignore` 含 `.env`、`.env.local`、Playwright 产物。
+- 不要提交 `node_modules/`。`.gitignore` 含 `.env`、`.env.local`、Playwright 产物；视觉基线目录按 README 约定跟踪或忽略。
 
-README 写清：`dev`、`build`、`vitest`、Playwright（含先 `playwright install`）。不要写虚构部署环境。
+README 写清：`dev`、`build`、Storybook、Playwright（含先 `playwright install` 与更新截图基线）。不要写虚构部署环境。
 
 ### 冒烟（Vite 路径，init 必做）
 
 ```bash
 pnpm build
-pnpm exec vitest run
+pnpm exec storybook build
 ```
 
-无 `pnpm` 且方案已确认改用 npm 时：`npm run build` 与 `npx vitest run`。失败则修复后再结束。不要后台挂起 `dev`，也不要默认跑 Playwright（缺浏览器）。
+无 `pnpm` 且方案已确认改用 npm 时：`npm run build` 与官方 Storybook build 等价命令。失败则修复后再结束。不要后台挂起 `dev` / Storybook，也不要默认跑 Playwright（缺浏览器）。
 
 ### align 对照（Vite 路径）
 
@@ -149,15 +166,20 @@ pnpm exec vitest run
 | Language | TypeScript |
 | UI Framework | React |
 | Build | Vite（Next 场景则为 Next，不改回 Vite） |
-| CSS | Tailwind，且与 shadcn 一致 |
-| UI | `components.json` + `src/components/ui/` |
+| CSS | Tailwind + CSS Variables / Design Tokens，且与 shadcn 一致 |
+| UI | `components.json` + `src/components/ui/`（Radix 经 shadcn） |
+| Icons | Lucide React 可用 |
+| Motion | 有动效需求才需要 Motion；无则不装 |
 | Server State | TanStack Query 已接入根 Provider |
-| Client State | Zustand 已有 stores 约定 |
 | Validation | Zod 已用于契约或表单 |
+| Design Spec | 项目根有 `DESIGN.md`，含组件与页面模式约定 |
 | Form | 有表单才需要 React Hook Form；无表单不装 |
-| API Contract | OpenAPI codegen 或等价 Zod schema；禁止手写无校验的散落 `fetch` 作为唯一合同 |
+| Client State | 有跨树客户端状态才需要 Zustand；无则不装 |
+| API Contract | 有 spec 则 codegen 或等价 Zod schema；禁止手写无校验的散落 `fetch` 作为唯一合同 |
+| Component Docs | Storybook 可 build，至少一条故事 |
 | E2E | Playwright 配置 + 至少一条 smoke |
-| Unit | Vitest 可运行 |
+| Visual Regression | 至少一条 `toHaveScreenshot`（或用户明确拒绝视觉回归） |
+| Unit | 用户要单测时才需要 Vitest |
 
 Vue / CRA / Svelte / 无打包静态页：报告「栈不兼容」，**不改代码**，除非用户明确要求迁移并确认计划。仅缺 shadcn/Tailwind、其余已是 Vite+React+TS 时，确认后按官方 `shadcn init` 补齐。
 
@@ -179,7 +201,7 @@ pnpm create next-app@latest . --ts --tailwind --app --src-dir --import-alias "@/
 - CLI 拒绝非空目录时：先确认里面只有安全占位文件（`README` / `.gitignore` / `.git`），再按官方文档处理（临时空目录生成后移入）。禁止覆盖已有 `src/` / `app/`。
 - 不要 `--example` 拉取未经审查的远程模板；需要时单独确认来源。
 
-然后按 **shadcn/ui 当前 Next.js 指南**初始化（`create-next-app` 已装 Tailwind，`shadcn init` 只补 `components.json` 与主题）。优先非交互：
+然后按 **shadcn/ui 当前 Next.js 指南**初始化（`create-next-app` 已装 Tailwind，`shadcn init` 只补 `components.json` 与 CSS Variables 主题）。优先非交互：
 
 ```bash
 pnpm dlx shadcn@latest init -d
@@ -190,26 +212,32 @@ pnpm dlx shadcn@latest init -d
 pnpm dlx shadcn@latest add button
 ```
 
-`-d` / `--defaults` 以当时 CLI 为准；标志变更时用官方非交互等价参数，不要手搓与 shadcn 漂移的配置。空壳：把一个 Server Component 页面（`app/page.tsx`）换成极简占位（标题 + 一个 shadcn `Button`），不要一次装整套组件。
+`-d` / `--defaults` 以当时 CLI 为准；标志变更时用官方非交互等价参数，不要手搓与 shadcn 漂移的配置。空壳：把一个 Server Component 页面（`app/page.tsx`）换成极简占位（标题 + 一个 shadcn `Button` + 一个 Lucide 图标），不要一次装整套组件。Radix 原语由 shadcn 引入，不要另装整套。
 
 ### 各层落地（Next.js 路径）
 
-在 Next + shadcn 之上按表补齐。包名用当时官方包，不在本文件钉死次版本。凡是需要浏览器 API / 客户端交互的层（Query Provider、Zustand、表单）都要注意 Server / Client 边界——Provider 与仅客户端的 Provider 组件用 `"use client"` 标记，Zustand store 在客户端组件中消费；Server Component 默认不用 `"use client"`。
+在 Next + shadcn 之上按表补齐。包名用当时官方包，不在本文件钉死次版本。凡是需要浏览器 API / 客户端交互的层（Query Provider、表单、Motion）都要注意 Server / Client 边界——Provider 与仅客户端的组件用 `"use client"` 标记；Server Component 默认不用 `"use client"`。
 
 | 层 | 做什么 |
 |----|--------|
 | Language / UI Framework | TypeScript + React；禁止改回 JavaScript |
 | Build | 保留 Next（App Router）；用户未点名时不要换成 Vite，也不要并存 |
 | Router | 用 App Router（`app/`）；默认 Server Component，按需在文件首行 `"use client"` |
-| CSS / UI | 跟随 `create-next-app` 的 Tailwind 与 `shadcn init`；`src/components/ui/` 只放 shadcn 生成物 |
+| CSS / Tokens | 跟随 `create-next-app` 的 Tailwind 与 `shadcn init` 的 CSS Variables；`src/styles/tokens.css` 骨架 + 入口 `@import`，规则同 Vite 路径 |
+| UI | `src/components/ui/` 只放 shadcn 生成物（底层 Radix） |
+| Icons | 确认 `lucide-react`；占位用一个图标 |
+| Motion | 不安装，除非用户要动效；动效组件 `"use client"` |
 | Server State | 安装 `@tanstack/react-query`；用一个 `"use client"` 的 Provider 组件（如 `src/app/providers.tsx`）在根 `layout.tsx` 中包裹（空配置，不写业务 query） |
-| Client State | 安装 `zustand`；`src/stores/` 只放可扩展的空 store 骨架，不放领域字段；在客户端组件中消费 |
-| Validation | 安装 `zod`；与 API Contract 共用 |
+| Validation | 安装 `zod`；与 API 运行时校验共用 |
+| Design Spec | 项目根 `DESIGN.md`，内容约定同 Vite 路径 |
 | Form | 不安装 `react-hook-form`，除非用户要表单；表单组件按需 `"use client"` |
-| API Contract | 安装 `zod`。有 OpenAPI 文档（本地 `openapi.json` / 用户给出的 spec）时用官方 codegen（如 `openapi-typescript`）生成客户端，Zod 做运行时校验；**没有 spec 时不要虚构一整份 OpenAPI**。建 `src/lib/api/`：`client.ts` 薄封装 + 一个与健康检查对应的 Zod schema 作为合同示例 |
+| Client State | 不安装 `zustand`，除非用户要客户端全局状态；store 仅在客户端组件消费 |
+| API Contract | 同 Vite：有 spec 才 codegen；`src/lib/api/` 薄封装 + Zod 健康检查示例 |
 | Health | 用一个 Route Handler（如 `app/api/health/route.ts`）返回 `{ "status": "ok" }`，schema 与 `src/lib/api/` 的 Zod 对齐；**不要**为此引入数据库依赖 |
+| Component Docs | 按当时官方 Next.js 指南初始化 Storybook；一条占位故事即可 |
 | E2E | 安装 `@playwright/test`，写 `playwright.config.ts` 与一条访问根路径的 smoke spec。init **不**默认下载浏览器二进制；README 写明 `playwright install` 后再跑 E2E |
-| Unit | 安装 `vitest`（及官方 React 测试搭档，如 jsdom + Testing Library）；能跑通一条渲染占位的测试即可 |
+| Visual Regression | 一条根路径（或约定页）的 `toHaveScreenshot`；不引入 Chromatic 除非用户点名 |
+| Unit | 不安装 `vitest`，除非用户要单元测试 |
 
 不要默认再加 React Router（Next 自带路由）、MUI、Ant Design 等。用户点名则加，并在摘要标明偏离。
 
@@ -222,46 +250,48 @@ pnpm dlx shadcn@latest add button
   package.json
   tsconfig.json               # paths 含 "@/*" -> "./src/*"（用 --src-dir 时）
   next.config.ts              # 以 CLI 实际产出为准
-  vitest.config.ts            # 或并入现有配置，以官方推荐为准
   playwright.config.ts
   components.json
+  DESIGN.md
   README.md
   .gitignore
+  .storybook/
   e2e/
     smoke.spec.ts
+    visual.spec.ts
   src/
     app/
       layout.tsx              # 根布局；挂 Providers
-      page.tsx                # 极简占位（标题 + 一个 shadcn Button）
+      page.tsx                # 极简占位（标题 + Button + Lucide）
       providers.tsx           # "use client"：QueryClientProvider
       api/
         health/
           route.ts            # GET 返回 { "status": "ok" }
+    styles/
+      tokens.css
     lib/
       utils.ts
       api/
         client.ts
         health.ts             # Zod schema 示例
-    stores/
-      app-store.ts
-    components/ui/
-  test/                       # 若 Vitest 需要 setup，可放此处或 src/test/
+    components/
+      ui/
 ```
 
 - 路径别名 `@/*` 必须在 tsc 与 Next 中都有效（`create-next-app --import-alias "@/*"` 已配好；`--src-dir` 时指向 `./src/*`）。
 - 业务组件放 `src/components/`（`ui/` 留给 shadcn）。
 - 不要提交 `node_modules/`、`.next/`。`.gitignore` 含 `.env`、`.env.local`、Playwright 产物、`next-env.d.ts` 按官方模板处理。
 
-README 写清：`dev`、`build`、`start`、`vitest`、Playwright（含先 `playwright install`）、health URL。不要写虚构部署环境。
+README 写清：`dev`、`build`、`start`、Storybook、Playwright（含先 `playwright install` 与更新截图基线）、health URL。不要写虚构部署环境。
 
 ### 冒烟（Next.js 路径，init 必做）
 
 ```bash
 pnpm build
-pnpm exec vitest run
+pnpm exec storybook build
 ```
 
-无 `pnpm` 且方案已确认改用 npm 时：`npm run build` 与 `npx vitest run`。失败则修复后再结束。不要后台挂起 `dev`，也不要默认跑 Playwright（缺浏览器）。
+无 `pnpm` 且方案已确认改用 npm 时：`npm run build` 与官方 Storybook build 等价命令。失败则修复后再结束。不要后台挂起 `dev` / Storybook，也不要默认跑 Playwright（缺浏览器）。
 
 ### align 对照（Next.js 路径）
 
@@ -273,15 +303,20 @@ pnpm exec vitest run
 | UI Framework | React |
 | Build | Next（App Router；不改回 Vite） |
 | Router | App Router（`app/`）；Server / Client 边界清晰（仅必要处 `"use client"`） |
-| CSS | Tailwind，且与 shadcn 一致 |
+| CSS | Tailwind + CSS Variables / Design Tokens，且与 shadcn 一致 |
 | UI | `components.json` + `src/components/ui/`（或 CLI 实际产出的等价位置） |
+| Icons | Lucide React 可用 |
+| Motion | 有动效需求才需要；无则不装 |
 | Server State | TanStack Query 通过 `"use client"` Provider 接入根布局 |
-| Client State | Zustand 已有 stores 约定，且在客户端组件消费 |
 | Validation | Zod 已用于契约或表单 |
+| Design Spec | 项目根有 `DESIGN.md` |
 | Form | 有表单才需要 React Hook Form；无表单不装 |
-| API Contract | OpenAPI codegen 或等价 Zod schema；禁止手写无校验的散落 `fetch` 作为唯一合同 |
+| Client State | 有跨树客户端状态才需要 Zustand；无则不装 |
+| API Contract | 有 spec 则 codegen 或等价 Zod schema；禁止手写无校验的散落 `fetch` 作为唯一合同 |
 | Health | 有 Route Handler 健康检查，或用户明确不要 |
+| Component Docs | Storybook 可 build，至少一条故事 |
 | E2E | Playwright 配置 + 至少一条 smoke |
-| Unit | Vitest 可运行 |
+| Visual Regression | 至少一条 `toHaveScreenshot`（或用户明确拒绝） |
+| Unit | 用户要单测时才需要 Vitest |
 
 仅缺 shadcn/Tailwind、其余已是 Next+React+TS 时，确认后按官方 `shadcn` Next 指南补齐。用户点名 Pages Router 或 JavaScript：按用户要求对照，并在摘要标明偏离，不要强改。
