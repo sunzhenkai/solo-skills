@@ -12,7 +12,9 @@ applied（2026-10-31）
   （含 `disables the sandbox without any approval`）、
   `test_bypass_approval_only_qualifier_passes`、`test_act_as_dan_still_blocks`、
   `test_no_restrictions_still_blocks`、`test_ssh_config_passes_but_senv_now_blocks`
-- dotfiles 重锁：`archify`、`taste-skill` 正常推进（下次重锁结果补记）
+- 真实上游文件复核：把新 revision 的 `archify/explainer/sources.mjs` 与
+  `taste-skill/scripts/draw.mjs` 放进临时 skill 目录审计 → 通过（exit 0）
+- dotfiles 重锁：`archify`、`taste-skill` 正常推进（`changed_content` 见消费侧记录）
 - `senv-cli` 仍阻断，属既定策略，不在本 patch 范围
 
 ## 后续

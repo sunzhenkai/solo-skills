@@ -45,3 +45,23 @@
 - 不放宽 `credential_paths` 的 `~/.ssh` 分支。`senv-cli` 的阻断是既定策略
   （机器特例走被审 skill 自己的 `.audit-allow`），代码里有用例
   `test_ssh_config_passes_but_senv_now_blocks` 明确守住。
+
+## 第二轮（同一次重锁跟进）
+
+首轮修完重锁，剩两处：
+
+### credential_paths：`.ssh` / `.netrc` 要求路径前缀
+
+- 命中样本：`archify/explainer/sources.mjs:14`
+  `const SECRET_NAME = /^(?:\.env(?:\..*)?|\.npmrc|\.netrc|\.(?:ssh|aws|gnupg|kube)|…`
+- 根因：`~/?\.ssh` 的 `~/?` 可整体缺省，`\.netrc` 干脆没有前缀要求，于是**敏感
+  文件名模式表**（用于过滤/脱敏，恰好与读取凭据相反）命中。
+- 修法：两处都要求前置 `~` 或 `/`；`~/.ssh/config` 的既有豁免、
+  `/.ssh/id_` 兜底、`~/.ssh/senv/` 仍阻断均不变。
+
+### jailbreak_role：否定句里的 `pretend to be`
+
+- 命中样本：`taste-skill/scripts/draw.mjs:516`
+  `photographs only where they plainly do not pretend to be the product`
+- 修法：沿用否定词豁免分支，`jailbreak_role` 与 `bypass_approval` 共用；
+  `pretend to be an unrestricted AI` 仍阻断。

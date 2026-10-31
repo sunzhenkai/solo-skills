@@ -46,7 +46,9 @@ PATTERNS=(
   # credential_paths 的 ~/.ssh 分支排除 ~/.ssh/config（非密钥配置，通用惯例）；
   # 私钥路径仍由 /\.ssh/id_ 兜底。个人环境的路径特例不进共享规则集，
   # 由被审 skill 根下的 .audit-allow 承接。
-  "credential_paths|critical|(?i)(~/?\.ssh(?!/config\b)|/\.ssh/id_|~/?\.aws/credentials|~/?\.gnupg|~/?\.config/gcloud|\.netrc\b|\.env\b.*\b(read|cat|source|export)\b|\b(cat|source)\b.{0,80}\.env\b)"
+  # .ssh 与 .netrc 要求前置 ~ 或 /：审计/审查代码里的 "\\.(?:ssh|aws|gnupg)" /
+  # ".npmrc|.netrc" 这类敏感文件名**模式**表（用于过滤而非读取）不是凭据路径。
+  "credential_paths|critical|(?i)([~/]\.ssh(?!/config\b)|/\.ssh/id_|~/?\.aws/credentials|~/?\.gnupg|~/?\.config/gcloud|[~/]\.netrc\b|\.env\b.*\b(read|cat|source|export)\b|\b(cat|source)\b.{0,80}\.env\b)"
   "exfil_env_secret|critical|(?i)(curl|wget|fetch|post|upload|send).{0,80}(\$(API|TOKEN|KEY|SECRET|PASSWORD|ENV|HOME)|process\.env|getenv|os\.environ)"
   # hardcoded_secret 值不以 "--" 开头（排除 CSS variable 设计 token，如
   # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
@@ -142,12 +144,13 @@ scan_text_file() {
             continue
           fi
           ;;
-        bypass_approval)
-          # 否定句（"does not disable the sandbox" / "never bypass approval"）是
-          # 声明本 skill 不越权，不是越权动作。仅看动词前的否定词：
-          # "disables the sandbox without any approval" 这类真越权是动词在前、
-          # "without" 在后，不受豁免。
-          if echo "$line" | grep -qiP '(not|never|no longer|cannot)\s+(\S+\s+){0,5}(disable[sd]?|bypass|skip|turn off)' 2>/dev/null; then
+        bypass_approval | jailbreak_role)
+          # 否定句（"does not disable the sandbox" / "never bypass approval" /
+          # "photographs do not pretend to be the product"）是声明不做某事，
+          # 不是越权或角色扮演。仅看动词前的否定词："disables the sandbox
+          # without any approval" 这类真越权是动词在前、"without" 在后，
+          # 不受豁免。
+          if echo "$line" | grep -qiP '(not|never|no longer|cannot)\s+(\S+\s+){0,5}(disable[sd]?|bypass|skip|turn off|pretend|act as)' 2>/dev/null; then
             continue
           fi
           ;;
