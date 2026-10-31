@@ -14,7 +14,8 @@ applied（2026-10-31）
   `test_no_restrictions_still_blocks`、`test_ssh_config_passes_but_senv_now_blocks`
 - 真实上游文件复核：把新 revision 的 `archify/explainer/sources.mjs` 与
   `taste-skill/scripts/draw.mjs` 放进临时 skill 目录审计 → 通过（exit 0）
-- dotfiles 重锁：`archify`、`taste-skill` 正常推进（`changed_content` 见消费侧记录）
+- dotfiles 重锁（第四轮，c0d8ead）：`sources=3 blocked=1`——`archify`、`taste-skill` 推进；
+  `changed_content=3`（archify / skills-store / taste-skill），`make registry validate` 通过
 - `senv-cli` 仍阻断，属既定策略，不在本 patch 范围
 
 ## 后续
