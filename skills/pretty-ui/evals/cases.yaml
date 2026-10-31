@@ -49,7 +49,7 @@ cases:
       must:
         - 只写一张方向卡，在设计说明里记下选择理由与放弃的两个方向
         - 方向卡各栏填具体选择（字体、十六进制色值、首屏骨架、记忆点、放弃什么）
-        - 标杆取 1–2 家首屏截图存进任务目录，并交给隔离评审者当参照
+        - 标杆默认取一家首屏截图存进任务目录，并交给隔离评审者当参照
       must_not:
         - 停下问用户选方向
 
@@ -61,9 +61,32 @@ cases:
     expect:
       must:
         - 写轻量方向卡（北极星、字体、色彩三层与来源、一个特征元素、参照、放弃什么）
-        - 按基础档在 1280 与 375 截图并自查
+        - 首轮按基础档在 1280 与 375 各截首屏并自查，交付前补整页
       must_not:
         - 写完整 14 栏方向卡，或上网截标杆
+
+  - id: desktop-only-target-viewport
+    kind: core
+    judge: llm
+    description: 桌面专用页面只验桌面目标视口
+    given: 「打磨这个仅桌面使用的数据工作台」，项目没有移动端交付要求
+    expect:
+      must:
+        - 简报把目标视口定为 1280，首轮截首屏并量测，交付前补整页
+        - 复用同一本地服务和浏览器会话
+      must_not:
+        - 仅因基础档旧惯例补截 375 手机视口
+
+  - id: responsive-keeps-two-viewports
+    kind: regression
+    judge: llm
+    description: 响应式或设备无法判断时保留双视口
+    given: 新做一个需要桌面和手机使用的设置页
+    expect:
+      must:
+        - 首轮在 1280 与 375 各截首屏并分别量测，交付前补齐整页
+      must_not:
+        - 把响应式页面按桌面专用处理
 
   - id: existing-brand-kept
     kind: boundary
@@ -123,7 +146,7 @@ cases:
     expect:
       must:
         - 结论标“未渲染验证”，问题标 code-only
-        - 交付说明写明没看过画面、建议用户在哪两个视口确认
+        - 交付说明写明没看过画面、建议用户在目标视口确认；响应式页面为 1280 与 375
       must_not:
         - 写“已检查视觉效果”“截图确认无误”之类的话
 
@@ -146,7 +169,7 @@ cases:
     given: 「这个设置页不好看，优化一下」，项目可本地运行
     expect:
       must:
-        - 改前按基础档在 1280 与 375 截图，诊断出带规则号的问题
+        - 改前按基础档在 1280 与 375 各截首屏和整页，诊断出带规则号的问题
         - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
         - 同一路由、同一视口、同一份数据截改后图，一起交付
       must_not:
@@ -155,14 +178,25 @@ cases:
   - id: evidence-tiered-rounds
     kind: core
     judge: llm
-    description: 截图分档：首轮基础档，复审只截问题涉及处，状态档交付前截一次
+    description: 截图分档：首轮首屏，复审只截问题涉及处，交付前补整页与状态
     given: goal 模式新界面，第一轮评审结论“需改”，问题集中在手机视口的表单区
     expect:
       must:
         - 第二轮只重截 375 下表单区，评审者拿上一轮清单逐条核对
-        - 交付前最后一轮补截涉及的空、加载、出错等状态
+        - 交付前最后一轮补目标视口整页及涉及的空、加载、出错等状态
       must_not:
         - 每轮重截全部视口和全部状态
+
+  - id: one-screen-evidence-dedup
+    kind: boundary
+    judge: llm
+    description: 首屏已覆盖整页时不重复截图
+    given: 一个内容高度不足一屏的响应式单组件页面
+    expect:
+      must:
+        - 1280 与 375 各保留一张首屏，兼作最终整页证据
+      must_not:
+        - 为同一画面分别命名首屏图和整页图重复截取
 
   - id: self-check-light-with-isolated-review
     kind: core
@@ -187,6 +221,17 @@ cases:
         - 同一个问题连续两轮没改好就停，说明卡在哪、试过什么、需要什么
       must_not:
         - 带着影响观感的 P1 宣布收敛
+
+  - id: review-new-p2-does-not-reopen
+    kind: boundary
+    judge: llm
+    description: 复审新发现的 P2 和提升不触发额外轮次
+    given: 上轮 P0 与影响观感的 P1 已修好，复审只新发现一条 P2 和一项提升
+    expect:
+      must:
+        - 把 P2 与提升写进交付说明，按通过收敛
+      must_not:
+        - 因这条 P2 或提升再开一轮、补状态截图
 
   - id: system-outputs
     kind: core

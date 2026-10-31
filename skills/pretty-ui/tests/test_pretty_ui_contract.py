@@ -105,7 +105,9 @@ class DirectionTest(unittest.TestCase):
 
     def test_benchmarks_from_real_screens(self) -> None:
         self.assertIn("未看图，凭记忆", self.TEXT)
-        self.assertIn("1–2 家标杆的首屏截图", self.TEXT)
+        self.assertIn("取到 1 家标杆的首屏截图", self.TEXT)
+        self.assertIn("品类不清或用户点名多个方向时再取第 2 家", self.TEXT)
+        self.assertIn("一次搜索和一次打开仍未拿到画面", self.TEXT)
         self.assertIn("隔离评审的参照集", self.TEXT)
         for word in ("基线", "套路", "撞脸"):
             self.assertIn(word, self.TEXT)
@@ -166,6 +168,10 @@ class RulesTest(unittest.TestCase):
         self.assertIn("上限 46", self.TEXT)
         self.assertIn("1.6–1.75", self.TEXT)
 
+    def test_target_viewports(self) -> None:
+        self.assertIn("目标视口都没有横向溢出", self.TEXT)
+        self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
+
 
 class CritiqueTest(unittest.TestCase):
     TEXT = ref("critique.md")
@@ -189,6 +195,7 @@ class CritiqueTest(unittest.TestCase):
         self.assertIn("唯一标准", self.TEXT)
         self.assertIn("结论是“通过”", self.TEXT)
         self.assertIn("同一个问题连续两轮没改好", self.TEXT)
+        self.assertIn("新发现的 P2 与提升写进交付说明", self.TEXT)
 
     def test_self_check_light_with_isolated_review(self) -> None:
         self.assertIn("完整扫查和问题表交给评审者", self.TEXT)
@@ -200,12 +207,20 @@ class EvidenceTest(unittest.TestCase):
     def test_tiers(self) -> None:
         for tier in ("| 基础档 |", "| 状态档 |", "| 复审档 |"):
             self.assertIn(tier, self.TEXT)
-        self.assertIn("桌面 1280 与手机 375 各截首屏和整页", self.TEXT)
+        self.assertIn("每个目标视口截首屏", self.TEXT)
+        self.assertIn("每个目标视口补整页", self.TEXT)
+        self.assertIn("首屏已覆盖整页时复用首屏", self.TEXT)
         self.assertIn("只截上一轮问题涉及的区域和视口", self.TEXT)
+
+    def test_target_viewports(self) -> None:
+        self.assertIn("桌面专用选 1280，手机专用选 375", self.TEXT)
+        self.assertIn("响应式或无法判断时选 1280 + 375", self.TEXT)
+        self.assertIn("上游另有视口硬门时按上游", self.TEXT)
 
     def test_tools_and_measure(self) -> None:
         self.assertIn("未渲染验证", self.TEXT)
         self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
+        self.assertIn("复用本地服务和浏览器会话", self.TEXT)
         self.assertIn("横向溢出", self.TEXT)
 
 
@@ -224,7 +239,8 @@ class PageTest(unittest.TestCase):
 
     def test_starts_from_template(self) -> None:
         self.assertIn("从 [assets/reading-page.html](../assets/reading-page.html) 起手", self.TEXT)
-        self.assertIn("[evidence.md](evidence.md) 的基础档", self.TEXT)
+        self.assertIn("[evidence.md](evidence.md) 截图并量行长", self.TEXT)
+        self.assertIn("阅读页默认响应式", self.TEXT)
 
     def test_reading_layout(self) -> None:
         self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)
