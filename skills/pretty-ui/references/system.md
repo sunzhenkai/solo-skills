@@ -1,6 +1,6 @@
 # 设计体系（刻度与 token）
 
-[pretty-ui](../SKILL.md) 的 system 模式、build 第 4 步、补 token 时读本页。体系的作用是把每一次取值变成“从刻度里挑”，而不是每次凭感觉；同一个页面里出现第三个相近却不同的间距值，就是缺刻度的信号。
+[pretty-ui](../SKILL.md) 的 system 模式、build 第 4 步、补 token 时读本页。体系的作用是把每一次取值变成“从刻度里挑”，而不是每次凭感觉；同一个页面里出现第三个相近却不同的间距值，就是缺刻度的信号。token 与组件统一的 init / audit、迁移与验证按 [engineering.md](engineering.md)。
 
 ## 1. 先盘点，再补缺
 

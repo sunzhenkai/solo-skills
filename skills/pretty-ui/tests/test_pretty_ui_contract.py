@@ -41,6 +41,9 @@ class SkillEntryTest(unittest.TestCase):
             self.assertIn(mode, SKILL)
         self.assertIn("只读，不改文件", SKILL)
         self.assertIn("system 再 build", SKILL)
+        self.assertIn("工程化检查", SKILL)
+        self.assertIn("references/engineering.md", SKILL)
+        self.assertIn("脚手架先 project-init", SKILL)
 
     def test_direction_decided_not_asked(self) -> None:
         self.assertIn("自选一个方向，写方向卡和理由，直接说决定、接着做", SKILL)
@@ -88,7 +91,7 @@ class SkillEntryTest(unittest.TestCase):
         self.assertTrue(links)
         for link in links:
             self.assertTrue((ROOT / link).exists(), link)
-        for name in ("direction.md", "system.md", "evidence.md", "rules.md", "critique.md", "page.md"):
+        for name in ("direction.md", "system.md", "engineering.md", "evidence.md", "rules.md", "critique.md", "page.md"):
             self.assertIn(f"references/{name}", SKILL)
         self.assertIn("assets/reading-page.html", SKILL)
 
@@ -144,6 +147,26 @@ class SystemTest(unittest.TestCase):
         self.assertIn("## 2. 缺项自定", self.TEXT)
         self.assertIn("用陈述句写下决定与理由", self.TEXT)
         self.assertIn("assets/reading-page.html", self.TEXT)
+
+
+class EngineeringTest(unittest.TestCase):
+    TEXT = ref("engineering.md")
+
+    def test_branches_and_boundary(self) -> None:
+        for phrase in ("`init`", "`audit`", "只读产品代码、依赖与配置", "project-init", "不新增依赖"):
+            self.assertIn(phrase, self.TEXT)
+
+    def test_token_and_component_checks(self) -> None:
+        for phrase in ("组件消费语义 token", "刻意差异", "一次性结构", "API / 变体", "可达性", "保留 / 合并 / 扩展 / 退役"):
+            self.assertIn(phrase, self.TEXT)
+
+    def test_audit_and_migration(self) -> None:
+        for phrase in ("UI_AUDIT.md", "文件与行号", "使用次数", "代表页面", "清理旧实现", "批次与风险"):
+            self.assertIn(phrase, self.TEXT)
+
+    def test_native_verification_and_done(self) -> None:
+        for phrase in ("typecheck、lint、test、build", "scripts/contrast.py", "scripts/check_page.py", "evidence.md", "audit` 完成只要求报告"):
+            self.assertIn(phrase, self.TEXT)
 
 
 class RulesTest(unittest.TestCase):
