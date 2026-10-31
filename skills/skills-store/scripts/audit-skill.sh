@@ -31,9 +31,11 @@ PATTERNS=(
   # 真实越狱措辞仍命中，no restrictions 分支不受影响。
   # jailbreak_role 的 act as 分支加词边界：archify 等含 "artifact as ..." /
   # "same default-canvas contract as lifecycle" 的设计契约注释/测试描述属自然
-  # 英语 "as" 从句，子串命中 "act as" 是误报。词边界不影响真实越狱短语
-  # "act as a DAN"、"act as an unrestricted AI"。
-  "jailbreak_role|critical|(?i)(you are now|\bact as\b|pretend to be|DAN mode|jailbreak|no restrictions|without (any )?limit(?!ation))"
+  # 英语 "as" 从句，子串命中 "act as" 是误报。
+  # act as 还要求宾语是角色名词：设计文案里 "white light act as the scene
+  # changes" / "cards that act as site controls" 是自然英语，不是角色扮演；
+  # 真实越狱短语 "act as a DAN"、"act as an unrestricted AI" 仍命中。
+  "jailbreak_role|critical|(?i)(you are now|\bact as\s+(?:(?:an?|the)\s+)?(?:dan|ai\b|assistant|agent|admin(?:istrator)?|root|system|model|persona|character|god|expert|developer|jailbroken|unrestricted|evil|human|user|person)\b|pretend to be|DAN mode|jailbreak|no restrictions|without (any )?limit(?!ation))"
   # bypass_approval 的 disable 分支允许 disables/disabled 变体 + 词边界，确保前瞻
   # 从动词后空白开始匹配。限定语 "only ..."（only for root / only when / only if /
   # explicit opt-in 等）说明前置条件而非无条件 bypass，跳过。
@@ -137,6 +139,15 @@ scan_text_file() {
       case "$name" in
         skip_hooks | force_push | sudo_usage | modify_git_config | global_shell_rc | browser_session)
           if echo "$line" | grep -qiP '(不要|禁止|不记录|avoid|never|do not|don'\''t|不得|不可|warn|警告)' 2>/dev/null; then
+            continue
+          fi
+          ;;
+        bypass_approval)
+          # 否定句（"does not disable the sandbox" / "never bypass approval"）是
+          # 声明本 skill 不越权，不是越权动作。仅看动词前的否定词：
+          # "disables the sandbox without any approval" 这类真越权是动词在前、
+          # "without" 在后，不受豁免。
+          if echo "$line" | grep -qiP '(not|never|no longer|cannot)\s+(\S+\s+){0,5}(disable[sd]?|bypass|skip|turn off)' 2>/dev/null; then
             continue
           fi
           ;;
