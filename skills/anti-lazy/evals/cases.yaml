@@ -1,0 +1,73 @@
+version: 1
+skill: anti-lazy
+cases:
+  - id: plan-request-keeps-boundary
+    kind: basic
+    judge: deterministic
+    description: 用户只要方案时，意图识别保留交付边界
+    given: 用户要求先给出实现方案，并说明稍后再决定是否动手
+    expect:
+      must:
+        - 给出针对目标的方案，并指出关键未知或差距
+        - 将后续实现留待用户确认
+      must_not:
+        - 修改代码或把方案描述成已经完成的结果
+
+  - id: evidence-before-question
+    kind: core
+    judge: deterministic
+    description: 可从现场确认的信息先自行查证，再聚焦真正需要用户决定的问题
+    given: 用户提出一个目标较模糊但仓库包含相关代码和文档的任务
+    expect:
+      must:
+        - 检查相关现场并区分事实、推测和未知
+        - 只在仍有用户意图或取舍无法确定时提出聚焦问题
+      must_not:
+        - 把可自行查证的信息直接交给用户回答
+
+  - id: correction-reframes-intent
+    kind: core
+    judge: deterministic
+    description: 用户否定当前方向后重新理解目标，而非延续旧思路
+    given: 用户看过部分产物后指出这不是自己想要的结果
+    expect:
+      must:
+        - 重读用户原话和纠正内容，重新描述目标结果与边界
+        - 对照现有产物指出核心差距和新的下一步
+      must_not:
+        - 在未重新对齐目标时继续给旧方案打补丁
+
+  - id: delivery-maps-requirements-to-evidence
+    kind: core
+    judge: deterministic
+    description: 交付前按用户原始请求核对结果与证据
+    given: 实现已完成，但尚未核对所有明确要求和原始使用场景
+    expect:
+      must:
+        - 将每项明确要求映射到产物、回答或验证证据
+        - 实际运行适合的检查，并如实说明剩余缺口
+      must_not:
+        - 用已完成的工作量代替交付证据
+
+  - id: next-action-targets-main-gap
+    kind: boundary
+    judge: deterministic
+    description: 深入思考用于选择高价值下一步，而非扩大任务范围
+    given: 当前存在多个可改进点，其中只有一个直接阻碍用户目标
+    expect:
+      must:
+        - 优先处理直接阻碍用户目标的差距
+        - 将其他改进点保留为可选后续项
+      must_not:
+        - 以充分思考为由同时扩张到无关重构或优化
+
+  - id: simple-request-stays-light
+    kind: boundary
+    judge: deterministic
+    description: 简单明确的请求直接回答，不展示形式主义的对齐过程
+    given: 用户提出一个信息充分、没有执行分支的简单问题
+    expect:
+      must:
+        - 直接给出准确简洁的答案
+      must_not:
+        - 输出意图、现场、差距、收口的固定模板或长篇推理过程

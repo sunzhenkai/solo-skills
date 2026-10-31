@@ -1,0 +1,200 @@
+diff --git a/README.md b/README.md
+index 4779b19..057e112 100644
+--- a/README.md
++++ b/README.md
+@@ -11,6 +11,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、
+ | `taskrail` | **任务轨道（唯一编排入口）**：按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；自动规划切片与 `subtasks/`，按依赖推进并在父任务做集成验收；direct / OpenSpec、human / goal 相互独立；workspace 台账可恢复，统一验证、总结知识并归档 |
+ | `taskflow` | direct / OpenSpec 两种执行适配器共用 workspace 多仓 git worktree 隔离；OpenSpec 子 change 按依赖滚动展开、逐片提交，driver 归档后仍回 taskrail 验收 |
+ | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
++| `anti-lazy` | 意图对齐与差距检查：用提示引导模型核实现场、选择关键下一步并按证据收口 |
+ 
+ ### 跨 agent 委派
+ 
+diff --git a/skills/anti-lazy/SKILL.md b/skills/anti-lazy/SKILL.md
+new file mode 100644
+index 0000000..8c26e5b
+--- /dev/null
++++ b/skills/anti-lazy/SKILL.md
+@@ -0,0 +1,52 @@
++---
++id: anti-lazy
++name: anti-lazy
++description: 意图对齐与差距检查：在非琐碎任务开始、方向漂移、用户纠正或交付前，重新理解用户目标，核实现场证据，找到最值得消除的缺口；用户指出“偷懒”“没想全”“不是我要的”时使用。
++---
++
++# Anti Lazy
++
++把完成感暂时放到一边，重新看向用户、现场和差距。多想一层，是为了选对下一步；多找一条证据，是为了减少关键不确定性。
++
++轻任务直接推进；复杂任务在动手、转向和交付前，让下面的问题在内部过一遍。根因排查的证据定级与假设验证交给 `trouble-grill`。
++
++## 意图｜用户想推进什么？
++
++重读用户最新请求，也回看最初目标。分清他想要的结果、明确约束和验收画面。
++
++- 字面请求背后，用户正在推进哪件事？
++- 用户说「对了」时，眼前会出现什么结果？
++- 他要的是方案、实现、诊断，还是决策依据？
++- 哪些边界是用户亲口划下的？
++
++用户纠正时，让新的意图覆盖旧思路。
++
++## 现场｜现在真实走到哪里？
++
++靠近代码、文件、日志、运行结果或现有产物，让证据描述现状。把事实、推测和未知分开。
++
++- 现场能回答的，先让现场回答。
++- 最近一步真正改变了什么？
++- 哪个关键判断还缺一条直接证据？
++- 哪件事只有用户能定？
++
++## 差距｜距离「对了」还差什么？
++
++把意图与现状并排放置，寻找未回应的要求、偏离的目标、缺失的产物和验证。
++
++- 如果用户此刻说「不是这个」，他最可能指向哪里？
++- 方案、产物、验证，现在实际拥有的是哪一种？
++- 当前动作是在消除核心差距，还是只在增加产出？
++- 现在消除哪个差距，最能推进用户意图？
++
++把下一步收敛到最有信息或推进价值的一个动作。
++
++## 收口｜凭什么可以交付？
++
++回到用户最新请求，让每项明确要求指向产物、回答或证据。用用户的原始场景检查交付，也检查实际完成的结果。
++
++- 用户要的结果已经出现在哪里？
++- 哪些检查实际运行过，结果是什么？
++- 哪个剩余缺口需要随交付一起说明？
++
++交付结论、证据和必要的差距；内部思考自由展开，外在表达保持简洁。
+diff --git a/skills/anti-lazy/tests/test_anti_lazy_contract.py b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+new file mode 100644
+index 0000000..85e857b
+--- /dev/null
++++ b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+@@ -0,0 +1,45 @@
++"""anti-lazy 文本契约测试：锁定意图对齐、现场证据、差距选择与交付收口。"""
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++
++
++class AntiLazyContractTest(unittest.TestCase):
++    def test_model_invocation_triggers_cover_task_lifecycle(self) -> None:
++        self.assertIn("description: 意图对齐与差距检查", SKILL)
++        for trigger in ("任务开始", "方向漂移", "用户纠正", "交付前"):
++            self.assertIn(trigger, SKILL)
++        self.assertNotIn("disable-model-invocation: true", SKILL)
++
++    def test_intent_preserves_user_result_and_boundaries(self) -> None:
++        self.assertIn("## 意图｜用户想推进什么？", SKILL)
++        self.assertIn("重读用户最新请求，也回看最初目标", SKILL)
++        self.assertIn("他要的是方案、实现、诊断，还是决策依据？", SKILL)
++        self.assertIn("哪些边界是用户亲口划下的？", SKILL)
++
++    def test_current_state_is_grounded_in_evidence(self) -> None:
++        self.assertIn("## 现场｜现在真实走到哪里？", SKILL)
++        self.assertIn("让证据描述现状", SKILL)
++        self.assertIn("把事实、推测和未知分开", SKILL)
++        self.assertIn("现场能回答的，先让现场回答", SKILL)
++
++    def test_gap_drives_one_valuable_next_action(self) -> None:
++        self.assertIn("## 差距｜距离「对了」还差什么？", SKILL)
++        self.assertIn("把意图与现状并排放置", SKILL)
++        self.assertIn("现在消除哪个差距，最能推进用户意图？", SKILL)
++        self.assertIn("把下一步收敛到最有信息或推进价值的一个动作", SKILL)
++
++    def test_delivery_maps_original_request_to_evidence(self) -> None:
++        self.assertIn("## 收口｜凭什么可以交付？", SKILL)
++        self.assertIn("让每项明确要求指向产物、回答或证据", SKILL)
++        self.assertIn("用用户的原始场景检查交付", SKILL)
++        self.assertIn("哪些检查实际运行过，结果是什么？", SKILL)
++        self.assertIn("外在表达保持简洁", SKILL)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/skills/anti-lazy/evals/cases.yaml b/skills/anti-lazy/evals/cases.yaml
+new file mode 100644
+index 0000000..62d7b97
+--- /dev/null
++++ b/skills/anti-lazy/evals/cases.yaml
+@@ -0,0 +1,73 @@
++version: 1
++skill: anti-lazy
++cases:
++  - id: plan-request-keeps-boundary
++    kind: basic
++    judge: deterministic
++    description: 用户只要方案时，意图识别保留交付边界
++    given: 用户要求先给出实现方案，并说明稍后再决定是否动手
++    expect:
++      must:
++        - 给出针对目标的方案，并指出关键未知或差距
++        - 将后续实现留待用户确认
++      must_not:
++        - 修改代码或把方案描述成已经完成的结果
++
++  - id: evidence-before-question
++    kind: core
++    judge: deterministic
++    description: 可从现场确认的信息先自行查证，再聚焦真正需要用户决定的问题
++    given: 用户提出一个目标较模糊但仓库包含相关代码和文档的任务
++    expect:
++      must:
++        - 检查相关现场并区分事实、推测和未知
++        - 只在仍有用户意图或取舍无法确定时提出聚焦问题
++      must_not:
++        - 把可自行查证的信息直接交给用户回答
++
++  - id: correction-reframes-intent
++    kind: core
++    judge: deterministic
++    description: 用户否定当前方向后重新理解目标，而非延续旧思路
++    given: 用户看过部分产物后指出这不是自己想要的结果
++    expect:
++      must:
++        - 重读用户原话和纠正内容，重新描述目标结果与边界
++        - 对照现有产物指出核心差距和新的下一步
++      must_not:
++        - 在未重新对齐目标时继续给旧方案打补丁
++
++  - id: delivery-maps-requirements-to-evidence
++    kind: core
++    judge: deterministic
++    description: 交付前按用户原始请求核对结果与证据
++    given: 实现已完成，但尚未核对所有明确要求和原始使用场景
++    expect:
++      must:
++        - 将每项明确要求映射到产物、回答或验证证据
++        - 实际运行适合的检查，并如实说明剩余缺口
++      must_not:
++        - 用已完成的工作量代替交付证据
++
++  - id: next-action-targets-main-gap
++    kind: boundary
++    judge: deterministic
++    description: 深入思考用于选择高价值下一步，而非扩大任务范围
++    given: 当前存在多个可改进点，其中只有一个直接阻碍用户目标
++    expect:
++      must:
++        - 优先处理直接阻碍用户目标的差距
++        - 将其他改进点保留为可选后续项
++      must_not:
++        - 以充分思考为由同时扩张到无关重构或优化
++
++  - id: simple-request-stays-light
++    kind: boundary
++    judge: deterministic
++    description: 简单明确的请求直接回答，不展示形式主义的对齐过程
++    given: 用户提出一个信息充分、没有执行分支的简单问题
++    expect:
++      must:
++        - 直接给出准确简洁的答案
++      must_not:
++        - 输出意图、现场、差距、收口的固定模板或长篇推理过程
