@@ -1,7 +1,7 @@
 ---
 id: pretty-ui
 name: pretty-ui
-description: 构建好看的界面：定设计方向、建设计体系（色阶、字阶、间距 token）、做页面或组件、看真实截图打磨与评审，或把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、嫌界面不好看、要 UI 评审、要配色或设计规范、要网页阅读页时使用。
+description: 构建好看的界面：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、嫌界面不好看、要 UI 评审、设计规范、token / 组件统一、UI 架构优化、网页阅读页时使用。
 ---
 
 # Pretty UI
@@ -23,20 +23,20 @@ description: 构建好看的界面：定设计方向、建设计体系（色阶�
 | 新界面、整体改版、照参考图还原 | build | 走下方主流程；照图还原时参考图就是方向，同视口截图并排比到位 |
 | 已有界面不好看、要优化 | refine | 先截图诊断出带规则号的问题，按扫查顺序修，沿用既有体系，交付前后对比 |
 | 只要评审 | review | 只读，不改文件；按 [critique.md](references/critique.md) 出问题清单 |
-| 配色、设计规范、项目还没有设计系统 | system | 按 [system.md](references/system.md) 生成刻度、校验对比度，产出 `tokens.css`、`DESIGN.md`、`preview.html` |
+| 设计系统、工程化检查、token / 组件统一、UI 架构优化 | system | token 按 [system.md](references/system.md)；工程化按 [engineering.md](references/engineering.md) 盘点、收敛、迁移与验证 |
 | 把文件、报告、方案做成浏览器阅读页 | page | 按 [page.md](references/page.md) 从模板起手落盘，写轻量方向卡 |
 
-意图混合时按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。多角色、按岗位的评审走 role-based-reviewer。
+意图混合时按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。脚手架先 project-init；多角色、按岗位的评审走 role-based-reviewer。
 
 ## build 主流程
 
 每步做到“完成”所写的程度再进下一步。
 
 1. **探测**：技术栈、已有 token / 组件库 / 品牌规范、暗色模式、交付物形态。完成：设计说明里列出沿用什么、缺什么。
-2. **简报**：用户、主任务、真实内容、设备；内容排成主 / 次 / 辅，动作排成一个主操作、几个次要、若干辅助。完成：主任务和主操作各一句，写进设计说明或文件头注释。
+2. **简报**：用户、主任务、真实内容、设备；内容排成主 / 次 / 辅，动作排成一个主操作、几个次要、若干辅助。完成：主任务和主操作各一句，目标视口按 evidence.md 选定，写进设计说明或文件头注释。
 3. **方向**（未定才做）：按 [direction.md](references/direction.md) 自选一个方向，写方向卡和理由，直接说决定、接着做。用户给了品牌、参考图或说清了风格，方向即定，只补方向卡缺的栏；用户点名要多个方案时才出三个候选。完成：方向卡各栏是具体选择，过了两遍法。
 4. **体系**：按 system.md 取值；新色阶用 `scripts/palette.py` 生成，文字与背景的配对用 `scripts/contrast.py` 校验。完成：真实出现的配对都达标。
-5. **构建**：先做一页代表页或一条关键流程，一次写出，再按“灰度下的层级 → 间距与分组 → 行长与节奏 → 色彩 → 深度 → 收尾”的顺序自查。空、加载、出错状态和像真的数据随功能一起做。完成：代表页能在两个视口打开。
+5. **构建**：先做一页代表页或一条关键流程，一次写出，再按“灰度下的层级 → 间距与分组 → 行长与节奏 → 色彩 → 深度 → 收尾”的顺序自查。空、加载、出错状态和像真的数据随功能一起做。完成：代表页能在目标视口打开。
 6. **看图**：按 [evidence.md](references/evidence.md) 截基础档、量测；修掉重叠、裁切、溢出和孤字。完成：量测无越界，`check_page.py` 无报错。
 7. **批评**：新界面和整体改版派隔离评审，制作者只做减法、眯眼看和处理检查结果；不派评审时自己按 rules.md 完整扫查。怎么改、何时停按 critique.md「迭代与停止」，那一节是唯一标准。
 
@@ -61,7 +61,7 @@ page 模式、build 轻量、上游计划里的“视觉方向”用它：北极
 
 ## 看图与确认
 
-- 截图档位、工具与量测按 evidence.md：基础档是桌面 1280 与手机 375 各截首屏和整页。都截不了图时，结论标“未渲染验证”，问题标 `code-only`，交付里如实写没看过画面。
+- 截图与量测按 evidence.md：响应式验桌面 1280 / 手机 375，首轮首屏、交付整页。都截不了图时，结论标“未渲染验证”，问题标 `code-only`，交付里如实写没看过画面。
 - 生成的静态页面跑 `python3 scripts/check_page.py <路径>`（脚本路径相对本 skill 目录）：报错项修好再交，提示项逐条改掉或在交付说明里写理由。
 - **goal 模式或无人值守**：不停下等确认；隔离评审者（另一个模型）对照参照页看改前改后截图下结论，按结论自己迭代。
 - **human 模式**（独立使用默认）：评审过后把改前改后截图交给用户，用户说可以才算完成。
@@ -76,7 +76,7 @@ page 模式、build 轻量、上游计划里的“视觉方向”用它：北极
 | 文件 | 何时读 |
 | --- | --- |
 | [references/direction.md](references/direction.md) | build 第 3 步写完整方向卡；用户点名要多个方案 |
-| [references/system.md](references/system.md) | system 模式；build 的体系步骤；补 token |
+| [references/system.md](references/system.md) / [engineering.md](references/engineering.md) | system 模式；build 的体系步骤；补 token；工程化检查 |
 | [references/evidence.md](references/evidence.md) | 看图：截图档位、打开方式、量测脚本 |
 | [references/rules.md](references/rules.md) | refine、review；不派隔离评审时的自查；评审者扫查 |
 | [references/critique.md](references/critique.md) | 自查、派隔离评审、写问题清单、迭代与停止 |

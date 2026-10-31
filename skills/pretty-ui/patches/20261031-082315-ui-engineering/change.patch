@@ -1,0 +1,270 @@
+diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
+index d34fc93..968009e 100644
+--- a/skills/pretty-ui/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: pretty-ui
+ name: pretty-ui
+-description: 构建好看的界面：定设计方向、建设计体系（色阶、字阶、间距 token）、做页面或组件、看真实截图打磨与评审，或把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、嫌界面不好看、要 UI 评审、要配色或设计规范、要网页阅读页时使用。
++description: 构建好看的界面：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、嫌界面不好看、要 UI 评审、设计规范、token / 组件统一、UI 架构优化、网页阅读页时使用。
+ ---
+ 
+ # Pretty UI
+@@ -23,10 +23,10 @@ description: 构建好看的界面：定设计方向、建设计体系（色阶
+ | 新界面、整体改版、照参考图还原 | build | 走下方主流程；照图还原时参考图就是方向，同视口截图并排比到位 |
+ | 已有界面不好看、要优化 | refine | 先截图诊断出带规则号的问题，按扫查顺序修，沿用既有体系，交付前后对比 |
+ | 只要评审 | review | 只读，不改文件；按 [critique.md](references/critique.md) 出问题清单 |
+-| 配色、设计规范、项目还没有设计系统 | system | 按 [system.md](references/system.md) 生成刻度、校验对比度，产出 `tokens.css`、`DESIGN.md`、`preview.html` |
++| 设计系统、工程化检查、token / 组件统一、UI 架构优化 | system | token 按 [system.md](references/system.md)；工程化按 [engineering.md](references/engineering.md) 盘点、收敛、迁移与验证 |
+ | 把文件、报告、方案做成浏览器阅读页 | page | 按 [page.md](references/page.md) 从模板起手落盘，写轻量方向卡 |
+ 
+-意图混合时按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。多角色、按岗位的评审走 role-based-reviewer。
++意图混合时按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。脚手架先 project-init；多角色、按岗位的评审走 role-based-reviewer。
+ 
+ ## build 主流程
+ 
+@@ -61,7 +61,7 @@ page 模式、build 轻量、上游计划里的“视觉方向”用它：北极
+ 
+ ## 看图与确认
+ 
+-- 截图档位、目标视口、工具与量测按 evidence.md：响应式页面至少验桌面 1280 与手机 375，首轮截首屏，交付前补整页。都截不了图时，结论标“未渲染验证”，问题标 `code-only`，交付里如实写没看过画面。
++- 截图与量测按 evidence.md：响应式验桌面 1280 / 手机 375，首轮首屏、交付整页。都截不了图时，结论标“未渲染验证”，问题标 `code-only`，交付里如实写没看过画面。
+ - 生成的静态页面跑 `python3 scripts/check_page.py <路径>`（脚本路径相对本 skill 目录）：报错项修好再交，提示项逐条改掉或在交付说明里写理由。
+ - **goal 模式或无人值守**：不停下等确认；隔离评审者（另一个模型）对照参照页看改前改后截图下结论，按结论自己迭代。
+ - **human 模式**（独立使用默认）：评审过后把改前改后截图交给用户，用户说可以才算完成。
+@@ -76,7 +76,7 @@ page 模式、build 轻量、上游计划里的“视觉方向”用它：北极
+ | 文件 | 何时读 |
+ | --- | --- |
+ | [references/direction.md](references/direction.md) | build 第 3 步写完整方向卡；用户点名要多个方案 |
+-| [references/system.md](references/system.md) | system 模式；build 的体系步骤；补 token |
++| [references/system.md](references/system.md) / [engineering.md](references/engineering.md) | system 模式；build 的体系步骤；补 token；工程化检查 |
+ | [references/evidence.md](references/evidence.md) | 看图：截图档位、打开方式、量测脚本 |
+ | [references/rules.md](references/rules.md) | refine、review；不派隔离评审时的自查；评审者扫查 |
+ | [references/critique.md](references/critique.md) | 自查、派隔离评审、写问题清单、迭代与停止 |
+diff --git a/skills/pretty-ui/evals/cases.yaml b/skills/pretty-ui/evals/cases.yaml
+index 0f8834b..ad4b231 100644
+--- a/skills/pretty-ui/evals/cases.yaml
++++ b/skills/pretty-ui/evals/cases.yaml
+@@ -247,6 +247,64 @@ cases:
+         - 组件直接引用色相名而不是语义 token
+         - 停下问用户主色、调性或是否要暗色模式
+ 
++  - id: engineering-init-reuses-stack
++    kind: core
++    judge: llm
++    description: 初建项目沿用现有栈并只补当前所需组件
++    given: 前端空壳已有组件库、token 骨架和一个代表页面，要求补全 UI 工程化体系
++    expect:
++      must:
++        - 沿用现有技术栈、组件库和命名，补齐语义 token 与当前组件契约
++        - 用项目已有 Storybook 或 preview 覆盖组件变体和真实需要的状态
++      must_not:
++        - 更换框架、另装一套组件库或一次生成整套组件
++
++  - id: engineering-audit-read-only
++    kind: core
++    judge: llm
++    description: 工程化审计只读产品实现并给出可执行迁移清单
++    given: 已有项目存在三份按钮实现和散落色值，用户要求只检查并落盘审计报告
++    expect:
++      must:
++        - 产品代码、依赖和配置保持不变，只写 UI_AUDIT.md
++        - 每项 P0/P1 含文件行号、使用次数、保留/合并/扩展/退役决定、批次与验证
++      must_not:
++        - 直接合并组件或顺便 redesign 页面
++
++  - id: engineering-migration-vertical-slice
++    kind: core
++    judge: llm
++    description: 组件统一先迁移代表页面再扩大范围
++    given: 用户确认统一输入组件并迁移各页面
++    expect:
++      must:
++        - 按语义 token、基础组件、代表页面的顺序先跑通一个切片
++        - 代表页验证通过后分批迁移调用方，最后清理旧实现
++      must_not:
++        - 一次性全量替换后保留新旧两套输入组件
++
++  - id: engineering-intentional-difference-kept
++    kind: boundary
++    judge: llm
++    description: 有产品依据的差异不当作不一致
++    given: 审计发现营销页主按钮与后台按钮使用不同形状，设计规范明确允许
++    expect:
++      must:
++        - 作为保留例外记录位置、理由和适用边界
++      must_not:
++        - 为组件数量一致而强制合并两种按钮
++
++  - id: engineering-no-premature-abstraction
++    kind: boundary
++    judge: llm
++    description: 一次性结构不因局部相似而抽象成共享组件
++    given: 一个只在落地页出现的主视觉与共享卡片有部分相似样式
++    expect:
++      must:
++        - 主视觉留在页面，仅复用合适的语义 token 并记录决定
++      must_not:
++        - 新建只有单一调用方的通用主视觉卡片组件
++
+   - id: page-default-output-root
+     kind: basic
+     judge: deterministic
+diff --git a/skills/pretty-ui/references/engineering.md b/skills/pretty-ui/references/engineering.md
+new file mode 100644
+index 0000000..f7d4f42
+--- /dev/null
++++ b/skills/pretty-ui/references/engineering.md
+@@ -0,0 +1,89 @@
++# UI 工程化（token 与组件）
++
++[pretty-ui](../SKILL.md) 的 system 工程化分支读本页：项目初建时补齐 UI 体系，已有项目架构优化时收敛 token 与组件。目标减少同职责实现与样式取值漂移，不让所有页面失去刻意差异。
++
++## 1. 分支与边界
++
++- `init`：项目已有空壳、技术栈或目录约定，设计体系尚未完整。沿用现有栈、组件库和命名，补齐语义 token、当前需要的组件契约与证据页。
++- `audit`：已有实质 UI 源码，要求工程化检查或架构优化。只读产品代码、依赖与配置，报告直接给出；用户要求落盘时写 `UI_AUDIT.md`。用户明确要求统一、迁移或实施后才改实现。
++- 脚手架、框架选择与依赖初始化走 `project-init`；本分支不改技术栈、品牌与视觉方向，不新增依赖，优先使用项目已有组件和工具。
++
++开始先读 manifest、现有 `DESIGN.md`、token / 主题文件、组件目录、Storybook / preview 与代表页面。完成：分支、范围、沿用项与目标产物写清。
++
++## 2. 盘点
++
++按项目结构定向搜索，记录文件与行号、使用次数和代表调用方：
++
++- token：CSS 变量、Tailwind / 主题配置、色阶、字阶、间距、圆角、阴影、暗色映射。
++- 组件：共享组件、页面私有组件、组件库封装、直接写样式的页面区域。
++- 证据：组件故事、preview、页面测试、视觉回归和现有例外说明。
++
++同职责组件列出 API、variant、状态与页面采用情况；同职责样式列出实际取值和来源。完成：每项决定都能指到实现与调用方，不只凭文件名判断重复。
++
++## 3. Token 检查
++
++- 颜色、字号、间距、圆角、阴影有散落字面值时，判断它属于基础刻度、语义用途还是一次性例外。
++- 名称不同但职责相同的近似值合并；缺语义用途时补语义层，不再造一条相近色阶。
++- 组件消费语义 token，不直接引用基础色相或临时调亮、调暗；语义色只表达对应状态。
++- 暗色模式重新映射语义层；真实文字 / 背景配对按 system.md 校验对比度。
++- 有产品依据的例外保留并记录位置与理由，不把字面值数量机械压到零。
++
++token 的刻度、命名与生成规则按 [system.md](system.md)，本页不另建一套。
++
++## 4. 组件检查
++
++- 同职责多份实现：确定保留、合并、扩展或退役，页面绕过共享实现时一并列出。
++- API 分叉：统一同义的 variant、size 与状态命名；不同职责不为了复用而塞进一个组件。
++- 状态缺口：检查默认、悬停、聚焦、选中、禁用、加载、空、出错中该组件真实需要的状态。
++- 一致性：样式只消费语义 token；图标、焦点、点击区域和键盘行为沿用同一约定。
++- 抽象边界：只出现一次、职责独立的结构留在页面，不因为局部样式相似就新建共享组件。
++
++每个保留或新增的共享组件在 `DESIGN.md`、组件文档或项目既有位置写清契约：
++
++| 字段 | 内容 |
++| --- | --- |
++| 职责 | 解决什么 UI 任务，不承担什么 |
++| API / 变体 | props、variant、size 与命名来源 |
++| token | 消费的语义 token |
++| 状态 | 必须覆盖的交互与数据状态 |
++| 可达性 | 键盘、焦点、名称与点击区域 |
++| 示例 | 一个真实调用方或故事 |
++
++## 5. 决定与审计输出
++
++每个问题选一种决定：**保留 / 合并 / 扩展 / 退役**。刻意差异和一次性结构选保留并写理由；只有调用方证据支持时才合并或抽象。
++
++`audit` 报告及要求落盘的 `UI_AUDIT.md` 包含：
++
++| 字段 | 内容 |
++| --- | --- |
++| 编号与严重度 | P0：可用性、可达性或关键状态；P1：体系分叉与共享实现绕过；P2：文档、示例与轻微命名 |
++| 证据 | 文件与行号、使用次数、代表调用方 |
++| 现状与目标 | 当前实现、目标 token / 组件契约 |
++| 决定 | 保留、合并、扩展、退役及理由 |
++| 批次与风险 | 代表页或后续批次、影响页面、回归风险 |
++| 验证 | 项目原生检查、组件证据与页面截图 |
++
++报告同时列无问题的已覆盖范围、刻意保留的例外和未检查项。完成：每个 P0 / P1 都有证据、目标与验证方式，不用“建议统一”代替迁移决定。
++
++## 6. 实施顺序
++
++用户明确要求实施后，按以下顺序小批修改：
++
++1. **语义 token**：先建立映射，保留项目命名与刻意例外。
++2. **基础组件**：只改本次范围内重复或缺契约的共享组件。
++3. **代表页面**：先迁移一个覆盖主要变体与状态的页面，跑通验证。
++4. **批量迁移**：按使用次数与回归风险分批替换调用方。
++5. **清理旧实现**：调用方迁完后删除或退役旧路径，避免新旧两套长期并存。
++
++每批保持对外行为与公开 API 稳定；确需 breaking change 时先写明影响和迁移方式。完成：代表页通过后再扩大范围，每批都有可回退的独立改动。
++
++## 7. 验证与完成门
++
++优先运行项目已有的 typecheck、lint、test、build 与视觉回归；没有对应工具时在交付里写未覆盖项。再按产物补：
++
++- 真实颜色配对跑 `scripts/contrast.py`；静态 preview 跑 `scripts/check_page.py`。
++- Storybook 或 preview 覆盖本次组件的变体与状态；代表页面按 [evidence.md](evidence.md) 留改前改后证据。
++- 调用方搜索确认目标旧实现已无引用，保留例外仍能指到理由。
++
++`init` 完成：token、当前所需组件契约和证据页可使用，项目原生冒烟通过。实施完成：范围内 P0 / P1 已修或明确列为范围外，验证通过，旧实现按批次清理。`audit` 完成只要求报告达到第 5 节，不以修改产品代码为完成条件。
+diff --git a/skills/pretty-ui/references/system.md b/skills/pretty-ui/references/system.md
+index 1bb0bb0..bd07e66 100644
+--- a/skills/pretty-ui/references/system.md
++++ b/skills/pretty-ui/references/system.md
+@@ -1,6 +1,6 @@
+ # 设计体系（刻度与 token）
+ 
+-[pretty-ui](../SKILL.md) 的 system 模式、build 第 4 步、补 token 时读本页。体系的作用是把每一次取值变成“从刻度里挑”，而不是每次凭感觉；同一个页面里出现第三个相近却不同的间距值，就是缺刻度的信号。
++[pretty-ui](../SKILL.md) 的 system 模式、build 第 4 步、补 token 时读本页。体系的作用是把每一次取值变成“从刻度里挑”，而不是每次凭感觉；同一个页面里出现第三个相近却不同的间距值，就是缺刻度的信号。token 与组件统一的 init / audit、迁移与验证按 [engineering.md](engineering.md)。
+ 
+ ## 1. 先盘点，再补缺
+ 
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+index 0c2ef99..9979647 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -41,6 +41,9 @@ class SkillEntryTest(unittest.TestCase):
+             self.assertIn(mode, SKILL)
+         self.assertIn("只读，不改文件", SKILL)
+         self.assertIn("system 再 build", SKILL)
++        self.assertIn("工程化检查", SKILL)
++        self.assertIn("references/engineering.md", SKILL)
++        self.assertIn("脚手架先 project-init", SKILL)
+ 
+     def test_direction_decided_not_asked(self) -> None:
+         self.assertIn("自选一个方向，写方向卡和理由，直接说决定、接着做", SKILL)
+@@ -88,7 +91,7 @@ class SkillEntryTest(unittest.TestCase):
+         self.assertTrue(links)
+         for link in links:
+             self.assertTrue((ROOT / link).exists(), link)
+-        for name in ("direction.md", "system.md", "evidence.md", "rules.md", "critique.md", "page.md"):
++        for name in ("direction.md", "system.md", "engineering.md", "evidence.md", "rules.md", "critique.md", "page.md"):
+             self.assertIn(f"references/{name}", SKILL)
+         self.assertIn("assets/reading-page.html", SKILL)
+ 
+@@ -146,6 +149,26 @@ class SystemTest(unittest.TestCase):
+         self.assertIn("assets/reading-page.html", self.TEXT)
+ 
+ 
++class EngineeringTest(unittest.TestCase):
++    TEXT = ref("engineering.md")
++
++    def test_branches_and_boundary(self) -> None:
++        for phrase in ("`init`", "`audit`", "只读产品代码、依赖与配置", "project-init", "不新增依赖"):
++            self.assertIn(phrase, self.TEXT)
++
++    def test_token_and_component_checks(self) -> None:
++        for phrase in ("组件消费语义 token", "刻意差异", "一次性结构", "API / 变体", "可达性", "保留 / 合并 / 扩展 / 退役"):
++            self.assertIn(phrase, self.TEXT)
++
++    def test_audit_and_migration(self) -> None:
++        for phrase in ("UI_AUDIT.md", "文件与行号", "使用次数", "代表页面", "清理旧实现", "批次与风险"):
++            self.assertIn(phrase, self.TEXT)
++
++    def test_native_verification_and_done(self) -> None:
++        for phrase in ("typecheck、lint、test、build", "scripts/contrast.py", "scripts/check_page.py", "evidence.md", "audit` 完成只要求报告"):
++            self.assertIn(phrase, self.TEXT)
++
++
+ class RulesTest(unittest.TestCase):
+     TEXT = ref("rules.md")
+ 
