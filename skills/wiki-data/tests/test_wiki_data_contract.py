@@ -1,4 +1,4 @@
-"""llm-wiki：本地文档 wiki 的契约与边界。"""
+"""wiki-data：本地文档 wiki 的契约与边界。"""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ class ContractTest(unittest.TestCase):
         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
 
     def test_frontmatter_name_matches_directory(self) -> None:
-        self.assertIn("name: llm-wiki", self.skill)
-        self.assertEqual(ROOT.name, "llm-wiki")
+        self.assertIn("name: wiki-data", self.skill)
+        self.assertEqual(ROOT.name, "wiki-data")
 
     def test_reference_and_script_exist(self) -> None:
         for rel in (
@@ -59,6 +59,15 @@ class ContractTest(unittest.TestCase):
     def test_handoff_boundaries(self) -> None:
         self.assertIn("project-spec-mirror", self.skill)
         self.assertIn("code-explore", self.skill)
+        self.assertIn("用户明确要求查证原因时交给 `trouble-grill`", self.skill)
+
+    def test_trouble_grill_records_use_existing_page_types(self) -> None:
+        self.assertIn("用户明确要求归档 `trouble-grill` 记录时", self.ingest)
+        self.assertIn("wiki/sources/", self.ingest)
+        self.assertIn("wiki/synthesis/", self.ingest)
+        self.assertIn("只有 `confirmed` 假设可写成根因", self.ingest)
+        for field in ("锚点", "证据等级", "用户输入", "dead-end", "验证盲区", "回退条件"):
+            self.assertIn(field, self.ingest)
 
     def test_privacy_gate(self) -> None:
         self.assertIn("摄入前做隐私自查", self.skill)

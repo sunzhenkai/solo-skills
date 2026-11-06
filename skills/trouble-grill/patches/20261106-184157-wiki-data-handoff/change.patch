@@ -1,0 +1,43 @@
+diff --git a/skills/trouble-grill/SKILL.md b/skills/trouble-grill/SKILL.md
+index 11ec0b5..f773a0a 100644
+--- a/skills/trouble-grill/SKILL.md
++++ b/skills/trouble-grill/SKILL.md
+@@ -117,4 +117,6 @@ description: 根因排查时持续拷问 agent 自己，防止失焦、把假设
+ - 无任务台账 → 工作区已有存档约定（如 `archives/sessions/{date}/{slug}.md`）则循之；没有该约定时，落盘前先问用户放哪，不要在任意 cwd 造目录；
+ - 跨会话的偏好 / 已坐实结论 → 有持久记忆工具（如 MCP 记忆服务）则同步，没有则写回台账文件。
+ 
++用户明确要求把排查结果沉淀到知识 wiki 时，将上述持久化记录交给 `wiki-data` 的 `ingest`：保留锚点、证据等级、用户输入、路径（含 `dead-end`）、验证盲区与回退条件；只有 `confirmed` 可作为根因归档。未提出归档或没有 `wiki-data` 时，仍按上述位置落盘，排查流程不变。
++
+ **铁律**：被证伪或用户纠正的瞬间就落盘，不要攒到收尾。落盘时只记「证据 + 输入 + 路径」，不抄聊天记录。
+diff --git a/skills/trouble-grill/tests/test_trouble_grill_contract.py b/skills/trouble-grill/tests/test_trouble_grill_contract.py
+new file mode 100644
+index 0000000..d5acfc2
+--- /dev/null
++++ b/skills/trouble-grill/tests/test_trouble_grill_contract.py
+@@ -0,0 +1,26 @@
++"""trouble-grill：wiki-data 可选归档与独立落盘契约。"""
++
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++SKILL = (Path(__file__).resolve().parents[1] / "SKILL.md").read_text(encoding="utf-8")
++
++
++class WikiDataHandoffContract(unittest.TestCase):
++    def test_archive_is_explicit_and_preserves_evidence(self) -> None:
++        self.assertIn("用户明确要求把排查结果沉淀到知识 wiki 时", SKILL)
++        self.assertIn("`wiki-data` 的 `ingest`", SKILL)
++        for field in ("锚点", "证据等级", "用户输入", "dead-end", "验证盲区", "回退条件"):
++            self.assertIn(field, SKILL)
++        self.assertIn("只有 `confirmed` 可作为根因归档", SKILL)
++
++    def test_default_persistence_remains_independent(self) -> None:
++        self.assertIn("tasks/ongoing/{task-name}/TASK.md", SKILL)
++        self.assertIn("未提出归档或没有 `wiki-data` 时", SKILL)
++        self.assertIn("仍按上述位置落盘，排查流程不变", SKILL)
++
++
++if __name__ == "__main__":
++    unittest.main()

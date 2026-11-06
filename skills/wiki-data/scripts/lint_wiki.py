@@ -427,7 +427,7 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
         "",
         "# 内容目录",
         "",
-        "> 本文件由 llm-wiki 维护，请勿手改业务行。",
+        "> 本文件由 wiki-data 维护，请勿手改业务行。",
         "",
     ]
     for dirname, heading in INDEX_HEADINGS:

@@ -1,0 +1,168 @@
+diff --git a/skills/llm-wiki/agents/openai.yaml b/skills/llm-wiki/agents/openai.yaml
+deleted file mode 100644
+index eec07e7..0000000
+--- a/skills/llm-wiki/agents/openai.yaml
++++ /dev/null
+@@ -1,4 +0,0 @@
+-interface:
+-  display_name: "LLM Wiki"
+-  short_description: "用本地 Markdown 整理维护可累积知识 wiki，不依赖 wiki 服务"
+-  default_prompt: "用 $llm-wiki 把本地文档编进 typed wiki：guide 了解现状，init 建骨架，ingest 摄入，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
+diff --git a/skills/llm-wiki/SKILL.md b/skills/wiki-data/SKILL.md
+similarity index 93%
+rename from skills/llm-wiki/SKILL.md
+rename to skills/wiki-data/SKILL.md
+index 4b12a4a..35849de 100644
+--- a/skills/llm-wiki/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -1,10 +1,10 @@
+ ---
+-id: llm-wiki
+-name: llm-wiki
+-description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。
++id: wiki-data
++name: wiki-data
++description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 wiki-data 时使用。
+ ---
+ 
+-# LLM Wiki（本地文档）
++# Wiki Data（本地文档）
+ 
+ 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
+ 
+@@ -17,13 +17,14 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
+ - 不写软件项目 spec 镜像（交给 `project-spec-mirror`）。
+ - 不探索或修改业务源码（交给 `code-explore`）。
++- 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
+ - 不编辑 `raw/` 中的源材料。
+ - 不自动 commit / push / sync 安装。
+ - 工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
+ 
+ ## 阶段
+ 
+-用户点名 `{{slash:llm-wiki}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
++用户点名 `{{slash:wiki-data}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
+ 
+ | 阶段 | 何时 | 写入 | 做完的标志 |
+ |------|------|------|------------|
+diff --git a/skills/wiki-data/agents/openai.yaml b/skills/wiki-data/agents/openai.yaml
+new file mode 100644
+index 0000000..6ca7ad4
+--- /dev/null
++++ b/skills/wiki-data/agents/openai.yaml
+@@ -0,0 +1,4 @@
++interface:
++  display_name: "Wiki Data"
++  short_description: "用本地 Markdown 整理维护可累积知识 wiki，不依赖 wiki 服务"
++  default_prompt: "用 $wiki-data 把本地文档编进 typed wiki：guide 了解现状，init 建骨架，ingest 摄入，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
+diff --git a/skills/llm-wiki/references/ingest.md b/skills/wiki-data/references/ingest.md
+similarity index 84%
+rename from skills/llm-wiki/references/ingest.md
+rename to skills/wiki-data/references/ingest.md
+index 25048d6..7391e60 100644
+--- a/skills/llm-wiki/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -10,6 +10,14 @@
+ 
+ 大文件按章节或自然段分块，每块仍绑定同一来源。
+ 
++## 排查记录
++
++用户明确要求归档 `trouble-grill` 记录时，按本页流程摄入，保留锚点、证据等级、用户输入、路径（含 `dead-end`）、验证盲区与回退条件。
++
++- 整份排查记录先写 `wiki/sources/` 摘要；跨来源归纳时再写 `wiki/synthesis/`。
++- 只有 `confirmed` 假设可写成根因；其他等级保留为线索或开放问题。
++- 归档范围以用户确认的排查记录为准。
++
+ ## 步骤
+ 
+ 1. **读材料**，列出候选实体、概念、关系、主张。
+diff --git a/skills/llm-wiki/references/layout.md b/skills/wiki-data/references/layout.md
+similarity index 100%
+rename from skills/llm-wiki/references/layout.md
+rename to skills/wiki-data/references/layout.md
+diff --git a/skills/llm-wiki/references/lint.md b/skills/wiki-data/references/lint.md
+similarity index 100%
+rename from skills/llm-wiki/references/lint.md
+rename to skills/wiki-data/references/lint.md
+diff --git a/skills/llm-wiki/references/organize.md b/skills/wiki-data/references/organize.md
+similarity index 100%
+rename from skills/llm-wiki/references/organize.md
+rename to skills/wiki-data/references/organize.md
+diff --git a/skills/llm-wiki/references/page-types.md b/skills/wiki-data/references/page-types.md
+similarity index 100%
+rename from skills/llm-wiki/references/page-types.md
+rename to skills/wiki-data/references/page-types.md
+diff --git a/skills/llm-wiki/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+similarity index 99%
+rename from skills/llm-wiki/scripts/lint_wiki.py
+rename to skills/wiki-data/scripts/lint_wiki.py
+index c9aa516..362b35d 100755
+--- a/skills/llm-wiki/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -427,7 +427,7 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+         "",
+         "# 内容目录",
+         "",
+-        "> 本文件由 llm-wiki 维护，请勿手改业务行。",
++        "> 本文件由 wiki-data 维护，请勿手改业务行。",
+         "",
+     ]
+     for dirname, heading in INDEX_HEADINGS:
+diff --git a/skills/llm-wiki/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+similarity index 99%
+rename from skills/llm-wiki/tests/test_lint_wiki.py
+rename to skills/wiki-data/tests/test_lint_wiki.py
+index 3cf5d7c..8388b89 100644
+--- a/skills/llm-wiki/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -131,7 +131,7 @@ class LintWikiTest(unittest.TestCase):
+         index = (self.wiki / "index.md").read_text(encoding="utf-8")
+         self.assertIn("实体 (entities)", index)
+         self.assertIn("Northwind", index)
+-        self.assertIn("llm-wiki", index)
++        self.assertIn("wiki-data", index)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/skills/llm-wiki/tests/test_llm_wiki_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+similarity index 84%
+rename from skills/llm-wiki/tests/test_llm_wiki_contract.py
+rename to skills/wiki-data/tests/test_wiki_data_contract.py
+index 596d8e9..f8b92d0 100644
+--- a/skills/llm-wiki/tests/test_llm_wiki_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -1,4 +1,4 @@
+-"""llm-wiki：本地文档 wiki 的契约与边界。"""
++"""wiki-data：本地文档 wiki 的契约与边界。"""
+ 
+ from __future__ import annotations
+ 
+@@ -19,8 +19,8 @@ class ContractTest(unittest.TestCase):
+         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
+ 
+     def test_frontmatter_name_matches_directory(self) -> None:
+-        self.assertIn("name: llm-wiki", self.skill)
+-        self.assertEqual(ROOT.name, "llm-wiki")
++        self.assertIn("name: wiki-data", self.skill)
++        self.assertEqual(ROOT.name, "wiki-data")
+ 
+     def test_reference_and_script_exist(self) -> None:
+         for rel in (
+@@ -59,6 +59,15 @@ class ContractTest(unittest.TestCase):
+     def test_handoff_boundaries(self) -> None:
+         self.assertIn("project-spec-mirror", self.skill)
+         self.assertIn("code-explore", self.skill)
++        self.assertIn("用户明确要求查证原因时交给 `trouble-grill`", self.skill)
++
++    def test_trouble_grill_records_use_existing_page_types(self) -> None:
++        self.assertIn("用户明确要求归档 `trouble-grill` 记录时", self.ingest)
++        self.assertIn("wiki/sources/", self.ingest)
++        self.assertIn("wiki/synthesis/", self.ingest)
++        self.assertIn("只有 `confirmed` 假设可写成根因", self.ingest)
++        for field in ("锚点", "证据等级", "用户输入", "dead-end", "验证盲区", "回退条件"):
++            self.assertIn(field, self.ingest)
+ 
+     def test_privacy_gate(self) -> None:
+         self.assertIn("摄入前做隐私自查", self.skill)

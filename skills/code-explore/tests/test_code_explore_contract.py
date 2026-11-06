@@ -1,4 +1,4 @@
-"""code-explore 文本契约：只读边界、安全规则、运行时只读合规、llm-wiki 边界。"""
+"""code-explore 文本契约：只读边界、安全规则、运行时只读合规、wiki-data 边界。"""
 
 from __future__ import annotations
 
@@ -93,7 +93,7 @@ class RuntimeReadonlyCompliance(unittest.TestCase):
         self.assertIn("单次失败或单次用户纠正不足以改 skill", SKILL)
 
 
-class LlmWikiBoundary(unittest.TestCase):
+class WikiDataBoundary(unittest.TestCase):
     def test_boundary_declaration(self) -> None:
         self.assertIn("维护知识 wiki 本身", SKILL)
-        self.assertIn("已有 llm-wiki 时交给它", SKILL)
+        self.assertIn("已有 wiki-data 时交给它", SKILL)

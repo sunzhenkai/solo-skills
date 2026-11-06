@@ -131,7 +131,7 @@ class LintWikiTest(unittest.TestCase):
         index = (self.wiki / "index.md").read_text(encoding="utf-8")
         self.assertIn("实体 (entities)", index)
         self.assertIn("Northwind", index)
-        self.assertIn("llm-wiki", index)
+        self.assertIn("wiki-data", index)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 ---
-id: llm-wiki
-name: llm-wiki
-description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 llm-wiki 时使用。
+id: wiki-data
+name: wiki-data
+description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 wiki-data 时使用。
 ---
 
-# LLM Wiki（本地文档）
+# Wiki Data（本地文档）
 
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
 
@@ -17,13 +17,14 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入�
 - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
 - 不写软件项目 spec 镜像（交给 `project-spec-mirror`）。
 - 不探索或修改业务源码（交给 `code-explore`）。
+- 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
 - 不编辑 `raw/` 中的源材料。
 - 不自动 commit / push / sync 安装。
 - 工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
 
 ## 阶段
 
-用户点名 `{{slash:llm-wiki}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
+用户点名 `{{slash:wiki-data}}` 且首词命中下表时走该阶段；否则按意图推断，并用一行说明。写盘阶段在首次绑定前必须先 `guide` 或 `init`。
 
 | 阶段 | 何时 | 写入 | 做完的标志 |
 |------|------|------|------------|

@@ -1,0 +1,33 @@
+diff --git a/skills/code-explore/SKILL.md b/skills/code-explore/SKILL.md
+index 4f4531c..7eadd50 100644
+--- a/skills/code-explore/SKILL.md
++++ b/skills/code-explore/SKILL.md
+@@ -32,7 +32,7 @@ description: 用于回答代码问题、追踪调用链、评估变更影响以
+ 
+ 如果请求在两个阶段之间存在歧义，应提供两种解释，而不是悄悄执行写入操作。如果用户要求实现或编辑代码，则停在探索边界，并交接给仓库的实现工作流。
+ 
+-维护知识 wiki 本身（typed 页面重组、lint、健康检查）不在本 skill 范围：已有 llm-wiki 时交给它，本 skill 只把经过验证的探索结论写进项目知识库。
++维护知识 wiki 本身（typed 页面重组、lint、健康检查）不在本 skill 范围：已有 wiki-data 时交给它，本 skill 只把经过验证的探索结论写进项目知识库。
+ 
+ ## 证据与安全规则
+ 
+diff --git a/skills/code-explore/tests/test_code_explore_contract.py b/skills/code-explore/tests/test_code_explore_contract.py
+index c0526a2..4e68e70 100644
+--- a/skills/code-explore/tests/test_code_explore_contract.py
++++ b/skills/code-explore/tests/test_code_explore_contract.py
+@@ -1,4 +1,4 @@
+-"""code-explore 文本契约：只读边界、安全规则、运行时只读合规、llm-wiki 边界。"""
++"""code-explore 文本契约：只读边界、安全规则、运行时只读合规、wiki-data 边界。"""
+ 
+ from __future__ import annotations
+ 
+@@ -93,7 +93,7 @@ class RuntimeReadonlyCompliance(unittest.TestCase):
+         self.assertIn("单次失败或单次用户纠正不足以改 skill", SKILL)
+ 
+ 
+-class LlmWikiBoundary(unittest.TestCase):
++class WikiDataBoundary(unittest.TestCase):
+     def test_boundary_declaration(self) -> None:
+         self.assertIn("维护知识 wiki 本身", SKILL)
+-        self.assertIn("已有 llm-wiki 时交给它", SKILL)
++        self.assertIn("已有 wiki-data 时交给它", SKILL)
