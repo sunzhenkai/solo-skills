@@ -1,0 +1,488 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 5e493ee..5e56791 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: wiki-data
+ name: wiki-data
+-description: 在本地 Markdown 工作区维护可累积、带置信度与时效的知识 wiki：摄入源文档成 typed 页面、按引用回答、总结经验和踩坑、记录业务台账、重组结构并做健康检查。用户要求整理知识、维护 wiki、ingest 本地文档、查询或复用已有知识、相似任务前查经验、lint/重组知识库，或点名 wiki-data 时使用。
++description: 在本地 Markdown 工作区维护可累积、带置信度与时效的知识 wiki：摄入源文档成 typed 页面、按引用回答、总结经验和踩坑、记录业务台账、归档或重开页面、重组结构并做健康检查。用户要求整理知识、维护 wiki、ingest 本地文档、查询或复用已有知识、相似任务前查经验、archive/reopen 页面、lint/重组知识库，或点名 wiki-data 时使用。
+ ---
+ 
+ # Wiki Data（本地文档）
+@@ -32,6 +32,8 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ | `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
+ | `ingest` | 把文件、粘贴文本或对话编进 wiki，总结经验或更新台账 | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
+ | `query` | 问 wiki 里已有的知识，或相似任务执行前查经验 | 默认只读；归档问答需确认 | 回答逐条带出处、置信度与时效，未覆盖处明说「wiki 尚未覆盖」 |
++| `archive` | 整页被替代或不再适用 | 先给计划，确认后原地标记 | 历史与链接保留、索引归入已归档、lint 无 error、log 已追加 |
++| `reopen` | 恢复已归档页面 | 核实后解除归档标记 | 当前主张已核实或降级、历史保留、索引与 log 已更新 |
+ | `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+ | `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
+ 
+@@ -57,7 +59,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 6. **业务台账与操作日志分离。** 业务对象的当前状态与历史写入 `wiki/ledgers/`，不混入 `wiki/log.md`。
+ 7. **系统页** `wiki/overview.md`、`wiki/index.md`、`wiki/log.md` 不可当业务页删除或移走。
+ 8. **声称必须可追溯** 到 `raw/`、`wiki/sources/` 或本轮用户提供的材料。没有证据就写「wiki 尚未覆盖」，不要编造。
+-9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、冲突与逾期内容不作为当前真理。
++9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、已归档、冲突与逾期内容不作为当前真理。
+ 10. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
+ 
+ ## 加载
+@@ -69,6 +71,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ | `guide` / `init` | [references/layout.md](references/layout.md) |
+ | `ingest` | [references/ingest.md](references/ingest.md)；写页时再读 [references/page-types.md](references/page-types.md) |
+ | `query` | [references/query.md](references/query.md)；归档到 `wiki/queries/` 时再读 page-types |
++| `archive` / `reopen` | [references/archive-reopen.md](references/archive-reopen.md)；改完读 [references/lint.md](references/lint.md) |
+ | `organize` | [references/organize.md](references/organize.md)；写页时再读 [references/page-types.md](references/page-types.md)；改完读 [references/lint.md](references/lint.md) |
+ | `lint` | [references/lint.md](references/lint.md) |
+ 
+@@ -97,6 +100,10 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ 进入后读 [references/query.md](references/query.md)。默认只读；用户要求归档时，先说明将写入 `wiki/queries/`，确认后再写。
+ 
++## `archive` / `reopen`
++
++进入后读 [references/archive-reopen.md](references/archive-reopen.md)。归档先给计划，确认后原地标记；重开前重新核实当前主张。改完跑 lint。
++
+ ## `organize`
+ 
+ 先给方案，确认前不改。进入后读 [references/organize.md](references/organize.md)；写页时再读 [references/page-types.md](references/page-types.md)。改完跑 lint。
+diff --git a/b/skills/wiki-data/references/archive-reopen.md b/skills/wiki-data/references/archive-reopen.md
+new file mode 100644
+index 0000000..7113a72
+--- /dev/null
++++ b/skills/wiki-data/references/archive-reopen.md
+@@ -0,0 +1,35 @@
++# archive 与 reopen
++
++原则：原地标记、保留历史、隔离当前查询、显式恢复。归档对象是整份业务页；单次问答保存仍走 `query`，新知识摄入仍走 `ingest`。
++
++## 边界
++
++- 页面保留原路径与 `type`，不建物理归档目录，既有链接继续有效。
++- `raw/`、系统页与既有历史保持原样；`wiki/log.md` 只追加。
++- `experience.status` 继续表示验证状态，`ledger.status` 继续表示业务状态；归档由独立字段表达。
++
++## archive
++
++1. **核对影响**：读目标页全文，检查入链、替代页、未决冲突与来源。归档原因可以是整页被替代或不再适用；替代页不是必需项。
++2. **展示计划**：列出目标页、原因、替代页（如有）、受影响入链和未决冲突，确认后再写。
++3. **原地标记**：frontmatter 写入：
++   ```yaml
++   archived_at: YYYY-MM-DD
++   archive_reason: 整页归档原因
++   superseded_by: "[[替代页面]]"  # 可选
++   ```
++   `archived_at` 存在即表示已归档。更新 `date`，保留 `title`、`type`、`created`、`sources`、`confidence` 与原有核实字段。
++4. **保留历史**：在正文「归档与重开记录」下追加日期、原因和替代页；已有该章节时追加，不覆盖旧记录。
++5. **处理入链**：活跃页仍可因历史追溯链接归档页，但须明确历史语义；作为当前依据的链接改指替代页或补充现行结论。
++6. **收尾**：回读页面，运行 `lint_wiki.py --write-index`，追加 `## [YYYY-MM-DD] archive | <页面与原因>`。
++
++完成门：元数据完整、历史与来源保留、索引已归入「已归档」、日志已追加、lint error 为 0；`archived_reference` warning 已处理或说明为有意保留的历史链接。
++
++## reopen
++
++1. 用户明确要求恢复后，读归档页全文、归档记录、替代页与相关入链，说明重开原因。
++2. 重新核实拟恢复的主张、来源和适用范围，按当前证据更新 `confidence`、`last_verified` 与必要的 `review_after`；未核实主张保持低置信度，不因重开自动成为当前事实。
++3. 在「归档与重开记录」追加重开日期、原因和核实结果；移除 frontmatter 的 `archived_at`、`archive_reason`、`superseded_by`，更新 `date`。历史记录继续保留。
++4. 回读页面，运行 `lint_wiki.py --write-index`，追加 `## [YYYY-MM-DD] reopen | <页面与原因>`。
++
++完成门：归档标记已解除、当前主张已重新核实或降级、历史记录完整、页面回到对应类型的当前索引、日志已追加、lint error 为 0。
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index d833541..95a6080 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -42,6 +42,8 @@ related: []
+ - `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
+ - `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页必须同时记录 `last_verified` 和 `review_after`。
+ - `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
++- `archived_at: YYYY-MM-DD` 存在即表示整页已归档，必须同时填写 `archive_reason`；`superseded_by: "[[替代页面]]"` 可选。三个字段只描述页面生命周期，与 experience 的验证状态、ledger 的业务状态正交。
++- 归档页保留原路径、类型、来源与正文历史；重开时移除上述归档字段，并在正文保留归档与重开记录。
+ 
+ ### 置信度定级
+ 
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 11945e0..ef18408 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -48,12 +48,13 @@
+ 
+ 1. **读材料**，列出候选实体、概念、经验、台账、关系与主张；从上下文摄入时按「上下文自动提取」覆盖全部候选类别。
+ 2. **范围与隐私**：超出 `purpose.md` 先告诉用户。发现凭据、个人隐私、内部主机名则停止写入明文，改用 `<REDACTED>` 或拒绝该段。
+-3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体）。读命中页，避免重复建页。
++3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体），同时发现活跃页与归档页。读命中页，避免重复建页；命中归档页时，在计划中说明是新建替代页、重开旧页还是仅追加历史来源，不直接把新事实合入归档页。
+ 4. **归档列表**（对用户可见，写盘前完成；复杂时先确认再写）：
+    - 每项的摘要、候选 `type` 与上下文证据
+    - 每项的 `confidence`、证据日期、`last_verified` 与易变内容的 `review_after`
+    - 新建哪些 typed 页
+    - 更新或合并哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
++   - 被新页整体替代的旧页及其归档原因、替代链接
+    - 对应的 `wiki/sources/` 摘要
+ 5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，记录关键主张、提到的实体/概念、后续问题。
+ 6. **写或合并业务页**。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
+@@ -62,6 +63,7 @@
+    - 数组字段并集去重
+    - 正文整合新事实，不覆盖旧段；冲突并列并标明来源、时间与适用范围，未裁决的主张保持低置信度
+    - ledger 的「历史」只追加，经验状态变化保留依据
++   - 新页整体替代旧页时，按已确认范围走 archive，保留旧页历史与双向链接
+ 7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
+ 8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修，`review_overdue` 说明后复审或有意推迟。
+ 9. **簿记**：`--write-index` 或按同类表格更新 `wiki/index.md`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+diff --git a/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+index 4833edf..4c810f6 100644
+--- a/skills/wiki-data/references/query.md
++++ b/skills/wiki-data/references/query.md
+@@ -4,19 +4,19 @@
+ 
+ ## 步骤
+ 
+-1. **明确问题**：识别对象、环境、时间范围与任务场景，以及是否限定类型、状态或标签。回答「当前状态」时必须有相应的核实时间。
+-2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`，利用类型、摘要、置信度、状态与复审日期确定候选页和 typed 子目录。
+-3. **检索候选**：用 `rg` 搜标题、正文与 frontmatter；覆盖别名、缩写和中英变体。有类型或状态约束时先缩到对应目录，再读匹配页，不只做一次全库精确搜索。
+-4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。未命中时明确说「未检索到匹配经验」。
+-5. **全文核对**：读最相关页面及其直接引用的来源页，核对具体主张的置信度、适用范围、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
+-6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。
++1. **明确问题**：识别对象、环境、时间范围与任务场景，以及是否限定类型、状态、标签或包含历史归档。回答「当前状态」时必须有相应的核实时间。
++2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`。当前类型表提供活跃候选，「已归档」表只提供历史候选；利用类型、摘要、置信度、状态与复审日期缩小范围。
++3. **检索候选**：用 `rg` 搜标题、正文与 frontmatter，覆盖别名、缩写和中英变体。当前问题先读无 `archived_at` 的页面；归档命中只用于补充历史或提示覆盖缺口。用户明确查询历史时再纳入归档页全文。
++4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索活跃的 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。未命中时明确说「未检索到匹配经验」。
++5. **全文核对**：读最相关页面及其直接引用的来源页，核对具体主张的置信度、适用范围、`archived_at`、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
++6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。仅命中归档页时写「当前知识未覆盖，仅有历史记录」，再按需概述历史并附归档日期、原因与替代页。
+ 7. **保留冲突**：页面间结论冲突时并列各自来源、时间、适用范围与置信度，指出当前无法裁决的部分，不静默挑选一条。
+ 
+ ## 经验与台账
+ 
+ - 查经验时回答适用场景、触发信号、结论、预防与处理、验证方式、证据和失效条件。`status: draft` 只是待验证线索，`deprecated` 只作历史参考；两者都不能作为已验证的现行建议。
+ - `review_after` 早于查询当日表示需要复审，不等于已经证伪。逾期或缺少 `last_verified` 的内容只按历史记录陈述；用户问现实是否仍成立时，说明时效缺口，经重新核实后再称为当前事实。
+-- 查业务对象现状时优先读 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date` / `last_verified`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
++- 查业务对象现状时优先读活跃 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date` / `last_verified`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
+ - 只有单次材料、没有经验页时，可以概述材料并标明尚未归纳为经验；不要把它包装成已验证规律。
+ 
+ ## 输出
+@@ -26,6 +26,7 @@
+ - 结论或当前状态；
+ - 逐条出处、对应主张的置信度与核实日期；
+ - 经验的状态、适用边界、预防检查与验证方式，或台账的更新日期；
++- 历史回答的归档日期、原因与替代页；
+ - 复审逾期、冲突、未知和未覆盖项。
+ 
+ 用户要求归档问答时，先说明将写入 `wiki/queries/`，确认后按 `query` 页面模板保存，并追加操作日志。
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index dbc7f37..104ca7e 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -8,7 +8,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ ```
+ 
+-`--write-index` 根据 typed 子目录与 frontmatter 重建 `wiki/index.md`，不改其它文件。
++`--write-index` 根据 typed 子目录与 frontmatter 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面统一列入末尾「已归档」表，并显示归档日期、原因与替代页。
+ 
+ ## 检查码
+ 
+@@ -18,7 +18,8 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ | `missing_frontmatter` | error | 业务页缺 title / type / date / confidence；experience / ledger 还必须有 status |
+ | `confidence_invalid` | error | confidence 不是 high / medium / low |
+ | `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
+-| `date_invalid` | error | date / created / last_verified / review_after 不是有效的 YYYY-MM-DD |
++| `date_invalid` | error | date / created / last_verified / review_after / archived_at 不是有效的 YYYY-MM-DD |
++| `archive_metadata_invalid` | error | 已归档页缺 archive_reason，或 archive_reason / superseded_by 在没有 archived_at 时单独出现 |
+ | `review_overdue` | warning | 已到复审日；需要重新核实，不表示内容必然错误 |
+ | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
+ | `log_date_decreasing` | error | 日志日期递减（违反仅追加） |
+@@ -26,7 +27,8 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ | `misplaced_wiki_page` | warning | 业务页不在 typed 子目录 |
+ | `duplicate_page` | warning | 同目录下文件名归一化后重复（去空格/`_`/`-`/全角空格后小写） |
+ | `entity_concept_coupling` | warning | 概念标题把实体名绑到抽象概念上 |
+-| `orphan_page` | warning | 无入链；系统页与 `wiki/sources/` 不计入。系统页上的链接仍查死链，但不计入入链（否则 index 会掩盖孤立页） |
++| `archived_reference` | warning | 活跃业务页链接归档页；需明确历史语义或改指现行页面 |
++| `orphan_page` | warning | 活跃业务页无活跃入链；系统页、`wiki/sources/` 与归档页不计入。系统页链接仍查死链，归档页的出链不使活跃页摆脱孤立 |
+ 
+ 不同目录的同名文件不报 `duplicate_page`。
+ 
+@@ -36,11 +38,13 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ **死链**：先找是否改名或 slug 不同；不确定就提问或标开放问题，不要随便建空页。更倾向于把链接改到正确页，而不是删掉链接。
+ 
+-**Frontmatter**：`type` 可从目录推断，但不要随便改身份字段。缺 `date` 用修复当日。
++**Frontmatter**：`type` 可从目录推断，但不要随便改身份字段。缺 `date` 用修复当日。归档字段按 archive / reopen 契约补齐或成组移除，保留正文历史。
+ 
+ **日志**：只改格式与日期顺序问题；不删条目、不改历史含义。
+ 
+-**孤立页**：判断是否本来就该少入链（临时 query 可推迟）。否则从 overview、相关实体或概念补 `[[wikilink]]`。
++**归档引用**：判断链接是否只作历史追溯。历史链接保留并说明；当前依据改指替代页或补充现行来源。脚本不能判断正文语境。
++
++**孤立页**：判断是否本来就该少入链（临时 query 可推迟）。否则从 overview、相关实体或概念补 `[[wikilink]]`。归档页无需为消除孤立警告补链。
+ 
+ **错位 / 类型不一致**：让 `type` 与目录一致；移动后更新旧路径上的链接。
+ 
+@@ -52,6 +56,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ - 页面间事实矛盾
+ - 过时主张
++- 归档引用的历史语境
+ - 正文提到但尚未建页的概念
+ - 缺失的交叉引用（入链检查只覆盖已有链接）
+ 
+@@ -61,7 +66,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ - [ ] lint 报告 0 error
+ - [ ] 死链已解析（改链或确认目标）
+-- [ ] 业务页 frontmatter 合法
++- [ ] 业务页 frontmatter 合法，归档元数据成组且完整
+ - [ ] `wiki/log.md` 格式合法且日期非递减
+ - [ ] warning 已修或有意推迟并说明
+ - [ ] 关键修复页已回读
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index f369985..e6f182b 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -157,6 +157,10 @@ def load_pages(wiki_dir: Path) -> list[dict]:
+     return pages
+ 
+ 
++def is_archived(page: dict) -> bool:
++    return bool(page["fm"].get("archived_at"))
++
++
+ def build_resolvers(pages: list[dict]) -> dict[str, str]:
+     """Map lookup keys to page rel paths. Later pages do not override unique keys."""
+     mapping: dict[str, str] = {}
+@@ -227,8 +231,8 @@ def resolve_md_link(source_rel: str, target: str, wiki_dir: Path) -> Path | None
+ def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path) -> dict[str, int]:
+     incoming: dict[str, int] = defaultdict(int)
+     for page in pages:
+-        # Index/overview list many pages; counting them would hide real orphans.
+-        if page["kind"] in {"system", "template"}:
++        # Index/overview and archived pages do not make current pages discoverable.
++        if page["kind"] in {"system", "template"} or is_archived(page):
+             continue
+         seen: set[str] = set()
+         for match in WIKILINK_RE.finditer(page["text"]):
+@@ -253,6 +257,7 @@ def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path)
+ 
+ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+     mapping = build_resolvers(pages)
++    page_by_rel = {page["rel"]: page for page in pages}
+     incoming = collect_incoming(pages, mapping, wiki_dir)
+     issues: list[dict] = []
+ 
+@@ -308,8 +313,32 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                     f"confidence 必须是 high / medium / low，当前为 {confidence!r}",
+                 )
+ 
++            archived_at = fm.get("archived_at", "")
++            if archived_at and not fm.get("archive_reason"):
++                add(
++                    "archive_metadata_invalid",
++                    "error",
++                    rel,
++                    "已归档页缺少 archive_reason",
++                )
++            if not archived_at and any(
++                fm.get(field) for field in ("archive_reason", "superseded_by")
++            ):
++                add(
++                    "archive_metadata_invalid",
++                    "error",
++                    rel,
++                    "archive_reason / superseded_by 需要 archived_at",
++                )
++
+             parsed_dates = {}
+-            for field in ("date", "created", "last_verified", "review_after"):
++            for field in (
++                "date",
++                "created",
++                "last_verified",
++                "review_after",
++                "archived_at",
++            ):
+                 value = fm.get(field, "")
+                 if not value:
+                     continue
+@@ -377,10 +406,24 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                     )
+                     break
+ 
++        archived_refs: set[str] = set()
+         for match in WIKILINK_RE.finditer(page["text"]):
+             target = split_wikilink(match.group(1))
+-            if resolve_wikilink(target, mapping) is None:
++            resolved = resolve_wikilink(target, mapping)
++            if resolved is None:
+                 add("dead_link", "error", rel, f"死链 [[{target}]]")
++                continue
++            target_page = page_by_rel.get(resolved)
++            if (
++                kind == "business"
++                and not is_archived(page)
++                and target_page is not None
++                and is_archived(target_page)
++                and resolved != rel
++                and resolved not in archived_refs
++            ):
++                add("archived_reference", "warning", rel, f"活跃页引用了归档页 [[{target}]]")
++                archived_refs.add(resolved)
+ 
+         for match in MDLINK_RE.finditer(page["text"]):
+             href = match.group(2).strip()
+@@ -389,6 +432,24 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                 continue
+             if not dest.exists():
+                 add("dead_link", "error", rel, f"死链 ({href})")
++                continue
++            if dest.suffix != ".md":
++                continue
++            try:
++                target_rel = dest.relative_to(wiki_dir.resolve()).as_posix()
++            except ValueError:
++                continue
++            target_page = page_by_rel.get(target_rel)
++            if (
++                kind == "business"
++                and not is_archived(page)
++                and target_page is not None
++                and is_archived(target_page)
++                and target_rel != rel
++                and target_rel not in archived_refs
++            ):
++                add("archived_reference", "warning", rel, f"活跃页引用了归档页 ({href})")
++                archived_refs.add(target_rel)
+ 
+     for (subdir, key), rels in dup_groups.items():
+         if key and len(rels) > 1:
+@@ -402,12 +463,12 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                 )
+ 
+     for page in pages:
+-        if page["kind"] != "business":
++        if page["kind"] != "business" or is_archived(page):
+             continue
+         if page["subdir"] == "sources":
+             continue
+         if incoming.get(page["rel"], 0) == 0:
+-            add("orphan_page", "warning", page["rel"], "没有来自其它 wiki 页的入链")
++            add("orphan_page", "warning", page["rel"], "没有来自其它活跃 wiki 页的入链")
+ 
+     log_page = next((page for page in pages if page["rel"] == "log.md"), None)
+     if log_page:
+@@ -464,25 +525,33 @@ def lint_log(text: str) -> list[dict]:
+ 
+ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+     grouped: dict[str, list[dict]] = {name: [] for name, _ in INDEX_HEADINGS}
++    archived: list[dict] = []
+     for page in pages:
+         if page["kind"] != "business" or page["subdir"] not in grouped:
+             continue
+         fm = page["fm"]
+-        grouped[page["subdir"]].append(
+-            {
+-                "subdir": page["subdir"],
+-                "slug": page["stem"],
+-                "title": page["title"],
+-                "description": fm.get("description", ""),
+-                "date": fm.get("date", ""),
+-                "confidence": fm.get("confidence", ""),
+-                "status": fm.get("status", ""),
+-                "last_verified": fm.get("last_verified", ""),
+-                "review_after": fm.get("review_after", ""),
+-            }
+-        )
++        entry = {
++            "subdir": page["subdir"],
++            "slug": page["stem"],
++            "title": page["title"],
++            "type": fm.get("type", ""),
++            "description": fm.get("description", ""),
++            "date": fm.get("date", ""),
++            "confidence": fm.get("confidence", ""),
++            "status": fm.get("status", ""),
++            "last_verified": fm.get("last_verified", ""),
++            "review_after": fm.get("review_after", ""),
++            "archived_at": fm.get("archived_at", ""),
++            "archive_reason": fm.get("archive_reason", ""),
++            "superseded_by": fm.get("superseded_by", ""),
++        }
++        if is_archived(page):
++            archived.append(entry)
++        else:
++            grouped[page["subdir"]].append(entry)
+     for entries in grouped.values():
+         entries.sort(key=lambda item: (item["title"].lower(), item["slug"]))
++    archived.sort(key=lambda item: (item["title"].lower(), item["slug"]))
+ 
+     today = date.today().isoformat()
+     lines = [
+@@ -523,6 +592,24 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+             )
+             lines.append("| " + " | ".join(cells) + " |")
+         lines.append("")
++    lines.extend(
++        [
++            "## 已归档 (archived)",
++            "",
++            "| 页面 | 类型 | 标题 | 摘要 | 归档日期 | 归档原因 | 替代页 |",
++            "|------|------|------|------|----------|----------|--------|",
++        ]
++    )
++    for entry in archived:
++        title = escape_cell(entry["title"])
++        link = f"[[{entry['subdir']}/{entry['slug']}\\|{title}]]"
++        cells = [link, entry["type"], title]
++        cells.extend(
++            escape_cell(entry[field] or "-")
++            for field in ("description", "archived_at", "archive_reason", "superseded_by")
++        )
++        lines.append("| " + " | ".join(cells) + " |")
++    lines.append("")
+     text = "\n".join(lines)
+     (wiki_dir / "index.md").write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+     return text
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index 2428a60..d8341f9 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -18,6 +18,7 @@ class ContractTest(unittest.TestCase):
+         cls.query = (ROOT / "references" / "query.md").read_text(encoding="utf-8")
+         cls.lint = (ROOT / "references" / "lint.md").read_text(encoding="utf-8")
+         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
++        cls.archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
+ 
+     def test_frontmatter_name_matches_directory(self) -> None:
+         self.assertIn("name: wiki-data", self.skill)
+@@ -31,6 +32,7 @@ class ContractTest(unittest.TestCase):
+             "references/query.md",
+             "references/lint.md",
+             "references/organize.md",
++            "references/archive-reopen.md",
+             "scripts/lint_wiki.py",
+             "agents/openai.yaml",
+         ):
+@@ -55,9 +57,24 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("未确认则停止", self.layout)
+ 
+     def test_phases_are_named(self) -> None:
+-        for phase in ("guide", "init", "ingest", "query", "organize", "lint"):
++        for phase in ("guide", "init", "ingest", "query", "archive", "reopen", "organize", "lint"):
+             self.assertIn(f"`{phase}`", self.skill)
+ 
++    def test_archive_reopen_preserves_history_and_current_query_boundary(self) -> None:
++        for field in ("archived_at", "archive_reason", "superseded_by"):
++            self.assertIn(field, self.types)
++            self.assertIn(field, self.archive)
++        self.assertIn("保留原路径", self.archive)
++        self.assertIn("确认后再写", self.archive)
++        self.assertIn("重新核实", self.archive)
++        self.assertIn("归档与重开记录", self.archive)
++        self.assertIn("当前知识未覆盖，仅有历史记录", self.query)
++        self.assertIn("「已归档」表", self.lint)
++        for code in ("archive_metadata_invalid", "archived_reference"):
++            self.assertIn(code, self.lint)
++        self.assertIn("experience.status", self.archive)
++        self.assertIn("ledger.status", self.archive)
++
+     def test_handoff_boundaries(self) -> None:
+         self.assertIn("project-spec-mirror", self.skill)
+         self.assertIn("code-explore", self.skill)

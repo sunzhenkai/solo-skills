@@ -35,13 +35,17 @@ related: []
 - 更新时不要轻易改 `type`、`title`、`created`（若已有）。
 - `tags` / `aliases` / `sources` / `related` 做并集去重，不覆盖删除旧值。
 - `date` 用本次写入日；`created` 只在首次创建时加。
-- `description` 是一句话摘要，供索引与候选筛选使用；`aliases` 记录常用别名、缩写和中英变体。
-- `sources` 指向 `wiki/sources/` 页标题或 raw 文件名，便于追溯。
+- `description` 是一句话摘要，供索引与候选筛选使用；活跃页应填写，缺失会产生 warning。`aliases` 记录常用别名、缩写和中英变体，可用于链接解析；同名或别名冲突时必须使用路径限定链接。
+- 活跃业务页必须有非空 `sources`。每项指向 `wiki/sources/` 页标题、`[[来源页面]]` 或 `raw/sources/` 内的相对文件名；来源必须存在。`origin` 为 `user-input` / `conversation` 的 source 页本身可为空。归档页保留既有来源，不强制补写历史字段。
+- 活跃 `source` 页还必须有 `origin` 与 `captured_at: YYYY-MM-DD`；`origin` 使用 raw 相对路径、`user-input` 或 `conversation`，`content_hash` 可选，存在时为源内容的 SHA-256 十六进制摘要。
+- `tags` / `aliases` / `sources` / `related` 使用 inline list（如 `[alpha, beta]`）。lint 支持标量、空值和 inline list，不支持的 frontmatter 行会报错，不静默忽略。
 - 所有业务页必须有 `confidence: high | medium | low`，只表示证据强度，不表示重要性或真实概率。
 - `last_verified: YYYY-MM-DD` 是主张与来源最后核实的日期，不是编辑日期；`high` 必须有此字段。
 - `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
 - `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页必须同时记录 `last_verified` 和 `review_after`。
 - `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
+- `archived_at: YYYY-MM-DD` 存在即表示整页已归档，必须同时填写 `archive_reason`；`superseded_by: "[[替代页面]]"` 可选。三个字段只描述页面生命周期，与 experience 的验证状态、ledger 的业务状态正交。
+- 归档页保留原路径、类型、来源与正文历史；重开时移除上述归档字段，并在正文保留归档与重开记录。
 
 ### 置信度定级
 
@@ -141,6 +145,10 @@ title: 示例来源
 type: source
 date: YYYY-MM-DD
 confidence: medium
+description: 一句话来源摘要
+origin: raw/sources/example.txt
+captured_at: YYYY-MM-DD
+sources: [example.txt]
 tags: []
 ---
 

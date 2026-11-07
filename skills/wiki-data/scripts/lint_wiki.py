@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -71,7 +72,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wiki_root", type=Path, help="Workspace root containing wiki/")
     parser.add_argument("--json", action="store_true", help="Print machine-readable report")
-    parser.add_argument(
+    index_mode = parser.add_mutually_exclusive_group()
+    index_mode.add_argument(
+        "--check-index",
+        action="store_true",
+        help="Check wiki/index.md without writing (default)",
+    )
+    index_mode.add_argument(
         "--write-index",
         action="store_true",
         help="Rebuild wiki/index.md from typed pages",
@@ -79,18 +86,87 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def parse_frontmatter(text: str) -> dict[str, str]:
+LIST_FIELDS = {"tags", "aliases", "sources", "related"}
+
+
+def parse_inline_list(value: str) -> list[str] | None:
+    if len(value) < 2 or not value.startswith("[") or not value.endswith("]"):
+        return None
+    inner = value[1:-1].strip()
+    if not inner:
+        return []
+    items: list[str] = []
+    current: list[str] = []
+    quote = ""
+    escaped = False
+    for char in inner:
+        if escaped:
+            current.append(char)
+            escaped = False
+            continue
+        if char == "\\" and quote == '"':
+            current.append(char)
+            escaped = True
+            continue
+        if quote:
+            current.append(char)
+            if char == quote:
+                quote = ""
+            continue
+        if char in {'"', "'"}:
+            current.append(char)
+            quote = char
+        elif char == ",":
+            items.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    if quote:
+        return None
+    items.append("".join(current).strip())
+    parsed = []
+    for item in items:
+        if not item:
+            return None
+        if item[0] in {'"', "'"}:
+            if len(item) < 2 or item[-1] != item[0]:
+                return None
+            item = item[1:-1]
+        parsed.append(item)
+    return parsed
+
+
+def parse_frontmatter(text: str) -> tuple[dict[str, str], dict[str, list[str]], list[str]]:
     match = FRONTMATTER_RE.match(text)
     if not match:
-        return {}
+        return {}, {}, []
     fields: dict[str, str] = {}
+    lists: dict[str, list[str]] = {}
+    errors: list[str] = []
     for raw_line in match.group(1).splitlines():
         line = raw_line.strip()
-        if not line or line.startswith("#") or ":" not in line:
+        if not line or line.startswith("#"):
+            continue
+        if raw_line[:1].isspace() or ":" not in line:
+            errors.append(f"不支持的行: {line}")
             continue
         key, value = line.split(":", 1)
-        fields[key.strip()] = value.strip().strip("\"'")
-    return fields
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            errors.append(f"空字段名: {line}")
+            continue
+        if key in fields:
+            errors.append(f"重复字段: {key}")
+            continue
+        fields[key] = value.strip("\"'")
+        if key in LIST_FIELDS:
+            parsed = parse_inline_list(value)
+            if parsed is None:
+                errors.append(f"{key} 必须是 inline list")
+            else:
+                lists[key] = parsed
+    return fields, lists, errors
 
 
 def normalize_name_key(value: str) -> str:
@@ -137,7 +213,7 @@ def load_pages(wiki_dir: Path) -> list[dict]:
     for path in iter_wiki_pages(wiki_dir):
         rel = rel_wiki(path, wiki_dir)
         text = path.read_text(encoding="utf-8")
-        fm = parse_frontmatter(text)
+        fm, lists, fm_errors = parse_frontmatter(text)
         stem = path.stem
         title = fm.get("title") or title_from_filename(stem)
         kind = classify(rel)
@@ -148,6 +224,8 @@ def load_pages(wiki_dir: Path) -> list[dict]:
                 "rel": rel,
                 "text": text,
                 "fm": fm,
+                "lists": lists,
+                "fm_errors": fm_errors,
                 "stem": stem,
                 "title": title,
                 "kind": kind,
@@ -157,17 +235,21 @@ def load_pages(wiki_dir: Path) -> list[dict]:
     return pages
 
 
-def build_resolvers(pages: list[dict]) -> dict[str, str]:
-    """Map lookup keys to page rel paths. Later pages do not override unique keys."""
+def is_archived(page: dict) -> bool:
+    return bool(page["fm"].get("archived_at"))
+
+
+def build_resolvers(pages: list[dict]) -> tuple[dict[str, str], set[str]]:
     mapping: dict[str, str] = {}
+    owners: dict[str, set[str]] = defaultdict(set)
 
     def add(key: str, rel: str) -> None:
         key = key.strip()
         if not key:
             return
-        mapping.setdefault(key, rel)
-        mapping.setdefault(key.lower(), rel)
-        mapping.setdefault(normalize_name_key(key), rel)
+        for variant in (key, key.lower(), normalize_name_key(key)):
+            owners[variant].add(rel)
+            mapping.setdefault(variant, rel)
 
     for page in pages:
         rel = page["rel"]
@@ -176,10 +258,13 @@ def build_resolvers(pages: list[dict]) -> dict[str, str]:
         add(page["stem"], rel)
         add(page["title"], rel)
         add(title_from_filename(page["stem"]), rel)
+        for alias in page["lists"].get("aliases", []):
+            add(alias, rel)
         if "/" in rel:
             add(rel.split("/", 1)[1], rel)
             add(Path(rel).stem, rel)
-    return mapping
+    ambiguous = {key for key, rels in owners.items() if len(rels) > 1}
+    return mapping, ambiguous
 
 
 def split_wikilink(raw: str) -> str:
@@ -190,9 +275,9 @@ def split_wikilink(raw: str) -> str:
     return target
 
 
-def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
+def wikilink_keys(target: str) -> list[str]:
     if not target:
-        return None
+        return []
     candidates = [
         target,
         target.lower(),
@@ -202,7 +287,15 @@ def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
     ]
     if not target.endswith(".md") and "/" in target:
         candidates.append(f"{target}.md")
-    for key in candidates:
+    return candidates
+
+
+def is_ambiguous_wikilink(target: str, ambiguous: set[str]) -> bool:
+    return any(key in ambiguous for key in wikilink_keys(target))
+
+
+def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
+    for key in wikilink_keys(target):
         if key in mapping:
             return mapping[key]
     return None
@@ -224,15 +317,19 @@ def resolve_md_link(source_rel: str, target: str, wiki_dir: Path) -> Path | None
     return dest
 
 
-def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path) -> dict[str, int]:
+def collect_incoming(
+    pages: list[dict], mapping: dict[str, str], wiki_dir: Path, ambiguous: set[str]
+) -> dict[str, int]:
     incoming: dict[str, int] = defaultdict(int)
     for page in pages:
-        # Index/overview list many pages; counting them would hide real orphans.
-        if page["kind"] in {"system", "template"}:
+        # Index/overview and archived pages do not make current pages discoverable.
+        if page["kind"] in {"system", "template"} or is_archived(page):
             continue
         seen: set[str] = set()
         for match in WIKILINK_RE.finditer(page["text"]):
             target = split_wikilink(match.group(1))
+            if is_ambiguous_wikilink(target, ambiguous):
+                continue
             resolved = resolve_wikilink(target, mapping)
             if resolved and resolved != page["rel"] and resolved not in seen:
                 incoming[resolved] += 1
@@ -251,9 +348,45 @@ def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path)
     return incoming
 
 
+def validate_source_reference(
+    reference: str,
+    mapping: dict[str, str],
+    ambiguous: set[str],
+    page_by_rel: dict[str, dict],
+    wiki_dir: Path,
+) -> str | None:
+    value = reference.strip()
+    if not value:
+        return "空来源"
+    is_wikilink = value.startswith("[[") and value.endswith("]]")
+    target = split_wikilink(value[2:-2]) if is_wikilink else value
+    if is_ambiguous_wikilink(target, ambiguous):
+        return f"来源有歧义: {value}"
+    resolved = resolve_wikilink(target, mapping)
+    if resolved:
+        target_page = page_by_rel[resolved]
+        if target_page["subdir"] == "sources":
+            return None
+        return f"来源不是 wiki/sources 页面: {value}"
+    if is_wikilink:
+        return f"来源页不存在: {value}"
+
+    root = wiki_dir.parent
+    candidate = root / value if value.startswith("raw/") else root / "raw" / "sources" / value
+    resolved_path = candidate.resolve()
+    try:
+        resolved_path.relative_to((root / "raw").resolve())
+    except ValueError:
+        return f"来源路径越过 raw: {value}"
+    if not resolved_path.is_file():
+        return f"raw 来源不存在: {value}"
+    return None
+
+
 def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
-    mapping = build_resolvers(pages)
-    incoming = collect_incoming(pages, mapping, wiki_dir)
+    mapping, ambiguous = build_resolvers(pages)
+    page_by_rel = {page["rel"]: page for page in pages}
+    incoming = collect_incoming(pages, mapping, wiki_dir, ambiguous)
     issues: list[dict] = []
 
     def add(code: str, severity: str, rel: str, message: str) -> None:
@@ -284,12 +417,25 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                 "业务页不在 typed 子目录",
             )
 
+        for error in page["fm_errors"]:
+            add("frontmatter_invalid", "error", rel, error)
+
         if kind == "business":
             required_fields = ["title", "type", "date", "confidence"]
             page_type = fm.get("type", "")
+            archived = is_archived(page)
             if page_type in {"experience", "ledger"}:
                 required_fields.append("status")
+            if page_type == "source" and not archived:
+                required_fields.extend(["origin", "captured_at"])
             missing = [field for field in required_fields if not fm.get(field)]
+            origin = fm.get("origin", "")
+            needs_raw_source = page_type != "source" or origin not in {
+                "user-input",
+                "conversation",
+            }
+            if not archived and needs_raw_source and not page["lists"].get("sources"):
+                missing.append("sources")
             if missing or not fm:
                 add(
                     "missing_frontmatter",
@@ -298,6 +444,34 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                     "缺少 frontmatter 字段: "
                     + (", ".join(missing) or "title, type, date, confidence"),
                 )
+
+            for reference in page["lists"].get("sources", []):
+                source_error = validate_source_reference(
+                    reference, mapping, ambiguous, page_by_rel, wiki_dir
+                )
+                if source_error:
+                    add("source_invalid", "error", rel, source_error)
+            content_hash = fm.get("content_hash", "")
+            hash_valid = not content_hash or re.fullmatch(r"[0-9a-fA-F]{64}", content_hash)
+            if not hash_valid:
+                add("source_invalid", "error", rel, "content_hash 必须是 SHA-256 十六进制摘要")
+            origin_path = None
+            if page_type == "source" and origin and origin not in {"user-input", "conversation"}:
+                origin_path = (wiki_dir.parent / origin).resolve()
+                try:
+                    origin_path.relative_to((wiki_dir.parent / "raw").resolve())
+                except ValueError:
+                    add("source_invalid", "error", rel, "origin 必须位于 raw 内")
+                    origin_path = None
+                if origin_path is not None and not origin_path.is_file():
+                    add("source_invalid", "error", rel, f"origin 不存在: {origin}")
+                    origin_path = None
+            if origin_path is not None and content_hash and hash_valid:
+                actual_hash = hashlib.sha256(origin_path.read_bytes()).hexdigest()
+                if actual_hash != content_hash.lower():
+                    add("source_invalid", "error", rel, "content_hash 与 origin 内容不匹配")
+            if not archived and not fm.get("description"):
+                add("description_missing", "warning", rel, "活跃业务页缺少 description")
 
             confidence = fm.get("confidence", "")
             if confidence and confidence not in {"high", "medium", "low"}:
@@ -308,8 +482,33 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                     f"confidence 必须是 high / medium / low，当前为 {confidence!r}",
                 )
 
+            archived_at = fm.get("archived_at", "")
+            if archived_at and not fm.get("archive_reason"):
+                add(
+                    "archive_metadata_invalid",
+                    "error",
+                    rel,
+                    "已归档页缺少 archive_reason",
+                )
+            if not archived_at and any(
+                fm.get(field) for field in ("archive_reason", "superseded_by")
+            ):
+                add(
+                    "archive_metadata_invalid",
+                    "error",
+                    rel,
+                    "archive_reason / superseded_by 需要 archived_at",
+                )
+
             parsed_dates = {}
-            for field in ("date", "created", "last_verified", "review_after"):
+            for field in (
+                "date",
+                "created",
+                "last_verified",
+                "review_after",
+                "archived_at",
+                "captured_at",
+            ):
                 value = fm.get(field, "")
                 if not value:
                     continue
@@ -345,7 +544,7 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                         "validated 经验缺少: " + ", ".join(verification_fields),
                     )
             review_after = parsed_dates.get("review_after")
-            if review_after and review_after < date.today():
+            if not archived and review_after and review_after < date.today():
                 add(
                     "review_overdue",
                     "warning",
@@ -377,10 +576,27 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                     )
                     break
 
+        archived_refs: set[str] = set()
         for match in WIKILINK_RE.finditer(page["text"]):
             target = split_wikilink(match.group(1))
-            if resolve_wikilink(target, mapping) is None:
+            if is_ambiguous_wikilink(target, ambiguous):
+                add("ambiguous_link", "error", rel, f"链接有歧义 [[{target}]]，请使用路径限定")
+                continue
+            resolved = resolve_wikilink(target, mapping)
+            if resolved is None:
                 add("dead_link", "error", rel, f"死链 [[{target}]]")
+                continue
+            target_page = page_by_rel.get(resolved)
+            if (
+                kind == "business"
+                and not is_archived(page)
+                and target_page is not None
+                and is_archived(target_page)
+                and resolved != rel
+                and resolved not in archived_refs
+            ):
+                add("archived_reference", "warning", rel, f"活跃页引用了归档页 [[{target}]]")
+                archived_refs.add(resolved)
 
         for match in MDLINK_RE.finditer(page["text"]):
             href = match.group(2).strip()
@@ -389,6 +605,24 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                 continue
             if not dest.exists():
                 add("dead_link", "error", rel, f"死链 ({href})")
+                continue
+            if dest.suffix != ".md":
+                continue
+            try:
+                target_rel = dest.relative_to(wiki_dir.resolve()).as_posix()
+            except ValueError:
+                continue
+            target_page = page_by_rel.get(target_rel)
+            if (
+                kind == "business"
+                and not is_archived(page)
+                and target_page is not None
+                and is_archived(target_page)
+                and target_rel != rel
+                and target_rel not in archived_refs
+            ):
+                add("archived_reference", "warning", rel, f"活跃页引用了归档页 ({href})")
+                archived_refs.add(target_rel)
 
     for (subdir, key), rels in dup_groups.items():
         if key and len(rels) > 1:
@@ -402,16 +636,22 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                 )
 
     for page in pages:
-        if page["kind"] != "business":
+        if page["kind"] != "business" or is_archived(page):
             continue
         if page["subdir"] == "sources":
             continue
         if incoming.get(page["rel"], 0) == 0:
-            add("orphan_page", "warning", page["rel"], "没有来自其它 wiki 页的入链")
+            add("orphan_page", "warning", page["rel"], "没有来自其它活跃 wiki 页的入链")
 
     log_page = next((page for page in pages if page["rel"] == "log.md"), None)
     if log_page:
         issues.extend(lint_log(log_page["text"]))
+
+    index_page = next((page for page in pages if page["rel"] == "index.md"), None)
+    index_date = index_page["fm"].get("date") if index_page else None
+    expected_index = render_index(pages, index_date)
+    if index_page is None or index_page["text"] != expected_index:
+        add("index_stale", "error", "index.md", "索引缺失或与当前页面不一致")
 
     return issues
 
@@ -462,29 +702,37 @@ def lint_log(text: str) -> list[dict]:
     return issues
 
 
-def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+def render_index(pages: list[dict], index_date: str | None = None) -> str:
     grouped: dict[str, list[dict]] = {name: [] for name, _ in INDEX_HEADINGS}
+    archived: list[dict] = []
     for page in pages:
         if page["kind"] != "business" or page["subdir"] not in grouped:
             continue
         fm = page["fm"]
-        grouped[page["subdir"]].append(
-            {
-                "subdir": page["subdir"],
-                "slug": page["stem"],
-                "title": page["title"],
-                "description": fm.get("description", ""),
-                "date": fm.get("date", ""),
-                "confidence": fm.get("confidence", ""),
-                "status": fm.get("status", ""),
-                "last_verified": fm.get("last_verified", ""),
-                "review_after": fm.get("review_after", ""),
-            }
-        )
+        entry = {
+            "subdir": page["subdir"],
+            "slug": page["stem"],
+            "title": page["title"],
+            "type": fm.get("type", ""),
+            "description": fm.get("description", ""),
+            "date": fm.get("date", ""),
+            "confidence": fm.get("confidence", ""),
+            "status": fm.get("status", ""),
+            "last_verified": fm.get("last_verified", ""),
+            "review_after": fm.get("review_after", ""),
+            "archived_at": fm.get("archived_at", ""),
+            "archive_reason": fm.get("archive_reason", ""),
+            "superseded_by": fm.get("superseded_by", ""),
+        }
+        if is_archived(page):
+            archived.append(entry)
+        else:
+            grouped[page["subdir"]].append(entry)
     for entries in grouped.values():
         entries.sort(key=lambda item: (item["title"].lower(), item["slug"]))
+    archived.sort(key=lambda item: (item["title"].lower(), item["slug"]))
 
-    today = date.today().isoformat()
+    today = index_date or date.today().isoformat()
     lines = [
         "---",
         "title: 内容目录",
@@ -523,8 +771,31 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
             )
             lines.append("| " + " | ".join(cells) + " |")
         lines.append("")
+    lines.extend(
+        [
+            "## 已归档 (archived)",
+            "",
+            "| 页面 | 类型 | 标题 | 摘要 | 归档日期 | 归档原因 | 替代页 |",
+            "|------|------|------|------|----------|----------|--------|",
+        ]
+    )
+    for entry in archived:
+        title = escape_cell(entry["title"])
+        link = f"[[{entry['subdir']}/{entry['slug']}\\|{title}]]"
+        cells = [link, entry["type"], title]
+        cells.extend(
+            escape_cell(entry[field] or "-")
+            for field in ("description", "archived_at", "archive_reason", "superseded_by")
+        )
+        lines.append("| " + " | ".join(cells) + " |")
+    lines.append("")
     text = "\n".join(lines)
-    (wiki_dir / "index.md").write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+    return text if text.endswith("\n") else text + "\n"
+
+
+def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+    text = render_index(pages)
+    (wiki_dir / "index.md").write_text(text, encoding="utf-8")
     return text
 
 
@@ -532,7 +803,21 @@ def escape_cell(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
-def render_text(issues: list[dict], page_count: int) -> str:
+def build_stats(pages: list[dict], issues: list[dict]) -> dict[str, int]:
+    business = [page for page in pages if page["kind"] == "business"]
+    return {
+        "active": sum(not is_archived(page) for page in business),
+        "archived": sum(is_archived(page) for page in business),
+        "draft": sum(page["fm"].get("status") == "draft" for page in business),
+        "validated": sum(page["fm"].get("status") == "validated" for page in business),
+        "deprecated": sum(page["fm"].get("status") == "deprecated" for page in business),
+        "review_overdue": len(
+            {item["path"] for item in issues if item["code"] == "review_overdue"}
+        ),
+    }
+
+
+def render_text(issues: list[dict], page_count: int, stats: dict[str, int]) -> str:
     errors = [item for item in issues if item["severity"] == "error"]
     warnings = [item for item in issues if item["severity"] == "warning"]
     lines = [
@@ -540,6 +825,7 @@ def render_text(issues: list[dict], page_count: int) -> str:
         f"errors: {len(errors)}",
         f"warnings: {len(warnings)}",
     ]
+    lines.extend(f"{key}: {value}" for key, value in stats.items())
     if not issues:
         lines.append("ok")
         return "\n".join(lines) + "\n"
@@ -563,17 +849,19 @@ def main(argv: list[str] | None = None) -> int:
         pages = load_pages(wiki_dir)
 
     issues = lint_issues(pages, wiki_dir)
+    stats = build_stats(pages, issues)
     payload = {
         "wiki_root": str(root),
         "pages": len(pages),
         "errors": sum(1 for item in issues if item["severity"] == "error"),
         "warnings": sum(1 for item in issues if item["severity"] == "warning"),
+        "stats": stats,
         "issues": issues,
     }
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
-        sys.stdout.write(render_text(issues, len(pages)))
+        sys.stdout.write(render_text(issues, len(pages), stats))
     return 1 if payload["errors"] else 0
 
 

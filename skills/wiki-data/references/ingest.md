@@ -48,23 +48,25 @@
 
 1. **读材料**，列出候选实体、概念、经验、台账、关系与主张；从上下文摄入时按「上下文自动提取」覆盖全部候选类别。
 2. **范围与隐私**：超出 `purpose.md` 先告诉用户。发现凭据、个人隐私、内部主机名则停止写入明文，改用 `<REDACTED>` 或拒绝该段。
-3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体）。读命中页，避免重复建页。
+3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体），同时发现活跃页与归档页。读命中页，避免重复建页；命中归档页时，在计划中说明是新建替代页、重开旧页还是仅追加历史来源，不直接把新事实合入归档页。
 4. **归档列表**（对用户可见，写盘前完成；复杂时先确认再写）：
    - 每项的摘要、候选 `type` 与上下文证据
    - 每项的 `confidence`、证据日期、`last_verified` 与易变内容的 `review_after`
    - 新建哪些 typed 页
    - 更新或合并哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
+   - 被新页整体替代的旧页及其归档原因、替代链接
    - 对应的 `wiki/sources/` 摘要
-5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，记录关键主张、提到的实体/概念、后续问题。
-6. **写或合并业务页**。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
+5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，填写 `origin`、`captured_at`、指向 raw 的 `sources` 与可选 `content_hash`，记录关键主张、提到的实体/概念、后续问题。对话或粘贴材料分别使用 `conversation` / `user-input` 作为 origin，并同样建立来源页。
+6. **写或合并业务页**。默认写入 `{WIKI_ROOT}/wiki/` 下对应 typed 目录，填写 `description`、必要的 `aliases` 和非空 `sources`。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
    - 先读全文
    - 锁定 `type` / `title` / `created`
    - 数组字段并集去重
    - 正文整合新事实，不覆盖旧段；冲突并列并标明来源、时间与适用范围，未裁决的主张保持低置信度
    - ledger 的「历史」只追加，经验状态变化保留依据
+   - 新页整体替代旧页时，按已确认范围走 archive，保留旧页历史与双向链接
 7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
-8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修，`review_overdue` 说明后复审或有意推迟。
-9. **簿记**：`--write-index` 或按同类表格更新 `wiki/index.md`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+8. **验证**：回读新页；运行 `lint_wiki.py --check-index`；来源、歧义链接、索引等 error 必须修，warning 说明后处理或有意推迟。
+9. **簿记**：用 `--write-index` 重建 `wiki/index.md`，再跑 `--check-index`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
 
 ## 合并时不要做的事
 
@@ -80,7 +82,7 @@
 - [ ] 材料中的关键实体、概念、经验和台账都有页（或已说明为何合并到旧页）
 - [ ] 相关页有 `[[wikilink]]`
 - [ ] 已搜索、无重复建页
-- [ ] 业务页 frontmatter 含 title / type / date / confidence，经验与台账含 status；所需核实与复审字段齐全
+- [ ] 业务页 frontmatter 含 title / type / date / confidence / description / sources，经验与台账含 status，source 含 origin / captured_at；所需核实与复审字段齐全
 - [ ] 主张级例外已标置信度，冲突、纠正与失效内容保留来源、日期和状态
 - [ ] 经验含触发信号、预防与处理、验证方式；validated 有对应验证证据
 - [ ] 文件类摄入有 `wiki/sources/` 摘要

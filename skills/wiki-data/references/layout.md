@@ -1,6 +1,6 @@
 # 工作区布局
 
-`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。
+`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
 
 ```text
 {WIKI_ROOT}/
@@ -105,9 +105,9 @@ title: 操作日志
 ## `guide`
 
 1. 读 `purpose.md`、`rules.md`、`wiki/overview.md`、`wiki/index.md`。缺哪个就说哪个，不补写。
-2. 列出 `wiki/` typed 子目录页数与 `raw/sources/` 文件数（真实 `ls`，不要编目录树）。
-3. 用 `rg` 或读 index 概括主题、明显缺口、错位页。
-4. 总结：目标与范围、页数按类型、关键主题、下一步建议（ingest / query / organize / lint）。
+2. 列出 `wiki/` typed 子目录页数与 `raw/sources/` 文件数（真实 `ls`，不要编目录树），运行 `lint_wiki.py "{WIKI_ROOT}" --json` 读取 active / archived / draft / validated / deprecated / review_overdue 统计。
+3. 用 `rg` 或有效 index 概括主题、明显缺口、错位页；`index_stale` 时按文件系统结果描述并提示重建。
+4. 总结：目标与范围、页数按类型、关键主题、生命周期与健康统计、下一步建议（ingest / query / organize / lint）。
 
 ## 结构描述
 
