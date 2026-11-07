@@ -72,9 +72,15 @@ class ContractTest(unittest.TestCase):
             self.assertIn(field, self.ingest)
 
     def test_context_ingest_extracts_and_lists_before_writing(self) -> None:
-        for term in ("当前对话", "自动提取", "知识", "主题", "经验", "踩坑", "操作信息"):
+        for term in ("当前对话", "自动提取", "知识", "主题", "经验", "踩坑", "操作", "决策", "状态", "对比", "综合", "问答"):
             self.assertIn(term, self.ingest)
+        self.assertIn("自动仅指候选提取与保存计划", self.ingest)
+        self.assertIn("写盘仍遵守范围确认与隐私门禁", self.ingest)
+        self.assertIn("`purpose.md` 的范围和后续复用价值", self.ingest)
         self.assertIn("先向用户展示**归档列表**，再按列表摄入", self.ingest)
+        self.assertIn("归档列表即保存计划", self.ingest)
+        self.assertIn("保存价值（未来用于什么）", self.ingest)
+        self.assertIn("不纳入项及理由", self.ingest)
         self.assertIn("候选 `type`", self.ingest)
         self.assertIn("新建 / 更新 / 合并目标", self.ingest)
         self.assertIn("上下文证据", self.ingest)
