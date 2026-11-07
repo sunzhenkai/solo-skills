@@ -147,7 +147,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         "slug": task_id,
         "parent": parent or "null",
         "status": "pending" if parent else "active",
-        "current_ref": "null" if parent else "plan",
+        "current_ref": "null" if parent else "intake",
         "confirm_mode": inherited_mode if parent else (confirm_mode or "human"),
         "execution": "null",
         "driver": "null",
@@ -165,7 +165,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
 {criterion or "待明确；未明确前不得进入 execute。"}
 
 ## 下一动作
-{"等待父任务路线图中的依赖就绪。" if parent else "评估事实并选择第一个需要的 reference。"}
+{"等待父任务路线图中的依赖就绪。" if parent else "确认意图并选择第一个需要的 reference。"}
 
 ## 涉及仓库
 | repo_id | source_repo | worktree | branch | base |
@@ -174,6 +174,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
 ## 产物指针
 - PLAN.md
 """
+    intent_status = "not-required" if parent else "pending"
     with state_lock(workspace):
         if task_md.exists():
             raise StateError(f"task already exists; resume it instead: {task_md}")
@@ -182,7 +183,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         atomic_write(target / "decisions.md", "# 决定\n\n| # | 决定 | 理由 | 状态 | 来源 |\n|---|---|---|---|---|\n")
         atomic_write(target / "history.md", "# 历史\n\n")
         (target / "context").mkdir(exist_ok=True)
-        atomic_write(target / "context" / "current.md", "# 当前事实与假设\n\n")
+        atomic_write(target / "context" / "current.md", f"# 当前事实与假设\n\n## 意图\n- 确认状态：{intent_status}\n")
         rebuild_index(workspace)
     return task_md
 

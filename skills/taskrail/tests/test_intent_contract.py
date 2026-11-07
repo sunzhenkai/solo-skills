@@ -28,8 +28,15 @@ class IntentContractTest(unittest.TestCase):
 
     def test_human_intent_requires_explicit_confirmation(self) -> None:
         self.assertIn("human 对新意图或变更一律", INTENT)
-        self.assertIn("明确确认后才进入后续 plan / execute", INTENT)
+        self.assertIn("明确确认后改记 confirmed 才进入后续 plan / execute", INTENT)
         self.assertIn("assumed 在 human 下补确认", INTENT)
+
+    def test_router_uses_confirmation_state_not_filled_criterion(self) -> None:
+        router = (ROOT / "references" / "router.md").read_text(encoding="utf-8")
+        templates = (ROOT / "references" / "templates.md").read_text(encoding="utf-8")
+        self.assertIn("缺失、pending 或 assumed", router)
+        self.assertIn("criterion 已填写不等于意图已确认", router)
+        self.assertIn("确认状态：pending | confirmed | not-required", templates)
 
     def test_points_user_report(self) -> None:
         self.assertIn("user-report.md", INTENT)

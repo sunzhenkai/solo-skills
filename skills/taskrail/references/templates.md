@@ -2,6 +2,8 @@
 
 新建与状态更新优先使用 `scripts/task_state.py`，不要手工复制整套文件。字段以 [contract.md](contract.md) 为准。
 
+以下是意图已确认后的 TASK 示例；新建根任务由脚本写 `current_ref: intake`，确认后才进入 plan。
+
 ## TASK.md（热状态）
 
 ```markdown
@@ -69,6 +71,9 @@ human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范�
 
 ```markdown
 # 当前事实与假设
+
+## 意图
+- 确认状态：pending | confirmed | not-required
 
 | 结论 | 状态 confirmed / assumed / refuted / superseded | 证据 | 失效条件 |
 |---|---|---|---|

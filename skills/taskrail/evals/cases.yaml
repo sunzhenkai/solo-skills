@@ -84,6 +84,44 @@ cases:
         - 用意图确认代替实施方案确认
         - 因 checkbox 进度或补证据重复停下确认
 
+  - id: filled-criterion-does-not-confirm-intent
+    kind: regression
+    judge: deterministic
+    description: 新根任务即使已有 criterion 也先完成意图确认
+    given: human 或 goal 新任务初始化时已填写可检查 criterion，但尚未经过 intent
+    expect:
+      must:
+        - current_ref 从 intake 开始，context/current 的意图确认为 pending
+        - human 明确确认后记 confirmed，goal 简要复述后记 not-required，再进入 plan
+      must_not:
+        - 因 criterion 非空直接从 plan 或 execute 继续
+
+  - id: independent-delivery-requires-roadmap-confirmation
+    kind: core
+    judge: llm
+    description: 独立交付拆分先确认 ROADMAP，内部切片不停
+    given: human 任务可拆成独立分支交付，另一个任务只需同分支内部切片
+    expect:
+      must:
+        - 独立交付先呈现交付边界、依赖和顺序，确认后自动创建 pending 子任务
+        - 内部切片按原计划继续，不新增人工停点
+      must_not:
+        - 未确认就把同次交付改为独立发布
+        - 因任何 decompose 都停下提问
+
+  - id: residual-risk-and-incomplete-verification-need-release
+    kind: core
+    judge: llm
+    description: 接受评审遗留和验证降级必须明确放行
+    given: human 验证仍有 Major 未修复，或环境缺失导致总判据未完整验证
+    expect:
+      must:
+        - 说明未修复项、缺失证据和剩余风险，用户明确接受后才可记录 accepted-recorded 或缩小交付
+        - 未获放行保持未完成，修复并重验后直接继续
+      must_not:
+        - 执行者自行接受 Blocker 或 Major
+        - 把缺证据或缩小 criterion 当成已完成
+
   - id: non-stop-progress-recap
     kind: core
     judge: llm
@@ -169,7 +207,7 @@ cases:
     expect:
       must:
         - 写 ROADMAP，列出子判据、涉及仓库、依赖、交付边界和集成项
-        - 立即创建 subtasks 下全部 pending TASK，而不是只创建当前一个
+        - 所需 ROADMAP 确认完成后，自动创建 subtasks 下全部 pending TASK，而不是只创建当前一个
         - 依赖 done 后自动激活下一就绪项，正在做的优先
       must_not:
         - 等用户逐个点名才规划后续子任务
