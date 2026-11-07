@@ -1,0 +1,51 @@
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 979b3a8..11945e0 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -12,15 +12,21 @@
+ 
+ ## 上下文自动提取
+ 
+-用户要求从当前对话或上下文摄入时，主动回顾可见内容并提取候选，无需用户逐条点名：
++用户要求从当前对话或上下文摄入时，主动回顾可见内容，自动完成「提取候选 → 保存计划 → 按确认范围落地」，无需用户逐条点名。自动仅指候选提取与保存计划；普通对话不在后台摄入，写盘仍遵守范围确认与隐私门禁。
+ 
+-- **知识与主题**：事实、术语、方法、关系和主题，按内容归入 `entity` / `concept`；跨来源归纳归入 `synthesis`。
++「有用」以 `purpose.md` 的范围和后续复用价值判断：能回答关键问题、支持后续决策或执行、追踪重要状态，或保留可追溯证据。重复内容、客套、一次性中间过程和无后续价值的细节不纳入；重要但证据不足的内容可保留为低置信度候选或开放问题，不写成当前事实。
++
++提取时覆盖以下方面，并复用既有页面类型：
++
++- **知识与主题**：事实、实体、术语、方法、框架、机制、关系和主题，按内容归入 `entity` / `concept`。
+ - **经验与踩坑**：保留适用条件、触发信号、现象、证据、预防处理、验证结果与边界，归入 `experience`；未确认的原因保留为假设或开放问题。
+-- **操作信息**：值得记录的操作、决策与状态变化；可复用做法归入 `experience`，业务对象的当前状态与历史归入 `ledger`，单次材料摘要归入 `source`。
++- **操作、决策与状态**：保留值得记录的操作、决策内容、理由、取舍与状态变化。业务对象的当前状态与历史归入 `ledger`，单次决策与依据保留在 `source`，可复用原则归入 `concept` / `experience`。
++- **对比与综合**：方案或对象的异同、结论与依据归入 `comparison`；跨来源归纳和开放问题归入 `synthesis`。
++- **来源与问答**：单次材料摘要归入 `source`；有长期复用价值的问答归入 `query`，开放问题也可留在相关页的后续问题中。
+ 
+ 合并同一事实的重复候选，区分已证实事实、用户决策与未验证推测。敏感信息按 `<REDACTED>` 或拒绝该段处理，不写成明文。
+ 
+-先向用户展示**归档列表**，再按列表摄入。每项列出：摘要、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）、拟定置信度、核实日期与复审日期（如需要）。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
++先向用户展示**归档列表**，再按列表摄入。归档列表即保存计划，每项列出：摘要、保存价值（未来用于什么）、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）、拟定置信度、核实日期与复审日期（如需要）。计划末尾列出**不纳入项及理由**，如重复、越界、一次性细节或无后续价值。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
+ 
+ ## 排查记录
+ 
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index 28a49a6..2428a60 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -72,9 +72,15 @@ class ContractTest(unittest.TestCase):
+             self.assertIn(field, self.ingest)
+ 
+     def test_context_ingest_extracts_and_lists_before_writing(self) -> None:
+-        for term in ("当前对话", "自动提取", "知识", "主题", "经验", "踩坑", "操作信息"):
++        for term in ("当前对话", "自动提取", "知识", "主题", "经验", "踩坑", "操作", "决策", "状态", "对比", "综合", "问答"):
+             self.assertIn(term, self.ingest)
++        self.assertIn("自动仅指候选提取与保存计划", self.ingest)
++        self.assertIn("写盘仍遵守范围确认与隐私门禁", self.ingest)
++        self.assertIn("`purpose.md` 的范围和后续复用价值", self.ingest)
+         self.assertIn("先向用户展示**归档列表**，再按列表摄入", self.ingest)
++        self.assertIn("归档列表即保存计划", self.ingest)
++        self.assertIn("保存价值（未来用于什么）", self.ingest)
++        self.assertIn("不纳入项及理由", self.ingest)
+         self.assertIn("候选 `type`", self.ingest)
+         self.assertIn("新建 / 更新 / 合并目标", self.ingest)
+         self.assertIn("上下文证据", self.ingest)
