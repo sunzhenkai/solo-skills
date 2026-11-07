@@ -1,0 +1,1017 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 5e56791..0791bfc 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -54,11 +54,11 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 1. **`raw/` 只读。** 源文件修订应作为新来源加入，不改旧文件。
+ 2. **`wiki/` 是 LLM 维护的知识层**，写入必须尊重 `purpose.md` 与 `rules.md`（缺失则明确说缺，不编造规则）。
+ 3. **文件系统是真理源。** 搜索用目录列表与内容检索（`rg` / 读文件）；不要假设有 FTS 索引。
+-4. **先搜再写，写后回读。** 更新已有页必须先读全文，保留旧事实与旧 `sources`。
++4. **先搜再写，写后回读。** 业务文档默认写入 `{WIKI_ROOT}/wiki/` 下对应 typed 目录；更新已有页必须先读全文，保留旧事实与旧 `sources`。
+ 5. **`wiki/log.md` 仅追加。** 条目格式：`## [YYYY-MM-DD] action | description`。不重排、不删历史。
+ 6. **业务台账与操作日志分离。** 业务对象的当前状态与历史写入 `wiki/ledgers/`，不混入 `wiki/log.md`。
+ 7. **系统页** `wiki/overview.md`、`wiki/index.md`、`wiki/log.md` 不可当业务页删除或移走。
+-8. **声称必须可追溯** 到 `raw/`、`wiki/sources/` 或本轮用户提供的材料。没有证据就写「wiki 尚未覆盖」，不要编造。
++8. **声称必须可追溯** 到存在的 `raw/` 或 `wiki/sources/` 来源；本轮对话与粘贴材料也先建来源页。没有证据就写「wiki 尚未覆盖」，不要编造。
+ 9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、已归档、冲突与逾期内容不作为当前真理。
+ 10. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
+ 
+@@ -78,7 +78,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 确定性检查：
+ 
+ ```bash
+-python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}"
++python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --check-index
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ ```
+ 
+diff --git a/skills/wiki-data/references/layout.md b/skills/wiki-data/references/layout.md
+index 7bfe355..17bc7af 100644
+--- a/skills/wiki-data/references/layout.md
++++ b/skills/wiki-data/references/layout.md
+@@ -1,6 +1,6 @@
+ # 工作区布局
+ 
+-`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。
++`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
+ 
+ ```text
+ {WIKI_ROOT}/
+@@ -105,9 +105,9 @@ title: 操作日志
+ ## `guide`
+ 
+ 1. 读 `purpose.md`、`rules.md`、`wiki/overview.md`、`wiki/index.md`。缺哪个就说哪个，不补写。
+-2. 列出 `wiki/` typed 子目录页数与 `raw/sources/` 文件数（真实 `ls`，不要编目录树）。
+-3. 用 `rg` 或读 index 概括主题、明显缺口、错位页。
+-4. 总结：目标与范围、页数按类型、关键主题、下一步建议（ingest / query / organize / lint）。
++2. 列出 `wiki/` typed 子目录页数与 `raw/sources/` 文件数（真实 `ls`，不要编目录树），运行 `lint_wiki.py "{WIKI_ROOT}" --json` 读取 active / archived / draft / validated / deprecated / review_overdue 统计。
++3. 用 `rg` 或有效 index 概括主题、明显缺口、错位页；`index_stale` 时按文件系统结果描述并提示重建。
++4. 总结：目标与范围、页数按类型、关键主题、生命周期与健康统计、下一步建议（ingest / query / organize / lint）。
+ 
+ ## 结构描述
+ 
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index 95a6080..b25d033 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -35,8 +35,10 @@ related: []
+ - 更新时不要轻易改 `type`、`title`、`created`（若已有）。
+ - `tags` / `aliases` / `sources` / `related` 做并集去重，不覆盖删除旧值。
+ - `date` 用本次写入日；`created` 只在首次创建时加。
+-- `description` 是一句话摘要，供索引与候选筛选使用；`aliases` 记录常用别名、缩写和中英变体。
+-- `sources` 指向 `wiki/sources/` 页标题或 raw 文件名，便于追溯。
++- `description` 是一句话摘要，供索引与候选筛选使用；活跃页应填写，缺失会产生 warning。`aliases` 记录常用别名、缩写和中英变体，可用于链接解析；同名或别名冲突时必须使用路径限定链接。
++- 活跃业务页必须有非空 `sources`。每项指向 `wiki/sources/` 页标题、`[[来源页面]]` 或 `raw/sources/` 内的相对文件名；来源必须存在。`origin` 为 `user-input` / `conversation` 的 source 页本身可为空。归档页保留既有来源，不强制补写历史字段。
++- 活跃 `source` 页还必须有 `origin` 与 `captured_at: YYYY-MM-DD`；`origin` 使用 raw 相对路径、`user-input` 或 `conversation`，`content_hash` 可选，存在时为源内容的 SHA-256 十六进制摘要。
++- `tags` / `aliases` / `sources` / `related` 使用 inline list（如 `[alpha, beta]`）。lint 支持标量、空值和 inline list，不支持的 frontmatter 行会报错，不静默忽略。
+ - 所有业务页必须有 `confidence: high | medium | low`，只表示证据强度，不表示重要性或真实概率。
+ - `last_verified: YYYY-MM-DD` 是主张与来源最后核实的日期，不是编辑日期；`high` 必须有此字段。
+ - `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
+@@ -143,6 +145,10 @@ title: 示例来源
+ type: source
+ date: YYYY-MM-DD
+ confidence: medium
++description: 一句话来源摘要
++origin: raw/sources/example.txt
++captured_at: YYYY-MM-DD
++sources: [example.txt]
+ tags: []
+ ---
+ 
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index ef18408..159b499 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -56,8 +56,8 @@
+    - 更新或合并哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
+    - 被新页整体替代的旧页及其归档原因、替代链接
+    - 对应的 `wiki/sources/` 摘要
+-5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，记录关键主张、提到的实体/概念、后续问题。
+-6. **写或合并业务页**。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
++5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，填写 `origin`、`captured_at`、指向 raw 的 `sources` 与可选 `content_hash`，记录关键主张、提到的实体/概念、后续问题。对话或粘贴材料分别使用 `conversation` / `user-input` 作为 origin，并同样建立来源页。
++6. **写或合并业务页**。默认写入 `{WIKI_ROOT}/wiki/` 下对应 typed 目录，填写 `description`、必要的 `aliases` 和非空 `sources`。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
+    - 先读全文
+    - 锁定 `type` / `title` / `created`
+    - 数组字段并集去重
+@@ -65,8 +65,8 @@
+    - ledger 的「历史」只追加，经验状态变化保留依据
+    - 新页整体替代旧页时，按已确认范围走 archive，保留旧页历史与双向链接
+ 7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
+-8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修，`review_overdue` 说明后复审或有意推迟。
+-9. **簿记**：`--write-index` 或按同类表格更新 `wiki/index.md`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
++8. **验证**：回读新页；运行 `lint_wiki.py --check-index`；来源、歧义链接、索引等 error 必须修，warning 说明后处理或有意推迟。
++9. **簿记**：用 `--write-index` 重建 `wiki/index.md`，再跑 `--check-index`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+ 
+ ## 合并时不要做的事
+ 
+@@ -82,7 +82,7 @@
+ - [ ] 材料中的关键实体、概念、经验和台账都有页（或已说明为何合并到旧页）
+ - [ ] 相关页有 `[[wikilink]]`
+ - [ ] 已搜索、无重复建页
+-- [ ] 业务页 frontmatter 含 title / type / date / confidence，经验与台账含 status；所需核实与复审字段齐全
++- [ ] 业务页 frontmatter 含 title / type / date / confidence / description / sources，经验与台账含 status，source 含 origin / captured_at；所需核实与复审字段齐全
+ - [ ] 主张级例外已标置信度，冲突、纠正与失效内容保留来源、日期和状态
+ - [ ] 经验含触发信号、预防与处理、验证方式；validated 有对应验证证据
+ - [ ] 文件类摄入有 `wiki/sources/` 摘要
+diff --git a/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+index 4c810f6..d889f6a 100644
+--- a/skills/wiki-data/references/query.md
++++ b/skills/wiki-data/references/query.md
+@@ -5,10 +5,10 @@
+ ## 步骤
+ 
+ 1. **明确问题**：识别对象、环境、时间范围与任务场景，以及是否限定类型、状态、标签或包含历史归档。回答「当前状态」时必须有相应的核实时间。
+-2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`。当前类型表提供活跃候选，「已归档」表只提供历史候选；利用类型、摘要、置信度、状态与复审日期缩小范围。
+-3. **检索候选**：用 `rg` 搜标题、正文与 frontmatter，覆盖别名、缩写和中英变体。当前问题先读无 `archived_at` 的页面；归档命中只用于补充历史或提示覆盖缺口。用户明确查询历史时再纳入归档页全文。
++2. **检查目录**：先运行 `lint_wiki.py "{WIKI_ROOT}" --check-index`。索引有效时读 `wiki/index.md` 和必要的 `wiki/overview.md`，当前类型表提供活跃候选，「已归档」表只提供历史候选。报 `index_stale` 时明确提示索引过期，改用文件系统的目录列表与 `rg` 检索，不以旧索引断言覆盖完整；查询阶段保持只读，不自动重建。
++3. **检索候选**：搜索标题、正文、frontmatter 与 aliases，覆盖缩写和中英变体。当前问题先读无 `archived_at` 的页面；归档命中只用于补充历史或提示覆盖缺口。用户明确查询历史时再纳入归档页全文。同名或别名歧义未裁决时，使用路径限定链接并并列候选，不采用先命中者。
+ 4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索活跃的 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。未命中时明确说「未检索到匹配经验」。
+-5. **全文核对**：读最相关页面及其直接引用的来源页，核对具体主张的置信度、适用范围、`archived_at`、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
++5. **全文核对**：读最相关页面及其直接引用的来源页，核对 `sources` 指向、具体主张的置信度、适用范围、`archived_at`、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
+ 6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。仅命中归档页时写「当前知识未覆盖，仅有历史记录」，再按需概述历史并附归档日期、原因与替代页。
+ 7. **保留冲突**：页面间结论冲突时并列各自来源、时间、适用范围与置信度，指出当前无法裁决的部分，不静默挑选一条。
+ 
+@@ -27,6 +27,6 @@
+ - 逐条出处、对应主张的置信度与核实日期；
+ - 经验的状态、适用边界、预防检查与验证方式，或台账的更新日期；
+ - 历史回答的归档日期、原因与替代页；
+-- 复审逾期、冲突、未知和未覆盖项。
++- 索引过期、复审逾期、冲突、未知和未覆盖项。
+ 
+ 用户要求归档问答时，先说明将写入 `wiki/queries/`，确认后按 `query` 页面模板保存，并追加操作日志。
+diff --git a/skills/wiki-data/references/archive-reopen.md b/skills/wiki-data/references/archive-reopen.md
+index 7113a72..46f1796 100644
+--- a/skills/wiki-data/references/archive-reopen.md
++++ b/skills/wiki-data/references/archive-reopen.md
+@@ -7,6 +7,7 @@
+ - 页面保留原路径与 `type`，不建物理归档目录，既有链接继续有效。
+ - `raw/`、系统页与既有历史保持原样；`wiki/log.md` 只追加。
+ - `experience.status` 继续表示验证状态，`ledger.status` 继续表示业务状态；归档由独立字段表达。
++- 归档页不再产生 `review_overdue`；原复审日期保留，重开时重新核实。
+ 
+ ## archive
+ 
+@@ -29,7 +30,8 @@
+ 
+ 1. 用户明确要求恢复后，读归档页全文、归档记录、替代页与相关入链，说明重开原因。
+ 2. 重新核实拟恢复的主张、来源和适用范围，按当前证据更新 `confidence`、`last_verified` 与必要的 `review_after`；未核实主张保持低置信度，不因重开自动成为当前事实。
+-3. 在「归档与重开记录」追加重开日期、原因和核实结果；移除 frontmatter 的 `archived_at`、`archive_reason`、`superseded_by`，更新 `date`。历史记录继续保留。
+-4. 回读页面，运行 `lint_wiki.py --write-index`，追加 `## [YYYY-MM-DD] reopen | <页面与原因>`。
++3. 先处理原替代页关系：合并两页、写清各自适用范围，或归档其中一页；不能留下两个回答同一当前问题却关系不明的活跃页。
++4. 在「归档与重开记录」追加重开日期、原因、核实结果和替代页处理；移除 frontmatter 的 `archived_at`、`archive_reason`、`superseded_by`，更新 `date`。历史记录继续保留。
++5. 回读页面，运行 `lint_wiki.py --write-index`，追加 `## [YYYY-MM-DD] reopen | <页面与原因>`。
+ 
+-完成门：归档标记已解除、当前主张已重新核实或降级、历史记录完整、页面回到对应类型的当前索引、日志已追加、lint error 为 0。
++完成门：归档标记已解除、当前主张已重新核实或降级、替代页关系明确、历史记录完整、页面回到对应类型的当前索引、日志已追加、lint error 为 0。
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index 104ca7e..252fe56 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -4,58 +4,59 @@
+ 
+ ```bash
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}"
+-python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
++python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --check-index
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
++python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
+ ```
+ 
+-`--write-index` 根据 typed 子目录与 frontmatter 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面统一列入末尾「已归档」表，并显示归档日期、原因与替代页。
++默认及 `--check-index` 均只读并校验索引一致性；`--write-index` 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面列入末尾「已归档」表。`--json` 的 `stats` 包含 active / archived / draft / validated / deprecated / review_overdue 数量，供 guide 使用。
+ 
+ ## 检查码
+ 
+ | 码 | 级别 | 含义 |
+ |----|------|------|
++| `frontmatter_invalid` | error | frontmatter 含不支持行、重复字段或非法 inline list |
++| `missing_frontmatter` | error | 业务页缺 title / type / date / confidence，活跃页缺 sources（user-input / conversation 来源页除外）；experience / ledger 缺 status，活跃 source 缺 origin / captured_at |
++| `source_invalid` | error | sources / origin 不存在或越界，来源类型错误，content_hash 非法或与真实 raw 内容不匹配 |
+ | `dead_link` | error | `[[link]]` 或 `[text](path)` 目标不存在 |
+-| `missing_frontmatter` | error | 业务页缺 title / type / date / confidence；experience / ledger 还必须有 status |
++| `ambiguous_link` | error | 未限定标题、slug 或别名命中多页；改用路径限定链接 |
++| `index_stale` | error | index 缺失或与当前页面元数据不一致；用 `--write-index` 重建 |
+ | `confidence_invalid` | error | confidence 不是 high / medium / low |
+ | `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
+-| `date_invalid` | error | date / created / last_verified / review_after / archived_at 不是有效的 YYYY-MM-DD |
++| `date_invalid` | error | date / created / last_verified / review_after / archived_at / captured_at 不是有效的 YYYY-MM-DD |
+ | `archive_metadata_invalid` | error | 已归档页缺 archive_reason，或 archive_reason / superseded_by 在没有 archived_at 时单独出现 |
+-| `review_overdue` | warning | 已到复审日；需要重新核实，不表示内容必然错误 |
++| `review_overdue` | warning | 活跃页已到复审日；归档页不产生此项 |
++| `description_missing` | warning | 活跃业务页缺少索引摘要 |
+ | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
+ | `log_date_decreasing` | error | 日志日期递减（违反仅追加） |
+ | `type_dir_mismatch` | warning | `type` 与所在 typed 目录不一致 |
+ | `misplaced_wiki_page` | warning | 业务页不在 typed 子目录 |
+-| `duplicate_page` | warning | 同目录下文件名归一化后重复（去空格/`_`/`-`/全角空格后小写） |
++| `duplicate_page` | warning | 同目录下文件名归一化后重复 |
+ | `entity_concept_coupling` | warning | 概念标题把实体名绑到抽象概念上 |
+ | `archived_reference` | warning | 活跃业务页链接归档页；需明确历史语义或改指现行页面 |
+-| `orphan_page` | warning | 活跃业务页无活跃入链；系统页、`wiki/sources/` 与归档页不计入。系统页链接仍查死链，归档页的出链不使活跃页摆脱孤立 |
+-
+-不同目录的同名文件不报 `duplicate_page`。
++| `orphan_page` | warning | 活跃业务页无活跃入链；系统页、sources 与归档页不计入，归档页出链不使活跃页摆脱孤立 |
+ 
+ ## 修复顺序
+ 
+ 先 error，后 warning。一页多问题一次改完。改前先读全文，避免为消警告丢掉信息。
+ 
+-**死链**：先找是否改名或 slug 不同；不确定就提问或标开放问题，不要随便建空页。更倾向于把链接改到正确页，而不是删掉链接。
++**Frontmatter**：按 page-types 的受限格式修正。活跃页补充真实来源；归档页保留历史。source 的 hash 来自实际文件，不编造。
+ 
+-**Frontmatter**：`type` 可从目录推断，但不要随便改身份字段。缺 `date` 用修复当日。归档字段按 archive / reopen 契约补齐或成组移除，保留正文历史。
++**链接与来源**：先确认目标是否改名或存在同名。歧义链接改成路径限定形式；来源指向真实来源页或 raw 相对路径，不随便建空页。
+ 
+-**日志**：只改格式与日期顺序问题；不删条目、不改历史含义。
+-
+-**归档引用**：判断链接是否只作历史追溯。历史链接保留并说明；当前依据改指替代页或补充现行来源。脚本不能判断正文语境。
++**索引**：页面增删、归档、重开或索引字段变化后运行 `--write-index`；query 只读时使用文件系统回退。
+ 
+-**孤立页**：判断是否本来就该少入链（临时 query 可推迟）。否则从 overview、相关实体或概念补 `[[wikilink]]`。归档页无需为消除孤立警告补链。
++**日志**：只改格式与日期顺序问题；不删条目、不改历史含义。
+ 
+-**错位 / 类型不一致**：让 `type` 与目录一致；移动后更新旧路径上的链接。
++**归档引用**：历史链接保留并说明；当前依据改指替代页或补充现行来源。脚本不能判断正文语境。
+ 
+-**实体-概念耦合**：改成中性概念标题，实体作为案例链入；更新旧 wikilink。不要为消警告删概念正文。
++**孤立页**：活跃页从相关页面补入链；归档页无需为消除孤立警告补链。
+ 
+-**重复页**：读两页后合并或改名，保留独有事实。
++**错位 / 重复 / 耦合**：保留独有事实与历史，按既有 organize 契约处理。
+ 
+ ## 脚本做不到的（需 LLM）
+ 
+-- 页面间事实矛盾
+-- 过时主张
++- 页面间事实矛盾与过时主张
+ - 归档引用的历史语境
+ - 正文提到但尚未建页的概念
+ - 缺失的交叉引用（入链检查只覆盖已有链接）
+@@ -64,8 +65,8 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ ## 完成标准
+ 
+-- [ ] lint 报告 0 error
+-- [ ] 死链已解析（改链或确认目标）
++- [ ] lint 报告 0 error，索引一致
++- [ ] 来源、死链与歧义链接已解析
+ - [ ] 业务页 frontmatter 合法，归档元数据成组且完整
+ - [ ] `wiki/log.md` 格式合法且日期非递减
+ - [ ] warning 已修或有意推迟并说明
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index e6f182b..ce3c86e 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -4,6 +4,7 @@
+ from __future__ import annotations
+ 
+ import argparse
++import hashlib
+ import json
+ import re
+ import sys
+@@ -71,7 +72,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("wiki_root", type=Path, help="Workspace root containing wiki/")
+     parser.add_argument("--json", action="store_true", help="Print machine-readable report")
+-    parser.add_argument(
++    index_mode = parser.add_mutually_exclusive_group()
++    index_mode.add_argument(
++        "--check-index",
++        action="store_true",
++        help="Check wiki/index.md without writing (default)",
++    )
++    index_mode.add_argument(
+         "--write-index",
+         action="store_true",
+         help="Rebuild wiki/index.md from typed pages",
+@@ -79,18 +86,87 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+     return parser.parse_args(argv)
+ 
+ 
+-def parse_frontmatter(text: str) -> dict[str, str]:
++LIST_FIELDS = {"tags", "aliases", "sources", "related"}
++
++
++def parse_inline_list(value: str) -> list[str] | None:
++    if len(value) < 2 or not value.startswith("[") or not value.endswith("]"):
++        return None
++    inner = value[1:-1].strip()
++    if not inner:
++        return []
++    items: list[str] = []
++    current: list[str] = []
++    quote = ""
++    escaped = False
++    for char in inner:
++        if escaped:
++            current.append(char)
++            escaped = False
++            continue
++        if char == "\\" and quote == '"':
++            current.append(char)
++            escaped = True
++            continue
++        if quote:
++            current.append(char)
++            if char == quote:
++                quote = ""
++            continue
++        if char in {'"', "'"}:
++            current.append(char)
++            quote = char
++        elif char == ",":
++            items.append("".join(current).strip())
++            current = []
++        else:
++            current.append(char)
++    if quote:
++        return None
++    items.append("".join(current).strip())
++    parsed = []
++    for item in items:
++        if not item:
++            return None
++        if item[0] in {'"', "'"}:
++            if len(item) < 2 or item[-1] != item[0]:
++                return None
++            item = item[1:-1]
++        parsed.append(item)
++    return parsed
++
++
++def parse_frontmatter(text: str) -> tuple[dict[str, str], dict[str, list[str]], list[str]]:
+     match = FRONTMATTER_RE.match(text)
+     if not match:
+-        return {}
++        return {}, {}, []
+     fields: dict[str, str] = {}
++    lists: dict[str, list[str]] = {}
++    errors: list[str] = []
+     for raw_line in match.group(1).splitlines():
+         line = raw_line.strip()
+-        if not line or line.startswith("#") or ":" not in line:
++        if not line or line.startswith("#"):
++            continue
++        if raw_line[:1].isspace() or ":" not in line:
++            errors.append(f"不支持的行: {line}")
+             continue
+         key, value = line.split(":", 1)
+-        fields[key.strip()] = value.strip().strip("\"'")
+-    return fields
++        key = key.strip()
++        value = value.strip()
++        if not key:
++            errors.append(f"空字段名: {line}")
++            continue
++        if key in fields:
++            errors.append(f"重复字段: {key}")
++            continue
++        fields[key] = value.strip("\"'")
++        if key in LIST_FIELDS:
++            parsed = parse_inline_list(value)
++            if parsed is None:
++                errors.append(f"{key} 必须是 inline list")
++            else:
++                lists[key] = parsed
++    return fields, lists, errors
+ 
+ 
+ def normalize_name_key(value: str) -> str:
+@@ -137,7 +213,7 @@ def load_pages(wiki_dir: Path) -> list[dict]:
+     for path in iter_wiki_pages(wiki_dir):
+         rel = rel_wiki(path, wiki_dir)
+         text = path.read_text(encoding="utf-8")
+-        fm = parse_frontmatter(text)
++        fm, lists, fm_errors = parse_frontmatter(text)
+         stem = path.stem
+         title = fm.get("title") or title_from_filename(stem)
+         kind = classify(rel)
+@@ -148,6 +224,8 @@ def load_pages(wiki_dir: Path) -> list[dict]:
+                 "rel": rel,
+                 "text": text,
+                 "fm": fm,
++                "lists": lists,
++                "fm_errors": fm_errors,
+                 "stem": stem,
+                 "title": title,
+                 "kind": kind,
+@@ -161,17 +239,17 @@ def is_archived(page: dict) -> bool:
+     return bool(page["fm"].get("archived_at"))
+ 
+ 
+-def build_resolvers(pages: list[dict]) -> dict[str, str]:
+-    """Map lookup keys to page rel paths. Later pages do not override unique keys."""
++def build_resolvers(pages: list[dict]) -> tuple[dict[str, str], set[str]]:
+     mapping: dict[str, str] = {}
++    owners: dict[str, set[str]] = defaultdict(set)
+ 
+     def add(key: str, rel: str) -> None:
+         key = key.strip()
+         if not key:
+             return
+-        mapping.setdefault(key, rel)
+-        mapping.setdefault(key.lower(), rel)
+-        mapping.setdefault(normalize_name_key(key), rel)
++        for variant in (key, key.lower(), normalize_name_key(key)):
++            owners[variant].add(rel)
++            mapping.setdefault(variant, rel)
+ 
+     for page in pages:
+         rel = page["rel"]
+@@ -180,10 +258,13 @@ def build_resolvers(pages: list[dict]) -> dict[str, str]:
+         add(page["stem"], rel)
+         add(page["title"], rel)
+         add(title_from_filename(page["stem"]), rel)
++        for alias in page["lists"].get("aliases", []):
++            add(alias, rel)
+         if "/" in rel:
+             add(rel.split("/", 1)[1], rel)
+             add(Path(rel).stem, rel)
+-    return mapping
++    ambiguous = {key for key, rels in owners.items() if len(rels) > 1}
++    return mapping, ambiguous
+ 
+ 
+ def split_wikilink(raw: str) -> str:
+@@ -194,9 +275,9 @@ def split_wikilink(raw: str) -> str:
+     return target
+ 
+ 
+-def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
++def wikilink_keys(target: str) -> list[str]:
+     if not target:
+-        return None
++        return []
+     candidates = [
+         target,
+         target.lower(),
+@@ -206,7 +287,15 @@ def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
+     ]
+     if not target.endswith(".md") and "/" in target:
+         candidates.append(f"{target}.md")
+-    for key in candidates:
++    return candidates
++
++
++def is_ambiguous_wikilink(target: str, ambiguous: set[str]) -> bool:
++    return any(key in ambiguous for key in wikilink_keys(target))
++
++
++def resolve_wikilink(target: str, mapping: dict[str, str]) -> str | None:
++    for key in wikilink_keys(target):
+         if key in mapping:
+             return mapping[key]
+     return None
+@@ -228,7 +317,9 @@ def resolve_md_link(source_rel: str, target: str, wiki_dir: Path) -> Path | None
+     return dest
+ 
+ 
+-def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path) -> dict[str, int]:
++def collect_incoming(
++    pages: list[dict], mapping: dict[str, str], wiki_dir: Path, ambiguous: set[str]
++) -> dict[str, int]:
+     incoming: dict[str, int] = defaultdict(int)
+     for page in pages:
+         # Index/overview and archived pages do not make current pages discoverable.
+@@ -237,6 +328,8 @@ def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path)
+         seen: set[str] = set()
+         for match in WIKILINK_RE.finditer(page["text"]):
+             target = split_wikilink(match.group(1))
++            if is_ambiguous_wikilink(target, ambiguous):
++                continue
+             resolved = resolve_wikilink(target, mapping)
+             if resolved and resolved != page["rel"] and resolved not in seen:
+                 incoming[resolved] += 1
+@@ -255,10 +348,45 @@ def collect_incoming(pages: list[dict], mapping: dict[str, str], wiki_dir: Path)
+     return incoming
+ 
+ 
++def validate_source_reference(
++    reference: str,
++    mapping: dict[str, str],
++    ambiguous: set[str],
++    page_by_rel: dict[str, dict],
++    wiki_dir: Path,
++) -> str | None:
++    value = reference.strip()
++    if not value:
++        return "空来源"
++    is_wikilink = value.startswith("[[") and value.endswith("]]")
++    target = split_wikilink(value[2:-2]) if is_wikilink else value
++    if is_ambiguous_wikilink(target, ambiguous):
++        return f"来源有歧义: {value}"
++    resolved = resolve_wikilink(target, mapping)
++    if resolved:
++        target_page = page_by_rel[resolved]
++        if target_page["subdir"] == "sources":
++            return None
++        return f"来源不是 wiki/sources 页面: {value}"
++    if is_wikilink:
++        return f"来源页不存在: {value}"
++
++    root = wiki_dir.parent
++    candidate = root / value if value.startswith("raw/") else root / "raw" / "sources" / value
++    resolved_path = candidate.resolve()
++    try:
++        resolved_path.relative_to((root / "raw").resolve())
++    except ValueError:
++        return f"来源路径越过 raw: {value}"
++    if not resolved_path.is_file():
++        return f"raw 来源不存在: {value}"
++    return None
++
++
+ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+-    mapping = build_resolvers(pages)
++    mapping, ambiguous = build_resolvers(pages)
+     page_by_rel = {page["rel"]: page for page in pages}
+-    incoming = collect_incoming(pages, mapping, wiki_dir)
++    incoming = collect_incoming(pages, mapping, wiki_dir, ambiguous)
+     issues: list[dict] = []
+ 
+     def add(code: str, severity: str, rel: str, message: str) -> None:
+@@ -289,12 +417,25 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                 "业务页不在 typed 子目录",
+             )
+ 
++        for error in page["fm_errors"]:
++            add("frontmatter_invalid", "error", rel, error)
++
+         if kind == "business":
+             required_fields = ["title", "type", "date", "confidence"]
+             page_type = fm.get("type", "")
++            archived = is_archived(page)
+             if page_type in {"experience", "ledger"}:
+                 required_fields.append("status")
++            if page_type == "source" and not archived:
++                required_fields.extend(["origin", "captured_at"])
+             missing = [field for field in required_fields if not fm.get(field)]
++            origin = fm.get("origin", "")
++            needs_raw_source = page_type != "source" or origin not in {
++                "user-input",
++                "conversation",
++            }
++            if not archived and needs_raw_source and not page["lists"].get("sources"):
++                missing.append("sources")
+             if missing or not fm:
+                 add(
+                     "missing_frontmatter",
+@@ -304,6 +445,34 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                     + (", ".join(missing) or "title, type, date, confidence"),
+                 )
+ 
++            for reference in page["lists"].get("sources", []):
++                source_error = validate_source_reference(
++                    reference, mapping, ambiguous, page_by_rel, wiki_dir
++                )
++                if source_error:
++                    add("source_invalid", "error", rel, source_error)
++            content_hash = fm.get("content_hash", "")
++            hash_valid = not content_hash or re.fullmatch(r"[0-9a-fA-F]{64}", content_hash)
++            if not hash_valid:
++                add("source_invalid", "error", rel, "content_hash 必须是 SHA-256 十六进制摘要")
++            origin_path = None
++            if page_type == "source" and origin and origin not in {"user-input", "conversation"}:
++                origin_path = (wiki_dir.parent / origin).resolve()
++                try:
++                    origin_path.relative_to((wiki_dir.parent / "raw").resolve())
++                except ValueError:
++                    add("source_invalid", "error", rel, "origin 必须位于 raw 内")
++                    origin_path = None
++                if origin_path is not None and not origin_path.is_file():
++                    add("source_invalid", "error", rel, f"origin 不存在: {origin}")
++                    origin_path = None
++            if origin_path is not None and content_hash and hash_valid:
++                actual_hash = hashlib.sha256(origin_path.read_bytes()).hexdigest()
++                if actual_hash != content_hash.lower():
++                    add("source_invalid", "error", rel, "content_hash 与 origin 内容不匹配")
++            if not archived and not fm.get("description"):
++                add("description_missing", "warning", rel, "活跃业务页缺少 description")
++
+             confidence = fm.get("confidence", "")
+             if confidence and confidence not in {"high", "medium", "low"}:
+                 add(
+@@ -338,6 +507,7 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                 "last_verified",
+                 "review_after",
+                 "archived_at",
++                "captured_at",
+             ):
+                 value = fm.get(field, "")
+                 if not value:
+@@ -374,7 +544,7 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                         "validated 经验缺少: " + ", ".join(verification_fields),
+                     )
+             review_after = parsed_dates.get("review_after")
+-            if review_after and review_after < date.today():
++            if not archived and review_after and review_after < date.today():
+                 add(
+                     "review_overdue",
+                     "warning",
+@@ -409,6 +579,9 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+         archived_refs: set[str] = set()
+         for match in WIKILINK_RE.finditer(page["text"]):
+             target = split_wikilink(match.group(1))
++            if is_ambiguous_wikilink(target, ambiguous):
++                add("ambiguous_link", "error", rel, f"链接有歧义 [[{target}]]，请使用路径限定")
++                continue
+             resolved = resolve_wikilink(target, mapping)
+             if resolved is None:
+                 add("dead_link", "error", rel, f"死链 [[{target}]]")
+@@ -474,6 +647,12 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+     if log_page:
+         issues.extend(lint_log(log_page["text"]))
+ 
++    index_page = next((page for page in pages if page["rel"] == "index.md"), None)
++    index_date = index_page["fm"].get("date") if index_page else None
++    expected_index = render_index(pages, index_date)
++    if index_page is None or index_page["text"] != expected_index:
++        add("index_stale", "error", "index.md", "索引缺失或与当前页面不一致")
++
+     return issues
+ 
+ 
+@@ -523,7 +702,7 @@ def lint_log(text: str) -> list[dict]:
+     return issues
+ 
+ 
+-def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
++def render_index(pages: list[dict], index_date: str | None = None) -> str:
+     grouped: dict[str, list[dict]] = {name: [] for name, _ in INDEX_HEADINGS}
+     archived: list[dict] = []
+     for page in pages:
+@@ -553,7 +732,7 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+         entries.sort(key=lambda item: (item["title"].lower(), item["slug"]))
+     archived.sort(key=lambda item: (item["title"].lower(), item["slug"]))
+ 
+-    today = date.today().isoformat()
++    today = index_date or date.today().isoformat()
+     lines = [
+         "---",
+         "title: 内容目录",
+@@ -611,7 +790,12 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+         lines.append("| " + " | ".join(cells) + " |")
+     lines.append("")
+     text = "\n".join(lines)
+-    (wiki_dir / "index.md").write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
++    return text if text.endswith("\n") else text + "\n"
++
++
++def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
++    text = render_index(pages)
++    (wiki_dir / "index.md").write_text(text, encoding="utf-8")
+     return text
+ 
+ 
+@@ -619,7 +803,21 @@ def escape_cell(value: str) -> str:
+     return value.replace("|", "\\|").replace("\n", " ")
+ 
+ 
+-def render_text(issues: list[dict], page_count: int) -> str:
++def build_stats(pages: list[dict], issues: list[dict]) -> dict[str, int]:
++    business = [page for page in pages if page["kind"] == "business"]
++    return {
++        "active": sum(not is_archived(page) for page in business),
++        "archived": sum(is_archived(page) for page in business),
++        "draft": sum(page["fm"].get("status") == "draft" for page in business),
++        "validated": sum(page["fm"].get("status") == "validated" for page in business),
++        "deprecated": sum(page["fm"].get("status") == "deprecated" for page in business),
++        "review_overdue": len(
++            {item["path"] for item in issues if item["code"] == "review_overdue"}
++        ),
++    }
++
++
++def render_text(issues: list[dict], page_count: int, stats: dict[str, int]) -> str:
+     errors = [item for item in issues if item["severity"] == "error"]
+     warnings = [item for item in issues if item["severity"] == "warning"]
+     lines = [
+@@ -627,6 +825,7 @@ def render_text(issues: list[dict], page_count: int) -> str:
+         f"errors: {len(errors)}",
+         f"warnings: {len(warnings)}",
+     ]
++    lines.extend(f"{key}: {value}" for key, value in stats.items())
+     if not issues:
+         lines.append("ok")
+         return "\n".join(lines) + "\n"
+@@ -650,17 +849,19 @@ def main(argv: list[str] | None = None) -> int:
+         pages = load_pages(wiki_dir)
+ 
+     issues = lint_issues(pages, wiki_dir)
++    stats = build_stats(pages, issues)
+     payload = {
+         "wiki_root": str(root),
+         "pages": len(pages),
+         "errors": sum(1 for item in issues if item["severity"] == "error"),
+         "warnings": sum(1 for item in issues if item["severity"] == "warning"),
++        "stats": stats,
+         "issues": issues,
+     }
+     if args.json:
+         print(json.dumps(payload, ensure_ascii=False, indent=2))
+     else:
+-        sys.stdout.write(render_text(issues, len(pages)))
++        sys.stdout.write(render_text(issues, len(pages), stats))
+     return 1 if payload["errors"] else 0
+ 
+ 
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index d8341f9..00e1312 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -75,6 +75,26 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("experience.status", self.archive)
+         self.assertIn("ledger.status", self.archive)
+ 
++    def test_trusted_knowledge_loop_is_deterministic(self) -> None:
++        self.assertIn("业务文档默认写入 `{WIKI_ROOT}/wiki/`", self.skill)
++        self.assertIn("业务文档默认保存到 `{WIKI_ROOT}/wiki/`", self.layout)
++        for field in ("sources", "origin", "captured_at", "content_hash", "aliases"):
++            self.assertIn(field, self.types)
++        for code in (
++            "frontmatter_invalid",
++            "source_invalid",
++            "ambiguous_link",
++            "index_stale",
++            "description_missing",
++        ):
++            self.assertIn(code, self.lint)
++        self.assertIn("--check-index", self.query)
++        self.assertIn("文件系统", self.query)
++        self.assertIn("原替代页关系", self.archive)
++        self.assertIn("归档页不再产生 `review_overdue`", self.archive)
++        self.assertIn("stats", self.lint)
++        self.assertIn("生命周期与健康统计", self.layout)
++
+     def test_handoff_boundaries(self) -> None:
+         self.assertIn("project-spec-mirror", self.skill)
+         self.assertIn("code-explore", self.skill)
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index 5038d6c..cf6921a 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -32,6 +32,7 @@ class LintWikiTest(unittest.TestCase):
+         self.tmp = tempfile.TemporaryDirectory()
+         self.root = Path(self.tmp.name)
+         self.wiki = self.root / "wiki"
++        write(self.root / "raw" / "sources" / "original.txt", "source\n")
+         write(
+             self.wiki / "log.md",
+             "---\ntitle: 操作日志\n---\n\n# 操作日志\n\n## [2026-09-15] init | 工作区初始化\n",
+@@ -53,13 +54,15 @@ class LintWikiTest(unittest.TestCase):
+     def test_clean_workspace_ok(self) -> None:
+         write(
+             self.wiki / "entities" / "northwind.md",
+-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n见 [[渐进披露]]\n",
++            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n见 [[渐进披露]]\n",
+         )
+         write(
+             self.wiki / "concepts" / "渐进披露.md",
+-            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n案例 [[Northwind]]\n",
++            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n案例 [[Northwind]]\n",
+         )
+-        code, out = self.run_lint()
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        code, out = self.run_lint("--check-index")
+         self.assertEqual(code, 0, out)
+         self.assertIn("errors: 0", out)
+ 
+@@ -74,12 +77,12 @@ class LintWikiTest(unittest.TestCase):
+         self.assertIn("missing_frontmatter", out)
+ 
+     def test_duplicate_page_same_dir_only(self) -> None:
+-        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n"
++        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# x\n"
+         write(self.wiki / "concepts" / "A_Player.md", body.replace("Demo", "A"))
+         write(self.wiki / "concepts" / "A Player.md", body.replace("Demo", "B"))
+         write(
+             self.wiki / "entities" / "A_Player.md",
+-            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
++            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# e\n",
+         )
+         _, out = self.run_lint()
+         self.assertIn("duplicate_page", out)
+@@ -88,17 +91,17 @@ class LintWikiTest(unittest.TestCase):
+     def test_entity_concept_coupling_and_type_mismatch(self) -> None:
+         write(
+             self.wiki / "entities" / "青禾实验室.md",
+-            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
++            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# e\n",
+         )
+         write(
+             self.wiki / "concepts" / "青禾实验室方法论.md",
+-            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# c\n",
++            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# c\n",
+         )
+         write(
+             self.wiki / "entities" / "wrong-type.md",
+-            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n",
++            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# x\n",
+         )
+-        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# s\n")
++        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# s\n")
+         _, out = self.run_lint()
+         self.assertIn("entity_concept_coupling", out)
+         self.assertIn("type_dir_mismatch", out)
+@@ -124,15 +127,15 @@ class LintWikiTest(unittest.TestCase):
+     def test_write_index(self) -> None:
+         write(
+             self.wiki / "entities" / "northwind.md",
+-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\ndescription: 示例组织\n---\n\n# e\n",
++            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例组织\n---\n\n# e\n",
+         )
+         write(
+             self.wiki / "experiences" / "verify-before-reuse.md",
+-            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nconfidence: high\nstatus: validated\nlast_verified: 2026-09-15\nreview_after: 2999-01-01\n---\n\n案例 [[Northwind]]\n",
++            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nconfidence: high\nsources: [original.txt]\ndescription: 示例\nstatus: validated\nlast_verified: 2026-09-15\nreview_after: 2999-01-01\n---\n\n案例 [[Northwind]]\n",
+         )
+         write(
+             self.wiki / "ledgers" / "northwind-decision.md",
+-            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nconfidence: medium\nstatus: active\n---\n\n对象 [[Northwind]]\n",
++            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\nstatus: active\n---\n\n对象 [[Northwind]]\n",
+         )
+         code, out = self.run_lint("--write-index")
+         self.assertEqual(code, 0, out)
+@@ -151,7 +154,7 @@ class LintWikiTest(unittest.TestCase):
+         for subdir, page_type in (("experiences", "experience"), ("ledgers", "ledger")):
+             write(
+                 self.wiki / subdir / "incomplete.md",
+-                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\nconfidence: medium\n---\n",
++                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n",
+             )
+         code, out = self.run_lint()
+         self.assertEqual(code, 1)
+@@ -176,11 +179,11 @@ class LintWikiTest(unittest.TestCase):
+     def test_verification_requirements(self) -> None:
+         write(
+             self.wiki / "concepts" / "high-without-verification.md",
+-            "---\ntitle: High without verification\ntype: concept\ndate: 2026-09-15\nconfidence: high\n---\n",
++            "---\ntitle: High without verification\ntype: concept\ndate: 2026-09-15\nconfidence: high\nsources: [original.txt]\ndescription: 示例\n---\n",
+         )
+         write(
+             self.wiki / "experiences" / "validated-without-review.md",
+-            "---\ntitle: Validated without review\ntype: experience\ndate: 2026-09-15\nconfidence: medium\nstatus: validated\nlast_verified: 2026-09-15\n---\n",
++            "---\ntitle: Validated without review\ntype: experience\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\nstatus: validated\nlast_verified: 2026-09-15\n---\n",
+         )
+         code, out = self.run_lint()
+         self.assertEqual(code, 1)
+@@ -190,17 +193,155 @@ class LintWikiTest(unittest.TestCase):
+     def test_date_validation_and_review_overdue(self) -> None:
+         write(
+             self.wiki / "concepts" / "invalid-date.md",
+-            "---\ntitle: Invalid date\ntype: concept\ndate: 2026-02-30\nconfidence: medium\n---\n",
++            "---\ntitle: Invalid date\ntype: concept\ndate: 2026-02-30\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n",
+         )
+         write(
+             self.wiki / "concepts" / "overdue.md",
+-            "---\ntitle: Overdue\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nlast_verified: 2020-01-01\nreview_after: 2020-02-01\n---\n",
++            "---\ntitle: Overdue\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\nlast_verified: 2020-01-01\nreview_after: 2020-02-01\n---\n",
+         )
+         code, out = self.run_lint()
+         self.assertEqual(code, 1)
+         self.assertIn("date_invalid", out)
+         self.assertIn("review_overdue", out)
+ 
++    def test_sources_are_required_and_resolve(self) -> None:
++        target = self.wiki / "concepts" / "sourced.md"
++        write(
++            target,
++            "---\ntitle: Sourced\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("sources", out)
++        self.assertIn("description_missing", out)
++
++        write(
++            target,
++            "---\ntitle: Sourced\ntype: concept\ndate: 2026-09-15\nconfidence: medium\ndescription: 示例\nsources: [missing.txt]\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("source_invalid", out)
++
++        write(
++            self.wiki / "sources" / "example.md",
++            "---\ntitle: Example source\ntype: source\ndate: 2026-09-15\nconfidence: medium\ndescription: 来源摘要\norigin: raw/sources/original.txt\ncaptured_at: 2026-09-15\nsources: [original.txt]\n---\n",
++        )
++        write(
++            target,
++            "---\ntitle: Sourced\ntype: concept\ndate: 2026-09-15\nconfidence: medium\ndescription: 示例\nsources: [Example source]\n---\n\n见 [[Example source]]\n",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        write(
++            self.wiki / "sources" / "example.md",
++            "---\ntitle: Example source\ntype: source\ndate: 2026-09-15\nconfidence: medium\ndescription: 来源摘要\norigin: raw/sources/original.txt\ncaptured_at: 2026-09-15\nsources: [original.txt]\ncontent_hash: "
++            + "0" * 64
++            + "\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("content_hash 与 origin 内容不匹配", out)
++
++    def test_ambiguous_title_requires_qualified_link(self) -> None:
++        for subdir, slug in (("entities", "one"), ("concepts", "two")):
++            write(
++                self.wiki / subdir / f"{slug}.md",
++                "---\ntitle: Shared\ntype: "
++                + ("entity" if subdir == "entities" else "concept")
++                + "\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n",
++            )
++        target = self.wiki / "queries" / "shared.md"
++        write(
++            target,
++            "---\ntitle: Shared query\ntype: query\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n[[Shared]]\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("ambiguous_link", out)
++
++        write(
++            target,
++            "---\ntitle: Shared query\ntype: query\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n[[entities/one|Shared]]\n",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++
++    def test_aliases_resolve_and_collisions_are_rejected(self) -> None:
++        write(
++            self.wiki / "entities" / "alpha.md",
++            "---\ntitle: Alpha\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\naliases: [Common]\n---\n",
++        )
++        target = self.wiki / "concepts" / "use-alpha.md"
++        write(
++            target,
++            "---\ntitle: Use alpha\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n[[Common]]\n",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        write(
++            self.wiki / "entities" / "beta.md",
++            "---\ntitle: Beta\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\naliases: [Common]\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("ambiguous_link", out)
++
++    def test_index_stale_is_detected_without_writing(self) -> None:
++        target = self.wiki / "concepts" / "indexed.md"
++        write(
++            target,
++            "---\ntitle: Indexed\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 初版\n---\n",
++        )
++        code, out = self.run_lint("--check-index")
++        self.assertEqual(code, 1)
++        self.assertIn("index_stale", out)
++        self.assertFalse((self.wiki / "index.md").exists())
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        write(
++            target,
++            "---\ntitle: Indexed\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 已变化\n---\n",
++        )
++        code, out = self.run_lint("--check-index")
++        self.assertEqual(code, 1)
++        self.assertIn("index_stale", out)
++
++    def test_archive_skips_review_and_separates_index_and_stats(self) -> None:
++        import json
++
++        write(
++            self.wiki / "concepts" / "old.md",
++            "---\ntitle: Old\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\nreview_after: 2020-01-01\narchived_at: 2026-09-16\narchive_reason: 不再适用\n---\n",
++        )
++        write(
++            self.wiki / "entities" / "current.md",
++            "---\ntitle: Current\ntype: entity\ndate: 2026-09-16\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n历史 [[Old]]\n",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        self.assertIn("archived_reference", out)
++        self.assertNotIn("review_overdue\t", out)
++        index = (self.wiki / "index.md").read_text(encoding="utf-8")
++        active, archived = index.split("## 已归档 (archived)")
++        self.assertNotIn("[[concepts/old", active)
++        self.assertIn("[[concepts/old", archived)
++        code, out = self.run_lint("--json")
++        self.assertEqual(code, 0, out)
++        report = json.loads(out)
++        self.assertEqual(report["stats"]["active"], 1)
++        self.assertEqual(report["stats"]["archived"], 1)
++        self.assertEqual(report["stats"]["review_overdue"], 0)
++
++    def test_invalid_frontmatter_list_is_not_ignored(self) -> None:
++        write(
++            self.wiki / "concepts" / "invalid-list.md",
++            "---\ntitle: Invalid list\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\naliases:\n  - Common\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("frontmatter_invalid", out)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

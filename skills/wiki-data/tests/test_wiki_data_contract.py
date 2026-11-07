@@ -18,6 +18,7 @@ class ContractTest(unittest.TestCase):
         cls.query = (ROOT / "references" / "query.md").read_text(encoding="utf-8")
         cls.lint = (ROOT / "references" / "lint.md").read_text(encoding="utf-8")
         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
+        cls.archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
 
     def test_frontmatter_name_matches_directory(self) -> None:
         self.assertIn("name: wiki-data", self.skill)
@@ -31,6 +32,7 @@ class ContractTest(unittest.TestCase):
             "references/query.md",
             "references/lint.md",
             "references/organize.md",
+            "references/archive-reopen.md",
             "scripts/lint_wiki.py",
             "agents/openai.yaml",
         ):
@@ -55,8 +57,43 @@ class ContractTest(unittest.TestCase):
         self.assertIn("未确认则停止", self.layout)
 
     def test_phases_are_named(self) -> None:
-        for phase in ("guide", "init", "ingest", "query", "organize", "lint"):
+        for phase in ("guide", "init", "ingest", "query", "archive", "reopen", "organize", "lint"):
             self.assertIn(f"`{phase}`", self.skill)
+
+    def test_archive_reopen_preserves_history_and_current_query_boundary(self) -> None:
+        for field in ("archived_at", "archive_reason", "superseded_by"):
+            self.assertIn(field, self.types)
+            self.assertIn(field, self.archive)
+        self.assertIn("保留原路径", self.archive)
+        self.assertIn("确认后再写", self.archive)
+        self.assertIn("重新核实", self.archive)
+        self.assertIn("归档与重开记录", self.archive)
+        self.assertIn("当前知识未覆盖，仅有历史记录", self.query)
+        self.assertIn("「已归档」表", self.lint)
+        for code in ("archive_metadata_invalid", "archived_reference"):
+            self.assertIn(code, self.lint)
+        self.assertIn("experience.status", self.archive)
+        self.assertIn("ledger.status", self.archive)
+
+    def test_trusted_knowledge_loop_is_deterministic(self) -> None:
+        self.assertIn("业务文档默认写入 `{WIKI_ROOT}/wiki/`", self.skill)
+        self.assertIn("业务文档默认保存到 `{WIKI_ROOT}/wiki/`", self.layout)
+        for field in ("sources", "origin", "captured_at", "content_hash", "aliases"):
+            self.assertIn(field, self.types)
+        for code in (
+            "frontmatter_invalid",
+            "source_invalid",
+            "ambiguous_link",
+            "index_stale",
+            "description_missing",
+        ):
+            self.assertIn(code, self.lint)
+        self.assertIn("--check-index", self.query)
+        self.assertIn("文件系统", self.query)
+        self.assertIn("原替代页关系", self.archive)
+        self.assertIn("归档页不再产生 `review_overdue`", self.archive)
+        self.assertIn("stats", self.lint)
+        self.assertIn("生命周期与健康统计", self.layout)
 
     def test_handoff_boundaries(self) -> None:
         self.assertIn("project-spec-mirror", self.skill)
