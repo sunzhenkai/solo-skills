@@ -12,11 +12,13 @@
 └── wiki/
     ├── overview.md         # 全局总览（系统页）
     ├── index.md            # 内容目录（系统页，ingest/organize/lint --write-index 后更新）
-    ├── log.md              # 仅追加操作日志（系统页）
+    ├── log.md              # 仅追加 wiki 操作日志（系统页）
     ├── entities/           # 实体：人、组织、产品、项目
     ├── concepts/           # 概念：术语、方法、框架
     ├── sources/            # 源材料摘要（不是 raw 原件）
     ├── synthesis/          # 跨源综合
+    ├── experiences/        # 可复用经验、证据与适用边界
+    ├── ledgers/            # 业务对象当前状态与追加历史
     ├── comparisons/        # 对比
     ├── queries/            # 归档问答
     └── templates/          # 系统模板，不是业务内容
@@ -31,7 +33,7 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
 | 工作区配置 | `purpose.md`, `rules.md` | 根目录；缺失则说明，不编造 |
 | 不可变源 | `raw/sources/`, `raw/assets/` | 只读；修订以新文件加入 |
 | 系统页 | `wiki/overview.md`, `wiki/index.md`, `wiki/log.md` | 仅有的合法顶层 wiki Markdown |
-| 业务页 | `wiki/entities/` … `wiki/queries/` | 必须落在 typed 子目录 |
+| 业务页 | `wiki/entities/`、`wiki/concepts/`、`wiki/sources/`、`wiki/synthesis/`、`wiki/experiences/`、`wiki/ledgers/`、`wiki/comparisons/`、`wiki/queries/` | 必须落在 typed 子目录 |
 | 系统模板 | `wiki/templates/` | init 脚手架；lint 不当地孤立业务页 |
 
 ## 反模式
@@ -66,6 +68,8 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
 
 - 语言跟随已有页面；空库默认简体中文。
 - 事实必须能追溯到 raw 源、wiki/sources 摘要或本轮用户材料。
+- 每页标 `confidence: high | medium | low`；混合主张逐条标注例外，不用数值概率。
+- `last_verified` 记录核实日，易变知识用 `review_after` 约定复审日；逾期先复审再作为当前事实。
 - 内部引用用 `[[页面标题]]`。
 - 凭据与个人隐私写成 `<REDACTED>`，不入库。
 - 不确定标为开放问题，不删冲突，并列保存。
@@ -85,7 +89,7 @@ title: 操作日志
 
 `wiki/overview.md`：章节「项目目标」「当前状态」「主要主题」。
 
-`wiki/index.md` 用 `lint_wiki.py --write-index` 生成，或按 typed 子目录建空表：实体 / 概念 / 源摘要 / 综合分析 / 对比分析 / 查询归档。
+`wiki/index.md` 用 `lint_wiki.py --write-index` 生成，或按 typed 子目录建空表：实体 / 概念 / 源摘要 / 综合分析 / 经验 / 业务台账 / 对比分析 / 查询归档。既有工作区缺少新目录时仍可查询和 lint，只在写入对应类型时创建目录。
 
 页面模板见 [page-types.md](page-types.md)。不要把模板复制成业务页。
 

@@ -15,7 +15,11 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
 | 码 | 级别 | 含义 |
 |----|------|------|
 | `dead_link` | error | `[[link]]` 或 `[text](path)` 目标不存在 |
-| `missing_frontmatter` | error | 业务页缺 title / type / date |
+| `missing_frontmatter` | error | 业务页缺 title / type / date / confidence；experience / ledger 还必须有 status |
+| `confidence_invalid` | error | confidence 不是 high / medium / low |
+| `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
+| `date_invalid` | error | date / created / last_verified / review_after 不是有效的 YYYY-MM-DD |
+| `review_overdue` | warning | 已到复审日；需要重新核实，不表示内容必然错误 |
 | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
 | `log_date_decreasing` | error | 日志日期递减（违反仅追加） |
 | `type_dir_mismatch` | warning | `type` 与所在 typed 目录不一致 |

@@ -8,6 +8,8 @@
 | concept | `wiki/concepts/` | 可复用的术语、方法、框架、机制、理论 | 定义、核心要点、相关实体、来源 |
 | source | `wiki/sources/` | 一份 raw 源的摘要，不是原件 | 摘要、关键观点、相关实体/概念 |
 | synthesis | `wiki/synthesis/` | 跨源分析 | 问题/目的、分析、引用、后续 |
+| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界 | 适用场景、触发信号、经验结论、预防与处理、验证方式、证据、边界与失效条件、来源 |
+| ledger | `wiki/ledgers/` | 一个业务对象的当前状态与历史变化 | 当前状态、历史、来源 |
 | comparison | `wiki/comparisons/` | 对比 | 对比维度、异同、结论 |
 | query | `wiki/queries/` | 值得留下的问答 | 问题、回答、引用 |
 
@@ -22,16 +24,36 @@
 title: 页面标题
 type: entity
 date: YYYY-MM-DD
+confidence: medium
 tags: []
+aliases: []
 sources: []
 related: []
 ---
 ```
 
 - 更新时不要轻易改 `type`、`title`、`created`（若已有）。
-- `tags` / `sources` / `related` 做并集去重，不覆盖删除旧值。
+- `tags` / `aliases` / `sources` / `related` 做并集去重，不覆盖删除旧值。
 - `date` 用本次写入日；`created` 只在首次创建时加。
+- `description` 是一句话摘要，供索引与候选筛选使用；`aliases` 记录常用别名、缩写和中英变体。
 - `sources` 指向 `wiki/sources/` 页标题或 raw 文件名，便于追溯。
+- 所有业务页必须有 `confidence: high | medium | low`，只表示证据强度，不表示重要性或真实概率。
+- `last_verified: YYYY-MM-DD` 是主张与来源最后核实的日期，不是编辑日期；`high` 必须有此字段。
+- `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
+- `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页必须同时记录 `last_verified` 和 `review_after`。
+- `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
+
+### 置信度定级
+
+| confidence | 证据标准 | 复用方式 |
+|------------|----------|----------|
+| `high` | 当前一手来源已被直接核实，或有可复查的复现/验证证据；多个来源须能独立佐证 | 可按适用范围作为现行结论，并附核实日期 |
+| `medium` | 单一可靠来源尚未独立复核，或有依据但未直接验证的推断 | 可作为参考，说明证据缺口与适用边界 |
+| `low` | 未验证说法、转述、开放假设或尚未裁决的冲突 | 只作线索，先验证再执行 |
+
+页面 `confidence` 是未单独标注主张的默认值。同页主张证据强度不同或适用范围不同时，在主张后标 `（置信度：低；核实：YYYY-MM-DD；来源：[[来源页面]]）`；回答以具体主张的标注为准。用户决策可以高置信度地证明「做过该决策」，不能由此推高决策结果的置信度。
+
+纠正事实时保留旧主张，标明「已更正」、日期、新来源与替代结论。冲突主张并列保存并保持 `low`，有裁决证据后再更新等级；经验整页失效用 `deprecated`，其他页面用主张级状态保留历史。
 
 系统页可不设业务 `type`。模板页只存在于 `wiki/templates/`。
 
@@ -66,6 +88,7 @@ related: []
 title: 示例实体
 type: entity
 date: YYYY-MM-DD
+confidence: medium
 tags: []
 ---
 
@@ -91,6 +114,7 @@ tags: []
 title: 示例概念
 type: concept
 date: YYYY-MM-DD
+confidence: medium
 tags: []
 ---
 
@@ -116,6 +140,7 @@ tags: []
 title: 示例来源
 type: source
 date: YYYY-MM-DD
+confidence: medium
 tags: []
 ---
 
@@ -128,6 +153,65 @@ tags: []
 ## 相关实体/概念
 
 - [[相关页面]]
+```
+
+### experience
+
+```markdown
+---
+title: 示例经验
+type: experience
+date: YYYY-MM-DD
+confidence: low
+status: draft
+tags: []
+sources: []
+---
+
+# 适用场景
+
+## 触发信号
+
+## 经验结论
+
+## 预防与处理
+
+## 验证方式
+
+## 证据
+
+## 边界与失效条件
+
+## 来源
+
+- [[来源页面]]
+```
+
+### ledger
+
+```markdown
+---
+title: 示例业务对象
+type: ledger
+date: YYYY-MM-DD
+confidence: medium
+status: active
+tags: []
+sources: []
+---
+
+# 当前状态
+
+## 历史
+
+### [YYYY-MM-DD] 初始记录
+
+- 状态：active
+- 依据：[[来源页面]]
+
+## 来源
+
+- [[来源页面]]
 ```
 
 ### synthesis / comparison / query

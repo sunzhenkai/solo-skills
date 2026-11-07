@@ -15,6 +15,7 @@ class ContractTest(unittest.TestCase):
         cls.layout = (ROOT / "references" / "layout.md").read_text(encoding="utf-8")
         cls.types = (ROOT / "references" / "page-types.md").read_text(encoding="utf-8")
         cls.ingest = (ROOT / "references" / "ingest.md").read_text(encoding="utf-8")
+        cls.query = (ROOT / "references" / "query.md").read_text(encoding="utf-8")
         cls.lint = (ROOT / "references" / "lint.md").read_text(encoding="utf-8")
         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
 
@@ -27,6 +28,7 @@ class ContractTest(unittest.TestCase):
             "references/layout.md",
             "references/page-types.md",
             "references/ingest.md",
+            "references/query.md",
             "references/lint.md",
             "references/organize.md",
             "scripts/lint_wiki.py",
@@ -69,6 +71,16 @@ class ContractTest(unittest.TestCase):
         for field in ("锚点", "证据等级", "用户输入", "dead-end", "验证盲区", "回退条件"):
             self.assertIn(field, self.ingest)
 
+    def test_context_ingest_extracts_and_lists_before_writing(self) -> None:
+        for term in ("当前对话", "自动提取", "知识", "主题", "经验", "踩坑", "操作信息"):
+            self.assertIn(term, self.ingest)
+        self.assertIn("先向用户展示**归档列表**，再按列表摄入", self.ingest)
+        self.assertIn("候选 `type`", self.ingest)
+        self.assertIn("新建 / 更新 / 合并目标", self.ingest)
+        self.assertIn("上下文证据", self.ingest)
+        self.assertIn("归档列表即本次写入范围", self.ingest)
+        self.assertIn("写盘前完成", self.ingest)
+
     def test_privacy_gate(self) -> None:
         self.assertIn("摄入前做隐私自查", self.skill)
         self.assertIn("<REDACTED>", self.skill)
@@ -86,6 +98,50 @@ class ContractTest(unittest.TestCase):
     def test_entity_concept_split(self) -> None:
         self.assertIn("概念标题保持中性", self.types)
         self.assertIn("渐进披露", self.types)
+
+    def test_experience_and_ledger_contract(self) -> None:
+        for path in ("wiki/experiences/", "wiki/ledgers/"):
+            self.assertIn(path, self.layout)
+            self.assertIn(path, self.types)
+        for field in ("适用场景", "证据", "边界与失效条件", "last_verified"):
+            self.assertIn(field, self.types)
+        self.assertIn("当前状态", self.types)
+        self.assertIn("纠正历史也追加新条目", self.ingest)
+        self.assertIn("业务台账与操作日志分离", self.skill)
+
+    def test_query_reads_pages_and_preserves_status(self) -> None:
+        self.assertIn("references/query.md", self.skill)
+        self.assertIn("页面全文才是回答依据", self.query)
+        self.assertIn("status: draft", self.query)
+        self.assertIn("当前状态", self.query)
+        self.assertIn("wiki 尚未覆盖", self.query)
+
+    def test_confidence_and_freshness_are_distinct(self) -> None:
+        for field in ("confidence: high | medium | low", "last_verified", "review_after"):
+            self.assertIn(field, self.types)
+        self.assertIn("证据强度", self.types)
+        self.assertIn("复审", self.types)
+        self.assertIn("主张级", self.query)
+        self.assertIn("页面级高置信度不能覆盖主张级低置信度", self.query)
+        self.assertIn("不等于已经证伪", self.query)
+        for code in ("confidence_invalid", "verification_missing", "date_invalid", "review_overdue"):
+            self.assertIn(code, self.lint)
+
+    def test_experience_supports_prevention_and_reuse(self) -> None:
+        for section in ("触发信号", "预防与处理", "验证方式"):
+            self.assertIn(section, self.types)
+            self.assertIn(section, self.ingest)
+            self.assertIn(section, self.query)
+        self.assertIn("相似任务执行前查经验", self.skill)
+        self.assertIn("执行前预检", self.query)
+        self.assertIn("未检索到匹配经验", self.query)
+        self.assertIn("只有「验证方式」已有对应结果和来源时才改为 `validated`", self.ingest)
+
+    def test_corrections_and_deprecated_knowledge_keep_history(self) -> None:
+        self.assertIn("已更正", self.ingest)
+        self.assertIn("替代页链接", self.ingest)
+        self.assertIn("`deprecated` 只作历史参考", self.query)
+        self.assertIn("时效缺口", self.query)
 
     def test_phase_loaded_on_demand(self) -> None:
         self.assertIn("只读该阶段详情", self.skill)

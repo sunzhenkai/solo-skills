@@ -53,11 +53,11 @@ class LintWikiTest(unittest.TestCase):
     def test_clean_workspace_ok(self) -> None:
         write(
             self.wiki / "entities" / "northwind.md",
-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\n---\n\n见 [[渐进披露]]\n",
+            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n见 [[渐进披露]]\n",
         )
         write(
             self.wiki / "concepts" / "渐进披露.md",
-            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\n---\n\n案例 [[Northwind]]\n",
+            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n案例 [[Northwind]]\n",
         )
         code, out = self.run_lint()
         self.assertEqual(code, 0, out)
@@ -74,12 +74,12 @@ class LintWikiTest(unittest.TestCase):
         self.assertIn("missing_frontmatter", out)
 
     def test_duplicate_page_same_dir_only(self) -> None:
-        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\n---\n\n# x\n"
+        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n"
         write(self.wiki / "concepts" / "A_Player.md", body.replace("Demo", "A"))
         write(self.wiki / "concepts" / "A Player.md", body.replace("Demo", "B"))
         write(
             self.wiki / "entities" / "A_Player.md",
-            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\n---\n\n# e\n",
+            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
         )
         _, out = self.run_lint()
         self.assertIn("duplicate_page", out)
@@ -88,17 +88,17 @@ class LintWikiTest(unittest.TestCase):
     def test_entity_concept_coupling_and_type_mismatch(self) -> None:
         write(
             self.wiki / "entities" / "青禾实验室.md",
-            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\n---\n\n# e\n",
+            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
         )
         write(
             self.wiki / "concepts" / "青禾实验室方法论.md",
-            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\n---\n\n# c\n",
+            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# c\n",
         )
         write(
             self.wiki / "entities" / "wrong-type.md",
-            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\n---\n\n# x\n",
+            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n",
         )
-        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\n---\n\n# s\n")
+        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# s\n")
         _, out = self.run_lint()
         self.assertIn("entity_concept_coupling", out)
         self.assertIn("type_dir_mismatch", out)
@@ -124,14 +124,82 @@ class LintWikiTest(unittest.TestCase):
     def test_write_index(self) -> None:
         write(
             self.wiki / "entities" / "northwind.md",
-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\ndescription: 示例组织\n---\n\n# e\n",
+            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\ndescription: 示例组织\n---\n\n# e\n",
         )
-        code, _ = self.run_lint("--write-index")
-        self.assertEqual(code, 0)
+        write(
+            self.wiki / "experiences" / "verify-before-reuse.md",
+            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nconfidence: high\nstatus: validated\nlast_verified: 2026-09-15\nreview_after: 2999-01-01\n---\n\n案例 [[Northwind]]\n",
+        )
+        write(
+            self.wiki / "ledgers" / "northwind-decision.md",
+            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nconfidence: medium\nstatus: active\n---\n\n对象 [[Northwind]]\n",
+        )
+        code, out = self.run_lint("--write-index")
+        self.assertEqual(code, 0, out)
         index = (self.wiki / "index.md").read_text(encoding="utf-8")
         self.assertIn("实体 (entities)", index)
+        self.assertIn("经验 (experiences)", index)
+        self.assertIn("业务台账 (ledgers)", index)
         self.assertIn("Northwind", index)
+        self.assertIn("Verify before reuse", index)
+        self.assertIn("Northwind decision", index)
+        self.assertIn("置信度 | 状态 | 核实日期 | 复审日期", index)
+        self.assertIn("high | validated | 2026-09-15 | 2999-01-01", index)
         self.assertIn("wiki-data", index)
+
+    def test_experience_and_ledger_require_status(self) -> None:
+        for subdir, page_type in (("experiences", "experience"), ("ledgers", "ledger")):
+            write(
+                self.wiki / subdir / "incomplete.md",
+                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\nconfidence: medium\n---\n",
+            )
+        code, out = self.run_lint()
+        self.assertEqual(code, 1)
+        self.assertEqual(out.count("missing_frontmatter"), 2)
+        self.assertIn("status", out)
+
+    def test_confidence_is_required_and_validated(self) -> None:
+        write(
+            self.wiki / "concepts" / "missing-confidence.md",
+            "---\ntitle: Missing confidence\ntype: concept\ndate: 2026-09-15\n---\n",
+        )
+        write(
+            self.wiki / "concepts" / "invalid-confidence.md",
+            "---\ntitle: Invalid confidence\ntype: concept\ndate: 2026-09-15\nconfidence: certain\n---\n",
+        )
+        code, out = self.run_lint()
+        self.assertEqual(code, 1)
+        self.assertIn("missing_frontmatter", out)
+        self.assertIn("confidence", out)
+        self.assertIn("confidence_invalid", out)
+
+    def test_verification_requirements(self) -> None:
+        write(
+            self.wiki / "concepts" / "high-without-verification.md",
+            "---\ntitle: High without verification\ntype: concept\ndate: 2026-09-15\nconfidence: high\n---\n",
+        )
+        write(
+            self.wiki / "experiences" / "validated-without-review.md",
+            "---\ntitle: Validated without review\ntype: experience\ndate: 2026-09-15\nconfidence: medium\nstatus: validated\nlast_verified: 2026-09-15\n---\n",
+        )
+        code, out = self.run_lint()
+        self.assertEqual(code, 1)
+        self.assertEqual(out.count("verification_missing"), 2)
+        self.assertIn("review_after", out)
+
+    def test_date_validation_and_review_overdue(self) -> None:
+        write(
+            self.wiki / "concepts" / "invalid-date.md",
+            "---\ntitle: Invalid date\ntype: concept\ndate: 2026-02-30\nconfidence: medium\n---\n",
+        )
+        write(
+            self.wiki / "concepts" / "overdue.md",
+            "---\ntitle: Overdue\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nlast_verified: 2020-01-01\nreview_after: 2020-02-01\n---\n",
+        )
+        code, out = self.run_lint()
+        self.assertEqual(code, 1)
+        self.assertIn("date_invalid", out)
+        self.assertIn("review_overdue", out)
 
 
 if __name__ == "__main__":

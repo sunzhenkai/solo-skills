@@ -1,4 +1,4 @@
 interface:
   display_name: "Wiki Data"
-  short_description: "用本地 Markdown 整理维护可累积知识 wiki，不依赖 wiki 服务"
-  default_prompt: "用 $wiki-data 把本地文档编进 typed wiki：guide 了解现状，init 建骨架，ingest 摄入，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
+  short_description: "用本地 Markdown 保存检索知识、总结经验与业务台账"
+  default_prompt: "用 $wiki-data 维护 typed wiki：guide 了解现状，init 建骨架，ingest 摄入带来源、置信度与时效的知识/经验/台账，query 按引用回答并在相似任务执行前查踩坑经验，organize 重组，lint 检查元数据、死链与复审逾期。raw/ 只读；不要启动 llmwiki 应用。"

@@ -1,0 +1,590 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 1a7c6a0..5e493ee 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: wiki-data
+ name: wiki-data
+-description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、总结经验、记录业务台账、重组结构并做健康检查。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 wiki-data 时使用。
++description: 在本地 Markdown 工作区维护可累积、带置信度与时效的知识 wiki：摄入源文档成 typed 页面、按引用回答、总结经验和踩坑、记录业务台账、重组结构并做健康检查。用户要求整理知识、维护 wiki、ingest 本地文档、查询或复用已有知识、相似任务前查经验、lint/重组知识库，或点名 wiki-data 时使用。
+ ---
+ 
+ # Wiki Data（本地文档）
+@@ -31,7 +31,7 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ | `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 | 已按真实 `ls` 报出目标、结构、覆盖与缺口 |
+ | `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
+ | `ingest` | 把文件、粘贴文本或对话编进 wiki，总结经验或更新台账 | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
+-| `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 | 回答逐条带出处，未覆盖处明说「wiki 尚未覆盖」 |
++| `query` | 问 wiki 里已有的知识，或相似任务执行前查经验 | 默认只读；归档问答需确认 | 回答逐条带出处、置信度与时效，未覆盖处明说「wiki 尚未覆盖」 |
+ | `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+ | `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
+ 
+@@ -57,7 +57,8 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ 6. **业务台账与操作日志分离。** 业务对象的当前状态与历史写入 `wiki/ledgers/`，不混入 `wiki/log.md`。
+ 7. **系统页** `wiki/overview.md`、`wiki/index.md`、`wiki/log.md` 不可当业务页删除或移走。
+ 8. **声称必须可追溯** 到 `raw/`、`wiki/sources/` 或本轮用户提供的材料。没有证据就写「wiki 尚未覆盖」，不要编造。
+-9. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
++9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、冲突与逾期内容不作为当前真理。
++10. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
+ 
+ ## 加载
+ 
+diff --git a/skills/wiki-data/agents/openai.yaml b/skills/wiki-data/agents/openai.yaml
+index 87355bd..0ef3bd5 100644
+--- a/skills/wiki-data/agents/openai.yaml
++++ b/skills/wiki-data/agents/openai.yaml
+@@ -1,4 +1,4 @@
+ interface:
+   display_name: "Wiki Data"
+   short_description: "用本地 Markdown 保存检索知识、总结经验与业务台账"
+-  default_prompt: "用 $wiki-data 维护 typed wiki：guide 了解现状，init 建骨架，ingest 摄入知识与经验/台账，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
++  default_prompt: "用 $wiki-data 维护 typed wiki：guide 了解现状，init 建骨架，ingest 摄入带来源、置信度与时效的知识/经验/台账，query 按引用回答并在相似任务执行前查踩坑经验，organize 重组，lint 检查元数据、死链与复审逾期。raw/ 只读；不要启动 llmwiki 应用。"
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 63dd527..979b3a8 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -15,12 +15,12 @@
+ 用户要求从当前对话或上下文摄入时，主动回顾可见内容并提取候选，无需用户逐条点名：
+ 
+ - **知识与主题**：事实、术语、方法、关系和主题，按内容归入 `entity` / `concept`；跨来源归纳归入 `synthesis`。
+-- **经验与踩坑**：保留适用条件、现象、证据、处理办法、验证结果与边界，归入 `experience`；未确认的原因保留为假设或开放问题。
++- **经验与踩坑**：保留适用条件、触发信号、现象、证据、预防处理、验证结果与边界，归入 `experience`；未确认的原因保留为假设或开放问题。
+ - **操作信息**：值得记录的操作、决策与状态变化；可复用做法归入 `experience`，业务对象的当前状态与历史归入 `ledger`，单次材料摘要归入 `source`。
+ 
+ 合并同一事实的重复候选，区分已证实事实、用户决策与未验证推测。敏感信息按 `<REDACTED>` 或拒绝该段处理，不写成明文。
+ 
+-先向用户展示**归档列表**，再按列表摄入。每项列出：摘要、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
++先向用户展示**归档列表**，再按列表摄入。每项列出：摘要、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）、拟定置信度、核实日期与复审日期（如需要）。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
+ 
+ ## 排查记录
+ 
+@@ -32,8 +32,10 @@
+ 
+ ## 经验与台账
+ 
+-- 经验页写可复用结论，不只复述一次事件。保留适用场景、证据、边界与失效条件；证据不足时用 `status: draft`，验证后改为 `validated` 并记录 `last_verified`，失效时改为 `deprecated` 且保留历史来源。
+-- 一个业务对象对应一个 ledger 页。更新时先读全文，同步 frontmatter `status` / `date` 与「当前状态」，再在「历史」追加带日期的变更；纠正历史也追加新条目，不改写旧条目含义。
++- 经验页写可复用结论，不只复述一次事件。保留适用场景、触发信号、预防与处理、验证方式、证据、边界与失效条件，让下次执行前能直接生成检查项。
++- 证据不足时用 `status: draft`。只有「验证方式」已有对应结果和来源时才改为 `validated`，同时记录 `last_verified` 与 `review_after`；状态不替代 `confidence`，仍按证据强度定级。
++- 失效经验改为 `deprecated`，写明失效条件、日期、依据和替代页链接，保留历史来源。纠正其他页面时保留旧主张并标「已更正」、日期、新来源与替代结论，避免旧文本继续以未标状态的现行事实出现。
++- 一个业务对象对应一个 ledger 页。更新时先读全文，同步 frontmatter `status` / `date` 与「当前状态」，记录本次 `last_verified`，再在「历史」追加带日期的变更；纠正历史也追加新条目，不改写旧条目含义。
+ - `wiki/log.md` 只追加本次 wiki 操作，不承载业务对象状态。
+ 
+ ## 步骤
+@@ -43,18 +45,19 @@
+ 3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体）。读命中页，避免重复建页。
+ 4. **归档列表**（对用户可见，写盘前完成；复杂时先确认再写）：
+    - 每项的摘要、候选 `type` 与上下文证据
++   - 每项的 `confidence`、证据日期、`last_verified` 与易变内容的 `review_after`
+    - 新建哪些 typed 页
+    - 更新或合并哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
+    - 对应的 `wiki/sources/` 摘要
+ 5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，记录关键主张、提到的实体/概念、后续问题。
+-6. **写或合并业务页**。更新旧页时：
++6. **写或合并业务页**。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
+    - 先读全文
+    - 锁定 `type` / `title` / `created`
+    - 数组字段并集去重
+-   - 正文整合新事实，不覆盖旧段；冲突并列并标明来源
++   - 正文整合新事实，不覆盖旧段；冲突并列并标明来源、时间与适用范围，未裁决的主张保持低置信度
+    - ledger 的「历史」只追加，经验状态变化保留依据
+ 7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
+-8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修。
++8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修，`review_overdue` 说明后复审或有意推迟。
+ 9. **簿记**：`--write-index` 或按同类表格更新 `wiki/index.md`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+ 
+ ## 合并时不要做的事
+@@ -71,7 +74,9 @@
+ - [ ] 材料中的关键实体、概念、经验和台账都有页（或已说明为何合并到旧页）
+ - [ ] 相关页有 `[[wikilink]]`
+ - [ ] 已搜索、无重复建页
+-- [ ] 业务页 frontmatter 含 title / type / date，经验与台账含 status
++- [ ] 业务页 frontmatter 含 title / type / date / confidence，经验与台账含 status；所需核实与复审字段齐全
++- [ ] 主张级例外已标置信度，冲突、纠正与失效内容保留来源、日期和状态
++- [ ] 经验含触发信号、预防与处理、验证方式；validated 有对应验证证据
+ - [ ] 文件类摄入有 `wiki/sources/` 摘要
+ - [ ] 旧页保留原有信息与来源，台账历史只追加
+ - [ ] 已回读并跑 lint，error 为 0
+diff --git a/skills/wiki-data/references/layout.md b/skills/wiki-data/references/layout.md
+index d424a46..7bfe355 100644
+--- a/skills/wiki-data/references/layout.md
++++ b/skills/wiki-data/references/layout.md
+@@ -68,6 +68,8 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
+ 
+ - 语言跟随已有页面；空库默认简体中文。
+ - 事实必须能追溯到 raw 源、wiki/sources 摘要或本轮用户材料。
++- 每页标 `confidence: high | medium | low`；混合主张逐条标注例外，不用数值概率。
++- `last_verified` 记录核实日，易变知识用 `review_after` 约定复审日；逾期先复审再作为当前事实。
+ - 内部引用用 `[[页面标题]]`。
+ - 凭据与个人隐私写成 `<REDACTED>`，不入库。
+ - 不确定标为开放问题，不删冲突，并列保存。
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index d0765ca..dbc7f37 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -15,7 +15,11 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ | 码 | 级别 | 含义 |
+ |----|------|------|
+ | `dead_link` | error | `[[link]]` 或 `[text](path)` 目标不存在 |
+-| `missing_frontmatter` | error | 业务页缺 title / type / date；experience / ledger 还必须有 status |
++| `missing_frontmatter` | error | 业务页缺 title / type / date / confidence；experience / ledger 还必须有 status |
++| `confidence_invalid` | error | confidence 不是 high / medium / low |
++| `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
++| `date_invalid` | error | date / created / last_verified / review_after 不是有效的 YYYY-MM-DD |
++| `review_overdue` | warning | 已到复审日；需要重新核实，不表示内容必然错误 |
+ | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
+ | `log_date_decreasing` | error | 日志日期递减（违反仅追加） |
+ | `type_dir_mismatch` | warning | `type` 与所在 typed 目录不一致 |
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index 2601ba5..d833541 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -8,7 +8,7 @@
+ | concept | `wiki/concepts/` | 可复用的术语、方法、框架、机制、理论 | 定义、核心要点、相关实体、来源 |
+ | source | `wiki/sources/` | 一份 raw 源的摘要，不是原件 | 摘要、关键观点、相关实体/概念 |
+ | synthesis | `wiki/synthesis/` | 跨源分析 | 问题/目的、分析、引用、后续 |
+-| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界 | 适用场景、经验结论、证据、边界与失效条件、来源 |
++| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界 | 适用场景、触发信号、经验结论、预防与处理、验证方式、证据、边界与失效条件、来源 |
+ | ledger | `wiki/ledgers/` | 一个业务对象的当前状态与历史变化 | 当前状态、历史、来源 |
+ | comparison | `wiki/comparisons/` | 对比 | 对比维度、异同、结论 |
+ | query | `wiki/queries/` | 值得留下的问答 | 问题、回答、引用 |
+@@ -24,6 +24,7 @@
+ title: 页面标题
+ type: entity
+ date: YYYY-MM-DD
++confidence: medium
+ tags: []
+ aliases: []
+ sources: []
+@@ -36,9 +37,24 @@ related: []
+ - `date` 用本次写入日；`created` 只在首次创建时加。
+ - `description` 是一句话摘要，供索引与候选筛选使用；`aliases` 记录常用别名、缩写和中英变体。
+ - `sources` 指向 `wiki/sources/` 页标题或 raw 文件名，便于追溯。
+-- `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页记录 `last_verified: YYYY-MM-DD`。
++- 所有业务页必须有 `confidence: high | medium | low`，只表示证据强度，不表示重要性或真实概率。
++- `last_verified: YYYY-MM-DD` 是主张与来源最后核实的日期，不是编辑日期；`high` 必须有此字段。
++- `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
++- `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页必须同时记录 `last_verified` 和 `review_after`。
+ - `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
+ 
++### 置信度定级
++
++| confidence | 证据标准 | 复用方式 |
++|------------|----------|----------|
++| `high` | 当前一手来源已被直接核实，或有可复查的复现/验证证据；多个来源须能独立佐证 | 可按适用范围作为现行结论，并附核实日期 |
++| `medium` | 单一可靠来源尚未独立复核，或有依据但未直接验证的推断 | 可作为参考，说明证据缺口与适用边界 |
++| `low` | 未验证说法、转述、开放假设或尚未裁决的冲突 | 只作线索，先验证再执行 |
++
++页面 `confidence` 是未单独标注主张的默认值。同页主张证据强度不同或适用范围不同时，在主张后标 `（置信度：低；核实：YYYY-MM-DD；来源：[[来源页面]]）`；回答以具体主张的标注为准。用户决策可以高置信度地证明「做过该决策」，不能由此推高决策结果的置信度。
++
++纠正事实时保留旧主张，标明「已更正」、日期、新来源与替代结论。冲突主张并列保存并保持 `low`，有裁决证据后再更新等级；经验整页失效用 `deprecated`，其他页面用主张级状态保留历史。
++
+ 系统页可不设业务 `type`。模板页只存在于 `wiki/templates/`。
+ 
+ ## 实体 vs 概念
+@@ -72,6 +88,7 @@ related: []
+ title: 示例实体
+ type: entity
+ date: YYYY-MM-DD
++confidence: medium
+ tags: []
+ ---
+ 
+@@ -97,6 +114,7 @@ tags: []
+ title: 示例概念
+ type: concept
+ date: YYYY-MM-DD
++confidence: medium
+ tags: []
+ ---
+ 
+@@ -122,6 +140,7 @@ tags: []
+ title: 示例来源
+ type: source
+ date: YYYY-MM-DD
++confidence: medium
+ tags: []
+ ---
+ 
+@@ -143,6 +162,7 @@ tags: []
+ title: 示例经验
+ type: experience
+ date: YYYY-MM-DD
++confidence: low
+ status: draft
+ tags: []
+ sources: []
+@@ -150,8 +170,14 @@ sources: []
+ 
+ # 适用场景
+ 
++## 触发信号
++
+ ## 经验结论
+ 
++## 预防与处理
++
++## 验证方式
++
+ ## 证据
+ 
+ ## 边界与失效条件
+@@ -168,6 +194,7 @@ sources: []
+ title: 示例业务对象
+ type: ledger
+ date: YYYY-MM-DD
++confidence: medium
+ status: active
+ tags: []
+ sources: []
+diff --git a/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+index c995bbc..4833edf 100644
+--- a/skills/wiki-data/references/query.md
++++ b/skills/wiki-data/references/query.md
+@@ -1,20 +1,22 @@
+ # 查询
+ 
+-从已有 wiki 回答，默认只读。`wiki/index.md` 是候选目录，页面全文才是回答依据。
++从已有 wiki 回答或做相似任务预检，默认只读。`wiki/index.md` 是候选目录，页面全文才是回答依据。
+ 
+ ## 步骤
+ 
+-1. **明确问题**：识别要找的对象、时间范围，以及是否限定类型、状态或标签。
+-2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`，确定候选页与应搜索的 typed 子目录。
++1. **明确问题**：识别对象、环境、时间范围与任务场景，以及是否限定类型、状态或标签。回答「当前状态」时必须有相应的核实时间。
++2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`，利用类型、摘要、置信度、状态与复审日期确定候选页和 typed 子目录。
+ 3. **检索候选**：用 `rg` 搜标题、正文与 frontmatter；覆盖别名、缩写和中英变体。有类型或状态约束时先缩到对应目录，再读匹配页，不只做一次全库精确搜索。
+-4. **全文核对**：读最相关页面及其直接引用的来源页。索引摘要、文件名或单条搜索命中不能单独支撑结论。
+-5. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`；说明关键状态或日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。
+-6. **保留冲突**：页面间结论冲突时并列各自来源与时间，指出当前无法裁决的部分，不静默挑选一条。
++4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。未命中时明确说「未检索到匹配经验」。
++5. **全文核对**：读最相关页面及其直接引用的来源页，核对具体主张的置信度、适用范围、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
++6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。
++7. **保留冲突**：页面间结论冲突时并列各自来源、时间、适用范围与置信度，指出当前无法裁决的部分，不静默挑选一条。
+ 
+ ## 经验与台账
+ 
+-- 查经验时优先读 `wiki/experiences/`，回答适用场景、结论、证据和失效条件；`status: draft` 明确标为待验证，`deprecated` 不作为现行建议。
+-- 查业务对象现状时优先读 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
++- 查经验时回答适用场景、触发信号、结论、预防与处理、验证方式、证据和失效条件。`status: draft` 只是待验证线索，`deprecated` 只作历史参考；两者都不能作为已验证的现行建议。
++- `review_after` 早于查询当日表示需要复审，不等于已经证伪。逾期或缺少 `last_verified` 的内容只按历史记录陈述；用户问现实是否仍成立时，说明时效缺口，经重新核实后再称为当前事实。
++- 查业务对象现状时优先读 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date` / `last_verified`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
+ - 只有单次材料、没有经验页时，可以概述材料并标明尚未归纳为经验；不要把它包装成已验证规律。
+ 
+ ## 输出
+@@ -22,8 +24,8 @@
+ 按问题需要包含：
+ 
+ - 结论或当前状态；
+-- 逐条出处；
+-- 经验的状态与适用边界，或台账的更新日期；
+-- 冲突、未知和未覆盖项。
++- 逐条出处、对应主张的置信度与核实日期；
++- 经验的状态、适用边界、预防检查与验证方式，或台账的更新日期；
++- 复审逾期、冲突、未知和未覆盖项。
+ 
+ 用户要求归档问答时，先说明将写入 `wiki/queries/`，确认后按 `query` 页面模板保存，并追加操作日志。
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index 82de9fb..f369985 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -285,8 +285,9 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+             )
+ 
+         if kind == "business":
+-            required_fields = ["title", "type", "date"]
+-            if fm.get("type") in {"experience", "ledger"}:
++            required_fields = ["title", "type", "date", "confidence"]
++            page_type = fm.get("type", "")
++            if page_type in {"experience", "ledger"}:
+                 required_fields.append("status")
+             missing = [field for field in required_fields if not fm.get(field)]
+             if missing or not fm:
+@@ -294,9 +295,64 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                     "missing_frontmatter",
+                     "error",
+                     rel,
+-                    "缺少 frontmatter 字段: " + (", ".join(missing) or "title, type, date"),
++                    "缺少 frontmatter 字段: "
++                    + (", ".join(missing) or "title, type, date, confidence"),
+                 )
+-            page_type = fm.get("type", "")
++
++            confidence = fm.get("confidence", "")
++            if confidence and confidence not in {"high", "medium", "low"}:
++                add(
++                    "confidence_invalid",
++                    "error",
++                    rel,
++                    f"confidence 必须是 high / medium / low，当前为 {confidence!r}",
++                )
++
++            parsed_dates = {}
++            for field in ("date", "created", "last_verified", "review_after"):
++                value = fm.get(field, "")
++                if not value:
++                    continue
++                try:
++                    parsed = date.fromisoformat(value)
++                    if parsed.isoformat() != value:
++                        raise ValueError(value)
++                    parsed_dates[field] = parsed
++                except ValueError:
++                    add(
++                        "date_invalid",
++                        "error",
++                        rel,
++                        f"{field} 必须是有效的 YYYY-MM-DD，当前为 {value!r}",
++                    )
++
++            if confidence == "high" and not fm.get("last_verified"):
++                add(
++                    "verification_missing",
++                    "error",
++                    rel,
++                    "high confidence 需要 last_verified",
++                )
++            if page_type == "experience" and fm.get("status") == "validated":
++                verification_fields = [
++                    field for field in ("last_verified", "review_after") if not fm.get(field)
++                ]
++                if verification_fields:
++                    add(
++                        "verification_missing",
++                        "error",
++                        rel,
++                        "validated 经验缺少: " + ", ".join(verification_fields),
++                    )
++            review_after = parsed_dates.get("review_after")
++            if review_after and review_after < date.today():
++                add(
++                    "review_overdue",
++                    "warning",
++                    rel,
++                    f"复审日期已过: {review_after.isoformat()}",
++                )
++
+             expected_dir = TYPE_TO_DIR.get(page_type)
+             if page_type and expected_dir and page["subdir"] != expected_dir:
+                 add(
+@@ -419,6 +475,10 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+                 "title": page["title"],
+                 "description": fm.get("description", ""),
+                 "date": fm.get("date", ""),
++                "confidence": fm.get("confidence", ""),
++                "status": fm.get("status", ""),
++                "last_verified": fm.get("last_verified", ""),
++                "review_after": fm.get("review_after", ""),
+             }
+         )
+     for entries in grouped.values():
+@@ -442,16 +502,26 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
+             [
+                 f"## {heading}",
+                 "",
+-                "| 页面 | 标题 | 摘要 | 更新日期 |",
+-                "|------|------|------|----------|",
++                "| 页面 | 标题 | 摘要 | 更新日期 | 置信度 | 状态 | 核实日期 | 复审日期 |",
++                "|------|------|------|----------|--------|------|----------|----------|",
+             ]
+         )
+         for entry in grouped[dirname]:
+             title = escape_cell(entry["title"])
+             link = f"[[{entry['subdir']}/{entry['slug']}\\|{title}]]"
+-            lines.append(
+-                f"| {link} | {title} | {escape_cell(entry['description'])} | {escape_cell(entry['date'])} |"
++            cells = [link, title]
++            cells.extend(
++                escape_cell(entry[field] or "-")
++                for field in (
++                    "description",
++                    "date",
++                    "confidence",
++                    "status",
++                    "last_verified",
++                    "review_after",
++                )
+             )
++            lines.append("| " + " | ".join(cells) + " |")
+         lines.append("")
+     text = "\n".join(lines)
+     (wiki_dir / "index.md").write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index 35d4827..5038d6c 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -53,11 +53,11 @@ class LintWikiTest(unittest.TestCase):
+     def test_clean_workspace_ok(self) -> None:
+         write(
+             self.wiki / "entities" / "northwind.md",
+-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\n---\n\n见 [[渐进披露]]\n",
++            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n见 [[渐进披露]]\n",
+         )
+         write(
+             self.wiki / "concepts" / "渐进披露.md",
+-            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\n---\n\n案例 [[Northwind]]\n",
++            "---\ntitle: 渐进披露\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n案例 [[Northwind]]\n",
+         )
+         code, out = self.run_lint()
+         self.assertEqual(code, 0, out)
+@@ -74,12 +74,12 @@ class LintWikiTest(unittest.TestCase):
+         self.assertIn("missing_frontmatter", out)
+ 
+     def test_duplicate_page_same_dir_only(self) -> None:
+-        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\n---\n\n# x\n"
++        body = "---\ntitle: Demo\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n"
+         write(self.wiki / "concepts" / "A_Player.md", body.replace("Demo", "A"))
+         write(self.wiki / "concepts" / "A Player.md", body.replace("Demo", "B"))
+         write(
+             self.wiki / "entities" / "A_Player.md",
+-            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\n---\n\n# e\n",
++            "---\ntitle: A Player\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
+         )
+         _, out = self.run_lint()
+         self.assertIn("duplicate_page", out)
+@@ -88,17 +88,17 @@ class LintWikiTest(unittest.TestCase):
+     def test_entity_concept_coupling_and_type_mismatch(self) -> None:
+         write(
+             self.wiki / "entities" / "青禾实验室.md",
+-            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\n---\n\n# e\n",
++            "---\ntitle: 青禾实验室\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# e\n",
+         )
+         write(
+             self.wiki / "concepts" / "青禾实验室方法论.md",
+-            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\n---\n\n# c\n",
++            "---\ntitle: 青禾实验室方法论\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# c\n",
+         )
+         write(
+             self.wiki / "entities" / "wrong-type.md",
+-            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\n---\n\n# x\n",
++            "---\ntitle: Wrong\ntype: concept\ndate: 2026-09-15\nconfidence: medium\n---\n\n# x\n",
+         )
+-        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\n---\n\n# s\n")
++        write(self.wiki / "stray.md", "---\ntitle: Stray\ntype: entity\ndate: 2026-09-15\nconfidence: medium\n---\n\n# s\n")
+         _, out = self.run_lint()
+         self.assertIn("entity_concept_coupling", out)
+         self.assertIn("type_dir_mismatch", out)
+@@ -124,15 +124,15 @@ class LintWikiTest(unittest.TestCase):
+     def test_write_index(self) -> None:
+         write(
+             self.wiki / "entities" / "northwind.md",
+-            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\ndescription: 示例组织\n---\n\n# e\n",
++            "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\nconfidence: medium\ndescription: 示例组织\n---\n\n# e\n",
+         )
+         write(
+             self.wiki / "experiences" / "verify-before-reuse.md",
+-            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nstatus: validated\nlast_verified: 2026-09-15\n---\n\n案例 [[Northwind]]\n",
++            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nconfidence: high\nstatus: validated\nlast_verified: 2026-09-15\nreview_after: 2999-01-01\n---\n\n案例 [[Northwind]]\n",
+         )
+         write(
+             self.wiki / "ledgers" / "northwind-decision.md",
+-            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nstatus: active\n---\n\n对象 [[Northwind]]\n",
++            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nconfidence: medium\nstatus: active\n---\n\n对象 [[Northwind]]\n",
+         )
+         code, out = self.run_lint("--write-index")
+         self.assertEqual(code, 0, out)
+@@ -143,19 +143,64 @@ class LintWikiTest(unittest.TestCase):
+         self.assertIn("Northwind", index)
+         self.assertIn("Verify before reuse", index)
+         self.assertIn("Northwind decision", index)
++        self.assertIn("置信度 | 状态 | 核实日期 | 复审日期", index)
++        self.assertIn("high | validated | 2026-09-15 | 2999-01-01", index)
+         self.assertIn("wiki-data", index)
+ 
+     def test_experience_and_ledger_require_status(self) -> None:
+         for subdir, page_type in (("experiences", "experience"), ("ledgers", "ledger")):
+             write(
+                 self.wiki / subdir / "incomplete.md",
+-                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\n---\n",
++                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\nconfidence: medium\n---\n",
+             )
+         code, out = self.run_lint()
+         self.assertEqual(code, 1)
+         self.assertEqual(out.count("missing_frontmatter"), 2)
+         self.assertIn("status", out)
+ 
++    def test_confidence_is_required_and_validated(self) -> None:
++        write(
++            self.wiki / "concepts" / "missing-confidence.md",
++            "---\ntitle: Missing confidence\ntype: concept\ndate: 2026-09-15\n---\n",
++        )
++        write(
++            self.wiki / "concepts" / "invalid-confidence.md",
++            "---\ntitle: Invalid confidence\ntype: concept\ndate: 2026-09-15\nconfidence: certain\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("missing_frontmatter", out)
++        self.assertIn("confidence", out)
++        self.assertIn("confidence_invalid", out)
++
++    def test_verification_requirements(self) -> None:
++        write(
++            self.wiki / "concepts" / "high-without-verification.md",
++            "---\ntitle: High without verification\ntype: concept\ndate: 2026-09-15\nconfidence: high\n---\n",
++        )
++        write(
++            self.wiki / "experiences" / "validated-without-review.md",
++            "---\ntitle: Validated without review\ntype: experience\ndate: 2026-09-15\nconfidence: medium\nstatus: validated\nlast_verified: 2026-09-15\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertEqual(out.count("verification_missing"), 2)
++        self.assertIn("review_after", out)
++
++    def test_date_validation_and_review_overdue(self) -> None:
++        write(
++            self.wiki / "concepts" / "invalid-date.md",
++            "---\ntitle: Invalid date\ntype: concept\ndate: 2026-02-30\nconfidence: medium\n---\n",
++        )
++        write(
++            self.wiki / "concepts" / "overdue.md",
++            "---\ntitle: Overdue\ntype: concept\ndate: 2026-09-15\nconfidence: medium\nlast_verified: 2020-01-01\nreview_after: 2020-02-01\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertIn("date_invalid", out)
++        self.assertIn("review_overdue", out)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index 8e186e0..28a49a6 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -116,6 +116,33 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("当前状态", self.query)
+         self.assertIn("wiki 尚未覆盖", self.query)
+ 
++    def test_confidence_and_freshness_are_distinct(self) -> None:
++        for field in ("confidence: high | medium | low", "last_verified", "review_after"):
++            self.assertIn(field, self.types)
++        self.assertIn("证据强度", self.types)
++        self.assertIn("复审", self.types)
++        self.assertIn("主张级", self.query)
++        self.assertIn("页面级高置信度不能覆盖主张级低置信度", self.query)
++        self.assertIn("不等于已经证伪", self.query)
++        for code in ("confidence_invalid", "verification_missing", "date_invalid", "review_overdue"):
++            self.assertIn(code, self.lint)
++
++    def test_experience_supports_prevention_and_reuse(self) -> None:
++        for section in ("触发信号", "预防与处理", "验证方式"):
++            self.assertIn(section, self.types)
++            self.assertIn(section, self.ingest)
++            self.assertIn(section, self.query)
++        self.assertIn("相似任务执行前查经验", self.skill)
++        self.assertIn("执行前预检", self.query)
++        self.assertIn("未检索到匹配经验", self.query)
++        self.assertIn("只有「验证方式」已有对应结果和来源时才改为 `validated`", self.ingest)
++
++    def test_corrections_and_deprecated_knowledge_keep_history(self) -> None:
++        self.assertIn("已更正", self.ingest)
++        self.assertIn("替代页链接", self.ingest)
++        self.assertIn("`deprecated` 只作历史参考", self.query)
++        self.assertIn("时效缺口", self.query)
++
+     def test_phase_loaded_on_demand(self) -> None:
+         self.assertIn("只读该阶段详情", self.skill)
+         self.assertIn("其它 reference 等用到时再读", self.skill)

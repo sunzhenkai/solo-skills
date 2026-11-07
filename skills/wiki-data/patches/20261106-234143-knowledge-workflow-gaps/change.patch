@@ -1,0 +1,425 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 35849de..1a7c6a0 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: wiki-data
+ name: wiki-data
+-description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、重组结构并做健康检查（文件系统为真相源）。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 wiki-data 时使用。
++description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入源文档成 typed 页面、按引用回答、总结经验、记录业务台账、重组结构并做健康检查。用户要求整理知识、维护 wiki、ingest 本地文档、查询已有 wiki、lint/重组知识库，或点名 wiki-data 时使用。
+ ---
+ 
+ # Wiki Data（本地文档）
+@@ -30,7 +30,7 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ |------|------|------|------------|
+ | `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 | 已按真实 `ls` 报出目标、结构、覆盖与缺口 |
+ | `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
+-| `ingest` | 把文件、粘贴文本或对话编进 wiki | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
++| `ingest` | 把文件、粘贴文本或对话编进 wiki，总结经验或更新台账 | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
+ | `query` | 问 wiki 里已有的知识 | 默认只读；归档问答需确认 | 回答逐条带出处，未覆盖处明说「wiki 尚未覆盖」 |
+ | `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+ | `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
+@@ -54,9 +54,10 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ 3. **文件系统是真理源。** 搜索用目录列表与内容检索（`rg` / 读文件）；不要假设有 FTS 索引。
+ 4. **先搜再写，写后回读。** 更新已有页必须先读全文，保留旧事实与旧 `sources`。
+ 5. **`wiki/log.md` 仅追加。** 条目格式：`## [YYYY-MM-DD] action | description`。不重排、不删历史。
+-6. **系统页** `wiki/overview.md`、`wiki/index.md`、`wiki/log.md` 不可当业务页删除或移走。
+-7. **声称必须可追溯** 到 `raw/`、`wiki/sources/` 或本轮用户提供的材料。没有证据就写「wiki 尚未覆盖」，不要编造。
+-8. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
++6. **业务台账与操作日志分离。** 业务对象的当前状态与历史写入 `wiki/ledgers/`，不混入 `wiki/log.md`。
++7. **系统页** `wiki/overview.md`、`wiki/index.md`、`wiki/log.md` 不可当业务页删除或移走。
++8. **声称必须可追溯** 到 `raw/`、`wiki/sources/` 或本轮用户提供的材料。没有证据就写「wiki 尚未覆盖」，不要编造。
++9. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
+ 
+ ## 加载
+ 
+@@ -66,7 +67,7 @@ description: 在本地 Markdown 工作区维护可累积的知识 wiki：摄入
+ |------|------------|
+ | `guide` / `init` | [references/layout.md](references/layout.md) |
+ | `ingest` | [references/ingest.md](references/ingest.md)；写页时再读 [references/page-types.md](references/page-types.md) |
+-| `query` | 本文件步骤已够；归档到 `wiki/queries/` 时再读 page-types |
++| `query` | [references/query.md](references/query.md)；归档到 `wiki/queries/` 时再读 page-types |
+ | `organize` | [references/organize.md](references/organize.md)；写页时再读 [references/page-types.md](references/page-types.md)；改完读 [references/lint.md](references/lint.md) |
+ | `lint` | [references/lint.md](references/lint.md) |
+ 
+@@ -93,10 +94,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ 
+ ## `query`
+ 
+-1. 先读 `wiki/index.md`，再用 `rg` 搜别名、缩写、中英变体；不要只搜一次精确词。
+-2. 读最相关页面，综合回答并引用 `[[页面标题]]`。
+-3. 证据不足就明说。页面冲突则并列来源，不静默挑选。
+-4. 用户要求归档时，先说明将写入 `wiki/queries/`，确认后再写。
++进入后读 [references/query.md](references/query.md)。默认只读；用户要求归档时，先说明将写入 `wiki/queries/`，确认后再写。
+ 
+ ## `organize`
+ 
+diff --git a/skills/wiki-data/agents/openai.yaml b/skills/wiki-data/agents/openai.yaml
+index 6ca7ad4..87355bd 100644
+--- a/skills/wiki-data/agents/openai.yaml
++++ b/skills/wiki-data/agents/openai.yaml
+@@ -1,4 +1,4 @@
+ interface:
+   display_name: "Wiki Data"
+-  short_description: "用本地 Markdown 整理维护可累积知识 wiki，不依赖 wiki 服务"
+-  default_prompt: "用 $wiki-data 把本地文档编进 typed wiki：guide 了解现状，init 建骨架，ingest 摄入，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
++  short_description: "用本地 Markdown 保存检索知识、总结经验与业务台账"
++  default_prompt: "用 $wiki-data 维护 typed wiki：guide 了解现状，init 建骨架，ingest 摄入知识与经验/台账，query 按引用回答，organize 重组，lint 做健康检查。raw/ 只读；不要启动 llmwiki 应用。"
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 7391e60..28f34df 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -1,6 +1,6 @@
+ # 摄入
+ 
+-把一份本地材料编译进 wiki。一次 ingest 通常会动多页：源摘要 + 若干实体/概念 + 交叉引用。
++把一份本地材料或对话结论编译进 wiki。一次 ingest 通常会动多页：源摘要 + 若干实体/概念/经验/台账 + 交叉引用。
+ 
+ ## 输入
+ 
+@@ -14,15 +14,21 @@
+ 
+ 用户明确要求归档 `trouble-grill` 记录时，按本页流程摄入，保留锚点、证据等级、用户输入、路径（含 `dead-end`）、验证盲区与回退条件。
+ 
+-- 整份排查记录先写 `wiki/sources/` 摘要；跨来源归纳时再写 `wiki/synthesis/`。
++- 整份排查记录先写 `wiki/sources/` 摘要；跨来源归纳时再写 `wiki/synthesis/`；形成可复用做法时再写 `wiki/experiences/`。
+ - 只有 `confirmed` 假设可写成根因；其他等级保留为线索或开放问题。
+ - 归档范围以用户确认的排查记录为准。
+ 
++## 经验与台账
++
++- 经验页写可复用结论，不只复述一次事件。保留适用场景、证据、边界与失效条件；证据不足时用 `status: draft`，验证后改为 `validated` 并记录 `last_verified`，失效时改为 `deprecated` 且保留历史来源。
++- 一个业务对象对应一个 ledger 页。更新时先读全文，同步 frontmatter `status` / `date` 与「当前状态」，再在「历史」追加带日期的变更；纠正历史也追加新条目，不改写旧条目含义。
++- `wiki/log.md` 只追加本次 wiki 操作，不承载业务对象状态。
++
+ ## 步骤
+ 
+-1. **读材料**，列出候选实体、概念、关系、主张。
++1. **读材料**，列出候选实体、概念、经验、台账、关系与主张。
+ 2. **范围与隐私**：超出 `purpose.md` 先告诉用户。发现凭据、个人隐私、内部主机名则停止写入明文，改用 `<REDACTED>` 或拒绝该段。
+-3. **搜索已有页**：对每个候选名跑 `rg`（含别名、缩写、中英变体）。读命中页，避免重复建页。
++3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体）。读命中页，避免重复建页。
+ 4. **计划**（对用户可见，复杂时先确认再写）：
+    - 新建哪些 typed 页
+    - 更新哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
+@@ -33,6 +39,7 @@
+    - 锁定 `type` / `title` / `created`
+    - 数组字段并集去重
+    - 正文整合新事实，不覆盖旧段；冲突并列并标明来源
++   - ledger 的「历史」只追加，经验状态变化保留依据
+ 7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
+ 8. **验证**：回读新页；运行 `lint_wiki.py`；error 必须修。
+ 9. **簿记**：`--write-index` 或按同类表格更新 `wiki/index.md`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+@@ -47,10 +54,10 @@
+ 
+ ## 完成标准
+ 
+-- [ ] 材料中的关键实体与概念都有页（或已说明为何合并到旧页）
++- [ ] 材料中的关键实体、概念、经验和台账都有页（或已说明为何合并到旧页）
+ - [ ] 相关页有 `[[wikilink]]`
+ - [ ] 已搜索、无重复建页
+-- [ ] 业务页 frontmatter 含 title / type / date
++- [ ] 业务页 frontmatter 含 title / type / date，经验与台账含 status
+ - [ ] 文件类摄入有 `wiki/sources/` 摘要
+-- [ ] 旧页保留原有信息与来源
++- [ ] 旧页保留原有信息与来源，台账历史只追加
+ - [ ] 已回读并跑 lint，error 为 0
+diff --git a/skills/wiki-data/references/layout.md b/skills/wiki-data/references/layout.md
+index 9ddab39..d424a46 100644
+--- a/skills/wiki-data/references/layout.md
++++ b/skills/wiki-data/references/layout.md
+@@ -12,11 +12,13 @@
+ └── wiki/
+     ├── overview.md         # 全局总览（系统页）
+     ├── index.md            # 内容目录（系统页，ingest/organize/lint --write-index 后更新）
+-    ├── log.md              # 仅追加操作日志（系统页）
++    ├── log.md              # 仅追加 wiki 操作日志（系统页）
+     ├── entities/           # 实体：人、组织、产品、项目
+     ├── concepts/           # 概念：术语、方法、框架
+     ├── sources/            # 源材料摘要（不是 raw 原件）
+     ├── synthesis/          # 跨源综合
++    ├── experiences/        # 可复用经验、证据与适用边界
++    ├── ledgers/            # 业务对象当前状态与追加历史
+     ├── comparisons/        # 对比
+     ├── queries/            # 归档问答
+     └── templates/          # 系统模板，不是业务内容
+@@ -31,7 +33,7 @@ Typed 子目录必须用**复数**：`entities/`，不是 `entity/`。
+ | 工作区配置 | `purpose.md`, `rules.md` | 根目录；缺失则说明，不编造 |
+ | 不可变源 | `raw/sources/`, `raw/assets/` | 只读；修订以新文件加入 |
+ | 系统页 | `wiki/overview.md`, `wiki/index.md`, `wiki/log.md` | 仅有的合法顶层 wiki Markdown |
+-| 业务页 | `wiki/entities/` … `wiki/queries/` | 必须落在 typed 子目录 |
++| 业务页 | `wiki/entities/`、`wiki/concepts/`、`wiki/sources/`、`wiki/synthesis/`、`wiki/experiences/`、`wiki/ledgers/`、`wiki/comparisons/`、`wiki/queries/` | 必须落在 typed 子目录 |
+ | 系统模板 | `wiki/templates/` | init 脚手架；lint 不当地孤立业务页 |
+ 
+ ## 反模式
+@@ -85,7 +87,7 @@ title: 操作日志
+ 
+ `wiki/overview.md`：章节「项目目标」「当前状态」「主要主题」。
+ 
+-`wiki/index.md` 用 `lint_wiki.py --write-index` 生成，或按 typed 子目录建空表：实体 / 概念 / 源摘要 / 综合分析 / 对比分析 / 查询归档。
++`wiki/index.md` 用 `lint_wiki.py --write-index` 生成，或按 typed 子目录建空表：实体 / 概念 / 源摘要 / 综合分析 / 经验 / 业务台账 / 对比分析 / 查询归档。既有工作区缺少新目录时仍可查询和 lint，只在写入对应类型时创建目录。
+ 
+ 页面模板见 [page-types.md](page-types.md)。不要把模板复制成业务页。
+ 
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index 330fc38..d0765ca 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -15,7 +15,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ | 码 | 级别 | 含义 |
+ |----|------|------|
+ | `dead_link` | error | `[[link]]` 或 `[text](path)` 目标不存在 |
+-| `missing_frontmatter` | error | 业务页缺 title / type / date |
++| `missing_frontmatter` | error | 业务页缺 title / type / date；experience / ledger 还必须有 status |
+ | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
+ | `log_date_decreasing` | error | 日志日期递减（违反仅追加） |
+ | `type_dir_mismatch` | warning | `type` 与所在 typed 目录不一致 |
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index 15a4d19..2601ba5 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -8,6 +8,8 @@
+ | concept | `wiki/concepts/` | 可复用的术语、方法、框架、机制、理论 | 定义、核心要点、相关实体、来源 |
+ | source | `wiki/sources/` | 一份 raw 源的摘要，不是原件 | 摘要、关键观点、相关实体/概念 |
+ | synthesis | `wiki/synthesis/` | 跨源分析 | 问题/目的、分析、引用、后续 |
++| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界 | 适用场景、经验结论、证据、边界与失效条件、来源 |
++| ledger | `wiki/ledgers/` | 一个业务对象的当前状态与历史变化 | 当前状态、历史、来源 |
+ | comparison | `wiki/comparisons/` | 对比 | 对比维度、异同、结论 |
+ | query | `wiki/queries/` | 值得留下的问答 | 问题、回答、引用 |
+ 
+@@ -23,15 +25,19 @@ title: 页面标题
+ type: entity
+ date: YYYY-MM-DD
+ tags: []
++aliases: []
+ sources: []
+ related: []
+ ---
+ ```
+ 
+ - 更新时不要轻易改 `type`、`title`、`created`（若已有）。
+-- `tags` / `sources` / `related` 做并集去重，不覆盖删除旧值。
++- `tags` / `aliases` / `sources` / `related` 做并集去重，不覆盖删除旧值。
+ - `date` 用本次写入日；`created` 只在首次创建时加。
++- `description` 是一句话摘要，供索引与候选筛选使用；`aliases` 记录常用别名、缩写和中英变体。
+ - `sources` 指向 `wiki/sources/` 页标题或 raw 文件名，便于追溯。
++- `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页记录 `last_verified: YYYY-MM-DD`。
++- `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
+ 
+ 系统页可不设业务 `type`。模板页只存在于 `wiki/templates/`。
+ 
+@@ -130,6 +136,57 @@ tags: []
+ - [[相关页面]]
+ ```
+ 
++### experience
++
++```markdown
++---
++title: 示例经验
++type: experience
++date: YYYY-MM-DD
++status: draft
++tags: []
++sources: []
++---
++
++# 适用场景
++
++## 经验结论
++
++## 证据
++
++## 边界与失效条件
++
++## 来源
++
++- [[来源页面]]
++```
++
++### ledger
++
++```markdown
++---
++title: 示例业务对象
++type: ledger
++date: YYYY-MM-DD
++status: active
++tags: []
++sources: []
++---
++
++# 当前状态
++
++## 历史
++
++### [YYYY-MM-DD] 初始记录
++
++- 状态：active
++- 依据：[[来源页面]]
++
++## 来源
++
++- [[来源页面]]
++```
++
+ ### synthesis / comparison / query
+ 
+ - synthesis：问题/目的、分析、引用、后续
+diff --git a/b/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+new file mode 100644
+index 0000000..c995bbc
+--- /dev/null
++++ b/skills/wiki-data/references/query.md
+@@ -0,0 +1,29 @@
++# 查询
++
++从已有 wiki 回答，默认只读。`wiki/index.md` 是候选目录，页面全文才是回答依据。
++
++## 步骤
++
++1. **明确问题**：识别要找的对象、时间范围，以及是否限定类型、状态或标签。
++2. **先读目录**：读 `wiki/index.md` 和必要的 `wiki/overview.md`，确定候选页与应搜索的 typed 子目录。
++3. **检索候选**：用 `rg` 搜标题、正文与 frontmatter；覆盖别名、缩写和中英变体。有类型或状态约束时先缩到对应目录，再读匹配页，不只做一次全库精确搜索。
++4. **全文核对**：读最相关页面及其直接引用的来源页。索引摘要、文件名或单条搜索命中不能单独支撑结论。
++5. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`；说明关键状态或日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。
++6. **保留冲突**：页面间结论冲突时并列各自来源与时间，指出当前无法裁决的部分，不静默挑选一条。
++
++## 经验与台账
++
++- 查经验时优先读 `wiki/experiences/`，回答适用场景、结论、证据和失效条件；`status: draft` 明确标为待验证，`deprecated` 不作为现行建议。
++- 查业务对象现状时优先读 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
++- 只有单次材料、没有经验页时，可以概述材料并标明尚未归纳为经验；不要把它包装成已验证规律。
++
++## 输出
++
++按问题需要包含：
++
++- 结论或当前状态；
++- 逐条出处；
++- 经验的状态与适用边界，或台账的更新日期；
++- 冲突、未知和未覆盖项。
++
++用户要求归档问答时，先说明将写入 `wiki/queries/`，确认后按 `query` 页面模板保存，并追加操作日志。
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index 362b35d..82de9fb 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -16,6 +16,8 @@ TYPED_DIRS = {
+     "concepts": "concept",
+     "sources": "source",
+     "synthesis": "synthesis",
++    "experiences": "experience",
++    "ledgers": "ledger",
+     "comparisons": "comparison",
+     "queries": "query",
+ }
+@@ -26,6 +28,8 @@ INDEX_HEADINGS = [
+     ("concepts", "概念 (concepts)"),
+     ("sources", "源摘要 (sources)"),
+     ("synthesis", "综合分析 (synthesis)"),
++    ("experiences", "经验 (experiences)"),
++    ("ledgers", "业务台账 (ledgers)"),
+     ("comparisons", "对比分析 (comparisons)"),
+     ("queries", "查询归档 (queries)"),
+ ]
+@@ -281,7 +285,10 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+             )
+ 
+         if kind == "business":
+-            missing = [field for field in ("title", "type", "date") if not fm.get(field)]
++            required_fields = ["title", "type", "date"]
++            if fm.get("type") in {"experience", "ledger"}:
++                required_fields.append("status")
++            missing = [field for field in required_fields if not fm.get(field)]
+             if missing or not fm:
+                 add(
+                     "missing_frontmatter",
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index 8388b89..35d4827 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -126,13 +126,36 @@ class LintWikiTest(unittest.TestCase):
+             self.wiki / "entities" / "northwind.md",
+             "---\ntitle: Northwind\ntype: entity\ndate: 2026-09-15\ndescription: 示例组织\n---\n\n# e\n",
+         )
+-        code, _ = self.run_lint("--write-index")
+-        self.assertEqual(code, 0)
++        write(
++            self.wiki / "experiences" / "verify-before-reuse.md",
++            "---\ntitle: Verify before reuse\ntype: experience\ndate: 2026-09-15\nstatus: validated\nlast_verified: 2026-09-15\n---\n\n案例 [[Northwind]]\n",
++        )
++        write(
++            self.wiki / "ledgers" / "northwind-decision.md",
++            "---\ntitle: Northwind decision\ntype: ledger\ndate: 2026-09-15\nstatus: active\n---\n\n对象 [[Northwind]]\n",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
+         index = (self.wiki / "index.md").read_text(encoding="utf-8")
+         self.assertIn("实体 (entities)", index)
++        self.assertIn("经验 (experiences)", index)
++        self.assertIn("业务台账 (ledgers)", index)
+         self.assertIn("Northwind", index)
++        self.assertIn("Verify before reuse", index)
++        self.assertIn("Northwind decision", index)
+         self.assertIn("wiki-data", index)
+ 
++    def test_experience_and_ledger_require_status(self) -> None:
++        for subdir, page_type in (("experiences", "experience"), ("ledgers", "ledger")):
++            write(
++                self.wiki / subdir / "incomplete.md",
++                f"---\ntitle: Incomplete\ntype: {page_type}\ndate: 2026-09-15\n---\n",
++            )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertEqual(out.count("missing_frontmatter"), 2)
++        self.assertIn("status", out)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index f8b92d0..3698c0f 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -15,6 +15,7 @@ class ContractTest(unittest.TestCase):
+         cls.layout = (ROOT / "references" / "layout.md").read_text(encoding="utf-8")
+         cls.types = (ROOT / "references" / "page-types.md").read_text(encoding="utf-8")
+         cls.ingest = (ROOT / "references" / "ingest.md").read_text(encoding="utf-8")
++        cls.query = (ROOT / "references" / "query.md").read_text(encoding="utf-8")
+         cls.lint = (ROOT / "references" / "lint.md").read_text(encoding="utf-8")
+         cls.organize = (ROOT / "references" / "organize.md").read_text(encoding="utf-8")
+ 
+@@ -27,6 +28,7 @@ class ContractTest(unittest.TestCase):
+             "references/layout.md",
+             "references/page-types.md",
+             "references/ingest.md",
++            "references/query.md",
+             "references/lint.md",
+             "references/organize.md",
+             "scripts/lint_wiki.py",
+@@ -87,6 +89,23 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("概念标题保持中性", self.types)
+         self.assertIn("渐进披露", self.types)
+ 
++    def test_experience_and_ledger_contract(self) -> None:
++        for path in ("wiki/experiences/", "wiki/ledgers/"):
++            self.assertIn(path, self.layout)
++            self.assertIn(path, self.types)
++        for field in ("适用场景", "证据", "边界与失效条件", "last_verified"):
++            self.assertIn(field, self.types)
++        self.assertIn("当前状态", self.types)
++        self.assertIn("纠正历史也追加新条目", self.ingest)
++        self.assertIn("业务台账与操作日志分离", self.skill)
++
++    def test_query_reads_pages_and_preserves_status(self) -> None:
++        self.assertIn("references/query.md", self.skill)
++        self.assertIn("页面全文才是回答依据", self.query)
++        self.assertIn("status: draft", self.query)
++        self.assertIn("当前状态", self.query)
++        self.assertIn("wiki 尚未覆盖", self.query)
++
+     def test_phase_loaded_on_demand(self) -> None:
+         self.assertIn("只读该阶段详情", self.skill)
+         self.assertIn("其它 reference 等用到时再读", self.skill)

@@ -16,6 +16,8 @@ TYPED_DIRS = {
     "concepts": "concept",
     "sources": "source",
     "synthesis": "synthesis",
+    "experiences": "experience",
+    "ledgers": "ledger",
     "comparisons": "comparison",
     "queries": "query",
 }
@@ -26,6 +28,8 @@ INDEX_HEADINGS = [
     ("concepts", "概念 (concepts)"),
     ("sources", "源摘要 (sources)"),
     ("synthesis", "综合分析 (synthesis)"),
+    ("experiences", "经验 (experiences)"),
+    ("ledgers", "业务台账 (ledgers)"),
     ("comparisons", "对比分析 (comparisons)"),
     ("queries", "查询归档 (queries)"),
 ]
@@ -281,15 +285,74 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
             )
 
         if kind == "business":
-            missing = [field for field in ("title", "type", "date") if not fm.get(field)]
+            required_fields = ["title", "type", "date", "confidence"]
+            page_type = fm.get("type", "")
+            if page_type in {"experience", "ledger"}:
+                required_fields.append("status")
+            missing = [field for field in required_fields if not fm.get(field)]
             if missing or not fm:
                 add(
                     "missing_frontmatter",
                     "error",
                     rel,
-                    "缺少 frontmatter 字段: " + (", ".join(missing) or "title, type, date"),
+                    "缺少 frontmatter 字段: "
+                    + (", ".join(missing) or "title, type, date, confidence"),
                 )
-            page_type = fm.get("type", "")
+
+            confidence = fm.get("confidence", "")
+            if confidence and confidence not in {"high", "medium", "low"}:
+                add(
+                    "confidence_invalid",
+                    "error",
+                    rel,
+                    f"confidence 必须是 high / medium / low，当前为 {confidence!r}",
+                )
+
+            parsed_dates = {}
+            for field in ("date", "created", "last_verified", "review_after"):
+                value = fm.get(field, "")
+                if not value:
+                    continue
+                try:
+                    parsed = date.fromisoformat(value)
+                    if parsed.isoformat() != value:
+                        raise ValueError(value)
+                    parsed_dates[field] = parsed
+                except ValueError:
+                    add(
+                        "date_invalid",
+                        "error",
+                        rel,
+                        f"{field} 必须是有效的 YYYY-MM-DD，当前为 {value!r}",
+                    )
+
+            if confidence == "high" and not fm.get("last_verified"):
+                add(
+                    "verification_missing",
+                    "error",
+                    rel,
+                    "high confidence 需要 last_verified",
+                )
+            if page_type == "experience" and fm.get("status") == "validated":
+                verification_fields = [
+                    field for field in ("last_verified", "review_after") if not fm.get(field)
+                ]
+                if verification_fields:
+                    add(
+                        "verification_missing",
+                        "error",
+                        rel,
+                        "validated 经验缺少: " + ", ".join(verification_fields),
+                    )
+            review_after = parsed_dates.get("review_after")
+            if review_after and review_after < date.today():
+                add(
+                    "review_overdue",
+                    "warning",
+                    rel,
+                    f"复审日期已过: {review_after.isoformat()}",
+                )
+
             expected_dir = TYPE_TO_DIR.get(page_type)
             if page_type and expected_dir and page["subdir"] != expected_dir:
                 add(
@@ -412,6 +475,10 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
                 "title": page["title"],
                 "description": fm.get("description", ""),
                 "date": fm.get("date", ""),
+                "confidence": fm.get("confidence", ""),
+                "status": fm.get("status", ""),
+                "last_verified": fm.get("last_verified", ""),
+                "review_after": fm.get("review_after", ""),
             }
         )
     for entries in grouped.values():
@@ -435,16 +502,26 @@ def rebuild_index(pages: list[dict], wiki_dir: Path) -> str:
             [
                 f"## {heading}",
                 "",
-                "| 页面 | 标题 | 摘要 | 更新日期 |",
-                "|------|------|------|----------|",
+                "| 页面 | 标题 | 摘要 | 更新日期 | 置信度 | 状态 | 核实日期 | 复审日期 |",
+                "|------|------|------|----------|--------|------|----------|----------|",
             ]
         )
         for entry in grouped[dirname]:
             title = escape_cell(entry["title"])
             link = f"[[{entry['subdir']}/{entry['slug']}\\|{title}]]"
-            lines.append(
-                f"| {link} | {title} | {escape_cell(entry['description'])} | {escape_cell(entry['date'])} |"
+            cells = [link, title]
+            cells.extend(
+                escape_cell(entry[field] or "-")
+                for field in (
+                    "description",
+                    "date",
+                    "confidence",
+                    "status",
+                    "last_verified",
+                    "review_after",
+                )
             )
+            lines.append("| " + " | ".join(cells) + " |")
         lines.append("")
     text = "\n".join(lines)
     (wiki_dir / "index.md").write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
