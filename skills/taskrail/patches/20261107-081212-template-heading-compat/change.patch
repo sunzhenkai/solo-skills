@@ -1,0 +1,17 @@
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index 7364181..cb62326 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -2,10 +2,10 @@
+ 
+ 新建与状态更新优先使用 `scripts/task_state.py`，不要手工复制整套文件。字段以 [contract.md](contract.md) 为准。
+ 
+-## TASK.md（热状态）
+-
+ 以下是意图已确认后的 TASK 示例；新建根任务由脚本写 `current_ref: intake`，确认后才进入 plan。
+ 
++## TASK.md（热状态）
++
+ ```markdown
+ ---
+ slug: <task-id>

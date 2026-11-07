@@ -16,7 +16,7 @@ class DecomposeContractTest(unittest.TestCase):
     def test_all_children_are_created_pending_under_subtasks(self) -> None:
         text = read("decompose.md")
         self.assertIn("自动建立和恢复子任务", text)
-        self.assertIn("立即创建轻量 pending TASK", text)
+        self.assertIn("所需确认完成后，对每个子任务自动创建轻量 pending TASK", text)
         self.assertIn("--parent <parent-id>", text)
         self.assertIn("subtasks/<child>/TASK.md", text)
         self.assertIn("只拆一层", text)

@@ -40,6 +40,25 @@ class TaskStateTest(unittest.TestCase):
         self.assertTrue((child.parent / "PLAN.md").is_file())
         self.assertTrue((child.parent / "history.md").is_file())
 
+    def test_root_starts_at_intake_with_pending_intent(self) -> None:
+        for mode in ("human", "goal"):
+            with self.subTest(mode=mode):
+                task = f"root-{mode}"
+                created = self.run_state(
+                    "init", str(self.workspace), task, "--title", task,
+                    "--criterion", "verified outcome", "--confirm-mode", mode,
+                )
+                self.assertEqual(created.returncode, 0, created.stdout)
+                root = self.workspace / "tasks" / "ongoing" / task
+                self.assertIn("current_ref: intake", (root / "TASK.md").read_text(encoding="utf-8"))
+                self.assertIn("确认状态：pending", (root / "context" / "current.md").read_text(encoding="utf-8"))
+
+    def test_child_inherits_intent_without_independent_confirmation(self) -> None:
+        self.init("parent")
+        self.init("child", "parent")
+        context = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "context" / "current.md"
+        self.assertIn("确认状态：not-required", context.read_text(encoding="utf-8"))
+
     def test_done_requires_summary_and_children_done(self) -> None:
         self.init("parent")
         self.init("child", "parent")

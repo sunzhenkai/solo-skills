@@ -17,8 +17,8 @@
 
 1. 按上述顺序读取，只取理解目标和判据所需内容。
 2. 用 1–3 句第一人称口语说明做什么、产出落在哪、接下来怎样；决定与假设写 decisions / context，不逐字段打印。需要用户纠偏时说“理解偏了请纠正”，但不把它当成每个普通步骤的固定尾问。
-3. human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后才进入后续 plan / execute；goal 按同一协议简要复述，需审阅时异源审，不等待用户。用户没回话不算确认。
-4. 把结构化意图与确认状态写 `context/current.md`，criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责。
+3. 把结构化意图写 `context/current.md`，新根任务先记 `- 确认状态：pending`。human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后改记 confirmed 才进入后续 plan / execute；goal 简要复述后记 not-required，需审阅时异源审，不等待用户。子任务继承父意图记 not-required。用户没回话不算确认。
+4. criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责；意图或 criterion 变化时先把确认状态改回 pending。
 
 ## 覆盖清单
 - 要干嘛：<目标>；为什么：<原因>

@@ -15,16 +15,17 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
 ## 执行方法
 1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
 2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界。子判据合计覆盖总判据，依赖无环。
-3. 对每个子任务立即创建轻量 pending TASK；使用：
+3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点。所需确认未完成前不创建或激活子任务。
+4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
 
    ```bash
    python3 <taskrail>/scripts/task_state.py init <workspace> <child-id> --title "<目标>" --criterion "<子判据>" --parent <parent-id>
    ```
 
    已存在则核对是否同一项，不覆盖、不复制。子任务只拆一层，其内部再拆为切片。
-4. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
-5. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。正在做的优先，其次按 ROADMAP 顺序；用户点名则照办。
-6. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK；已完成项不改写，criterion 变化先回 intent。
+5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
+6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。正在做的优先，其次按 ROADMAP 顺序；用户点名则照办。
+7. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK，但交付边界变化需重新确认；已完成项不改写，criterion 变化先回 intent。
 
 ## 产出
 ROADMAP.md、`subtasks/<child>/TASK.md` 及热文档、父 TASK 的下一动作和路由记录。

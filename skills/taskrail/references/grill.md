@@ -14,7 +14,7 @@ criterion、用户限制、explore / diagnose 证据和当前 plan。
 
 ## 执行方法
 1. 把待定问题按依赖排成设计树，每轮处理前置已定的层。
-2. 先查一手资料；查不到的按推荐自问自答，每题由自己回答并写理由，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
+2. 先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
 3. 不重问已确认目标与 criterion；冲突时回 intent。
 4. 每个问题得到事实、决定或显式假设；已做决定写 decisions.md，无未决关键问题就停止，不为形式追问。
 

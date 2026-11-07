@@ -65,7 +65,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 - 主干：`目标与 criterion → 当前最小计划 → 动态 references → verify → close`。不再维护 wizard、skip / full 双流程；handoff 仅是 OpenSpec 执行前的核对动作。
 - 动态环节：explore、diagnose、grill、design、approve、decompose、review 等按当前证据 enter / continue / skip / reopen；执行中也可重入。路由见 `taskrail/references/router.md`，统一结构见 `ref-contract.md`。
-- 自动拆分：decompose 判断不拆 / 切片 / 子任务；子任务立即创建在父任务 `subtasks/` 下，初始 pending 并继承确认方式，按依赖激活。必须原子交付的是同任务切片；可按契约独立交付的才建子任务。细则 `taskrail/references/decompose.md`。
+- 自动拆分：decompose 判断不拆 / 切片 / 子任务；独立交付拆分完成所需 ROADMAP 确认后，子任务自动创建在父任务 `subtasks/` 下，初始 pending 并继承确认方式，按依赖激活。必须原子交付的是同任务切片；可按契约独立交付的才建子任务。细则 `taskrail/references/decompose.md`。
 - 三个根：workspace 统一保存 `tasks/`、按需 `openspec/` 和 `worktrees/<task-id>/<repo-id>/`。direct 与 OpenSpec 的 git 代码修改都使用真正的 git worktree；跨项目可继续使用 OpenSpec，产物仍写 workspace。
 - 台账：`TASK.md` 持 `current_ref` / `confirm_mode` / `execution` / `criterion` / `driver` 等热状态；direct 进度看 PLAN checkbox，OpenSpec 看 change checkbox，父子结构看 ROADMAP 与子 TASK。INDEX 由 `taskrail/scripts/task_state.py` 重建，不是第二状态源。
 - 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。

@@ -16,7 +16,7 @@ criterion、PLAN / driver 验证记录、交付标准、当前 worktree、子任
 1. 在对应 worktree 跑 focused tests，再跑受影响的静态检查与回归；命令和结果写证据文件，摘要有路径。
 2. 对照 criterion、用户“不做”和交付标准逐项核对；代码变化后旧证据失效。
 3. 父任务必须执行 ROADMAP 集成项和跨仓主流程，再验总判据；不能只汇总子任务结论。
-4. reviewer Blocker / Major 必须 fixed 或 accepted-recorded 带理由；缺证据不能标通过。
+4. reviewer Blocker / Major 修复后重验；需要接受未修复项时，human 按确认协议由用户明确接受并记录 accepted-recorded，goal 不放行，执行者不能自行接受。缺证据不能标通过；验证不足或缩小交付按确认协议重新放行。
 5. Web UI、性能、安全等按命中的质量包补证据。
 
 ## 产出

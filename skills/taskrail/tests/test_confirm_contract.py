@@ -39,6 +39,27 @@ class ConfirmContractTest(unittest.TestCase):
         self.assertIn("## 实施确认", templates)
         self.assertIn("pending | confirmed | not-required", templates)
 
+    def test_confirmation_boundaries_cover_scope_delivery_and_risk(self) -> None:
+        self.assertIn("意图、实施方案、交付边界和风险", self.text)
+        self.assertIn("任一变化", self.text)
+        self.assertIn("独立分支 / 发布 / 子任务", self.text)
+        self.assertIn("接受未修复的 Blocker / Major", self.text)
+        self.assertIn("验证不足 / 缩小交付", self.text)
+
+    def test_new_stops_are_wired_into_references(self) -> None:
+        plan = (ROOT / "references" / "plan.md").read_text(encoding="utf-8")
+        decompose = (ROOT / "references" / "decompose.md").read_text(encoding="utf-8")
+        verify = (ROOT / "references" / "verify.md").read_text(encoding="utf-8")
+        done = (ROOT / "references" / "done.md").read_text(encoding="utf-8")
+        grill = (ROOT / "references" / "grill.md").read_text(encoding="utf-8")
+        self.assertIn("新增仓库 / 依赖", plan)
+        self.assertIn("所需确认未完成前不创建或激活子任务", decompose)
+        self.assertIn("同任务内部切片不新增停点", decompose)
+        self.assertIn("执行者不能自行接受", verify)
+        self.assertIn("用户明确接受", done)
+        self.assertIn("否则保持未完成", done)
+        self.assertIn("不把假设当成用户决定", grill)
+
     def test_non_stop_recap_does_not_wait(self) -> None:
         self.assertIn("继续且不等回复", self.text)
         self.assertIn("非停点复述不需要回复", self.text)

@@ -55,6 +55,7 @@ class ReferenceContractTest(unittest.TestCase):
     def test_templates_track_hot_state_and_decisions(self) -> None:
         templates = read("references", "templates.md")
         self.assertIn("current_ref: plan", templates)
+        self.assertIn("新建根任务由脚本写 `current_ref: intake`", templates)
         self.assertIn("confirm_mode: human", templates)
         self.assertIn("decisions.md / history.md", templates)
         self.assertIn("superseded", templates)
