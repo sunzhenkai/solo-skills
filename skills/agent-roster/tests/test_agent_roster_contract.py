@@ -67,6 +67,22 @@ class InvariantContract(unittest.TestCase):
             self.assertIn(level, self.text, level)
 
 
+class DelegationAcceptanceContract(unittest.TestCase):
+    def setUp(self) -> None:
+        self.text = skill_corpus()
+
+    def test_prompt_defines_done_when(self) -> None:
+        self.assertIn(
+            "**Goal**、**Context**、**Constraints**、**Done when**", self.text
+        )
+        self.assertIn("Done when 用可检查条件覆盖使用者的每项明确要求", self.text)
+
+    def test_handoff_accepted_against_done_when(self) -> None:
+        self.assertIn("按 Done when 逐项验收", self.text)
+        self.assertIn("`completed` 只表示执行结束", self.text)
+        self.assertIn("按 `Done when` 逐项核对实际产物、回答和验证证据", self.text)
+
+
 class RolesReferenceContract(unittest.TestCase):
     def setUp(self) -> None:
         self.roles = read("references/roles.md")

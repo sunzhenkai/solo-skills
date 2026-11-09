@@ -1,0 +1,71 @@
+diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
+index 856c7fc..6f0d639 100644
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -16,7 +16,7 @@ description: 跨机器 agent 名册与委派。用于把定计划、评审或实
+ - [ ] 1 选人：没点 Role 时读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace。点了 Role 且没写 Endpoint 时跑 resolve_role.py：use 走快速路径，ask 停下来问这次用谁
+ - [ ] 2 建 Run 目录，写 decision.md（必须早于第 3 步）
+ - [ ] 3 委派：检查执行器在不在 → 按契约发出，权限按委派性质定
+-- [ ] 4 回收：Handoff 落到项目里，Run 痕迹留在缓存
++- [ ] 4 回收：Handoff 落到项目里，按 Done when 逐项验收；Run 痕迹留在缓存
+ - [ ] 5 留痕：只在有教训时写 Trace
+ - [ ] 6 固化：刚写过 Trace 才做这一步，够门槛就停下来提案
+ ```
+diff --git a/skills/agent-roster/references/delegation-contract.md b/skills/agent-roster/references/delegation-contract.md
+index 92dc8bf..527bec9 100644
+--- a/skills/agent-roster/references/delegation-contract.md
++++ b/skills/agent-roster/references/delegation-contract.md
+@@ -10,12 +10,14 @@
+ | --- | --- |
+ | `endpoint` | Host + Agent Kind，如 `local/codex`。第一版只支持本机 |
+ | `model` | 本次使用的模型 id。调用方给出则原样传给执行器；未给出则省略，用 Endpoint 默认 |
+-| `prompt` | 交给受派方的完整任务描述 |
++| `prompt` | 交给受派方的完整任务描述，必须包含 Goal、Context、Constraints、Done when |
+ | `cwd` | 工作目录 |
+ | `permission` | `read-only`（默认）或 `write` |
+ | `handoff` | 期望产出落到哪个路径。只读委派下由发起方落盘 |
+ | `timeout` | 超时上限，超过即判 timeout 并终止 |
+ 
++`prompt` 必须依次写明 **Goal**、**Context**、**Constraints**、**Done when**。Done when 用可检查条件覆盖使用者的每项明确要求；四项未齐时先补齐，再发起委派。
++
+ **输出**
+ 
+ | 字段 | 说明 |
+@@ -26,6 +28,10 @@
+ | `run_dir` | `~/.cache/agent-roster/runs/<run-id>/` |
+ | `handoff_paths` 落地 | 回收时 `scripts/collect_handoff.py <run-id> --path <handoff路径>` 从事件流抽最终文本写 Handoff 并回填 status.json；只对 `done` 放行，truncated/stuck 不收半成品 |
+ 
++### Handoff 验收
++
++`completed` 只表示执行结束。Orchestrator 回收 Handoff 后，按 `Done when` 逐项核对实际产物、回答和验证证据，全部满足才向使用者交付。缺项、未验证或与要求不符时，按 `SKILL.md` 的「跑完了但产出不对」处理；验收以 Handoff 与检查证据为准，受派方的完成声明只作线索。
++
+ ## 默认实现：acpx
+ 
+ `acpx` 是 ACP（Agent Client Protocol）的无头命令行客户端，一条命令打通各家 coding agent，自带会话管理、权限策略与结构化事件流。
+diff --git a/skills/agent-roster/tests/test_agent_roster_contract.py b/skills/agent-roster/tests/test_agent_roster_contract.py
+index ecd7d88..6748d98 100644
+--- a/skills/agent-roster/tests/test_agent_roster_contract.py
++++ b/skills/agent-roster/tests/test_agent_roster_contract.py
+@@ -67,6 +67,22 @@ class InvariantContract(unittest.TestCase):
+             self.assertIn(level, self.text, level)
+ 
+ 
++class DelegationAcceptanceContract(unittest.TestCase):
++    def setUp(self) -> None:
++        self.text = skill_corpus()
++
++    def test_prompt_defines_done_when(self) -> None:
++        self.assertIn(
++            "**Goal**、**Context**、**Constraints**、**Done when**", self.text
++        )
++        self.assertIn("Done when 用可检查条件覆盖使用者的每项明确要求", self.text)
++
++    def test_handoff_accepted_against_done_when(self) -> None:
++        self.assertIn("按 Done when 逐项验收", self.text)
++        self.assertIn("`completed` 只表示执行结束", self.text)
++        self.assertIn("按 `Done when` 逐项核对实际产物、回答和验证证据", self.text)
++
++
+ class RolesReferenceContract(unittest.TestCase):
+     def setUp(self) -> None:
+         self.roles = read("references/roles.md")
