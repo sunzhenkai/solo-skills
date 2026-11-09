@@ -10,11 +10,13 @@
 | --- | --- |
 | `endpoint` | Host + Agent Kind，如 `local/codex`。第一版只支持本机 |
 | `model` | 本次使用的模型 id。调用方给出则原样传给执行器；未给出则省略，用 Endpoint 默认 |
-| `prompt` | 交给受派方的完整任务描述 |
+| `prompt` | 交给受派方的完整任务描述，必须包含 Goal、Context、Constraints、Done when |
 | `cwd` | 工作目录 |
 | `permission` | `read-only`（默认）或 `write` |
 | `handoff` | 期望产出落到哪个路径。只读委派下由发起方落盘 |
 | `timeout` | 超时上限，超过即判 timeout 并终止 |
+
+`prompt` 必须依次写明 **Goal**、**Context**、**Constraints**、**Done when**。Done when 用可检查条件覆盖使用者的每项明确要求；四项未齐时先补齐，再发起委派。
 
 **输出**
 
@@ -25,6 +27,10 @@
 | `handoff_paths` | 实际写出的交接物路径 |
 | `run_dir` | `~/.cache/agent-roster/runs/<run-id>/` |
 | `handoff_paths` 落地 | 回收时 `scripts/collect_handoff.py <run-id> --path <handoff路径>` 从事件流抽最终文本写 Handoff 并回填 status.json；只对 `done` 放行，truncated/stuck 不收半成品 |
+
+### Handoff 验收
+
+`completed` 只表示执行结束。Orchestrator 回收 Handoff 后，按 `Done when` 逐项核对实际产物、回答和验证证据，全部满足才向使用者交付。缺项、未验证或与要求不符时，按 `SKILL.md` 的「跑完了但产出不对」处理；验收以 Handoff 与检查证据为准，受派方的完成声明只作线索。
 
 ## 默认实现：acpx
 

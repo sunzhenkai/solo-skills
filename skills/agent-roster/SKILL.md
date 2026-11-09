@@ -16,7 +16,7 @@ description: 跨机器 agent 名册与委派。用于把定计划、评审或实
 - [ ] 1 选人：没点 Role 时读 routing.md → 读相关 Endpoint 画像 → 检索相关 Trace。点了 Role 且没写 Endpoint 时跑 resolve_role.py：use 走快速路径，ask 停下来问这次用谁
 - [ ] 2 建 Run 目录，写 decision.md（必须早于第 3 步）
 - [ ] 3 委派：检查执行器在不在 → 按契约发出，权限按委派性质定
-- [ ] 4 回收：Handoff 落到项目里，Run 痕迹留在缓存
+- [ ] 4 回收：Handoff 落到项目里，按 Done when 逐项验收；Run 痕迹留在缓存
 - [ ] 5 留痕：只在有教训时写 Trace
 - [ ] 6 固化：刚写过 Trace 才做这一步，够门槛就停下来提案
 ```
