@@ -19,6 +19,11 @@ class IntentContractTest(unittest.TestCase):
             self.assertIn(field, INTENT)
         self.assertIn("实现步骤由 plan 负责", INTENT)
 
+    def test_disambiguates_intent_with_minimum_evidence(self) -> None:
+        for text in ("当前最佳理解", "可观察结果", "最能区分不同理解", "边界反例"):
+            self.assertIn(text, INTENT)
+        self.assertIn("只消除意图歧义", INTENT)
+
     def test_goal_review_uses_shared_confirmation_protocol(self) -> None:
         self.assertIn("confirm-protocol.md", INTENT)
         confirm = (ROOT / "references" / "confirm-protocol.md").read_text(encoding="utf-8")

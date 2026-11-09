@@ -43,6 +43,48 @@ cases:
         - 未确认意图就进入实施
         - 顺手增加数据迁移、重构或增删改目标
 
+  - id: intent-disambiguation-uses-minimum-evidence
+    kind: core
+    judge: llm
+    description: 多种合理交付物先取区分证据再确认
+    given: human 用户要求优化项目展示，现有资料支持改当前页面或另做阅读页两种理解
+    expect:
+      must:
+        - 形成当前最佳理解并识别另一种合理解释
+        - 只读最能区分两种理解的现有页面或说明，再给出复述
+        - 复述包含从现状到可观察结果的具体变化及一个边界反例
+      must_not:
+        - 未取区分证据就按第一种解释实施
+        - 为消除意图歧义做全仓技术摸底或询问资料已有答案
+
+  - id: intent-solution-does-not-replace-desired-outcome
+    kind: core
+    judge: llm
+    description: 用户指定方案时仍核对其想达到的结果
+    given: human 用户指定一个实施方案，一手资料显示该方案不能直接达到其描述的结果
+    expect:
+      must:
+        - 用具体证据区分用户指定的方案与期望的可观察结果
+        - 更新当前最佳理解并用完成结果和边界反例复述，等待明确确认
+        - criterion 覆盖用户真正要验收的结果
+      must_not:
+        - 把实施指定方案本身当成真实目的已经达成
+        - 静默改变用户目标或完成判据
+
+  - id: intent-refuting-evidence-reopens-confirmed-intent
+    kind: regression
+    judge: llm
+    description: criterion 未变但证据推翻理解时主动纠偏
+    given: human 意图和 criterion 已确认，后续只读探索证明当前交付物无法实现期望结果
+    expect:
+      must:
+        - 重入 intent 并把旧认知标为 refuted 或 superseded
+        - 根据新证据更新完成结果与边界反例，重新取得意图确认
+        - 只使受影响的 plan、design 或未完成实施项失效
+      must_not:
+        - 因 criterion 原文未变而继续按旧理解实施
+        - 重跑未受影响的环节或改写历史
+
   - id: intent-change-and-cognition-correction
     kind: core
     judge: deterministic

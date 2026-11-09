@@ -35,6 +35,7 @@
 - reviewer Blocker / Major 指向实现 → execute；指向方案 → design / grill。
 - 子任务完成 → 父任务选下一就绪项；全部完成 → 父任务 verify。
 - criterion 改变 → intent；只使受影响产物失效。
+- 多种合理交付物或关键意图假设把握低 → intent 做最小区分探索；新证据推翻当前理解 → intent，即使 criterion 原文未变；只使受影响产物失效。
 - 工具 / 传输故障按退避重试，不伪装成代码根因；缺权限 / 凭据才 blocked，其他就绪项继续。
 
 ## 防振荡与上下文

@@ -14,6 +14,12 @@ class IntentLoopTest(unittest.TestCase):
         self.assertIn("为空或不可检查，回 [intent.md]", router)
         self.assertIn("criterion 改变 → intent", router)
 
+    def test_router_reopens_intent_for_uncertainty_and_refuting_evidence(self) -> None:
+        router = (ROOT / "references" / "router.md").read_text(encoding="utf-8")
+        self.assertIn("多种合理交付物或关键意图假设把握低", router)
+        self.assertIn("新证据推翻当前理解 → intent", router)
+        self.assertIn("即使 criterion 原文未变", router)
+
     def test_done_checks_intent_not_old_snapshot_path(self) -> None:
         done = (ROOT / "references" / "done.md").read_text(encoding="utf-8")
         self.assertIn("意图未漂移", done)
