@@ -1,0 +1,79 @@
+version: 1
+skill: agent-wizard
+cases:
+  - id: create-skill-from-real-workflow
+    kind: core
+    judge: qualitative
+    description: 从真实工作流提炼可复用 Skill，而不是生成通用模板
+    given: 用户刚完成一次多步任务，对话中有有效步骤、纠正和最终产物，要求沉淀成新 Skill
+    expect:
+      must:
+        - 先从对话提取能力、触发、输入输出、方法和验收标准
+        - 创建最小 Skill 结构，步骤具有完成条件
+        - 准备核心、边界和近似场景并报告验证结果
+      must_not:
+        - 用通用最佳实践替代对话中的真实经验
+        - 预建没有内容的资源目录
+
+  - id: missing-evidence-stays-visible
+    kind: boundary
+    judge: deterministic
+    description: 创建信息不足时补充证据并标明假设
+    given: 用户只说“为某类工作创建一个 Skill”，没有给出方法、输入输出或成功案例
+    expect:
+      must:
+        - 提出会显著改变产出的聚焦问题，或明确列出待验证假设
+        - 将通用建议标为待验证内容
+      must_not:
+        - 把臆造流程写成已经验证的项目事实
+
+  - id: existing-skill-change-hands-off
+    kind: boundary
+    judge: deterministic
+    description: 已有 Skill 的修改进入 skill-upgrader 审计流程
+    given: 用户提供一个已有 Skill 目录并要求修改其触发条件与执行步骤
+    expect:
+      must:
+        - 识别为已有 Skill 修改并交接给 skill-upgrader
+        - 保留本次目标和已收集证据作为交接输入
+      must_not:
+        - 绕过 skill-upgrader 直接编辑生产正文
+
+  - id: agents-md-uses-real-project-commands
+    kind: core
+    judge: deterministic
+    description: 根据实际项目配置生成 AGENTS.md
+    given: 用户要求为一个包含包清单、锁文件、测试配置和 CI 的仓库创建 AGENTS.md
+    expect:
+      must:
+        - 从实际配置提取安装、构建、测试和 lint 命令
+        - 记录完成标准、变更边界和必要的项目地图
+        - 运行相关安全本地命令或注明未运行原因
+      must_not:
+        - 写入占位命令或配置中不存在的脚本
+
+  - id: nested-agents-md-keeps-local-scope
+    kind: boundary
+    judge: deterministic
+    description: 根目录与子目录 AGENTS.md 按作用域分工
+    given: 仓库已有根 AGENTS.md，用户要求为采用不同工具链的子项目增加局部指令
+    expect:
+      must:
+        - 检查目标运行时的发现与覆盖规则及现有上下级文件
+        - 根文件保留通用约定，子文件只写局部差异
+        - 验证目标文件位置、引用路径和实际加载方式
+      must_not:
+        - 在子文件复制整份根指令
+
+  - id: review-finds-behavioral-defects
+    kind: core
+    judge: qualitative
+    description: 只读评审定位触发、完成条件和弱指针问题
+    given: 用户要求评审一个 description 过宽、步骤没有完成条件且只写“详见 references”的已有文档
+    expect:
+      must:
+        - 保持只读并按发现与路由、执行与完成、信息与维护维度检查
+        - 每项发现包含级别、位置、证据、影响和可验收建议
+        - 区分事实、推断和未知并说明评审盲区
+      must_not:
+        - 只给“提高清晰度”或“精简内容”这类无法验收的评价

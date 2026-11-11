@@ -50,6 +50,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | Skill | 用途 |
 | --- | --- |
 | `skills-store` | skill 审计与安装门禁 |
+| `agent-wizard` | 从零创建 Skill、生成或更新 AGENTS.md / CLAUDE.md、只读评审 agent 文档；覆盖证据采集、信息落点与验证闭环 |
 | `skill-upgrader` | 可审计 patch 更新 skill、升级为自进化结构；`evolve` 模式按多次真实执行经验进化（原 skill-evolver） |
 | `trouble-grill` | 问题排查拷问 |
 
