@@ -1,0 +1,283 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 73ae145..934e4dd 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -66,5 +66,6 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 
+ - workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
+ - 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
+ - `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
++- `context/current.md` 区分可准确提问的 `U-n` 与尚不能准确提问的 `F-n`；每轮最多解决一个就绪 `U-n`，`F-n` 随新证据毕业，细则见 [references/contract.md](references/contract.md)。
+ - `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
+ - 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index 5b9db23..c3938f7 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -103,7 +103,18 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
+ 
+ 只读 explore / review、不同子任务或不同仓库可并行；同任务同仓写操作串行。worker 不直接改父 TASK；父编排者统一更新协调状态。详见 [../taskflow/references/multi-worker.md](../../taskflow/references/multi-worker.md)。
+ 
+-## 9. 术语
++## 9. 未决问题与待明确区
++
++`context/current.md` 按需维护「未决问题」和「待明确区」，旧任务没有这两节时视为空，首次出现相应未知时再补。
++
++- **未决问题 `U-n`**：能准确写出问句和解决形式的问题；记录问题、解决形式和依赖。判断依据是能否准确提问，不是能否立即回答。
++- **待明确区 `F-n`**：只能描述模糊区域、尚不能准确提问的未知；记录区域和重估触发，不预拆成未来步骤。
++- 每个路由轮次最多解决一个依赖就绪的 `U-n`，router 按问题证据选择现有 reference，不新增 `current_ref`；goal 可在后续轮次继续，不增加逐票停点。
++- 解决 `U-n` 后，事实写当前事实，决定写 `decisions.md`，长证据写 `evidence/` 或 `design/`，并把该项移出未决表。新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并移出待明确区。
++- `U-n` 因新证据失效时把原因写 `history.md`；影响已有决定时按 `superseded` 关联，已完成且不受影响的历史不改写。
++- PLAN 只展开当前就绪动作与重估触发；ROADMAP 只写交付结构。`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，详情只在 `context/current.md` 维护。
++
++## 10. 术语
+ 
+ | 术语 | 含义 |
+ |---|---|
+@@ -111,6 +122,8 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
+ | workspace | 任务与 OpenSpec 的统一规划根 |
+ | worktree | 某修改仓属于某任务的 git worktree，不是普通目录副本 |
+ | criterion | 判断任务是否完成的一条可检查原文 |
++| 未决问题 | 可准确提问并写明解决形式的 `U-n`，存于 context/current |
++| 待明确区 | 尚不能准确提问、只记录区域与重估触发的 `F-n` |
+ | ROADMAP | 父子结构、依赖、涉及仓库和集成项唯一真源 |
+ | 切片 | 同一任务、同一交付分支内按依赖滚动的 change |
+ | 子任务 | 父任务下可独立实施验证、按契约集成的任务 |
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index cb62326..18f0cb2 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -75,11 +75,21 @@ human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范
+ ## 意图
+ - 确认状态：pending | confirmed | not-required
+ 
++## 未决问题
++| ID | 问题 | 解决形式 | 依赖 |
++|---|---|---|---|
++| U-n | <能准确写出的问句> | <有出处的事实 / D-n 决定 / 方案> | <U-n 或证据条件；无则写无> |
++
++## 待明确区
++| ID | 模糊区域 | 重估触发 |
++|---|---|---|
++| F-n | <尚不能准确提问的区域> | <相关 U-n 解决或新证据出现> |
++
+ | 结论 | 状态 confirmed / assumed / refuted / superseded | 证据 | 失效条件 |
+ |---|---|---|---|
+ ```
+ 
+-约 8 KB 后把旧细节转 history / evidence，只留当前有效结论和指针。
++两节按需出现；解决或毕业后移出对应表，只留当前有效结论和指针。约 8 KB 后把旧细节转 history / evidence。
+ 
+ ## decisions.md / history.md
+ 
+diff --git a/skills/taskrail/references/grill.md b/skills/taskrail/references/grill.md
+index 7a79776..7c2949d 100644
+--- a/skills/taskrail/references/grill.md
++++ b/skills/taskrail/references/grill.md
+@@ -13,16 +13,17 @@
+ criterion、用户限制、explore / diagnose 证据和当前 plan。
+ 
+ ## 执行方法
+-1. 把待定问题按依赖排成设计树，每轮处理前置已定的层。
+-2. 先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
+-3. 不重问已确认目标与 criterion；冲突时回 intent。
+-4. 每个问题得到事实、决定或显式假设；已做决定写 decisions.md，无未决关键问题就停止，不为形式追问。
++1. 把待定问题按依赖排成设计树：能准确写出问句和解决形式的记 `U-n`，只能描述模糊区域的记 `F-n` 并写重估触发。
++2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
++3. 解决后把事实写当前事实，已做决定写 decisions.md，长证据写 evidence / design，并把该项移出未决表；每个问题得到事实、决定或显式假设。
++4. 新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并从待明确区移除；`U-n` 失效时把原因写 `history.md`，影响已有决定时标 superseded。
++5. 不重问已确认目标与 criterion；冲突时回 intent。无未决关键问题就停止，不为形式追问。
+ 
+ ## 产出
+ `design/grill.md`（按需）、decisions.md、更新后的 context/current。
+ 
+ ## 完成门
+-影响当前方案的关键问题均有结论；剩余未决不会暗中缩小 criterion。
++影响当前方案的关键 `U-n` 均有结论；剩余 `U-n / F-n` 不会暗中缩小 criterion。
+ 
+ ## 退出与重入
+ 需要契约 / 架构方案转 design，否则 plan / execute。新证据推翻决定时标 superseded，只重开相关问题。
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index d5aec4e..df3eaf8 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -6,7 +6,7 @@
+ 
+ 1. 检查 `context/current.md` 的意图确认状态：缺失、pending 或 assumed 时回 [intent.md](intent.md)，human 由用户确认为 confirmed，goal 简要复述后记 not-required；子任务继承的 not-required 可直接通过。criterion 为空或不可检查，回 [intent.md](intent.md)；criterion 已填写不等于意图已确认。
+ 2. 代码任务没有当前最小计划，进 [plan.md](plan.md)。当前 reference 的输入与完成门仍成立才 continue；产物已满足且没有失效信号就 skip / exit。
+-3. 按下表选能解决当前最关键不确定性的一个 reference；一次只选一个。
++3. 从 `context/current.md` 选一个依赖就绪、最能解决当前关键不确定性的 `U-n`，按下表选择对应 reference；一次只选一个。没有 `U-n` 时按当前事实选择。
+ 4. 代码实施统一进 taskflow execute；PLAN 未满足完成门（含当前模式所需的实施确认）不得进入。实施后有证据才进 verify，最终 close。
+ 5. 把 enter / skip / exit / reopen 与一句理由追加到 history.md；不维护第二份完成百分比。
+ 
+@@ -15,6 +15,7 @@
+ | 当前事实 | 选择 | 可跳过的证据 |
+ |---|---|---|
+ | 改点、依赖、约束或影响面未知 | explore | 当前 commit 下已有相关入口与约束证据 |
++| 阻碍当前路径的 `F-n` 尚不能准确提问 | explore 做一次最小探索，形成 `U-n` | 已有证据能准确提问，或不妨碍当前交付 |
+ | bug / 性能 / flaky 原因未证明 | diagnose | 原因已有一手证据，或只是明确文案 / 配置错误 |
+ | 多个方案带来实质外部取舍，约束冲突 | grill | 没有会改变方案的关键未知或取舍 |
+ | 公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 契约变化 |
+diff --git a/skills/taskrail/references/plan.md b/skills/taskrail/references/plan.md
+index f63e93a..dc9f5f9 100644
+--- a/skills/taskrail/references/plan.md
++++ b/skills/taskrail/references/plan.md
+@@ -13,7 +13,7 @@ PLAN 与当前事实一致，下一步和验证方式明确；若下一步是 ex
+ TASK 目标 / criterion、用户限制、context/current 和已有相关产物。
+ 
+ ## 执行方法
+-1. 写当前最少的动作与对应验证；没有把握的后续只写触发条件，不提前细化。
++1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
+ 2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
+ 3. 只读 explore / diagnose 可沿当前最小计划继续。首次 execute 前或实施方案实质变化后，human 按 [confirm-protocol.md](confirm-protocol.md) 展示改动范围、步骤、验证与必要回滚并等明确确认；goal 简要复述方案后继续。
+ 4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index a89de13..aca2f12 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -16,7 +16,7 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 1. 写清现状证据、目标契约、边界、兼容性、回滚和验证策略。
+ 2. 推荐与被放弃方案各写取舍；独立难逆决定写 ADR 并按 [user-report.md](user-report.md) 告知，术语写 glossary。
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+-4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补。
++4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+ 5. Web UI 按需读 ui-delivery；对比表按需读 design-detail。
+ 
+ ## 产出
+diff --git a/skills/taskrail/references/done.md b/skills/taskrail/references/done.md
+index b6faa98..4f3726b 100644
+--- a/skills/taskrail/references/done.md
++++ b/skills/taskrail/references/done.md
+@@ -5,11 +5,12 @@
+ 1. **判据成立**：criterion 原文成立，有当前代码的命令与结果。direct 证据在 PLAN / evidence，OpenSpec 在 driver proposal 验证记录。
+ 2. **意图未漂移**：输出形态、“不做”和用户限制均满足。
+ 3. **交付标准**：PLAN / design 中的交付标准全过。
+-4. **父子闭环**：所有直接子任务 done，父 ROADMAP 集成项和总判据已验证。
+-5. **评审处置**：Blocker / Major 均 fixed；未修复项的 accepted-recorded 在 human 下必须有用户明确接受，goal 不放行。
+-6. **观感**：用户原话有观感目标时，下方验收已过。
+-7. **知识闭环**：SUMMARY.md 已写结果、验证、认知更正、可复用经验、剩余风险和合入方式。
+-8. **不少交付**：未验证项不能算过；验证不足、接受剩余风险、缩小 criterion 或交付面必须按确认协议获放行，否则保持未完成。
++4. **关键未知闭环**：影响 criterion 的 `U-n` 均已解决；其余 `F-n` 已写入 SUMMARY 的剩余风险或后续项。
++5. **父子闭环**：所有直接子任务 done，父 ROADMAP 集成项和总判据已验证。
++6. **评审处置**：Blocker / Major 均 fixed；未修复项的 accepted-recorded 在 human 下必须有用户明确接受，goal 不放行。
++7. **观感**：用户原话有观感目标时，下方验收已过。
++8. **知识闭环**：SUMMARY.md 已写结果、验证、认知更正、可复用经验、剩余风险和合入方式。
++9. **不少交付**：未验证项不能算过；验证不足、接受剩余风险、缩小 criterion 或交付面必须按确认协议获放行，否则保持未完成。
+ 
+ ## 观感验收
+ 
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 426c313..0d87a64 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -13,7 +13,7 @@ verify 全过；或用户明确放弃 / 关闭未完成任务（此时 status 
+ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状态。
+ 
+ ## 执行方法
+-1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接。
++1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。
+ 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。
+ 3. 完成通知说明各仓库分支 / worktree、验证结果和如何合入；不 push、不自动清理 worktree。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 3d0f181..44a82ff 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -488,3 +488,31 @@ cases:
+       must_not:
+         - 问用户要新建还是绑定
+         - 每个普通步骤都以要不要或你看行吗收尾
++
++  - id: uncertainty-graduates-after-evidence
++    kind: core
++    judge: llm
++    description: 未决问题解决后让待明确区按需毕业
++    given: context/current 有一个依赖就绪的 U-1 和依赖其结论的模糊 F-1，新证据解决了 U-1 并使 F-1 能准确提问
++    expect:
++      must:
++        - 把 U-1 的事实或决定写入当前事实或 decisions，并移出未决表
++        - 把 F-1 转为有准确问句、解决形式和依赖的 U-2，并移出待明确区
++        - goal 在后续路由轮次继续处理 U-2，resume 只读热状态即可恢复
++      must_not:
++        - 在 PLAN、design 或 ROADMAP 复制未决问题详情
++        - 提前把 F-1 预拆成实施 checkbox 或交付子任务
++        - 为每个 U-n 增加人工确认停点
++
++  - id: unrelated-fog-does-not-block-close
++    kind: edge
++    judge: llm
++    description: 与判据无关的剩余待明确区不扩大交付范围
++    given: criterion 已验证且影响判据的 U-n 均已解决，仍有一个不影响当前交付的 F-1
++    expect:
++      must:
++        - 把 F-1 写入 SUMMARY 的剩余风险或后续项，再按完成清单收口
++        - 保留当前 criterion 和已验证交付边界
++      must_not:
++        - 为清空所有待明确区继续全仓探索或新增交付
++        - 留下足以使 criterion 失效的未决问题仍标 done
+diff --git b/skills/taskrail/tests/test_uncertainty_contract.py b/skills/taskrail/tests/test_uncertainty_contract.py
+new file mode 100644
+index 0000000..620706b
+--- /dev/null
++++ b/skills/taskrail/tests/test_uncertainty_contract.py
+@@ -0,0 +1,61 @@
++"""未决问题与待明确区：准确提问、按需毕业、单一落点与完成门。"""
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++REF = ROOT / "references"
++
++
++def read(name: str) -> str:
++    return (REF / name).read_text(encoding="utf-8")
++
++
++class UncertaintyContractTest(unittest.TestCase):
++    def test_question_and_fog_are_classified_by_precision(self) -> None:
++        contract = read("contract.md")
++        self.assertIn("未决问题 `U-n`", contract)
++        self.assertIn("待明确区 `F-n`", contract)
++        self.assertIn("判断依据是能否准确提问，不是能否立即回答", contract)
++        self.assertIn("旧任务没有这两节时视为空", contract)
++
++    def test_hot_context_is_the_only_question_index(self) -> None:
++        contract = read("contract.md")
++        template = read("templates.md")
++        self.assertIn("## 未决问题", template)
++        self.assertIn("## 待明确区", template)
++        self.assertIn("| ID | 问题 | 解决形式 | 依赖 |", template)
++        self.assertIn("| ID | 模糊区域 | 重估触发 |", template)
++        self.assertIn("ROADMAP 只写交付结构", contract)
++        self.assertIn("详情只在 `context/current.md` 维护", contract)
++        self.assertIn("只列 `U-n / F-n` 与指针", read("design.md"))
++
++    def test_resolution_and_graduation_leave_no_duplicate_open_item(self) -> None:
++        grill = read("grill.md")
++        self.assertIn("把该项移出未决表", grill)
++        self.assertIn("毕业为新的 `U-n` 并从待明确区移除", grill)
++        self.assertIn("失效时把原因写 `history.md`", grill)
++        self.assertIn("已做决定写 decisions.md", grill)
++
++    def test_router_handles_one_ready_question_without_a_new_phase(self) -> None:
++        contract = read("contract.md")
++        router = read("router.md")
++        self.assertIn("每个路由轮次最多解决一个依赖就绪的 `U-n`", contract)
++        self.assertIn("不新增 `current_ref`", contract)
++        self.assertIn("goal 可在后续轮次继续", contract)
++        self.assertIn("选一个依赖就绪、最能解决当前关键不确定性的 `U-n`", router)
++
++    def test_plan_defers_fog_until_it_graduates(self) -> None:
++        self.assertIn("`F-n` 仅保留重估触发", read("plan.md"))
++
++    def test_done_requires_only_criterion_relevant_questions_to_close(self) -> None:
++        done = read("done.md")
++        close = read("close.md")
++        self.assertIn("影响 criterion 的 `U-n` 均已解决", done)
++        self.assertIn("其余 `F-n` 已写入 SUMMARY", done)
++        self.assertIn("未阻塞交付的 `F-n` 写入剩余风险或后续项", close)
++
++
++if __name__ == "__main__":
++    unittest.main()

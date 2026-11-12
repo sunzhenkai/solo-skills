@@ -1,0 +1,13 @@
+diff --git a/skills/taskrail/tests/test_uncertainty_contract.py b/skills/taskrail/tests/test_uncertainty_contract.py
+index 620706b..9fe33c0 100644
+--- a/skills/taskrail/tests/test_uncertainty_contract.py
++++ b/skills/taskrail/tests/test_uncertainty_contract.py
+@@ -44,7 +44,7 @@ class UncertaintyContractTest(unittest.TestCase):
+         self.assertIn("每个路由轮次最多解决一个依赖就绪的 `U-n`", contract)
+         self.assertIn("不新增 `current_ref`", contract)
+         self.assertIn("goal 可在后续轮次继续", contract)
+-        self.assertIn("选一个依赖就绪、最能解决当前关键不确定性的 `U-n`", router)
++        self.assertIn("选一个依赖就绪、最能解决当前最关键不确定性的 `U-n`", router)
+ 
+     def test_plan_defers_fog_until_it_graduates(self) -> None:
+         self.assertIn("`F-n` 仅保留重估触发", read("plan.md"))

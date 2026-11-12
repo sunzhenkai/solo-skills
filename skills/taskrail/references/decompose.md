@@ -24,8 +24,15 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
 
    已存在则核对是否同一项，不覆盖、不复制。子任务只拆一层，其内部再拆为切片。
 5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
-6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。正在做的优先，其次按 ROADMAP 顺序；用户点名则照办。
-7. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK，但交付边界变化需重新确认；已完成项不改写，criterion 变化先回 intent。
+6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空的子任务；正在做的优先，其次按 ROADMAP 顺序，用户点名则照办。
+7. 多 worker 派发前，主会话先在锁内认领；成功才派发，已被他人认领则取下一 frontier 项：
+
+   ```bash
+   python3 <taskrail>/scripts/task_state.py claim <workspace> <parent-id>/subtasks/<child-id> --owner <worker-id>
+   ```
+
+   认领不替代同任务同仓写串行与 worktree 隔离。回收或重新派发用 `release`；stale claim 确认原 worker 已停止后才用 `release --force`。
+8. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK，但交付边界变化需重新确认；已完成项不改写，criterion 变化先回 intent。
 
 ## 产出
 ROADMAP.md、`subtasks/<child>/TASK.md` 及热文档、父 TASK 的下一动作和路由记录。

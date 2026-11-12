@@ -66,5 +66,7 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` �
 - workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
 - 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
 - `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
+- 多 worker 子任务由主会话在派发前原子 `claim`；frontier 只含 `active`、依赖 done 且未认领项，stale claim 确认原 worker 停止后才 `release`。
+- `context/current.md` 区分可准确提问的 `U-n` 与尚不能准确提问的 `F-n`；每轮最多解决一个就绪 `U-n`，`F-n` 随新证据毕业，细则见 [references/contract.md](references/contract.md)。
 - `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
 - 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。

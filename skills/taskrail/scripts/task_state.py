@@ -5,6 +5,8 @@ Commands:
   task_state.py init <workspace> <task-id> --title TITLE [--criterion TEXT] [--parent PARENT-ID] [--confirm-mode MODE]
   task_state.py update <workspace> <task-path> [--status STATUS] [--current-ref REF] [--confirm-mode MODE]
                      [--execution direct|openspec] [--driver NAME] [--criterion TEXT] [--next TEXT]
+  task_state.py claim <workspace> <task-path> --owner WORKER-ID
+  task_state.py release <workspace> <task-path> [--owner WORKER-ID] [--force]
   task_state.py rebuild-index <workspace>
   task_state.py reconcile <workspace> <task-path> [--repair] [--json]
 
@@ -14,7 +16,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -106,12 +108,12 @@ def scalar(value: str | None) -> str:
 
 
 def render(meta: dict[str, str], body: str) -> str:
-    order = ["slug", "parent", "status", "current_ref", "confirm_mode", "execution", "driver", "criterion", "created", "updated"]
-    ordered_keys = order + [key for key in meta if key not in order]
+    order = ["slug", "parent", "status", "claimed_by", "claimed_at", "current_ref", "confirm_mode", "execution", "driver", "criterion", "created", "updated"]
+    ordered_keys = [key for key in order if key in meta] + [key for key in meta if key not in order]
     lines = ["---"]
     for key in ordered_keys:
         value = meta[key]
-        if key in {"slug", "parent", "status", "current_ref", "confirm_mode", "execution", "driver", "created", "updated"}:
+        if key in {"slug", "parent", "status", "claimed_by", "claimed_at", "current_ref", "confirm_mode", "execution", "driver", "created", "updated"}:
             rendered = "null" if value in {"", "null", "None"} else value
         else:
             rendered = scalar(value)
@@ -155,6 +157,9 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         "created": today,
         "updated": today,
     }
+    if parent:
+        meta["claimed_by"] = "null"
+        meta["claimed_at"] = "null"
     body = f"""
 # {title}
 
@@ -231,6 +236,58 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
     return task_md
 
 
+def claim_task(workspace: Path, value: str, owner: str) -> Path:
+    _, parent, _ = split_task_path(value)
+    if parent is None:
+        raise StateError("only child tasks can be claimed")
+    if not valid_id(owner):
+        raise StateError("worker id must be lowercase kebab-case")
+    task_md = task_dir(workspace, value) / "TASK.md"
+    if not task_md.is_file():
+        raise StateError(f"task does not exist: {task_md}")
+    with state_lock(workspace):
+        meta, text = parse_task(task_md)
+        if meta.get("status") != "active":
+            raise StateError("claim requires an active child task")
+        claimed_by = meta.get("claimed_by", "null")
+        if claimed_by == owner:
+            return task_md
+        if claimed_by not in {"", "null", "None"}:
+            raise StateError(f"task is already claimed by {claimed_by}")
+        meta["claimed_by"] = owner
+        meta["claimed_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        meta["updated"] = date.today().isoformat()
+        body = text[re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S).end():]
+        atomic_write(task_md, render(meta, body))
+        rebuild_index(workspace)
+    return task_md
+
+
+def release_task(workspace: Path, value: str, owner: str | None, force: bool) -> Path:
+    _, parent, _ = split_task_path(value)
+    if parent is None:
+        raise StateError("only child tasks can be released")
+    if not force and (owner is None or not valid_id(owner)):
+        raise StateError("release requires a valid owner or --force")
+    task_md = task_dir(workspace, value) / "TASK.md"
+    if not task_md.is_file():
+        raise StateError(f"task does not exist: {task_md}")
+    with state_lock(workspace):
+        meta, text = parse_task(task_md)
+        claimed_by = meta.get("claimed_by", "null")
+        if claimed_by in {"", "null", "None"}:
+            return task_md
+        if not force and claimed_by != owner:
+            raise StateError(f"task is claimed by {claimed_by}, not {owner}")
+        meta["claimed_by"] = "null"
+        meta["claimed_at"] = "null"
+        meta["updated"] = date.today().isoformat()
+        body = text[re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S).end():]
+        atomic_write(task_md, render(meta, body))
+        rebuild_index(workspace)
+    return task_md
+
+
 def row_for(tasks_root: Path, path: Path, archived: bool) -> str:
     meta, _ = parse_task(path)
     relative = path.parent.relative_to(tasks_root).as_posix()
@@ -282,6 +339,8 @@ def reconcile(workspace: Path, value: str, repair: bool) -> dict:
         "task": str(task_md),
         "status": meta.get("status"),
         "current_ref": meta.get("current_ref"),
+        "claimed_by": meta.get("claimed_by", "null"),
+        "claimed_at": meta.get("claimed_at", "null"),
         "children": child_states,
         "recommended_ref": recommendation,
         "errors": errors,
@@ -317,6 +376,15 @@ def main(argv: list[str] | None = None) -> int:
     update.add_argument("--driver")
     update.add_argument("--criterion")
     update.add_argument("--next")
+    claim = sub.add_parser("claim")
+    claim.add_argument("workspace")
+    claim.add_argument("task_path")
+    claim.add_argument("--owner", required=True)
+    release = sub.add_parser("release")
+    release.add_argument("workspace")
+    release.add_argument("task_path")
+    release.add_argument("--owner")
+    release.add_argument("--force", action="store_true")
     rebuild = sub.add_parser("rebuild-index")
     rebuild.add_argument("workspace")
     rec = sub.add_parser("reconcile")
@@ -333,6 +401,12 @@ def main(argv: list[str] | None = None) -> int:
             keys = ("status", "current-ref", "confirm-mode", "execution", "driver", "criterion")
             changes = {key.replace("-", "_"): value for key in keys if (value := getattr(args, key.replace("-", "_"))) is not None}
             result = {"ok": True, "task": str(update_task(workspace, args.task_path, changes, args.next))}
+        elif args.command == "claim":
+            claimed = claim_task(workspace, args.task_path, args.owner)
+            result = {"ok": True, "task": str(claimed), "claimed_by": args.owner}
+        elif args.command == "release":
+            released = release_task(workspace, args.task_path, args.owner, args.force)
+            result = {"ok": True, "task": str(released), "claimed_by": "null"}
         elif args.command == "rebuild-index":
             with state_lock(workspace):
                 result = {"ok": True, "index": str(rebuild_index(workspace))}

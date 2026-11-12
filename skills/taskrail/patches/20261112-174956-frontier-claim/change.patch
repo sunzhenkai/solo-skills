@@ -1,0 +1,376 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 934e4dd..9c56494 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -66,6 +66,7 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 
+ - workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
+ - 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
+ - `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
++- 多 worker 子任务由主会话在派发前原子 `claim`；frontier 只含 `active`、依赖 done 且未认领项，stale claim 确认原 worker 停止后才 `release`。
+ - `context/current.md` 区分可准确提问的 `U-n` 与尚不能准确提问的 `F-n`；每轮最多解决一个就绪 `U-n`，`F-n` 随新证据毕业，细则见 [references/contract.md](references/contract.md)。
+ - `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
+ - 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index c3938f7..13dcffb 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -30,6 +30,8 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
+ slug: <kebab-case>
+ parent: null | <parent-task-id>
+ status: pending | active | blocked | done | archived
++claimed_by: null | "<worker-id>"  # 仅子任务
++claimed_at: null | "<ISO 8601 timestamp>"  # 仅子任务
+ current_ref: intake | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
+ confirm_mode: human | goal
+ execution: direct | openspec | null
+@@ -41,6 +43,8 @@ updated: YYYY-MM-DD
+ ```
+ 
+ - `pending`：子任务已规划但未就绪；`active`：可推进；`blocked`：只表示需要外部输入或环境解锁。
++- `claimed_by / claimed_at` 仅子任务持有，旧任务缺字段视为未认领。frontier 是 `active`、ROADMAP 依赖全部 done 且 `claimed_by` 为空的子任务；decompose 负责依赖激活，脚本不解析 ROADMAP。
++- 主会话在派发前用 `task_state.py claim` 锁内认领，同一 owner 重入幂等；回收用 `release`，确认原 worker 已停止后才用 `release --force`。`reconcile` 报告并保留认领，不按时间自动清理。
+ - `current_ref` 只是当前动作，不是完成百分比。direct 任务的实施进度看 PLAN checkbox；OpenSpec 任务看 change checkbox；父子结构看 ROADMAP 与子 TASK。
+ - `execution` 和 `driver` 不决定任务生命周期。driver 归档后若未验收，`current_ref: close` 或 `verify`，绝不能直接推导 done。
+ - `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 存在、所有直接子任务 done。`task_state.py update --status done` 机械检查这些条件。
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index 18f0cb2..02d7543 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -39,6 +39,8 @@ updated: YYYY-MM-DD
+ - context/current.md
+ ```
+ 
++子任务另有 `claimed_by: null` 和 `claimed_at: null`，由 `task_state.py claim / release` 更新；旧任务缺字段视为未认领。
++
+ TASK 只保留恢复所需热信息；路由历史、长决定、原始证据分别放 history.md、decisions.md、evidence/。约 6 KB 后压缩下沉，不截断 criterion。
+ 
+ ## PLAN.md
+diff --git a/skills/taskrail/references/decompose.md b/skills/taskrail/references/decompose.md
+index 0477d0c..d22c479 100644
+--- a/skills/taskrail/references/decompose.md
++++ b/skills/taskrail/references/decompose.md
+@@ -24,8 +24,15 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
+ 
+    已存在则核对是否同一项，不覆盖、不复制。子任务只拆一层，其内部再拆为切片。
+ 5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
+-6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。正在做的优先，其次按 ROADMAP 顺序；用户点名则照办。
+-7. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK，但交付边界变化需重新确认；已完成项不改写，criterion 变化先回 intent。
++6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空的子任务；正在做的优先，其次按 ROADMAP 顺序，用户点名则照办。
++7. 多 worker 派发前，主会话先在锁内认领；成功才派发，已被他人认领则取下一 frontier 项：
++
++   ```bash
++   python3 <taskrail>/scripts/task_state.py claim <workspace> <parent-id>/subtasks/<child-id> --owner <worker-id>
++   ```
++
++   认领不替代同任务同仓写串行与 worktree 隔离。回收或重新派发用 `release`；stale claim 确认原 worker 已停止后才用 `release --force`。
++8. 子任务 blocked 只停其依赖链。新增独立交付可追加 roadmap / pending TASK，但交付边界变化需重新确认；已完成项不改写，criterion 变化先回 intent。
+ 
+ ## 产出
+ ROADMAP.md、`subtasks/<child>/TASK.md` 及热文档、父 TASK 的下一动作和路由记录。
+diff --git a/skills/taskrail/references/ledger.md b/skills/taskrail/references/ledger.md
+index 4b0e12d..6bebfc9 100644
+--- a/skills/taskrail/references/ledger.md
++++ b/skills/taskrail/references/ledger.md
+@@ -25,12 +25,22 @@
+ 
+ TASK 更新、done 门和 INDEX 重建统一用 `scripts/task_state.py`。INDEX 是派生物，不手改状态；多会话写同一 workspace 时使用脚本锁，不靠“先读后写”碰运气。冷历史追加到 history，决定写 decisions，避免 TASK 无界增长。
+ 
++多 worker 认领与释放使用：
++
++```bash
++python3 <taskrail>/scripts/task_state.py claim <workspace> <task-path> --owner <worker-id>
++python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --owner <worker-id>
++python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --force
++```
++
++`claim` 只接受 active 子任务；同一 owner 重入幂等。`--force` 只在确认对应 worker 已停止后使用，不按时间自动清理。
++
+ ## resume / explain
+ 
+ 1. 跑 `task_state.py reconcile <workspace> <task-path> [--repair] [--json]`。
+-2. 核对 workspace、TASK、ROADMAP / 子任务、worktree / driver 身份；冲突时停止代码写入，不 reset 或覆盖。
++2. 核对 workspace、TASK、ROADMAP / 子任务、worktree / driver 身份；已认领子任务留给原 worker，选择下一 frontier 项；冲突时停止代码写入，不 reset 或覆盖。
+ 3. 只读热状态与当前 reference 所需产物；旧 `phase/tier/status` 按现有产物兼容理解，不映射回固定双流程。
+-4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。
++4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。`reconcile --repair` 保留认领，不自动释放。
+ 5. explain 只读报告当前动作与理由、跳过 / 重入、子任务状态、worktree / driver 和下一动作。
+ 
+ 归档任务先报告路径；用户明确 reopen 才按 archive-reopen 搬回。
+diff --git a/skills/taskrail/scripts/task_state.py b/skills/taskrail/scripts/task_state.py
+index 08b47d8..42bd14a 100644
+--- a/skills/taskrail/scripts/task_state.py
++++ b/skills/taskrail/scripts/task_state.py
+@@ -5,6 +5,8 @@ Commands:
+   task_state.py init <workspace> <task-id> --title TITLE [--criterion TEXT] [--parent PARENT-ID] [--confirm-mode MODE]
+   task_state.py update <workspace> <task-path> [--status STATUS] [--current-ref REF] [--confirm-mode MODE]
+                      [--execution direct|openspec] [--driver NAME] [--criterion TEXT] [--next TEXT]
++  task_state.py claim <workspace> <task-path> --owner WORKER-ID
++  task_state.py release <workspace> <task-path> [--owner WORKER-ID] [--force]
+   task_state.py rebuild-index <workspace>
+   task_state.py reconcile <workspace> <task-path> [--repair] [--json]
+ 
+@@ -14,7 +16,7 @@ from __future__ import annotations
+ 
+ import argparse
+ from contextlib import contextmanager
+-from datetime import date
++from datetime import date, datetime, timezone
+ import json
+ import os
+ from pathlib import Path
+@@ -106,12 +108,12 @@ def scalar(value: str | None) -> str:
+ 
+ 
+ def render(meta: dict[str, str], body: str) -> str:
+-    order = ["slug", "parent", "status", "current_ref", "confirm_mode", "execution", "driver", "criterion", "created", "updated"]
+-    ordered_keys = order + [key for key in meta if key not in order]
++    order = ["slug", "parent", "status", "claimed_by", "claimed_at", "current_ref", "confirm_mode", "execution", "driver", "criterion", "created", "updated"]
++    ordered_keys = [key for key in order if key in meta] + [key for key in meta if key not in order]
+     lines = ["---"]
+     for key in ordered_keys:
+         value = meta[key]
+-        if key in {"slug", "parent", "status", "current_ref", "confirm_mode", "execution", "driver", "created", "updated"}:
++        if key in {"slug", "parent", "status", "claimed_by", "claimed_at", "current_ref", "confirm_mode", "execution", "driver", "created", "updated"}:
+             rendered = "null" if value in {"", "null", "None"} else value
+         else:
+             rendered = scalar(value)
+@@ -155,6 +157,9 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+         "created": today,
+         "updated": today,
+     }
++    if parent:
++        meta["claimed_by"] = "null"
++        meta["claimed_at"] = "null"
+     body = f"""
+ # {title}
+ 
+@@ -231,6 +236,58 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
+     return task_md
+ 
+ 
++def claim_task(workspace: Path, value: str, owner: str) -> Path:
++    _, parent, _ = split_task_path(value)
++    if parent is None:
++        raise StateError("only child tasks can be claimed")
++    if not valid_id(owner):
++        raise StateError("worker id must be lowercase kebab-case")
++    task_md = task_dir(workspace, value) / "TASK.md"
++    if not task_md.is_file():
++        raise StateError(f"task does not exist: {task_md}")
++    with state_lock(workspace):
++        meta, text = parse_task(task_md)
++        if meta.get("status") != "active":
++            raise StateError("claim requires an active child task")
++        claimed_by = meta.get("claimed_by", "null")
++        if claimed_by == owner:
++            return task_md
++        if claimed_by not in {"", "null", "None"}:
++            raise StateError(f"task is already claimed by {claimed_by}")
++        meta["claimed_by"] = owner
++        meta["claimed_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
++        meta["updated"] = date.today().isoformat()
++        body = text[re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S).end():]
++        atomic_write(task_md, render(meta, body))
++        rebuild_index(workspace)
++    return task_md
++
++
++def release_task(workspace: Path, value: str, owner: str | None, force: bool) -> Path:
++    _, parent, _ = split_task_path(value)
++    if parent is None:
++        raise StateError("only child tasks can be released")
++    if not force and (owner is None or not valid_id(owner)):
++        raise StateError("release requires a valid owner or --force")
++    task_md = task_dir(workspace, value) / "TASK.md"
++    if not task_md.is_file():
++        raise StateError(f"task does not exist: {task_md}")
++    with state_lock(workspace):
++        meta, text = parse_task(task_md)
++        claimed_by = meta.get("claimed_by", "null")
++        if claimed_by in {"", "null", "None"}:
++            return task_md
++        if not force and claimed_by != owner:
++            raise StateError(f"task is claimed by {claimed_by}, not {owner}")
++        meta["claimed_by"] = "null"
++        meta["claimed_at"] = "null"
++        meta["updated"] = date.today().isoformat()
++        body = text[re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S).end():]
++        atomic_write(task_md, render(meta, body))
++        rebuild_index(workspace)
++    return task_md
++
++
+ def row_for(tasks_root: Path, path: Path, archived: bool) -> str:
+     meta, _ = parse_task(path)
+     relative = path.parent.relative_to(tasks_root).as_posix()
+@@ -282,6 +339,8 @@ def reconcile(workspace: Path, value: str, repair: bool) -> dict:
+         "task": str(task_md),
+         "status": meta.get("status"),
+         "current_ref": meta.get("current_ref"),
++        "claimed_by": meta.get("claimed_by", "null"),
++        "claimed_at": meta.get("claimed_at", "null"),
+         "children": child_states,
+         "recommended_ref": recommendation,
+         "errors": errors,
+@@ -317,6 +376,15 @@ def main(argv: list[str] | None = None) -> int:
+     update.add_argument("--driver")
+     update.add_argument("--criterion")
+     update.add_argument("--next")
++    claim = sub.add_parser("claim")
++    claim.add_argument("workspace")
++    claim.add_argument("task_path")
++    claim.add_argument("--owner", required=True)
++    release = sub.add_parser("release")
++    release.add_argument("workspace")
++    release.add_argument("task_path")
++    release.add_argument("--owner")
++    release.add_argument("--force", action="store_true")
+     rebuild = sub.add_parser("rebuild-index")
+     rebuild.add_argument("workspace")
+     rec = sub.add_parser("reconcile")
+@@ -333,6 +401,12 @@ def main(argv: list[str] | None = None) -> int:
+             keys = ("status", "current-ref", "confirm-mode", "execution", "driver", "criterion")
+             changes = {key.replace("-", "_"): value for key in keys if (value := getattr(args, key.replace("-", "_"))) is not None}
+             result = {"ok": True, "task": str(update_task(workspace, args.task_path, changes, args.next))}
++        elif args.command == "claim":
++            claimed = claim_task(workspace, args.task_path, args.owner)
++            result = {"ok": True, "task": str(claimed), "claimed_by": args.owner}
++        elif args.command == "release":
++            released = release_task(workspace, args.task_path, args.owner, args.force)
++            result = {"ok": True, "task": str(released), "claimed_by": "null"}
+         elif args.command == "rebuild-index":
+             with state_lock(workspace):
+                 result = {"ok": True, "index": str(rebuild_index(workspace))}
+diff --git a/skills/taskrail/tests/test_task_state.py b/skills/taskrail/tests/test_task_state.py
+index 3ea31e1..fb010c1 100644
+--- a/skills/taskrail/tests/test_task_state.py
++++ b/skills/taskrail/tests/test_task_state.py
+@@ -175,6 +175,84 @@ class TaskStateTest(unittest.TestCase):
+         self.assertTrue(task.is_file())
+         self.assertIn("status: active", task.read_text(encoding="utf-8"))
+ 
++    def test_claim_requires_active_child_and_is_idempotent(self) -> None:
++        self.init("parent")
++        self.init("child", "parent")
++        child_path = "parent/subtasks/child"
++        root_claim = self.run_state("claim", str(self.workspace), "parent", "--owner", "worker-one")
++        self.assertEqual(root_claim.returncode, 1)
++        pending_claim = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
++        self.assertEqual(pending_claim.returncode, 1)
++        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
++        claimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
++        self.assertEqual(claimed.returncode, 0, claimed.stdout)
++        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
++        text = task.read_text(encoding="utf-8")
++        self.assertIn("claimed_by: worker-one", text)
++        self.assertRegex(text, r"claimed_at: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00")
++        claimed_at = next(line for line in text.splitlines() if line.startswith("claimed_at:"))
++        repeated = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
++        self.assertEqual(repeated.returncode, 0, repeated.stdout)
++        self.assertIn(claimed_at, task.read_text(encoding="utf-8"))
++        other = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-two")
++        self.assertEqual(other.returncode, 1)
++        self.assertIn("worker-one", task.read_text(encoding="utf-8"))
++
++    def test_release_checks_owner_and_reconcile_preserves_claim(self) -> None:
++        self.init("parent")
++        self.init("child", "parent")
++        child_path = "parent/subtasks/child"
++        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
++        self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
++        wrong_owner = self.run_state("release", str(self.workspace), child_path, "--owner", "worker-two")
++        self.assertEqual(wrong_owner.returncode, 1)
++        reconciled = self.run_state("reconcile", str(self.workspace), child_path, "--repair")
++        self.assertEqual(reconciled.returncode, 0, reconciled.stdout)
++        payload = json.loads(reconciled.stdout)
++        self.assertEqual(payload["claimed_by"], "worker-one")
++        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
++        self.assertIn("claimed_by: worker-one", task.read_text(encoding="utf-8"))
++        forced = self.run_state("release", str(self.workspace), child_path, "--force")
++        self.assertEqual(forced.returncode, 0, forced.stdout)
++        text = task.read_text(encoding="utf-8")
++        self.assertIn("claimed_by: null", text)
++        self.assertIn("claimed_at: null", text)
++        reclaimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-two")
++        self.assertEqual(reclaimed.returncode, 0, reclaimed.stdout)
++
++    def test_legacy_child_without_claim_fields_can_be_claimed(self) -> None:
++        self.init("parent")
++        self.init("child", "parent")
++        child_path = "parent/subtasks/child"
++        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
++        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
++        text = task.read_text(encoding="utf-8")
++        text = "\n".join(line for line in text.splitlines() if not line.startswith(("claimed_by:", "claimed_at:"))) + "\n"
++        task.write_text(text, encoding="utf-8")
++        claimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "legacy-worker")
++        self.assertEqual(claimed.returncode, 0, claimed.stdout)
++        self.assertIn("claimed_by: legacy-worker", task.read_text(encoding="utf-8"))
++
++    def test_concurrent_claim_has_one_winner(self) -> None:
++        from concurrent.futures import ThreadPoolExecutor
++
++        self.init("parent")
++        self.init("child", "parent")
++        child_path = "parent/subtasks/child"
++        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
++
++        def claim(owner: int) -> subprocess.CompletedProcess:
++            return self.run_state("claim", str(self.workspace), child_path, "--owner", f"worker-{owner}")
++
++        with ThreadPoolExecutor(max_workers=6) as pool:
++            results = list(pool.map(claim, range(6)))
++        self.assertEqual([result.returncode for result in results].count(0), 1, [r.stdout for r in results])
++        self.assertEqual([result.returncode for result in results].count(1), 5)
++        for result in results:
++            json.loads(result.stdout)
++        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
++        self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/taskrail/tests/test_decompose_contract.py b/skills/taskrail/tests/test_decompose_contract.py
+index c42ee03..25f0679 100644
+--- a/skills/taskrail/tests/test_decompose_contract.py
++++ b/skills/taskrail/tests/test_decompose_contract.py
+@@ -63,6 +63,16 @@ class DecomposeContractTest(unittest.TestCase):
+         self.assertIn("N 个里完成 M 个", read("user-report.md"))
+         self.assertIn("取下一就绪项", read("ledger.md"))
+ 
++    def test_frontier_is_claimed_before_worker_dispatch(self) -> None:
++        contract = read("contract.md")
++        decompose = read("decompose.md")
++        ledger = read("ledger.md")
++        self.assertIn("claimed_by: null", contract)
++        self.assertIn("frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空", decompose)
++        self.assertIn("主会话先在锁内认领；成功才派发", decompose)
++        self.assertIn("已认领子任务留给原 worker", ledger)
++        self.assertIn("不按时间自动清理", ledger)
++
+     def test_parent_does_not_load_every_child_context(self) -> None:
+         router = read("router.md")
+         self.assertIn("父任务只读 ROADMAP、共享契约和就绪子 TASK", router)
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 44a82ff..877b003 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -516,3 +516,18 @@ cases:
+       must_not:
+         - 为清空所有待明确区继续全仓探索或新增交付
+         - 留下足以使 criterion 失效的未决问题仍标 done
++
++  - id: concurrent-orchestrators-claim-one-child-once
++    kind: regression
++    judge: deterministic
++    description: 多编排者通过原子认领避免重复派发同一子任务
++    given: 一个依赖已 done、已激活且未认领的子任务，两个编排者同时恢复并选择它
++    expect:
++      must:
++        - 主会话在派发前用 task_state.py claim 写入 worker id 和时间
++        - 锁内校验使同一时刻只有一个 owner 认领成功，另一编排者选择下一 frontier 项
++        - reconcile 报告并保留认领，确认原 worker 停止后才允许 force release
++      must_not:
++        - 让 worker 直接修改父 TASK 或自行重复认领其他单位
++        - 按 claimed_at 时间自动释放仍在运行的任务
++        - 以认领替代同任务同仓写串行或 worktree 隔离
