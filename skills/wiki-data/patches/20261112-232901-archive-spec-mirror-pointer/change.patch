@@ -1,0 +1,13 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 0791bfc..7c307ac 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -15,7 +15,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ ## 非目标
+ 
+ - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
+-- 不写软件项目 spec 镜像（交给 `project-spec-mirror`）。
++- 不写软件项目 spec 镜像（`project-spec-mirror` 已归档在 `archive/skills/`，需要时从那里恢复）。
+ - 不探索或修改业务源码（交给 `code-explore`）。
+ - 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
+ - 不编辑 `raw/` 中的源材料。

@@ -28,7 +28,6 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `solo-code-review` | 未提交改动 / MR / PR 的结构化审查 |
 | `repo-manager` | 仓库生命周期管理 |
 | `project-init` | 按约定脚手架创建或对齐项目 |
-| `project-spec-mirror` | 项目 spec 镜像同步 |
 | `service-manager` | 项目服务启停 / 状态 / 日志台账 |
 | `lark-cli` | 飞书 / Lark CLI 路由 |
 
@@ -99,6 +98,7 @@ make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ## 说明
 
 - 源布局：`skills/<id>/`（git 真相）。仓库根 `.claude/skills/` 下的软链仅为本仓开发时在 Claude Code 里即时生效，不影响安装路径（安装一律走 `npx skills` / `dotf`）。
+- 已下线的 skill 移到 `archive/skills/<id>/`，内容与历史 `patches/` / `evolutions/` 原样保留，不再参与安装与测试；条目与下线原因见 [archive/README.md](archive/README.md)。
 - skill 结构按「最小 → 完整」分层：`SKILL.md` + `references/` 是底线，`tests/` `evals/` `examples/` `experience/` `patches/`/`evolutions/` 按各 skill 成熟度逐步补齐（现状多数 skill 尚无全套）；规范定义见 AGENTS.md「结构约定」。
 - task 系列流程与使用说明：[docs/task-flow/README.md](docs/task-flow/README.md)。
 - `agent-roster` 的仓级文档（ADR、CONTEXT、README）在 `docs/agent-roster/`，保留自其独立仓的完整 git 历史。
