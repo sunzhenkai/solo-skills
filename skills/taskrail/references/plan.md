@@ -13,7 +13,7 @@ PLAN 与当前事实一致，下一步和验证方式明确；若下一步是 ex
 TASK 目标 / criterion、用户限制、context/current 和已有相关产物。
 
 ## 执行方法
-1. 写当前最少的动作与对应验证；没有把握的后续只写触发条件，不提前细化。
+1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
 2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
 3. 只读 explore / diagnose 可沿当前最小计划继续。首次 execute 前或实施方案实质变化后，human 按 [confirm-protocol.md](confirm-protocol.md) 展示改动范围、步骤、验证与必要回滚并等明确确认；goal 简要复述方案后继续。
 4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。

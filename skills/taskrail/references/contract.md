@@ -30,6 +30,8 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
 slug: <kebab-case>
 parent: null | <parent-task-id>
 status: pending | active | blocked | done | archived
+claimed_by: null | "<worker-id>"  # 仅子任务
+claimed_at: null | "<ISO 8601 timestamp>"  # 仅子任务
 current_ref: intake | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
 confirm_mode: human | goal
 execution: direct | openspec | null
@@ -41,6 +43,8 @@ updated: YYYY-MM-DD
 ```
 
 - `pending`：子任务已规划但未就绪；`active`：可推进；`blocked`：只表示需要外部输入或环境解锁。
+- `claimed_by / claimed_at` 仅子任务持有，旧任务缺字段视为未认领。frontier 是 `active`、ROADMAP 依赖全部 done 且 `claimed_by` 为空的子任务；decompose 负责依赖激活，脚本不解析 ROADMAP。
+- 主会话在派发前用 `task_state.py claim` 锁内认领，同一 owner 重入幂等；回收用 `release`，确认原 worker 已停止后才用 `release --force`。`reconcile` 报告并保留认领，不按时间自动清理。
 - `current_ref` 只是当前动作，不是完成百分比。direct 任务的实施进度看 PLAN checkbox；OpenSpec 任务看 change checkbox；父子结构看 ROADMAP 与子 TASK。
 - `execution` 和 `driver` 不决定任务生命周期。driver 归档后若未验收，`current_ref: close` 或 `verify`，绝不能直接推导 done。
 - `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 存在、所有直接子任务 done。`task_state.py update --status done` 机械检查这些条件。
@@ -103,7 +107,18 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
 
 只读 explore / review、不同子任务或不同仓库可并行；同任务同仓写操作串行。worker 不直接改父 TASK；父编排者统一更新协调状态。详见 [../taskflow/references/multi-worker.md](../../taskflow/references/multi-worker.md)。
 
-## 9. 术语
+## 9. 未决问题与待明确区
+
+`context/current.md` 按需维护「未决问题」和「待明确区」，旧任务没有这两节时视为空，首次出现相应未知时再补。
+
+- **未决问题 `U-n`**：能准确写出问句和解决形式的问题；记录问题、解决形式和依赖。判断依据是能否准确提问，不是能否立即回答。
+- **待明确区 `F-n`**：只能描述模糊区域、尚不能准确提问的未知；记录区域和重估触发，不预拆成未来步骤。
+- 每个路由轮次最多解决一个依赖就绪的 `U-n`，router 按问题证据选择现有 reference，不新增 `current_ref`；goal 可在后续轮次继续，不增加逐票停点。
+- 解决 `U-n` 后，事实写当前事实，决定写 `decisions.md`，长证据写 `evidence/` 或 `design/`，并把该项移出未决表。新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并移出待明确区。
+- `U-n` 因新证据失效时把原因写 `history.md`；影响已有决定时按 `superseded` 关联，已完成且不受影响的历史不改写。
+- PLAN 只展开当前就绪动作与重估触发；ROADMAP 只写交付结构。`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，详情只在 `context/current.md` 维护。
+
+## 10. 术语
 
 | 术语 | 含义 |
 |---|---|
@@ -111,6 +126,8 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
 | workspace | 任务与 OpenSpec 的统一规划根 |
 | worktree | 某修改仓属于某任务的 git worktree，不是普通目录副本 |
 | criterion | 判断任务是否完成的一条可检查原文 |
+| 未决问题 | 可准确提问并写明解决形式的 `U-n`，存于 context/current |
+| 待明确区 | 尚不能准确提问、只记录区域与重估触发的 `F-n` |
 | ROADMAP | 父子结构、依赖、涉及仓库和集成项唯一真源 |
 | 切片 | 同一任务、同一交付分支内按依赖滚动的 change |
 | 子任务 | 父任务下可独立实施验证、按契约集成的任务 |

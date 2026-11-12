@@ -63,6 +63,16 @@ class DecomposeContractTest(unittest.TestCase):
         self.assertIn("N 个里完成 M 个", read("user-report.md"))
         self.assertIn("取下一就绪项", read("ledger.md"))
 
+    def test_frontier_is_claimed_before_worker_dispatch(self) -> None:
+        contract = read("contract.md")
+        decompose = read("decompose.md")
+        ledger = read("ledger.md")
+        self.assertIn("claimed_by: null", contract)
+        self.assertIn("frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空", decompose)
+        self.assertIn("主会话先在锁内认领；成功才派发", decompose)
+        self.assertIn("已认领子任务留给原 worker", ledger)
+        self.assertIn("不按时间自动清理", ledger)
+
     def test_parent_does_not_load_every_child_context(self) -> None:
         router = read("router.md")
         self.assertIn("父任务只读 ROADMAP、共享契约和就绪子 TASK", router)

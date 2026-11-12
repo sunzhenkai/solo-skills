@@ -488,3 +488,46 @@ cases:
       must_not:
         - 问用户要新建还是绑定
         - 每个普通步骤都以要不要或你看行吗收尾
+
+  - id: uncertainty-graduates-after-evidence
+    kind: core
+    judge: llm
+    description: 未决问题解决后让待明确区按需毕业
+    given: context/current 有一个依赖就绪的 U-1 和依赖其结论的模糊 F-1，新证据解决了 U-1 并使 F-1 能准确提问
+    expect:
+      must:
+        - 把 U-1 的事实或决定写入当前事实或 decisions，并移出未决表
+        - 把 F-1 转为有准确问句、解决形式和依赖的 U-2，并移出待明确区
+        - goal 在后续路由轮次继续处理 U-2，resume 只读热状态即可恢复
+      must_not:
+        - 在 PLAN、design 或 ROADMAP 复制未决问题详情
+        - 提前把 F-1 预拆成实施 checkbox 或交付子任务
+        - 为每个 U-n 增加人工确认停点
+
+  - id: unrelated-fog-does-not-block-close
+    kind: edge
+    judge: llm
+    description: 与判据无关的剩余待明确区不扩大交付范围
+    given: criterion 已验证且影响判据的 U-n 均已解决，仍有一个不影响当前交付的 F-1
+    expect:
+      must:
+        - 把 F-1 写入 SUMMARY 的剩余风险或后续项，再按完成清单收口
+        - 保留当前 criterion 和已验证交付边界
+      must_not:
+        - 为清空所有待明确区继续全仓探索或新增交付
+        - 留下足以使 criterion 失效的未决问题仍标 done
+
+  - id: concurrent-orchestrators-claim-one-child-once
+    kind: regression
+    judge: deterministic
+    description: 多编排者通过原子认领避免重复派发同一子任务
+    given: 一个依赖已 done、已激活且未认领的子任务，两个编排者同时恢复并选择它
+    expect:
+      must:
+        - 主会话在派发前用 task_state.py claim 写入 worker id 和时间
+        - 锁内校验使同一时刻只有一个 owner 认领成功，另一编排者选择下一 frontier 项
+        - reconcile 报告并保留认领，确认原 worker 停止后才允许 force release
+      must_not:
+        - 让 worker 直接修改父 TASK 或自行重复认领其他单位
+        - 按 claimed_at 时间自动释放仍在运行的任务
+        - 以认领替代同任务同仓写串行或 worktree 隔离

@@ -13,16 +13,17 @@
 criterion、用户限制、explore / diagnose 证据和当前 plan。
 
 ## 执行方法
-1. 把待定问题按依赖排成设计树，每轮处理前置已定的层。
-2. 先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
-3. 不重问已确认目标与 criterion；冲突时回 intent。
-4. 每个问题得到事实、决定或显式假设；已做决定写 decisions.md，无未决关键问题就停止，不为形式追问。
+1. 把待定问题按依赖排成设计树：能准确写出问句和解决形式的记 `U-n`，只能描述模糊区域的记 `F-n` 并写重估触发。
+2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
+3. 解决后把事实写当前事实，已做决定写 decisions.md，长证据写 evidence / design，并把该项移出未决表；每个问题得到事实、决定或显式假设。
+4. 新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并从待明确区移除；`U-n` 失效时把原因写 `history.md`，影响已有决定时标 superseded。
+5. 不重问已确认目标与 criterion；冲突时回 intent。无未决关键问题就停止，不为形式追问。
 
 ## 产出
 `design/grill.md`（按需）、decisions.md、更新后的 context/current。
 
 ## 完成门
-影响当前方案的关键问题均有结论；剩余未决不会暗中缩小 criterion。
+影响当前方案的关键 `U-n` 均有结论；剩余 `U-n / F-n` 不会暗中缩小 criterion。
 
 ## 退出与重入
 需要契约 / 架构方案转 design，否则 plan / execute。新证据推翻决定时标 superseded，只重开相关问题。

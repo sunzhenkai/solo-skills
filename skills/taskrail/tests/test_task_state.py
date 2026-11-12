@@ -175,6 +175,84 @@ class TaskStateTest(unittest.TestCase):
         self.assertTrue(task.is_file())
         self.assertIn("status: active", task.read_text(encoding="utf-8"))
 
+    def test_claim_requires_active_child_and_is_idempotent(self) -> None:
+        self.init("parent")
+        self.init("child", "parent")
+        child_path = "parent/subtasks/child"
+        root_claim = self.run_state("claim", str(self.workspace), "parent", "--owner", "worker-one")
+        self.assertEqual(root_claim.returncode, 1)
+        pending_claim = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
+        self.assertEqual(pending_claim.returncode, 1)
+        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
+        claimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
+        self.assertEqual(claimed.returncode, 0, claimed.stdout)
+        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
+        text = task.read_text(encoding="utf-8")
+        self.assertIn("claimed_by: worker-one", text)
+        self.assertRegex(text, r"claimed_at: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00")
+        claimed_at = next(line for line in text.splitlines() if line.startswith("claimed_at:"))
+        repeated = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout)
+        self.assertIn(claimed_at, task.read_text(encoding="utf-8"))
+        other = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-two")
+        self.assertEqual(other.returncode, 1)
+        self.assertIn("worker-one", task.read_text(encoding="utf-8"))
+
+    def test_release_checks_owner_and_reconcile_preserves_claim(self) -> None:
+        self.init("parent")
+        self.init("child", "parent")
+        child_path = "parent/subtasks/child"
+        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
+        self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-one")
+        wrong_owner = self.run_state("release", str(self.workspace), child_path, "--owner", "worker-two")
+        self.assertEqual(wrong_owner.returncode, 1)
+        reconciled = self.run_state("reconcile", str(self.workspace), child_path, "--repair")
+        self.assertEqual(reconciled.returncode, 0, reconciled.stdout)
+        payload = json.loads(reconciled.stdout)
+        self.assertEqual(payload["claimed_by"], "worker-one")
+        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
+        self.assertIn("claimed_by: worker-one", task.read_text(encoding="utf-8"))
+        forced = self.run_state("release", str(self.workspace), child_path, "--force")
+        self.assertEqual(forced.returncode, 0, forced.stdout)
+        text = task.read_text(encoding="utf-8")
+        self.assertIn("claimed_by: null", text)
+        self.assertIn("claimed_at: null", text)
+        reclaimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "worker-two")
+        self.assertEqual(reclaimed.returncode, 0, reclaimed.stdout)
+
+    def test_legacy_child_without_claim_fields_can_be_claimed(self) -> None:
+        self.init("parent")
+        self.init("child", "parent")
+        child_path = "parent/subtasks/child"
+        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
+        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
+        text = task.read_text(encoding="utf-8")
+        text = "\n".join(line for line in text.splitlines() if not line.startswith(("claimed_by:", "claimed_at:"))) + "\n"
+        task.write_text(text, encoding="utf-8")
+        claimed = self.run_state("claim", str(self.workspace), child_path, "--owner", "legacy-worker")
+        self.assertEqual(claimed.returncode, 0, claimed.stdout)
+        self.assertIn("claimed_by: legacy-worker", task.read_text(encoding="utf-8"))
+
+    def test_concurrent_claim_has_one_winner(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+
+        self.init("parent")
+        self.init("child", "parent")
+        child_path = "parent/subtasks/child"
+        self.run_state("update", str(self.workspace), child_path, "--status", "active", "--current-ref", "plan")
+
+        def claim(owner: int) -> subprocess.CompletedProcess:
+            return self.run_state("claim", str(self.workspace), child_path, "--owner", f"worker-{owner}")
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(claim, range(6)))
+        self.assertEqual([result.returncode for result in results].count(0), 1, [r.stdout for r in results])
+        self.assertEqual([result.returncode for result in results].count(1), 5)
+        for result in results:
+            json.loads(result.stdout)
+        task = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
+        self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
+
 
 if __name__ == "__main__":
     unittest.main()

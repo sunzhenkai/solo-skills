@@ -39,6 +39,8 @@ updated: YYYY-MM-DD
 - context/current.md
 ```
 
+子任务另有 `claimed_by: null` 和 `claimed_at: null`，由 `task_state.py claim / release` 更新；旧任务缺字段视为未认领。
+
 TASK 只保留恢复所需热信息；路由历史、长决定、原始证据分别放 history.md、decisions.md、evidence/。约 6 KB 后压缩下沉，不截断 criterion。
 
 ## PLAN.md
@@ -75,11 +77,21 @@ human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范�
 ## 意图
 - 确认状态：pending | confirmed | not-required
 
+## 未决问题
+| ID | 问题 | 解决形式 | 依赖 |
+|---|---|---|---|
+| U-n | <能准确写出的问句> | <有出处的事实 / D-n 决定 / 方案> | <U-n 或证据条件；无则写无> |
+
+## 待明确区
+| ID | 模糊区域 | 重估触发 |
+|---|---|---|
+| F-n | <尚不能准确提问的区域> | <相关 U-n 解决或新证据出现> |
+
 | 结论 | 状态 confirmed / assumed / refuted / superseded | 证据 | 失效条件 |
 |---|---|---|---|
 ```
 
-约 8 KB 后把旧细节转 history / evidence，只留当前有效结论和指针。
+两节按需出现；解决或毕业后移出对应表，只留当前有效结论和指针。约 8 KB 后把旧细节转 history / evidence。
 
 ## decisions.md / history.md
 

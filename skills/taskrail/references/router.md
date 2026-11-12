@@ -6,7 +6,7 @@
 
 1. 检查 `context/current.md` 的意图确认状态：缺失、pending 或 assumed 时回 [intent.md](intent.md)，human 由用户确认为 confirmed，goal 简要复述后记 not-required；子任务继承的 not-required 可直接通过。criterion 为空或不可检查，回 [intent.md](intent.md)；criterion 已填写不等于意图已确认。
 2. 代码任务没有当前最小计划，进 [plan.md](plan.md)。当前 reference 的输入与完成门仍成立才 continue；产物已满足且没有失效信号就 skip / exit。
-3. 按下表选能解决当前最关键不确定性的一个 reference；一次只选一个。
+3. 从 `context/current.md` 选一个依赖就绪、最能解决当前最关键不确定性的 `U-n`，按下表选择对应 reference；一次只选一个。没有 `U-n` 时按当前事实选择。
 4. 代码实施统一进 taskflow execute；PLAN 未满足完成门（含当前模式所需的实施确认）不得进入。实施后有证据才进 verify，最终 close。
 5. 把 enter / skip / exit / reopen 与一句理由追加到 history.md；不维护第二份完成百分比。
 
@@ -15,6 +15,7 @@
 | 当前事实 | 选择 | 可跳过的证据 |
 |---|---|---|
 | 改点、依赖、约束或影响面未知 | explore | 当前 commit 下已有相关入口与约束证据 |
+| 阻碍当前路径的 `F-n` 尚不能准确提问 | explore 做一次最小探索，形成 `U-n` | 已有证据能准确提问，或不妨碍当前交付 |
 | bug / 性能 / flaky 原因未证明 | diagnose | 原因已有一手证据，或只是明确文案 / 配置错误 |
 | 多个方案带来实质外部取舍，约束冲突 | grill | 没有会改变方案的关键未知或取舍 |
 | 公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 契约变化 |

@@ -25,12 +25,22 @@
 
 TASK 更新、done 门和 INDEX 重建统一用 `scripts/task_state.py`。INDEX 是派生物，不手改状态；多会话写同一 workspace 时使用脚本锁，不靠“先读后写”碰运气。冷历史追加到 history，决定写 decisions，避免 TASK 无界增长。
 
+多 worker 认领与释放使用：
+
+```bash
+python3 <taskrail>/scripts/task_state.py claim <workspace> <task-path> --owner <worker-id>
+python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --owner <worker-id>
+python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --force
+```
+
+`claim` 只接受 active 子任务；同一 owner 重入幂等。`--force` 只在确认对应 worker 已停止后使用，不按时间自动清理。
+
 ## resume / explain
 
 1. 跑 `task_state.py reconcile <workspace> <task-path> [--repair] [--json]`。
-2. 核对 workspace、TASK、ROADMAP / 子任务、worktree / driver 身份；冲突时停止代码写入，不 reset 或覆盖。
+2. 核对 workspace、TASK、ROADMAP / 子任务、worktree / driver 身份；已认领子任务留给原 worker，选择下一 frontier 项；冲突时停止代码写入，不 reset 或覆盖。
 3. 只读热状态与当前 reference 所需产物；旧 `phase/tier/status` 按现有产物兼容理解，不映射回固定双流程。
-4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。
+4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。`reconcile --repair` 保留认领，不自动释放。
 5. explain 只读报告当前动作与理由、跳过 / 重入、子任务状态、worktree / driver 和下一动作。
 
 归档任务先报告路径；用户明确 reopen 才按 archive-reopen 搬回。

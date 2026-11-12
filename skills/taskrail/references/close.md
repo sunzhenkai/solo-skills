@@ -13,7 +13,7 @@ verify 全过；或用户明确放弃 / 关闭未完成任务（此时 status �
 criterion、验证证据、decisions、context/current、ROADMAP / 子任务状态。
 
 ## 执行方法
-1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接。
+1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。
 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。
 3. 完成通知说明各仓库分支 / worktree、验证结果和如何合入；不 push、不自动清理 worktree。
 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
