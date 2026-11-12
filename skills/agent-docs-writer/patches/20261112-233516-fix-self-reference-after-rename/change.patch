@@ -1,0 +1,13 @@
+diff --git a/skills/agent-docs-writer/SKILL.md b/skills/agent-docs-writer/SKILL.md
+index f5ae0f6..d4a08ce 100644
+--- a/skills/agent-docs-writer/SKILL.md
++++ b/skills/agent-docs-writer/SKILL.md
+@@ -16,7 +16,7 @@ description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更
+ | `instructions` | 新建或更新 `AGENTS.md` / `CLAUDE.md` | 用户明确要求写入后编辑 | 指令来自仓库证据，作用域清楚，相关检查已运行或标明缺口 |
+ | `review` | 评审、审计或诊断已有 agent 文档 | 只读 | 每项发现都有位置、影响与可执行建议 |
+ 
+-已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-wizard` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
++已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-docs-writer` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
+ 
+ 进入路径后读取对应细则：
+ 

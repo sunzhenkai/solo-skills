@@ -1,0 +1,69 @@
+diff --git a/skills/agent-wizard/SKILL.md b/skills/agent-docs-writer/SKILL.md
+similarity index 98%
+rename from skills/agent-wizard/SKILL.md
+rename to skills/agent-docs-writer/SKILL.md
+index 40c6956..f5ae0f6 100644
+--- a/skills/agent-wizard/SKILL.md
++++ b/skills/agent-docs-writer/SKILL.md
+@@ -1,10 +1,10 @@
+ ---
+-id: agent-wizard
+-name: agent-wizard
++id: agent-docs-writer
++name: agent-docs-writer
+ description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更新 AGENTS.md / CLAUDE.md，检查触发、信息层级、完成条件与验证闭环。用户要求创建 skill、编写 agent instructions、整理 AGENTS.md 或诊断文档不生效时使用。
+ ---
+ 
+-# Agent Wizard
++# Agent Docs Writer
+ 
+ 把真实工作方式沉淀为 agent 可发现、可执行、可验证的文档。交付以目标 agent 的实际行为为准，Markdown 完整只是其中一项。
+ 
+diff --git a/skills/agent-wizard/evals/cases.yaml b/skills/agent-docs-writer/evals/cases.yaml
+similarity index 99%
+rename from skills/agent-wizard/evals/cases.yaml
+rename to skills/agent-docs-writer/evals/cases.yaml
+index 9dc9f0b..57cf67d 100644
+--- a/skills/agent-wizard/evals/cases.yaml
++++ b/skills/agent-docs-writer/evals/cases.yaml
+@@ -1,5 +1,5 @@
+ version: 1
+-skill: agent-wizard
++skill: agent-docs-writer
+ cases:
+   - id: create-skill-from-real-workflow
+     kind: core
+diff --git a/skills/agent-wizard/references/agents-md.md b/skills/agent-docs-writer/references/agents-md.md
+similarity index 100%
+rename from skills/agent-wizard/references/agents-md.md
+rename to skills/agent-docs-writer/references/agents-md.md
+diff --git a/skills/agent-wizard/references/review.md b/skills/agent-docs-writer/references/review.md
+similarity index 100%
+rename from skills/agent-wizard/references/review.md
+rename to skills/agent-docs-writer/references/review.md
+diff --git a/skills/agent-wizard/references/skill-authoring.md b/skills/agent-docs-writer/references/skill-authoring.md
+similarity index 100%
+rename from skills/agent-wizard/references/skill-authoring.md
+rename to skills/agent-docs-writer/references/skill-authoring.md
+diff --git a/skills/agent-wizard/tests/test_agent_wizard_contract.py b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+similarity index 96%
+rename from skills/agent-wizard/tests/test_agent_wizard_contract.py
+rename to skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+index 3c7bf5b..f5ef9ca 100644
+--- a/skills/agent-wizard/tests/test_agent_wizard_contract.py
++++ b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+@@ -1,4 +1,4 @@
+-"""agent-wizard 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
++"""agent-docs-writer 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
+ 
+ from __future__ import annotations
+ 
+@@ -19,7 +19,7 @@ class FrontmatterContract(unittest.TestCase):
+     def test_frontmatter_trio(self) -> None:
+         self.assertRegex(
+             SKILL,
+-            r"^---\nid: agent-wizard\nname: agent-wizard\ndescription: .+\n---",
++            r"^---\nid: agent-docs-writer\nname: agent-docs-writer\ndescription: .+\n---",
+         )
+ 
+     def test_description_covers_positive_trigger_branches(self) -> None:
