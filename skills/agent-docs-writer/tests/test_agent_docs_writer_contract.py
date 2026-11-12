@@ -1,4 +1,4 @@
-"""agent-wizard 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
+"""agent-docs-writer 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class FrontmatterContract(unittest.TestCase):
     def test_frontmatter_trio(self) -> None:
         self.assertRegex(
             SKILL,
-            r"^---\nid: agent-wizard\nname: agent-wizard\ndescription: .+\n---",
+            r"^---\nid: agent-docs-writer\nname: agent-docs-writer\ndescription: .+\n---",
         )
 
     def test_description_covers_positive_trigger_branches(self) -> None:

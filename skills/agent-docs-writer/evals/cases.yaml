@@ -1,5 +1,5 @@
 version: 1
-skill: agent-wizard
+skill: agent-docs-writer
 cases:
   - id: create-skill-from-real-workflow
     kind: core

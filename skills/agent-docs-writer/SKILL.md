@@ -1,10 +1,10 @@
 ---
-id: agent-wizard
-name: agent-wizard
+id: agent-docs-writer
+name: agent-docs-writer
 description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更新 AGENTS.md / CLAUDE.md，检查触发、信息层级、完成条件与验证闭环。用户要求创建 skill、编写 agent instructions、整理 AGENTS.md 或诊断文档不生效时使用。
 ---
 
-# Agent Wizard
+# Agent Docs Writer
 
 把真实工作方式沉淀为 agent 可发现、可执行、可验证的文档。交付以目标 agent 的实际行为为准，Markdown 完整只是其中一项。
 
@@ -16,7 +16,7 @@ description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更
 | `instructions` | 新建或更新 `AGENTS.md` / `CLAUDE.md` | 用户明确要求写入后编辑 | 指令来自仓库证据，作用域清楚，相关检查已运行或标明缺口 |
 | `review` | 评审、审计或诊断已有 agent 文档 | 只读 | 每项发现都有位置、影响与可执行建议 |
 
-已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-wizard` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
+已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-docs-writer` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
 
 进入路径后读取对应细则：
 
