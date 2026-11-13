@@ -1,0 +1,18 @@
+version: 1
+cases:
+  - id: bootstrap-main-flow
+    input: 为一个尚无架构文档的 Web 项目建立 Atlas，先覆盖一条下单主链路，并生成可浏览 HTML。
+    expected:
+      - init 经确认后创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
+      - L1/L2 的 sources 指向实际源码，页面之间形成上下级双向链接。
+      - build 生成 _site/index.html，check.ok=true；未覆盖范围保持 draft。
+  - id: heal-source-change
+    input: 已复核页面的源码修改了失败分支，并移动了一个被映射的源码文件。
+    expected:
+      - status 将受影响页面列入 stale_pages，并报告失效映射。
+      - agent 重读代码，更新业务说明、图和 sources 后才执行 verify。
+      - 最终 stale_pages 为空，Markdown 与 HTML 链接均通过检查。
+  - id: route-general-wiki
+    input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
+    expected:
+      - 路由到 wiki-data，不创建 project-atlas 目录或源码映射。

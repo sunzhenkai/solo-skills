@@ -42,6 +42,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | Skill | 用途 |
 | --- | --- |
 | `wiki-data` | 本地 Markdown 知识 wiki 维护 |
+| `project-atlas` | 项目架构与业务逻辑金字塔地图：Markdown / HTML / 静态资源互链、增量维护与源码变动复核 |
 | `role-chat` | 多视角角色对话陪练 |
 
 ### Skill 工具链（自进化）
