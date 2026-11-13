@@ -1,0 +1,509 @@
+diff --git a/skills/project-atlas/SKILL.md b/skills/project-atlas/SKILL.md
+index 97f07e7..59888cf 100644
+--- a/skills/project-atlas/SKILL.md
++++ b/skills/project-atlas/SKILL.md
+@@ -7,7 +7,7 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed
+ 
+ # Project Atlas
+ 
+-在目标项目维护一套人可扫读、可逐层下钻的文档。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
++在目标项目维护一套人可扫读、可逐层下钻的文档。系统总览、跨领域主链路和多视角页面解释整体，领域三层文档承载细节。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
+ 
+ 边界：一次性代码问答走 `code-explore`，跨主题个人知识走 `wiki-data`；本 skill 只维护当前项目的架构与业务 Atlas。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
+ 
+@@ -15,7 +15,11 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed
+ 
+ ```text
+ <atlas>/
+-├── index.md                     # L0：系统总览、领域地图、主业务链路
++├── index.md                     # L0：系统边界、业务闭环、多视角导航与阅读路径
++├── flows/<flow>.md              # L1：跨领域端到端业务链路
++├── architecture/<topic>.md      # L1：在线、离线、数据、模型及运行时依赖
++├── data/<topic>.md              # L1：数据归属、状态、事件与一致性
++├── cross-cutting/<topic>.md     # L1：实验、权限、容灾等横切机制
+ ├── domains/<domain>/index.md    # L1：领域职责、核心规则、主题导航
+ ├── domains/<domain>/<topic>.md  # L2：流程、状态机、组件或规则细节
+ ├── diagrams/<slug>.json         # Archify 图源
+@@ -25,7 +29,7 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed
+ └── _site/                       # 生成物，只发布页面、图 HTML 和 assets
+ ```
+ 
+-新页面先写离读者最近的一层，再按复杂度向下拆。每页只讲一个主题；L0 回答「系统是什么」，L1 回答「领域负责什么」，L2 回答「这条逻辑怎样工作」。细则与 frontmatter 模板见 [references/layout.md](references/layout.md)。
++每页只讲一个主题。系统视图按实际复杂度建立，以真实内容形成覆盖；简单项目可以先只有 L0 与领域页。`flows/` 串联各领域但不复制其内部规则，`architecture/`、`data/` 与 `cross-cutting/` 分别回答运行时协作、状态一致性和全局机制。页面职责、frontmatter 与阅读验收见 [references/layout.md](references/layout.md)。
+ 
+ ## atlasctl
+ 
+@@ -45,10 +49,12 @@ stdout 为 JSON。退出码：0 成功，1 校验或执行失败，2 等待确
+ ## 建立与渐进扩充
+ 
+ 1. 用 `status` 或目录列表识别已有内容；没有 Atlas 时走 `init`，然后继续建立首批真实页面，空骨架不是完成。
+-2. 先读入口、配置、核心模块和已有文档，写 L0 与一个最有价值的 L1；复杂流程再建 L2。优先覆盖主业务链路，覆盖不全时保留 `draft`，不虚构完整性。
+-3. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；复杂结构需要交互图时按 [references/diagrams.md](references/diagrams.md) 调用 Archify。
+-4. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接。交互图放 `diagrams/`，其他静态资源放 `assets/`，使用 Atlas 根内相对链接。
+-5. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：主链路可从上至下走完、所有本地链接有效、L1/L2 有源码映射、关联图已完成 Archify `finalize`、生成站点可打开。
++2. 先读入口、配置、核心模块和已有文档，写 L0：系统服务的角色、外部边界、业务闭环和按读者目标组织的阅读路径。
++3. 复杂系统优先选择一条跨领域主链路写入 `flows/`，从触发走到业务结果，并链接每一步所属领域；再用 `architecture/` 和 `data/` 解释该链路的运行时协作与关键状态，全局机制按需放入 `cross-cutting/`。
++4. 建立主链路涉及的 L1，复杂内部流程再建 L2。优先覆盖主业务链路，覆盖不全时保留 `draft`，不虚构完整性。
++5. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；复杂结构需要交互图时按 [references/diagrams.md](references/diagrams.md) 调用 Archify。
++6. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接；主链路与相关领域互相链接。交互图放 `diagrams/`，其他静态资源放 `assets/`，使用 Atlas 根内相对链接。
++7. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：读者能从 L0 沿主链路走完跨领域流程并下钻到相关领域、架构与数据证据，所有本地链接有效，L1/L2 有源码映射，关联图已完成 Archify `finalize`，生成站点可打开。
+ 
+ ## 代码变动后的自愈
+ 
+diff --git a/skills/project-atlas/evals/cases.yaml b/skills/project-atlas/evals/cases.yaml
+index 0f34130..8fbc6ea 100644
+--- a/skills/project-atlas/evals/cases.yaml
++++ b/skills/project-atlas/evals/cases.yaml
+@@ -23,3 +23,11 @@ cases:
+     input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
+     expected:
+       - 路由到 wiki-data，不创建 project-atlas 目录或源码映射。
++
++  - id: understand-complex-system
++    input: 为包含在线决策、预算状态、事件计量和离线学习的程序化广告系统建立 Atlas，首批覆盖一次广告请求主链路。
++    expected:
++      - L0 说明系统边界、参与者、业务闭环，并按读者目标链接主链路、多视角和领域页面。
++      - flows 页面按顺序串起跨领域步骤，链接各领域、架构和数据证据，不复制领域内部规则。
++      - architecture、data 和必要的 cross-cutting 页面解释该主链路的运行时协作、状态一致性和全局机制。
++      - 读者能从 L0 走完广告请求到曝光计费的链路；其余范围保持 draft，build 和 check 通过。
+diff --git a/b/skills/project-atlas/examples/programmatic-advertising.md b/skills/project-atlas/examples/programmatic-advertising.md
+new file mode 100644
+index 0000000..8c88449
+--- /dev/null
++++ b/skills/project-atlas/examples/programmatic-advertising.md
+@@ -0,0 +1,173 @@
++# 示例：程序化广告系统 Atlas
++
++本例使用虚构的全链路广告平台，展示如何用“系统总览 + 主链路 + 多视角 + 领域下钻”组织复杂系统。它是一份内容示例，不对应真实公司、产品或源码；实际 Atlas 中的路径和结论须由目标项目证据核实。
++
++## 1. 建议落点
++
++```text
++docs/atlas/
++├── index.md
++├── flows/
++│   ├── ad-request.md             # 请求到曝光、计费与反馈
++│   ├── campaign-launch.md        # 创建到审核、投放与预算生效
++│   └── conversion-attribution.md # 转化回传到归因与模型反馈
++├── architecture/
++│   ├── online-serving.md         # 在线服务、依赖与故障传播
++│   └── offline-learning.md       # 离线数据、训练与模型发布
++├── data/
++│   ├── budget-state.md           # 预算读写、扣减与一致性
++│   └── event-stream.md           # 请求、曝光、点击、转化事件
++├── cross-cutting/
++│   ├── experiment-and-pacing.md  # 实验分流与平滑投放
++│   └── privacy-and-fraud.md      # 隐私约束与反作弊
++└── domains/
++    ├── traffic/index.md          # 流量接入、请求规范化
++    ├── campaign/index.md         # 计划、创意、定向与审核
++    ├── decision/index.md         # 召回、预估、出价与竞价
++    ├── delivery/index.md         # 预算、频控、曝光与计费
++    ├── measurement/index.md      # 监测、归因与报表
++    └── learning/index.md         # 样本、训练、评估与发布
++```
++
++## 2. `index.md` 示例
++
++```markdown
++---
++title: 程序化广告系统
++level: 0
++status: draft
++sources: []
++source_digest:
++verified_commit:
++---
++
++# 程序化广告系统
++
++## 系统边界
++
++本平台连接广告主、流量方和用户：把广告主的投放目标与预算转化为实时竞价决策，完成广告展示、计费、效果度量，并利用合规的反馈数据优化后续决策。
++
++平台覆盖流量接入、投放配置、在线决策、交付控制、效果度量和模型学习。创意制作工具、广告主资金清算和流量方财务付款属于外部系统，本平台通过接口与其协作。
++
++## 参与者与价值
++
++| 参与者 | 提供 | 获得 |
++|---|---|---|
++| 广告主 | 投放目标、预算、创意、定向约束 | 合规曝光、转化与效果报告 |
++| 流量方 | 广告请求、可用版位与流量约束 | 广告收益与填充率 |
++| 用户 | 符合隐私规则的上下文与交互 | 与场景相关的广告内容 |
++| 运营人员 | 审核、实验和异常处置策略 | 可控的投放与审计能力 |
++
++## 业务闭环
++
++广告请求进入后，系统依次完成流量规范化、候选召回、效果预估、出价竞价、预算与频控校验，再返回获胜创意。曝光和点击事件驱动计费、报表与反作弊；合规转化进入归因和样本生成，模型评估与发布再影响后续召回和出价。
++
++    投放配置 → 在线请求 → 决策竞价 → 曝光计费 → 转化归因 → 样本训练 → 模型发布
++        ↑                                                                      ↓
++        └──────────────────── 投放策略与预算调整 ←─────────────────────────────┘
++
++## 按目标阅读
++
++| 我想…… | 阅读路径 |
++|---|---|
++| 理解一次广告如何展示和计费 | [广告请求主链路](flows/ad-request.md) → [在线决策](domains/decision/index.md) → [交付控制](domains/delivery/index.md) |
++| 理解预算为什么超投或停投 | [预算状态](data/budget-state.md) → [交付控制](domains/delivery/index.md) → [实验与平滑投放](cross-cutting/experiment-and-pacing.md) |
++| 排查在线延迟或局部故障 | [在线服务架构](architecture/online-serving.md) → [广告请求主链路](flows/ad-request.md) → 对应领域页 |
++| 理解模型如何影响线上决策 | [转化归因主链路](flows/conversion-attribution.md) → [离线学习架构](architecture/offline-learning.md) → [模型学习](domains/learning/index.md) |
++| 修改投放或计费规则 | [投放计划](domains/campaign/index.md) → [交付控制](domains/delivery/index.md) → [广告请求主链路](flows/ad-request.md) |
++
++## 多视角导航
++
++### 主链路
++
++- [广告请求：从流量到反馈](flows/ad-request.md)（首批）
++- [投放计划上线](flows/campaign-launch.md)（draft）
++- [转化归因与模型反馈](flows/conversion-attribution.md)（draft）
++
++### 架构
++
++- [在线服务架构](architecture/online-serving.md)（首批）
++- [离线学习架构](architecture/offline-learning.md)（draft）
++
++### 数据与状态
++
++- [预算状态与一致性](data/budget-state.md)（首批）
++- [广告事件流](data/event-stream.md)（draft）
++
++### 横切机制
++
++- [实验与平滑投放](cross-cutting/experiment-and-pacing.md)（draft）
++- [隐私与反作弊](cross-cutting/privacy-and-fraud.md)（draft）
++
++### 领域
++
++- [流量接入](domains/traffic/index.md)
++- [投放计划](domains/campaign/index.md)
++- [在线决策](domains/decision/index.md)
++- [交付控制](domains/delivery/index.md)
++- [效果度量](domains/measurement/index.md)
++- [模型学习](domains/learning/index.md)
++
++## 当前覆盖
++
++首批只保证“广告请求 → 曝光计费”的主链路及其在线架构、预算状态可下钻。投放上线、归因、离线学习和横切策略仍为 draft；外部财务结算不在本期 Atlas 范围内。
++```
++
++## 3. `flows/ad-request.md` 内容示例
++
++主链路页写清跨领域顺序，每一步只保留业务结论；内部算法和状态机下钻到领域页。
++
++```markdown
++---
++title: 广告请求：从流量到反馈
++level: 1
++status: draft
++sources:
++  - src/serving
++  - src/delivery
++  - src/events
++source_digest:
++verified_commit:
++---
++
++# 广告请求：从流量到反馈
++
++## 业务前提
++
++流量方已接入并取得合法请求授权；广告计划与创意已审核生效；请求携带的上下文满足流量约束与隐私策略。
++
++## 端到端步骤
++
++| 步骤 | 责任领域 | 输入 → 输出 | 关键规则 |
++|---|---|---|---|
++| 1. 接入请求 | [流量接入](../domains/traffic/index.md) | 原始请求 → 标准广告机会 | 校验版位、设备上下文与流量约束 |
++| 2. 匹配投放 | [投放计划](../domains/campaign/index.md) | 广告机会 → 可投计划与创意 | 仅选择审核通过且在投放期内的候选 |
++| 3. 在线决策 | [在线决策](../domains/decision/index.md) | 候选与模型特征 → 排序和出价 | 在延迟预算内完成召回、预估和竞价 |
++| 4. 交付校验 | [交付控制](../domains/delivery/index.md) | 获胜候选 → 可交付创意 | 原子校验预算、频控和必要的频控占用 |
++| 5. 返回展示 | [流量接入](../domains/traffic/index.md) | 创意与监测信息 → 广告响应 | 超时或无合适候选时返回无填充 |
++| 6. 事件计量 | [效果度量](../domains/measurement/index.md) | 曝光/点击事件 → 计量与报表事实 | 去重、反作弊并按归属口径计费 |
++| 7. 反馈学习 | [模型学习](../domains/learning/index.md) | 合规事件与转化 → 样本和候选模型 | 评估通过后发布，反馈影响后续决策 |
++
++## 运行时与数据证据
++
++- 同步调用、超时预算和降级路径见[在线服务架构](../architecture/online-serving.md)。
++- 预算预留、确认与释放见[预算状态与一致性](../data/budget-state.md)。
++- 请求、曝光、点击、转化的事件关系见[广告事件流](../data/event-stream.md)。
++
++## 关键失败路径
++
++- **决策超时**：终止低优先级计算并返回无填充或已缓存的合规候选，不绕过预算校验。
++- **预算不足**：候选不可交付，继续选择其他候选或返回无填充。
++- **展示成功但事件延迟**：在线响应不回滚；计量侧按事件去重和迟到规则补偿。
++- **重复曝光事件**：保留原始事件用于审计，计费事实只确认一次。
++
++## 业务结果
++
++一次请求以“无填充”或“返回创意”结束；只有符合计量规则的曝光、点击和转化进入计费、报表与学习反馈。失败路径不得产生未经确认的计费事实。
++
++[返回系统总览](../index.md)
++```
++
++## 4. 这份示例如何使用
++
++在真实项目中先实现 L0 和一条最有价值的主链路，再补该链路涉及的领域、架构和数据页。示例中的“首批”是最小可读闭环，不代表已覆盖整个广告系统；每项结论都要替换为目标项目证据，并通过 `verify`、`build` 和 `check`。
+diff --git a/skills/project-atlas/references/layout.md b/skills/project-atlas/references/layout.md
+index a8c206d..a5553c8 100644
+--- a/skills/project-atlas/references/layout.md
++++ b/skills/project-atlas/references/layout.md
+@@ -1,14 +1,42 @@
+-# 金字塔布局与页面契约
++# 系统视图与金字塔页面契约
+ 
+-## 三层阅读路径
++## 两条阅读轴
+ 
+-| 层 | 页面 | 应回答的问题 | 建议内容 |
+-|---|---|---|---|
+-| L0 | `index.md` | 系统是什么，先读哪里 | 用户与目标、外部边界、领域地图、主业务链路 |
+-| L1 | `domains/<domain>/index.md` | 这个领域负责什么 | 职责边界、核心实体、主要流程、主题与图的导航 |
+-| L2 | `domains/<domain>/<topic>.md` | 一条具体逻辑怎样工作 | 触发、步骤、分支、异常、状态转换、数据一致性 |
++系统视图回答“整体怎样协作”，领域金字塔回答“某块职责怎样实现”。两者通过链接汇合，不把跨领域流程强塞进某个领域。
+ 
+-一个新主题先写在已有页面的小节中；出现独立读者、复杂分支或多处引用时再拆成下钻页。每层可直接读，上级提供上下文，下级提供证据与细节。
++| 层级 | 页面 | 应回答的问题 |
++|---|---|---|
++| L0 | `index.md` | 系统是什么、为什么存在、不同读者先读哪里 |
++| L1 | `flows/<flow>.md` | 一条业务链路怎样跨领域从触发走到结果 |
++| L1 | `architecture/<topic>.md` | 在线、离线、数据和模型组件怎样协作，故障怎样传播 |
++| L1 | `data/<topic>.md` | 关键数据由谁拥有和写入，状态、事件与一致性怎样维持 |
++| L1 | `cross-cutting/<topic>.md` | 某项全局机制影响哪些链路，策略在哪里生效 |
++| L1 | `domains/<domain>/index.md` | 这个领域负责什么，边界与核心实体是什么 |
++| L2 | `domains/<domain>/<topic>.md` | 一条领域内部逻辑怎样工作 |
++
++系统视图按需建立。一个视图出现独立读者、复杂分支或多处引用时再拆页；每层可直接读，上级提供上下文，下级提供证据与细节。
++
++## L0 总览
++
++L0 至少包含：
++
++- **系统边界**：服务的角色、外部参与者、价值与明确不在范围内的部分。
++- **业务闭环**：从核心触发到业务结果，再到数据或模型反馈的闭环。
++- **阅读路径**：按“理解业务”“排查线上问题”“修改某条规则”等读者目标链接到具体页面。
++- **多视角导航**：直链所有 L1，并标出仍为 `draft` 的覆盖范围。
++
++L0 只保留导航所需摘要，主链路的步骤、架构依赖和数据规则在对应视图展开。
++
++## 系统视图内容
++
++| 视图 | 必备内容 | 下钻链接 |
++|---|---|---|
++| 主链路 | 触发者、业务前提、有序步骤、每步责任领域、业务结果、关键失败与补偿 | 相关领域、架构、数据与横切页 |
++| 架构 | 组件职责、同步/异步依赖、在线/离线/数据/模型边界、关键失败传播 | 主链路与组件所属领域 |
++| 数据 | 核心实体与状态、读写方、事件、延迟、一致性边界、反馈去向 | 使用这些数据的主链路与领域 |
++| 横切 | 策略目标、作用范围、执行点、对主链路的影响、降级或审计结果 | 受影响的主链路与领域 |
++
++主链路页保留端到端顺序和跨领域关系，领域页保留内部规则的唯一解释。一个主题同时出现在多视角时，各页只写本视角所需结论并互相链接。
+ 
+ ## 页面真源
+ 
+@@ -43,6 +71,7 @@ verified_commit:
+ 
+ - L0 必须直链每个 L1；L1 必须直链所属 L2。
+ - 每个 L1 链回 `index.md`，每个 L2 链回本领域 `index.md`。
++- 主链路直链涉及领域，相关领域链回使用该领域的主链路；架构、数据和横切页链接到它们解释的主链路。
+ - Archify 交互图使用 `diagrams/<slug>.html`，同名 `.json` 是可编辑图源；从相关页面用相对路径链接。
+ - 其他静态资源使用 `assets/` 内相对链接，例如 `assets/diagrams/order.svg` 对应的页面链接。
+ - Markdown 中保留 `.md` 扩展名；`build` 在 HTML 镜像中改为 `.html` 并保留锚点。
+@@ -53,3 +82,15 @@ verified_commit:
+ 架构页写组件职责、交互、边界和关键取舍；业务页写触发者、业务步骤、规则、异常和结果。函数逐行走读、完整文件清单、依赖版本和启动命令留在源码或项目既有文档中，只在它们解释架构契约时引用结论。
+ 
+ 复杂分叉、状态机、跨系统时序和非平凡数据流配 Archify 交互图；线性三步用列表即可。图承担文字难以表达的结构，页面提供上下文与阅读重点，不把大图嵌进 L0。
++
++## 复杂系统阅读验收
++
++首批真实页面完成后，用一条核心主链路检查读者能否回答：
++
++1. 谁参与系统，各自获得什么价值？
++2. 核心请求怎样变成业务结果与后续反馈？
++3. 每个关键决策由哪个领域、组件和数据决定？
++4. 关键状态由谁写入，跨系统一致性怎样维持？
++5. 某环节失败会怎样传播，补偿或降级在哪里发生？
++
++尚未有证据支撑的问题对应页面保持 `draft`，在交付回执中列出，不用推测补齐。
+diff --git a/skills/project-atlas/references/maintenance.md b/skills/project-atlas/references/maintenance.md
+index 8807f90..29481dc 100644
+--- a/skills/project-atlas/references/maintenance.md
++++ b/skills/project-atlas/references/maintenance.md
+@@ -6,11 +6,13 @@
+ 
+ | 代码变化 | 复核内容 |
+ |---|---|
+-| 状态、分支、补偿、业务规则 | 所属 L2、对应 L1 核心流程；必要时更新 L0 主链路 |
+-| 对外接口、消息、权限、邻接系统 | 领域边界、相关时序图和异常路径 |
+-| 实体、存储、事务、一致性 | 核心实体、数据流、失败与补偿规则 |
++| 状态、分支、补偿、业务规则 | 所属 L2、对应 L1 核心流程；必要时更新主链路与 L0 摘要 |
++| 跨领域步骤、业务结果、外部参与者 | 对应 `flows/` 主链路、涉及领域和 L0 业务闭环 |
++| 服务依赖、在线/离线边界、消息、故障传播 | 对应 `architecture/` 页面、相关主链路和时序图 |
++| 实体归属、读写方、事件、存储、事务、一致性 | 对应 `data/` 页面、核心实体及使用它的主链路 |
++| 实验、权限、审计、容灾等全局策略 | 对应 `cross-cutting/` 页面及受影响的主链路 |
+ | 仅实现重构且外部行为不变 | 核对映射页的语义；确认无内容变化后 `verify` |
+-| 新模块未进入 Atlas | 按主链路价值并入现有 L1/L2，或增加最小下钻页 |
++| 新模块未进入 Atlas | 按主链路价值并入现有视图或领域页，或增加最小下钻页 |
+ 
+ `stale` 是计算状态，不手写到 frontmatter。`source_digest` 不一致表示需要复核；`missing_sources` 表示映射已失效，先调整路径再复核。`affected_diagrams` 列出过期页面链接的 Archify 图。每轮只处理 `stale_pages` 与当前需求涉及的页面，无需重写整个 Atlas。
+ 
+@@ -18,7 +20,7 @@
+ 
+ 1. 读取页面全文和当前 `sources`，保留仍成立的人工说明。
+ 2. 沿代码调用链核实主路径、关键分支和失败结果；没有证据的内容标为草稿或删除。
+-3. 更新当前页，再检查上级摘要、同级交叉链接和 `affected_diagrams` 是否仍成立。图源变化后按 Archify 契约重新 `finalize`；仓库证据的行号或 commit 变化也同步更新。
++3. 更新当前页，再检查 L0 摘要、相关主链路、交叉链接和 `affected_diagrams` 是否仍成立。图源变化后按 Archify 契约重新 `finalize`；仓库证据的行号或 commit 变化也同步更新。
+ 4. 对本轮页面运行 `verify`，随后运行 `build` 和 `check`。`check` 将断链、跨层缺链、缺失映射、过期页和无效图交付列为错误。
+ 
+ ## 图与静态文件
+@@ -36,4 +38,5 @@
+ - `build` 成功，`_site/index.html` 能作为入口离线打开，交互图只发布 HTML。
+ - `check.ok=true`，`stale_pages=[]`，没有断链、缺失导航或图回执/摘要错误。
+ - 本轮涉及的复杂逻辑图与文字一致，Archify `finalize` 已通过，静态 HTML 中的 Markdown 链接已生成对应 HTML 跳转。
++- 主链路涉及的领域、架构、数据和横切结论相互链接，没有因本次变化留下相互矛盾的解释。
+ - 未覆盖范围仍标 `draft`，回执明确说明，避免把局部覆盖描述成全量覆盖。
+diff --git a/skills/project-atlas/scripts/atlasctl.py b/skills/project-atlas/scripts/atlasctl.py
+index 97447e4..11e5c80 100644
+--- a/skills/project-atlas/scripts/atlasctl.py
++++ b/skills/project-atlas/scripts/atlasctl.py
+@@ -17,6 +17,7 @@ from pathlib import Path
+ from urllib.parse import unquote, urlsplit, urlunsplit
+ 
+ COMMANDS = {"init", "status", "build", "check", "verify"}
++SYSTEM_VIEW_DIRS = ("flows", "architecture", "data", "cross-cutting")
+ IGNORED_DIRS = {
+     ".git",
+     ".hg",
+@@ -122,8 +123,9 @@ def load_pages(root: Path) -> tuple[list[Page], list[str]]:
+     errors = []
+     if (root / "index.md").is_file():
+         paths.append(root / "index.md")
+-    if (root / "domains").is_dir():
+-        paths.extend(sorted((root / "domains").rglob("*.md")))
++    for directory in ("domains", *SYSTEM_VIEW_DIRS):
++        if (root / directory).is_dir():
++            paths.extend(sorted((root / directory).rglob("*.md")))
+     for path in sorted(root.rglob("*.md")):
+         rel = path.relative_to(root)
+         if "_site" in rel.parts or "assets" in rel.parts or path in paths:
+@@ -140,6 +142,8 @@ def expected_level(page: Page) -> int | None:
+     if page.rel == "index.md":
+         return 0
+     parts = Path(page.rel).parts
++    if len(parts) == 2 and parts[0] in SYSTEM_VIEW_DIRS:
++        return 1
+     if len(parts) == 3 and parts[0] == "domains" and parts[2] == "index.md":
+         return 1
+     if len(parts) == 3 and parts[0] == "domains" and parts[2] != "index.md":
+@@ -178,7 +182,8 @@ def validate_structure(pages: list[Page], load_errors: list[str]) -> tuple[list[
+         level = expected_level(page)
+         if level == 1:
+             if page.rel not in root_links:
+-                errors.append(f"domain_not_linked_from_root:{page.rel}")
++                kind = "domain" if Path(page.rel).parts[0] == "domains" else "view"
++                errors.append(f"{kind}_not_linked_from_root:{page.rel}")
+             if "index.md" not in adjacency.get(page.rel, set()):
+                 errors.append(f"parent_link_missing:{page.rel}:index.md")
+         elif level == 2:
+@@ -736,10 +741,12 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}h1,
+ def page_breadcrumb(page: Page) -> str:
+     if page.rel == "index.md":
+         return "Atlas"
+-    domain = Path(page.rel).parts[1]
++    section, name = Path(page.rel).parts[:2]
++    if section in SYSTEM_VIEW_DIRS:
++        return f'<a href="../index.html">Atlas</a> / {html.escape(section)}'
+     if page.rel.endswith("/index.md"):
+-        return f'<a href="../../index.html">Atlas</a> / {html.escape(domain)}'
+-    return f'<a href="../../index.html">Atlas</a> / <a href="index.html">{html.escape(domain)}</a>'
++        return f'<a href="../../index.html">Atlas</a> / {html.escape(name)}'
++    return f'<a href="../../index.html">Atlas</a> / <a href="index.html">{html.escape(name)}</a>'
+ 
+ 
+ def render_page(page: Page, stale: bool) -> str:
+diff --git a/skills/project-atlas/tests/test_atlasctl.py b/skills/project-atlas/tests/test_atlasctl.py
+index 299b5b5..8ed787f 100644
+--- a/skills/project-atlas/tests/test_atlasctl.py
++++ b/skills/project-atlas/tests/test_atlasctl.py
+@@ -315,6 +315,47 @@ verified_commit:
+         self.assertEqual(code, 1)
+         self.assertEqual((occupied / "keep.txt").read_text(encoding="utf-8"), "keep")
+ 
++    def test_system_views_build_and_join_reading_paths(self) -> None:
++        self.make_main_flow()
++        views = {
++            "flows/ad-request.md": "广告请求",
++            "architecture/online-serving.md": "在线服务",
++            "data/budget-state.md": "预算状态",
++            "cross-cutting/pacing.md": "平滑投放",
++        }
++        for rel, title in views.items():
++            self.write_page(
++                rel,
++                f"""---
++title: {title}
++level: 1
++status: draft
++sources:
++  - src/orders.py
++source_digest:
++verified_commit:
++---
++# {title}
++
++[返回总览](../index.md)
++""",
++            )
++        index = self.atlas / "index.md"
++        links = "".join(f"\n- [{title}]({rel})" for rel, title in views.items())
++        index.write_text(index.read_text(encoding="utf-8") + links + "\n", encoding="utf-8")
++        self.verify_all()
++        code, result = self.run_cli(
++            "verify", "--root", str(self.atlas), "--page", *views.keys()
++        )
++        self.assertEqual(code, 0, result)
++        code, result = self.run_cli("build", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++        self.assertEqual(result["pages"], 7)
++        flow = (self.atlas / "_site" / "flows" / "ad-request.html").read_text(encoding="utf-8")
++        self.assertIn('href="../index.html"', flow)
++        code, result = self.run_cli("check", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/project-atlas/tests/test_project_atlas_contract.py b/skills/project-atlas/tests/test_project_atlas_contract.py
+index aab2097..f6163ab 100644
+--- a/skills/project-atlas/tests/test_project_atlas_contract.py
++++ b/skills/project-atlas/tests/test_project_atlas_contract.py
+@@ -58,12 +58,29 @@ class ProjectAtlasContractTest(unittest.TestCase):
+         self.assertIn("<project>/docs/atlas", skill)
+         self.assertIn("显式 `--root` 可覆盖默认落点", skill)
+ 
+-    def test_references_and_evals_exist(self) -> None:
++    def test_complex_system_views_and_reading_acceptance_are_explicit(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        layout = (ROOT / "references" / "layout.md").read_text(encoding="utf-8")
++        example = (ROOT / "examples" / "programmatic-advertising.md").read_text(encoding="utf-8")
++        for marker in (
++            "flows/<flow>.md",
++            "architecture/<topic>.md",
++            "data/<topic>.md",
++            "cross-cutting/<topic>.md",
++        ):
++            self.assertIn(marker, skill)
++        self.assertIn("两条阅读轴", layout)
++        self.assertIn("复杂系统阅读验收", layout)
++        self.assertIn("广告请求：从流量到反馈", example)
++        self.assertIn("首批只保证", example)
++
++    def test_references_evals_and_examples_exist(self) -> None:
+         for rel in (
+             "references/layout.md",
+             "references/maintenance.md",
+             "references/diagrams.md",
+             "evals/cases.yaml",
++            "examples/programmatic-advertising.md",
+         ):
+             self.assertTrue((ROOT / rel).is_file(), rel)
+ 

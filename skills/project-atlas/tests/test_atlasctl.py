@@ -315,6 +315,47 @@ verified_commit:
         self.assertEqual(code, 1)
         self.assertEqual((occupied / "keep.txt").read_text(encoding="utf-8"), "keep")
 
+    def test_system_views_build_and_join_reading_paths(self) -> None:
+        self.make_main_flow()
+        views = {
+            "flows/ad-request.md": "广告请求",
+            "architecture/online-serving.md": "在线服务",
+            "data/budget-state.md": "预算状态",
+            "cross-cutting/pacing.md": "平滑投放",
+        }
+        for rel, title in views.items():
+            self.write_page(
+                rel,
+                f"""---
+title: {title}
+level: 1
+status: draft
+sources:
+  - src/orders.py
+source_digest:
+verified_commit:
+---
+# {title}
+
+[返回总览](../index.md)
+""",
+            )
+        index = self.atlas / "index.md"
+        links = "".join(f"\n- [{title}]({rel})" for rel, title in views.items())
+        index.write_text(index.read_text(encoding="utf-8") + links + "\n", encoding="utf-8")
+        self.verify_all()
+        code, result = self.run_cli(
+            "verify", "--root", str(self.atlas), "--page", *views.keys()
+        )
+        self.assertEqual(code, 0, result)
+        code, result = self.run_cli("build", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["pages"], 7)
+        flow = (self.atlas / "_site" / "flows" / "ad-request.html").read_text(encoding="utf-8")
+        self.assertIn('href="../index.html"', flow)
+        code, result = self.run_cli("check", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+
 
 if __name__ == "__main__":
     unittest.main()

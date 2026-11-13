@@ -23,3 +23,11 @@ cases:
     input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
     expected:
       - 路由到 wiki-data，不创建 project-atlas 目录或源码映射。
+
+  - id: understand-complex-system
+    input: 为包含在线决策、预算状态、事件计量和离线学习的程序化广告系统建立 Atlas，首批覆盖一次广告请求主链路。
+    expected:
+      - L0 说明系统边界、参与者、业务闭环，并按读者目标链接主链路、多视角和领域页面。
+      - flows 页面按顺序串起跨领域步骤，链接各领域、架构和数据证据，不复制领域内部规则。
+      - architecture、data 和必要的 cross-cutting 页面解释该主链路的运行时协作、状态一致性和全局机制。
+      - 读者能从 L0 走完广告请求到曝光计费的链路；其余范围保持 draft，build 和 check 通过。

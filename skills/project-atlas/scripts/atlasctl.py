@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit, urlunsplit
 
 COMMANDS = {"init", "status", "build", "check", "verify"}
+SYSTEM_VIEW_DIRS = ("flows", "architecture", "data", "cross-cutting")
 IGNORED_DIRS = {
     ".git",
     ".hg",
@@ -122,8 +123,9 @@ def load_pages(root: Path) -> tuple[list[Page], list[str]]:
     errors = []
     if (root / "index.md").is_file():
         paths.append(root / "index.md")
-    if (root / "domains").is_dir():
-        paths.extend(sorted((root / "domains").rglob("*.md")))
+    for directory in ("domains", *SYSTEM_VIEW_DIRS):
+        if (root / directory).is_dir():
+            paths.extend(sorted((root / directory).rglob("*.md")))
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
         if "_site" in rel.parts or "assets" in rel.parts or path in paths:
@@ -140,6 +142,8 @@ def expected_level(page: Page) -> int | None:
     if page.rel == "index.md":
         return 0
     parts = Path(page.rel).parts
+    if len(parts) == 2 and parts[0] in SYSTEM_VIEW_DIRS:
+        return 1
     if len(parts) == 3 and parts[0] == "domains" and parts[2] == "index.md":
         return 1
     if len(parts) == 3 and parts[0] == "domains" and parts[2] != "index.md":
@@ -178,7 +182,8 @@ def validate_structure(pages: list[Page], load_errors: list[str]) -> tuple[list[
         level = expected_level(page)
         if level == 1:
             if page.rel not in root_links:
-                errors.append(f"domain_not_linked_from_root:{page.rel}")
+                kind = "domain" if Path(page.rel).parts[0] == "domains" else "view"
+                errors.append(f"{kind}_not_linked_from_root:{page.rel}")
             if "index.md" not in adjacency.get(page.rel, set()):
                 errors.append(f"parent_link_missing:{page.rel}:index.md")
         elif level == 2:
@@ -736,10 +741,12 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}h1,
 def page_breadcrumb(page: Page) -> str:
     if page.rel == "index.md":
         return "Atlas"
-    domain = Path(page.rel).parts[1]
+    section, name = Path(page.rel).parts[:2]
+    if section in SYSTEM_VIEW_DIRS:
+        return f'<a href="../index.html">Atlas</a> / {html.escape(section)}'
     if page.rel.endswith("/index.md"):
-        return f'<a href="../../index.html">Atlas</a> / {html.escape(domain)}'
-    return f'<a href="../../index.html">Atlas</a> / <a href="index.html">{html.escape(domain)}</a>'
+        return f'<a href="../../index.html">Atlas</a> / {html.escape(name)}'
+    return f'<a href="../../index.html">Atlas</a> / <a href="index.html">{html.escape(name)}</a>'
 
 
 def render_page(page: Page, stale: bool) -> str:

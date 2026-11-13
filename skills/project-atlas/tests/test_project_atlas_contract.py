@@ -58,12 +58,29 @@ class ProjectAtlasContractTest(unittest.TestCase):
         self.assertIn("<project>/docs/atlas", skill)
         self.assertIn("显式 `--root` 可覆盖默认落点", skill)
 
-    def test_references_and_evals_exist(self) -> None:
+    def test_complex_system_views_and_reading_acceptance_are_explicit(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        layout = (ROOT / "references" / "layout.md").read_text(encoding="utf-8")
+        example = (ROOT / "examples" / "programmatic-advertising.md").read_text(encoding="utf-8")
+        for marker in (
+            "flows/<flow>.md",
+            "architecture/<topic>.md",
+            "data/<topic>.md",
+            "cross-cutting/<topic>.md",
+        ):
+            self.assertIn(marker, skill)
+        self.assertIn("两条阅读轴", layout)
+        self.assertIn("复杂系统阅读验收", layout)
+        self.assertIn("广告请求：从流量到反馈", example)
+        self.assertIn("首批只保证", example)
+
+    def test_references_evals_and_examples_exist(self) -> None:
         for rel in (
             "references/layout.md",
             "references/maintenance.md",
             "references/diagrams.md",
             "evals/cases.yaml",
+            "examples/programmatic-advertising.md",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
 

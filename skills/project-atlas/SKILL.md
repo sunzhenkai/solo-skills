@@ -7,7 +7,7 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed 
 
 # Project Atlas
 
-在目标项目维护一套人可扫读、可逐层下钻的文档。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
+在目标项目维护一套人可扫读、可逐层下钻的文档。系统总览、跨领域主链路和多视角页面解释整体，领域三层文档承载细节。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
 
 边界：一次性代码问答走 `code-explore`，跨主题个人知识走 `wiki-data`；本 skill 只维护当前项目的架构与业务 Atlas。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
 
@@ -15,7 +15,11 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed 
 
 ```text
 <atlas>/
-├── index.md                     # L0：系统总览、领域地图、主业务链路
+├── index.md                     # L0：系统边界、业务闭环、多视角导航与阅读路径
+├── flows/<flow>.md              # L1：跨领域端到端业务链路
+├── architecture/<topic>.md      # L1：在线、离线、数据、模型及运行时依赖
+├── data/<topic>.md              # L1：数据归属、状态、事件与一致性
+├── cross-cutting/<topic>.md     # L1：实验、权限、容灾等横切机制
 ├── domains/<domain>/index.md    # L1：领域职责、核心规则、主题导航
 ├── domains/<domain>/<topic>.md  # L2：流程、状态机、组件或规则细节
 ├── diagrams/<slug>.json         # Archify 图源
@@ -25,7 +29,7 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed 
 └── _site/                       # 生成物，只发布页面、图 HTML 和 assets
 ```
 
-新页面先写离读者最近的一层，再按复杂度向下拆。每页只讲一个主题；L0 回答「系统是什么」，L1 回答「领域负责什么」，L2 回答「这条逻辑怎样工作」。细则与 frontmatter 模板见 [references/layout.md](references/layout.md)。
+每页只讲一个主题。系统视图按实际复杂度建立，以真实内容形成覆盖；简单项目可以先只有 L0 与领域页。`flows/` 串联各领域但不复制其内部规则，`architecture/`、`data/` 与 `cross-cutting/` 分别回答运行时协作、状态一致性和全局机制。页面职责、frontmatter 与阅读验收见 [references/layout.md](references/layout.md)。
 
 ## atlasctl
 
@@ -45,10 +49,12 @@ stdout 为 JSON。退出码：0 成功，1 校验或执行失败，2 等待确�
 ## 建立与渐进扩充
 
 1. 用 `status` 或目录列表识别已有内容；没有 Atlas 时走 `init`，然后继续建立首批真实页面，空骨架不是完成。
-2. 先读入口、配置、核心模块和已有文档，写 L0 与一个最有价值的 L1；复杂流程再建 L2。优先覆盖主业务链路，覆盖不全时保留 `draft`，不虚构完整性。
-3. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；复杂结构需要交互图时按 [references/diagrams.md](references/diagrams.md) 调用 Archify。
-4. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接。交互图放 `diagrams/`，其他静态资源放 `assets/`，使用 Atlas 根内相对链接。
-5. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：主链路可从上至下走完、所有本地链接有效、L1/L2 有源码映射、关联图已完成 Archify `finalize`、生成站点可打开。
+2. 先读入口、配置、核心模块和已有文档，写 L0：系统服务的角色、外部边界、业务闭环和按读者目标组织的阅读路径。
+3. 复杂系统优先选择一条跨领域主链路写入 `flows/`，从触发走到业务结果，并链接每一步所属领域；再用 `architecture/` 和 `data/` 解释该链路的运行时协作与关键状态，全局机制按需放入 `cross-cutting/`。
+4. 建立主链路涉及的 L1，复杂内部流程再建 L2。优先覆盖主业务链路，覆盖不全时保留 `draft`，不虚构完整性。
+5. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；复杂结构需要交互图时按 [references/diagrams.md](references/diagrams.md) 调用 Archify。
+6. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接；主链路与相关领域互相链接。交互图放 `diagrams/`，其他静态资源放 `assets/`，使用 Atlas 根内相对链接。
+7. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：读者能从 L0 沿主链路走完跨领域流程并下钻到相关领域、架构与数据证据，所有本地链接有效，L1/L2 有源码映射，关联图已完成 Archify `finalize`，生成站点可打开。
 
 ## 代码变动后的自愈
 
