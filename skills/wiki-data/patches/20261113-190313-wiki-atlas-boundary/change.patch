@@ -1,0 +1,144 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 293041c..d4a25e2 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -16,6 +16,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 
+ - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
+ - 不写软件项目 spec 镜像（`project-spec-mirror` 已归档在 `archive/skills/`，需要时从那里恢复）。
++- 不用 wiki 重建当前项目的架构、业务流程或规则现行说明；这些代码映射文档交给 `project-atlas`，wiki 保存决策背景、经验、台账和其他可累积知识。
+ - 不探索或修改业务源码（交给 `code-explore`）。
+ - 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
+ - 不编辑 `raw/` 中的源材料。
+@@ -62,6 +63,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 8. **声称必须可追溯** 到存在的 `raw/` 或 `wiki/sources/` 来源；本轮对话与粘贴材料也先建来源页。没有证据就写「wiki 尚未覆盖」，不要编造。
+ 9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、已归档、冲突与逾期内容不作为当前真理。
+ 10. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
++11. **Atlas 联动保持单一正文。** 同时需要更新两者时，先由 `project-atlas` 更新当前系统事实，再由本 skill 按确认范围保存决策、经验或台账；项目实体页可用相对 Markdown 链接指向已有 Atlas，链接不替代 `sources`。摄入与查询细则见对应 reference。
+ 
+ ## 加载
+ 
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 159b499..3e0c392 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -26,6 +26,8 @@
+ 
+ 合并同一事实的重复候选，区分已证实事实、用户决策与未验证推测。敏感信息按 `<REDACTED>` 或拒绝该段处理，不写成明文。
+ 
++材料同时包含当前系统行为与知识上下文时，先拆分归属：架构、业务流程和规则的现行说明交给 `project-atlas`，不转成 wiki 的 `entity` / `concept` / `synthesis` 正文；决策理由、备选方案、经验、台账和来源摘要仍按本页摄入。需要建立或更新 Atlas 时先完成该工作，再按已确认的归档列表写 wiki；两个工作区分别遵守各自的写盘确认。
++
+ 先向用户展示**归档列表**，再按列表摄入。归档列表即保存计划，每项列出：摘要、保存价值（未来用于什么）、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）、拟定置信度、核实日期与复审日期（如需要）。计划末尾列出**不纳入项及理由**，如重复、越界、一次性细节或无后续价值。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
+ 
+ ## 排查记录
+@@ -46,7 +48,7 @@
+ 
+ ## 步骤
+ 
+-1. **读材料**，列出候选实体、概念、经验、台账、关系与主张；从上下文摄入时按「上下文自动提取」覆盖全部候选类别。
++1. **读材料**，列出候选实体、概念、经验、台账、关系与主张，并标出应交给 Atlas 的现行系统内容；从上下文摄入时按「上下文自动提取」覆盖全部候选类别。
+ 2. **范围与隐私**：超出 `purpose.md` 先告诉用户。发现凭据、个人隐私、内部主机名则停止写入明文，改用 `<REDACTED>` 或拒绝该段。
+ 3. **搜索已有页**：对每个候选名跑 `rg`（含 `aliases`、缩写、中英变体），同时发现活跃页与归档页。读命中页，避免重复建页；命中归档页时，在计划中说明是新建替代页、重开旧页还是仅追加历史来源，不直接把新事实合入归档页。
+ 4. **归档列表**（对用户可见，写盘前完成；复杂时先确认再写）：
+@@ -56,6 +58,7 @@
+    - 更新或合并哪些旧页（新事实 / 必须保留的旧事实 / 将追加的链接）
+    - 被新页整体替代的旧页及其归档原因、替代链接
+    - 对应的 `wiki/sources/` 摘要
++   - 需交给 `project-atlas` 的现行系统内容，列入不纳入项，不在 wiki 重复保存
+ 5. **按归档列表执行**，先写源摘要到 `wiki/sources/`，填写 `origin`、`captured_at`、指向 raw 的 `sources` 与可选 `content_hash`，记录关键主张、提到的实体/概念、后续问题。对话或粘贴材料分别使用 `conversation` / `user-input` 作为 origin，并同样建立来源页。
+ 6. **写或合并业务页**。默认写入 `{WIKI_ROOT}/wiki/` 下对应 typed 目录，填写 `description`、必要的 `aliases` 和非空 `sources`。按 page-types 的证据标准设置页面默认 `confidence`，不同证据强度的主张逐条标注；`high` 必须有本次或既有 `last_verified`，易变知识必须给出 `review_after`。更新旧页时：
+    - 先读全文
+@@ -64,7 +67,7 @@
+    - 正文整合新事实，不覆盖旧段；冲突并列并标明来源、时间与适用范围，未裁决的主张保持低置信度
+    - ledger 的「历史」只追加，经验状态变化保留依据
+    - 新页整体替代旧页时，按已确认范围走 archive，保留旧页历史与双向链接
+-7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。命名规则见 [page-types.md](page-types.md)。
++7. **交叉引用**：相关页加 `[[wikilink]]`；实体-概念关系写在正文，不拼进概念标题。当前项目实体对应已有 Atlas 时，在正文加指向 Atlas `index.md` 的相对 Markdown 链接；链接仅作导航，不替代 `sources`。命名规则见 [page-types.md](page-types.md)。
+ 8. **验证**：回读新页；运行 `lint_wiki.py --check-index`；来源、歧义链接、索引等 error 必须修，warning 说明后处理或有意推迟。
+ 9. **簿记**：用 `--write-index` 重建 `wiki/index.md`，再跑 `--check-index`；`wiki/log.md` 追加一行；必要时改 `wiki/overview.md` 的主题/状态，不要删旧综述。
+ 
+@@ -80,7 +83,8 @@
+ 
+ - [ ] 上下文摄入已先展示归档列表，实际写入与列表一致
+ - [ ] 材料中的关键实体、概念、经验和台账都有页（或已说明为何合并到旧页）
+-- [ ] 相关页有 `[[wikilink]]`
++- [ ] 相关页有 `[[wikilink]]`；本轮涉及已有 Atlas 的项目实体页已按需添加导航链接
++- [ ] Atlas 所属的现行系统说明未复制进 wiki
+ - [ ] 已搜索、无重复建页
+ - [ ] 业务页 frontmatter 含 title / type / date / confidence / description / sources，经验与台账含 status，source 含 origin / captured_at；所需核实与复审字段齐全
+ - [ ] 主张级例外已标置信度，冲突、纠正与失效内容保留来源、日期和状态
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index b25d033..a1d7375 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -81,6 +81,10 @@ related: []
+ 
+ 虚构示例：实体 `青禾实验室` 是具体组织；概念 `渐进披露` 是可被多个实体引用的方法。
+ 
++## 项目 Atlas 入口
++
++当前项目实体已有 `project-atlas` 时，可在正文增加「项目 Atlas」一节，用相对 Markdown 链接指向 Atlas `index.md`。只链接入口，不把 Atlas 的架构、流程或规则复制到实体页；链接仅作导航，不替代 `sources`。
++
+ ## 模板（init 时写入 `wiki/templates/`）
+ 
+ 创建业务页时按对应模板补齐章节，不要把「（待填写）」留在成品里。
+diff --git a/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+index d889f6a..77ac3cb 100644
+--- a/skills/wiki-data/references/query.md
++++ b/skills/wiki-data/references/query.md
+@@ -12,6 +12,12 @@
+ 6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。仅命中归档页时写「当前知识未覆盖，仅有历史记录」，再按需概述历史并附归档日期、原因与替代页。
+ 7. **保留冲突**：页面间结论冲突时并列各自来源、时间、适用范围与置信度，指出当前无法裁决的部分，不静默挑选一条。
+ 
++## 与 Atlas 联合查询
++
++- 问当前项目的架构、业务流程或规则如何工作时，项目实体页已有 Atlas 链接则沿链接读相关页面全文；用户显式给出的 Atlas 路径也可使用。Atlas 不存在或尚未覆盖时明说缺口，query 保持只读，不自动创建 Atlas。
++- 同时询问现状与背景时，先读 Atlas 的当前系统事实，再读 wiki 的决策、经验或台账，分别引用具体页面。
++- 两边对当前行为的描述冲突时，以重新核实的代码和 Atlas 为准。query 不改页；wiki 旧主张按历史陈述，后续经确认走 ingest 修正，不静默覆盖历史。
++
+ ## 经验与台账
+ 
+ - 查经验时回答适用场景、触发信号、结论、预防与处理、验证方式、证据和失效条件。`status: draft` 只是待验证线索，`deprecated` 只作历史参考；两者都不能作为已验证的现行建议。
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index cf6921a..6cc388a 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -66,6 +66,16 @@ class LintWikiTest(unittest.TestCase):
+         self.assertEqual(code, 0, out)
+         self.assertIn("errors: 0", out)
+ 
++    def test_atlas_markdown_link_outside_wiki_passes(self) -> None:
++        write(self.root / "atlas" / "index.md", "# Project Atlas\n")
++        write(
++            self.wiki / "entities" / "demo.md",
++            "---\ntitle: Demo\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# 概述\n\n[项目 Atlas](../../atlas/index.md)\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 0, out)
++        self.assertIn("errors: 0", out)
++
+     def test_dead_link_and_missing_frontmatter(self) -> None:
+         write(
+             self.wiki / "entities" / "orphan.md",
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index 93da2ed..0efda0e 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -107,9 +107,17 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_handoff_boundaries(self) -> None:
+         self.assertIn("project-spec-mirror", self.skill)
++        self.assertIn("project-atlas", self.skill)
+         self.assertIn("code-explore", self.skill)
+         self.assertIn("用户明确要求查证原因时交给 `trouble-grill`", self.skill)
+ 
++    def test_atlas_boundary_and_integration(self) -> None:
++        self.assertIn("先由 `project-atlas` 更新当前系统事实", self.skill)
++        self.assertIn("不转成 wiki 的 `entity` / `concept` / `synthesis` 正文", self.ingest)
++        self.assertIn("链接仅作导航，不替代 `sources`", self.types)
++        self.assertIn("query 保持只读，不自动创建 Atlas", self.query)
++        self.assertIn("以重新核实的代码和 Atlas 为准", self.query)
++
+     def test_trouble_grill_records_use_existing_page_types(self) -> None:
+         self.assertIn("用户明确要求归档 `trouble-grill` 记录时", self.ingest)
+         self.assertIn("wiki/sources/", self.ingest)

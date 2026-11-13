@@ -74,6 +74,15 @@ class ProjectAtlasContractTest(unittest.TestCase):
         self.assertIn("广告请求：从流量到反馈", example)
         self.assertIn("首批只保证", example)
 
+    def test_wiki_data_boundary_and_handoff(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        maintenance = (ROOT / "references" / "maintenance.md").read_text(encoding="utf-8")
+        for marker in ("wiki-data", "当前系统事实", "不自动写 wiki", "不复制其正文"):
+            self.assertIn(marker, skill)
+        self.assertIn("不依赖 wiki 外链", skill)
+        self.assertIn("代码变化只更新 Atlas 当前事实", maintenance)
+        self.assertIn("需 `wiki-data` 复核的主题", maintenance)
+
     def test_references_evals_and_examples_exist(self) -> None:
         for rel in (
             "references/layout.md",

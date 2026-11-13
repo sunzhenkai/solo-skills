@@ -23,6 +23,12 @@
 3. 更新当前页，再检查 L0 摘要、相关主链路、交叉链接和 `affected_diagrams` 是否仍成立。图源变化后按 Archify 契约重新 `finalize`；仓库证据的行号或 commit 变化也同步更新。
 4. 对本轮页面运行 `verify`，随后运行 `build` 和 `check`。`check` 将断链、跨层缺链、缺失映射、过期页和无效图交付列为错误。
 
+## 与 wiki-data 分工
+
+- 代码变化只更新 Atlas 当前事实。复核中出现的决策背景、备选方案、经验和台账列入交付回执的 wiki 候选主题，经对应确认后由 `wiki-data` 摄入，不在 Atlas 页面展开另一份正文。
+- 发现 wiki 旧主张与代码不一致时，仍按代码复核并更新 Atlas，在回执中列出需 `wiki-data` 复核的主题；本 skill 不直接修改 wiki 历史。
+- Atlas Markdown、独立 HTML 与 `_site/` 的本地链接继续指向 Atlas 内资源。wiki 可能位于私有或项目外工作区，不作为静态站点的发布依赖。
+
 ## 图与静态文件
 
 - 复杂且需要探索的图使用 `diagrams/` 中的 Archify JSON + HTML；简单静态图和其他资源放 `assets/`。

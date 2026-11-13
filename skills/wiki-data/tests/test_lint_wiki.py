@@ -66,6 +66,18 @@ class LintWikiTest(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("errors: 0", out)
 
+    def test_atlas_markdown_link_outside_wiki_passes(self) -> None:
+        write(self.root / "atlas" / "index.md", "# Project Atlas\n")
+        write(
+            self.wiki / "entities" / "demo.md",
+            "---\ntitle: Demo\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# 概述\n\n[项目 Atlas](../../atlas/index.md)\n",
+        )
+        code, out = self.run_lint("--write-index")
+        self.assertEqual(code, 0, out)
+        code, out = self.run_lint("--check-index")
+        self.assertEqual(code, 0, out)
+        self.assertIn("errors: 0", out)
+
     def test_dead_link_and_missing_frontmatter(self) -> None:
         write(
             self.wiki / "entities" / "orphan.md",

@@ -9,7 +9,7 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed 
 
 在目标项目维护一套人可扫读、可逐层下钻的文档。系统总览、跨领域主链路和多视角页面解释整体，领域三层文档承载细节。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
 
-边界：一次性代码问答走 `code-explore`，跨主题个人知识走 `wiki-data`；本 skill 只维护当前项目的架构与业务 Atlas。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
+边界：一次性代码问答走 `code-explore`；决策背景、备选方案、经验、台账和跨项目知识走 `wiki-data`。本 skill 只维护当前项目代码映射的架构与业务 Atlas，不在页面复制 wiki 的决策历史或经验正文。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
 
 ## 固定结构
 
@@ -67,6 +67,10 @@ stdout 为 JSON。退出码：0 成功，1 校验或执行失败，2 等待确�
 
 变更路由与静态资源处理见 [references/maintenance.md](references/maintenance.md)。自愈是「发现影响 → 人工或 agent 复核 → 更新 → 验证」的闭环，不声称能从代码自动生成正确的业务解释。
 
+## 与 wiki-data 联动
+
+Atlas 维护代码核实的当前系统事实。混合任务先完成 Atlas，再列出需要 `wiki-data` 摄入或复核的主题，经对应确认后由 `wiki-data` 处理；Atlas 不自动写 wiki，也不复制其正文。页面与 `_site/` 不依赖 wiki 外链，静态站点可独立发布。
+
 ## 交付
 
-回执给出 Atlas 根、`_site/index.html`、本轮新增/更新页面与图、过期页清零结果及仍为 `draft` 的范围。凭据写 `<REDACTED>`；不自动 commit / push，不改业务源码。
+回执给出 Atlas 根、`_site/index.html`、本轮新增/更新页面与图、过期页清零结果及仍为 `draft` 的范围；有知识上下文需要沉淀或复核时，同时列出 wiki 候选主题。凭据写 `<REDACTED>`；不自动 commit / push，不改业务源码。
