@@ -16,6 +16,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
 
 - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
 - 不写软件项目 spec 镜像（`project-spec-mirror` 已归档在 `archive/skills/`，需要时从那里恢复）。
+- 不用 wiki 重建当前项目的架构、业务流程或规则现行说明；这些代码映射文档交给 `project-atlas`，wiki 保存决策背景、经验、台账和其他可累积知识。
 - 不探索或修改业务源码（交给 `code-explore`）。
 - 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
 - 不编辑 `raw/` 中的源材料。
@@ -62,6 +63,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
 8. **声称必须可追溯** 到存在的 `raw/` 或 `wiki/sources/` 来源；本轮对话与粘贴材料也先建来源页。没有证据就写「wiki 尚未覆盖」，不要编造。
 9. **证据与时效分开。** 每页标 `confidence`，用 `last_verified` / `review_after` 记录核实与复审；回答沿用具体主张的等级，draft、deprecated、已归档、冲突与逾期内容不作为当前真理。
 10. **摄入前做隐私自查。** 凭据、密钥、个人联系方式、内部主机名不写入 wiki；写成 `<REDACTED>` 并告知用户。
+11. **Atlas 联动保持单一正文。** 同时需要更新两者时，先由 `project-atlas` 更新当前系统事实，再由本 skill 按确认范围保存决策、经验或台账；项目实体页可用相对 Markdown 链接指向已有 Atlas，链接不替代 `sources`。摄入与查询细则见对应 reference。
 
 ## 加载
 

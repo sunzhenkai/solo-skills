@@ -1,0 +1,15 @@
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index 6cc388a..d170325 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -72,7 +72,9 @@ class LintWikiTest(unittest.TestCase):
+             self.wiki / "entities" / "demo.md",
+             "---\ntitle: Demo\ntype: entity\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n\n# 概述\n\n[项目 Atlas](../../atlas/index.md)\n",
+         )
+-        code, out = self.run_lint()
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        code, out = self.run_lint("--check-index")
+         self.assertEqual(code, 0, out)
+         self.assertIn("errors: 0", out)
+ 
