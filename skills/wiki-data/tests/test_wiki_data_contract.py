@@ -108,7 +108,7 @@ class ContractTest(unittest.TestCase):
     def test_handoff_boundaries(self) -> None:
         self.assertIn("project-spec-mirror", self.skill)
         self.assertIn("project-atlas", self.skill)
-        self.assertIn("code-explore", self.skill)
+        self.assertIn("project-explore", self.skill)
         self.assertIn("用户明确要求查证原因时交给 `trouble-grill`", self.skill)
 
     def test_atlas_boundary_and_integration(self) -> None:
@@ -117,6 +117,10 @@ class ContractTest(unittest.TestCase):
         self.assertIn("链接仅作导航，不替代 `sources`", self.types)
         self.assertIn("query 保持只读，不自动创建 Atlas", self.query)
         self.assertIn("以重新核实的代码和 Atlas 为准", self.query)
+        self.assertIn("交给 `project-explore` 的 `ask / explore` 取证", self.query)
+        self.assertIn("query 自身不读业务源码", self.query)
+        self.assertIn("ExplorationBrief、持久化建议和 Atlas 回执", self.ingest)
+        self.assertIn("不把这些交接内容视为已批准写入或替代 `sources`", self.ingest)
 
     def test_trouble_grill_records_use_existing_page_types(self) -> None:
         self.assertIn("用户明确要求归档 `trouble-grill` 记录时", self.ingest)

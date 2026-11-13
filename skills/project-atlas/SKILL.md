@@ -9,7 +9,11 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed 
 
 在目标项目维护一套人可扫读、可逐层下钻的文档。系统总览、跨领域主链路和多视角页面解释整体，领域三层文档承载细节。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
 
-边界：一次性代码问答走 `code-explore`；决策背景、备选方案、经验、台账和跨项目知识走 `wiki-data`。本 skill 只维护当前项目代码映射的架构与业务 Atlas，不在页面复制 wiki 的决策历史或经验正文。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
+边界：一次性项目问答与代码取证走 `project-explore`；决策背景、备选方案、经验、台账和跨项目知识走 `wiki-data`。本 skill 只维护当前项目代码映射的架构与业务 Atlas，不在页面复制 wiki 的决策历史或经验正文。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
+
+## 与 project-explore 联动
+
+建立或复核页面时，可用 `project-explore` 的 `ask / explore` 获得项目结构、调用链和代码证据，也可接收其 `archive / project` 交接。ExplorationBrief 与持久化建议只是调查输入；Atlas 仍须按页面 `sources` 复核语义，再执行 `verify / build / check`，不把 Brief 直接当作已核实正文。一次性概览不要求建立 Atlas，持久化项目入口由 Atlas 按 `init` 确认和首批页面门禁完成。
 
 ## 固定结构
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Exploration"
+  short_description: "Understand projects and trace code evidence"
+  default_prompt: "Use $project-explore to answer project questions, trace call chains, assess change impact, or route verified findings to project-atlas or wiki-data without writing persistent documents itself."

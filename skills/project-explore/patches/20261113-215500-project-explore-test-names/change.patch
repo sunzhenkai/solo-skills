@@ -1,0 +1,8 @@
+diff --git a/skills/project-explore/tests/test_code_explore_contract.py b/skills/project-explore/tests/test_project_explore_contract.py
+similarity index 100%
+rename from skills/project-explore/tests/test_code_explore_contract.py
+rename to skills/project-explore/tests/test_project_explore_contract.py
+diff --git a/skills/project-explore/tests/test_code_explore_gate_lock.py b/skills/project-explore/tests/test_project_explore_gate_lock.py
+similarity index 100%
+rename from skills/project-explore/tests/test_code_explore_gate_lock.py
+rename to skills/project-explore/tests/test_project_explore_gate_lock.py

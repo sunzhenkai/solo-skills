@@ -17,7 +17,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
 - 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
 - 不写软件项目 spec 镜像（`project-spec-mirror` 已归档在 `archive/skills/`，需要时从那里恢复）。
 - 不用 wiki 重建当前项目的架构、业务流程或规则现行说明；这些代码映射文档交给 `project-atlas`，wiki 保存决策背景、经验、台账和其他可累积知识。
-- 不探索或修改业务源码（交给 `code-explore`）。
+- 不探索或修改业务源码（交给 `project-explore`）。
 - 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
 - 不编辑 `raw/` 中的源材料。
 - 不自动 commit / push / sync 安装。

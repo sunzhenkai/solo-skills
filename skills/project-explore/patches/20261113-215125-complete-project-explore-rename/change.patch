@@ -1,0 +1,100 @@
+diff --git a/skills/code-explore/evals/README.md b/skills/project-explore/evals/README.md
+similarity index 100%
+rename from skills/code-explore/evals/README.md
+rename to skills/project-explore/evals/README.md
+diff --git a/skills/code-explore/examples/README.md b/skills/project-explore/examples/README.md
+similarity index 100%
+rename from skills/code-explore/examples/README.md
+rename to skills/project-explore/examples/README.md
+diff --git a/skills/code-explore/experience/README.md b/skills/project-explore/experience/README.md
+similarity index 100%
+rename from skills/code-explore/experience/README.md
+rename to skills/project-explore/experience/README.md
+diff --git a/skills/code-explore/experience/failures/.gitkeep b/skills/project-explore/experience/failures/.gitkeep
+similarity index 100%
+rename from skills/code-explore/experience/failures/.gitkeep
+rename to skills/project-explore/experience/failures/.gitkeep
+diff --git a/skills/code-explore/experience/patterns/.gitkeep b/skills/project-explore/experience/patterns/.gitkeep
+similarity index 100%
+rename from skills/code-explore/experience/patterns/.gitkeep
+rename to skills/project-explore/experience/patterns/.gitkeep
+diff --git a/skills/code-explore/experience/successes/.gitkeep b/skills/project-explore/experience/successes/.gitkeep
+similarity index 100%
+rename from skills/code-explore/experience/successes/.gitkeep
+rename to skills/project-explore/experience/successes/.gitkeep
+diff --git a/skills/code-explore/patches/20260822-122535-add-code-explore/change.patch b/skills/project-explore/patches/20260822-122535-add-code-explore/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20260822-122535-add-code-explore/change.patch
+rename to skills/project-explore/patches/20260822-122535-add-code-explore/change.patch
+diff --git a/skills/code-explore/patches/20260822-122535-add-code-explore/proposal.md b/skills/project-explore/patches/20260822-122535-add-code-explore/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20260822-122535-add-code-explore/proposal.md
+rename to skills/project-explore/patches/20260822-122535-add-code-explore/proposal.md
+diff --git a/skills/code-explore/patches/20260822-122535-add-code-explore/result.md b/skills/project-explore/patches/20260822-122535-add-code-explore/result.md
+similarity index 100%
+rename from skills/code-explore/patches/20260822-122535-add-code-explore/result.md
+rename to skills/project-explore/patches/20260822-122535-add-code-explore/result.md
+diff --git a/skills/code-explore/patches/20260822-123147-self-upgrade/change.patch b/skills/project-explore/patches/20260822-123147-self-upgrade/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20260822-123147-self-upgrade/change.patch
+rename to skills/project-explore/patches/20260822-123147-self-upgrade/change.patch
+diff --git a/skills/code-explore/patches/20260822-123147-self-upgrade/proposal.md b/skills/project-explore/patches/20260822-123147-self-upgrade/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20260822-123147-self-upgrade/proposal.md
+rename to skills/project-explore/patches/20260822-123147-self-upgrade/proposal.md
+diff --git a/skills/code-explore/patches/20260822-123147-self-upgrade/result.md b/skills/project-explore/patches/20260822-123147-self-upgrade/result.md
+similarity index 100%
+rename from skills/code-explore/patches/20260822-123147-self-upgrade/result.md
+rename to skills/project-explore/patches/20260822-123147-self-upgrade/result.md
+diff --git a/skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/change.patch b/skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/change.patch
+rename to skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/change.patch
+diff --git a/skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/proposal.md b/skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/proposal.md
+rename to skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/proposal.md
+diff --git a/skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/result.md b/skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/result.md
+similarity index 100%
+rename from skills/code-explore/patches/20260929-145733-runtime-readonly-compliance/result.md
+rename to skills/project-explore/patches/20260929-145733-runtime-readonly-compliance/result.md
+diff --git a/skills/code-explore/patches/20261016-084733-writing-review/change.patch b/skills/project-explore/patches/20261016-084733-writing-review/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20261016-084733-writing-review/change.patch
+rename to skills/project-explore/patches/20261016-084733-writing-review/change.patch
+diff --git a/skills/code-explore/patches/20261016-084733-writing-review/proposal.md b/skills/project-explore/patches/20261016-084733-writing-review/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20261016-084733-writing-review/proposal.md
+rename to skills/project-explore/patches/20261016-084733-writing-review/proposal.md
+diff --git a/skills/code-explore/patches/20261016-084733-writing-review/result.md b/skills/project-explore/patches/20261016-084733-writing-review/result.md
+similarity index 100%
+rename from skills/code-explore/patches/20261016-084733-writing-review/result.md
+rename to skills/project-explore/patches/20261016-084733-writing-review/result.md
+diff --git a/skills/code-explore/patches/20261106-184157-wiki-data-boundary/change.patch b/skills/project-explore/patches/20261106-184157-wiki-data-boundary/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20261106-184157-wiki-data-boundary/change.patch
+rename to skills/project-explore/patches/20261106-184157-wiki-data-boundary/change.patch
+diff --git a/skills/code-explore/patches/20261106-184157-wiki-data-boundary/proposal.md b/skills/project-explore/patches/20261106-184157-wiki-data-boundary/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20261106-184157-wiki-data-boundary/proposal.md
+rename to skills/project-explore/patches/20261106-184157-wiki-data-boundary/proposal.md
+diff --git a/skills/code-explore/patches/20261106-184157-wiki-data-boundary/result.md b/skills/project-explore/patches/20261106-184157-wiki-data-boundary/result.md
+similarity index 100%
+rename from skills/code-explore/patches/20261106-184157-wiki-data-boundary/result.md
+rename to skills/project-explore/patches/20261106-184157-wiki-data-boundary/result.md
+diff --git a/skills/code-explore/patches/20261113-214757-project-explore-integration/change.patch b/skills/project-explore/patches/20261113-214757-project-explore-integration/change.patch
+similarity index 100%
+rename from skills/code-explore/patches/20261113-214757-project-explore-integration/change.patch
+rename to skills/project-explore/patches/20261113-214757-project-explore-integration/change.patch
+diff --git a/skills/code-explore/patches/20261113-214757-project-explore-integration/proposal.md b/skills/project-explore/patches/20261113-214757-project-explore-integration/proposal.md
+similarity index 100%
+rename from skills/code-explore/patches/20261113-214757-project-explore-integration/proposal.md
+rename to skills/project-explore/patches/20261113-214757-project-explore-integration/proposal.md
+diff --git a/skills/code-explore/tests/gate_lines.txt b/skills/project-explore/tests/gate_lines.txt
+similarity index 100%
+rename from skills/code-explore/tests/gate_lines.txt
+rename to skills/project-explore/tests/gate_lines.txt
+diff --git a/skills/code-explore/tests/test_code_explore_gate_lock.py b/skills/project-explore/tests/test_code_explore_gate_lock.py
+similarity index 100%
+rename from skills/code-explore/tests/test_code_explore_gate_lock.py
+rename to skills/project-explore/tests/test_code_explore_gate_lock.py

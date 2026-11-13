@@ -83,6 +83,16 @@ class ProjectAtlasContractTest(unittest.TestCase):
         self.assertIn("代码变化只更新 Atlas 当前事实", maintenance)
         self.assertIn("需 `wiki-data` 复核的主题", maintenance)
 
+    def test_project_explore_handoff_keeps_atlas_verification(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        for marker in (
+            "一次性项目问答与代码取证走 `project-explore`",
+            "ExplorationBrief 与持久化建议只是调查输入",
+            "按页面 `sources` 复核语义",
+            "持久化项目入口由 Atlas 按 `init` 确认",
+        ):
+            self.assertIn(marker, skill)
+
     def test_references_evals_and_examples_exist(self) -> None:
         for rel in (
             "references/layout.md",

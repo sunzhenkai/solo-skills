@@ -24,7 +24,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | Skill | 用途 |
 | --- | --- |
 | `commit-push` | 分析变更、起草提交说明、commit 并 push |
-| `code-explore` | 仓库代码理解工作流（问答/调用链/影响面/知识沉淀） |
+| `project-explore` | 项目理解与代码取证（Atlas/wiki 路由、问答、调用链、影响面、持久化交接） |
 | `solo-code-review` | 未提交改动 / MR / PR 的结构化审查 |
 | `repo-manager` | 仓库生命周期管理 |
 | `project-init` | 按约定脚手架创建或对齐项目 |

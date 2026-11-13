@@ -1,0 +1,102 @@
+diff --git a/skills/project-atlas/evals/cases.yaml b/skills/project-atlas/evals/cases.yaml
+index 3a21cd5..1136cee 100644
+--- a/skills/project-atlas/evals/cases.yaml
++++ b/skills/project-atlas/evals/cases.yaml
+@@ -1,40 +1,67 @@
+ version: 1
+ cases:
+   - id: bootstrap-main-flow
+-    input: 为一个尚无架构文档的 Web 项目建立 Atlas，先覆盖一条下单主链路，并生成可浏览 HTML。
+-    expected:
+-      - init 经确认后在项目 docs/atlas 创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
+-      - L1/L2 的 sources 指向实际源码，页面之间形成上下级双向链接。
+-      - build 生成 _site/index.html，check.ok=true；未覆盖范围保持 draft。
++    kind: core
++    judge: deterministic
++    description: 建立首批真实 Atlas 页面并生成可浏览站点
++    given: 为一个尚无架构文档的 Web 项目建立 Atlas，先覆盖一条下单主链路，并生成可浏览 HTML。
++    expect:
++      must:
++        - init 经确认后在项目 docs/atlas 创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
++        - L1/L2 的 sources 指向实际源码，页面之间形成上下级双向链接。
++        - build 生成 _site/index.html，check.ok=true；未覆盖范围保持 draft。
++
+   - id: heal-source-change
+-    input: 已复核页面的源码修改了失败分支，并移动了一个被映射的源码文件。
+-    expected:
+-      - status 将受影响页面列入 stale_pages，并报告失效映射。
+-      - agent 重读代码，更新业务说明、图和 sources 后才执行 verify。
+-      - 最终 stale_pages 为空，Markdown 与 HTML 链接均通过检查。
++    kind: core
++    judge: deterministic
++    description: 源码变化后复核受影响页面、映射与图
++    given: 已复核页面的源码修改了失败分支，并移动了一个被映射的源码文件。
++    expect:
++      must:
++        - status 将受影响页面列入 stale_pages，并报告失效映射。
++        - agent 重读代码，更新业务说明、图和 sources 后才执行 verify。
++        - 最终 stale_pages 为空，Markdown 与 HTML 链接均通过检查。
++
+   - id: finalize-archify-diagram
+-    input: 下单主链路需要跨系统时序图，随后源码变化导致图中的失败分支与证据行号变化。
+-    expected:
+-      - 加载 archify，复用 diagrams/order-submit.json，并通过 finalize 生成同名 HTML。
+-      - 页面链接交互图；build 只发布 HTML，不发布 JSON 与交付回执。
+-      - status 将该图列入 affected_diagrams；修改 JSON 后未重新 finalize 时 verify 和 check 失败。
+-      - finalize 成功后 verify、build、check 均通过，节点 ID 与既有深链保持稳定。
++    kind: core
++    judge: deterministic
++    description: 图源变化后重新 finalize 并保持站点与证据一致
++    given: 下单主链路需要跨系统时序图，随后源码变化导致图中的失败分支与证据行号变化。
++    expect:
++      must:
++        - 加载 archify，复用 diagrams/order-submit.json，并通过 finalize 生成同名 HTML。
++        - 页面链接交互图；build 只发布 HTML，不发布 JSON 与交付回执。
++        - status 将该图列入 affected_diagrams；修改 JSON 后未重新 finalize 时 verify 和 check 失败。
++        - finalize 成功后 verify、build、check 均通过，节点 ID 与既有深链保持稳定。
++
+   - id: route-general-wiki
+-    input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
+-    expected:
+-      - 路由到 wiki-data，不创建 project-atlas 目录或源码映射。
++    kind: boundary
++    judge: deterministic
++    description: 通用跨项目知识交给 wiki-data
++    given: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
++    expect:
++      must:
++        - 路由到 wiki-data，不创建 project-atlas 目录或源码映射。
+ 
+   - id: accept-project-explore-brief
+-    input: project-explore 已追踪一条主链路并给出 ExplorationBrief、候选 Atlas 页面和代码证据，用户确认持久化。
+-    expected:
+-      - Atlas 接收 Brief 后按候选页面 sources 复核当前代码与业务语义。
+-      - 更新页面和导航后执行 verify、build、check，不把 Brief 直接视为已核实正文。
+-      - 回执列出更新页面、stale_pages、draft 范围和需要 wiki-data 处理的候选主题。
++    kind: core
++    judge: deterministic
++    description: 接收 project-explore 的调查结果并保留 Atlas 验证门禁
++    given: project-explore 已追踪一条主链路并给出 ExplorationBrief、候选 Atlas 页面和代码证据，用户确认持久化。
++    expect:
++      must:
++        - Atlas 接收 Brief 后按候选页面 sources 复核当前代码与业务语义。
++        - 更新页面和导航后执行 verify、build、check，不把 Brief 直接视为已核实正文。
++        - 回执列出更新页面、stale_pages、draft 范围和需要 wiki-data 处理的候选主题。
+ 
+   - id: understand-complex-system
+-    input: 为包含在线决策、预算状态、事件计量和离线学习的程序化广告系统建立 Atlas，首批覆盖一次广告请求主链路。
+-    expected:
+-      - L0 说明系统边界、参与者、业务闭环，并按读者目标链接主链路、多视角和领域页面。
+-      - flows 页面按顺序串起跨领域步骤，链接各领域、架构和数据证据，不复制领域内部规则。
+-      - architecture、data 和必要的 cross-cutting 页面解释该主链路的运行时协作、状态一致性和全局机制。
+-      - 读者能从 L0 走完广告请求到曝光计费的链路；其余范围保持 draft，build 和 check 通过。
++    kind: core
++    judge: deterministic
++    description: 用主链路和多视角页面解释复杂系统
++    given: 为包含在线决策、预算状态、事件计量和离线学习的程序化广告系统建立 Atlas，首批覆盖一次广告请求主链路。
++    expect:
++      must:
++        - L0 说明系统边界、参与者、业务闭环，并按读者目标链接主链路、多视角和领域页面。
++        - flows 页面按顺序串起跨领域步骤，链接各领域、架构和数据证据，不复制领域内部规则。
++        - architecture、data 和必要的 cross-cutting 页面解释该主链路的运行时协作、状态一致性和全局机制。
++        - 读者能从 L0 走完广告请求到曝光计费的链路；其余范围保持 draft，build 和 check 通过。

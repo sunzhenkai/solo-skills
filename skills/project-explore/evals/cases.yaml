@@ -1,17 +1,18 @@
 version: 1
-skill: code-explore
+skill: project-explore
 cases:
   - id: ask-routes-before-source
     kind: basic
     judge: deterministic
-    description: 聚焦代码问题先从已有知识和索引路由，再决定是否需要有限源码检查
-    given: 用户询问一个配置选项或术语的作用，仓库已有索引或文档
+    description: 聚焦项目问题先利用 Atlas/wiki 和索引路由，再决定是否需要有限源码检查
+    given: 用户询问一个配置选项或术语的作用，项目已有 Atlas 或 wiki
     expect:
       must:
         - 输出中说明推断的阶段或采用的只读回答路径
         - 在需要源码时先经过 L0-L2 路由，而不是无边界扫描
+        - Atlas 过期或未覆盖时明确时效缺口
       must_not:
-        - 在已有知识足够时无理由扩大读取范围
+        - 在已有知识足够且未过期时无理由扩大读取范围
 
   - id: explore-traces-with-evidence
     kind: core
@@ -26,35 +27,35 @@ cases:
       must_not:
         - 把假设或命名推断写成已验证事实
 
-  - id: archive-requires-explicit-write
+  - id: archive-routes-without-writing
     kind: core
     judge: deterministic
-    description: archive 只在明确请求后整理持久化知识并维护必要索引
-    given: 用户明确要求把已验证的调用链记录为持久化知识
+    description: archive 将当前事实和长期知识分给唯一写入方
+    given: 用户明确要求把已验证的调用链和决策背景保存下来
     expect:
       must:
-        - 先确定 KNOWLEDGE_ROOT 下的规范位置并检查已有索引或附近文档
-        - 文档包含范围、结论、证据链接、置信度和开放问题
-        - 只更新使文档可被发现所必需的索引
+        - 持久化计划区分 project-atlas 页面与 wiki-data 候选主题
+        - 每项包含证据、保存价值、未知项或不纳入项
+        - 混合内容先完成 Atlas，再由 wiki-data 摄入
       must_not:
-        - 复制完整源文件代替摘要和源代码链接
+        - 由 project-explore 直接写文档或创建第三套知识 schema
 
-  - id: profile-has-minimum-fields
+  - id: project-routes-to-atlas
     kind: core
     judge: deterministic
-    description: project 阶段创建紧凑且可发现的仓库 profile
-    given: 用户要求为一个仓库创建快速 profile
+    description: project 阶段复用 Atlas，不创建独立仓库 profile
+    given: 用户要求为一个仓库建立可持续维护的项目入口
     expect:
       must:
-        - profile 包含用途、职责边界、关键能力、依赖、入口路径、验证命令、变更影响和未知信息
-        - repository_path 使用相对路径
+        - 将范围和探索证据交给 project-atlas
+        - 使用 Atlas 的 init 确认、L0、源码映射和验证契约
       must_not:
-        - 用 profile 替代详细架构或行为文档
+        - 创建独立 project profile 或另一套项目索引
 
   - id: exploration-stays-read-only
     kind: failure
     judge: deterministic
-    description: 未明确要求实现时，代码探索保持只读并停在探索边界
+    description: 未明确要求实现时，项目探索保持只读并停在探索边界
     given: 用户要求理解现有实现或评估影响，但没有要求修改代码
     expect:
       must:
@@ -66,19 +67,20 @@ cases:
   - id: ambiguous-stage-is-not-silent-write
     kind: failure
     judge: deterministic
-    description: 阶段存在歧义时先澄清解释，不悄悄执行写入
+    description: 阶段存在歧义时先澄清解释，不悄悄执行写入或交接
     given: 用户同时提出调查和持久化要求，但没有说明阶段或写入范围
     expect:
       must:
         - 提供两种合理解释或聚焦澄清问题
+        - Atlas 与 wiki 分别遵守各自写盘确认
       must_not:
-        - 未确认就执行 archive、ingest 或 project 写入
+        - 未确认就执行 archive、ingest 或 project 的下游写入
 
   - id: workspace-names-are-discovered
     kind: boundary
     judge: deterministic
-    description: 不把 REPO_ROOT、KNOWLEDGE_ROOT 和 PROJECT_ROOT 当作固定机器路径
-    given: 工作区使用不同的仓库、知识库或项目 profile 目录名称
+    description: 不把 REPO_ROOT、ATLAS_ROOT 和 WIKI_ROOT 当作固定机器路径
+    given: 工作区使用不同的仓库、Atlas 或 wiki 目录名称
     expect:
       must:
         - 从仓库根目录发现实际名称并说明映射关系
@@ -90,10 +92,10 @@ cases:
     kind: boundary
     judge: deterministic
     description: 按 L0-L3 渐进披露读取最小必要证据
-    given: 用户提出需要调用链或影响分析的代码问题
+    given: 用户提出需要调用链或影响分析的项目问题
     expect:
       must:
-        - 先使用索引、规范或 profile 路由读取范围
+        - 先使用 Atlas/wiki、索引、规范或架构笔记路由读取范围
         - L0-L2 预加载文件数保持在六个或更少，超过时说明理由
         - 避免读取无关生成物、第三方依赖和历史记录
       must_not:
