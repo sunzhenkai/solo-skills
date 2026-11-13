@@ -1,0 +1,623 @@
+diff --git a/skills/project-atlas/SKILL.md b/skills/project-atlas/SKILL.md
+index 4f006c6..d65a794 100644
+--- a/skills/project-atlas/SKILL.md
++++ b/skills/project-atlas/SKILL.md
+@@ -2,14 +2,14 @@
+ id: project-atlas
+ name: project-atlas
+ description: 项目 Atlas：把架构图、业务规则和处理流程整理成可下钻的金字塔文档，维护 Markdown、HTML 与静态资源互链；按源码映射增量更新并复核代码变动造成的过期页面。用户要求项目知识地图、架构可视化、业务逻辑梳理、文档下钻、静态站点或文档自愈时使用。
+-compatibility: Requires Python 3.9+; Git is optional for recording the reviewed commit.
++compatibility: Requires Python 3.9+; Git is optional for recording the reviewed commit. Creating or updating Archify diagrams additionally requires Node.js 18+ and the archify skill.
+ ---
+ 
+ # Project Atlas
+ 
+ 在目标项目维护一套人可扫读、可逐层下钻的文档。Markdown 是可编辑真源，`_site/` 是可浏览的静态 HTML 镜像，源码映射说明每页应跟随哪些代码变化。
+ 
+-边界：一次性代码问答走 `code-explore`，跨主题个人知识走 `wiki-data`；本 skill 只维护当前项目的架构与业务 Atlas。
++边界：一次性代码问答走 `code-explore`，跨主题个人知识走 `wiki-data`；本 skill 只维护当前项目的架构与业务 Atlas。交互图由 `archify` 生成，Atlas 不复制其 schema 或绘图 CLI。
+ 
+ ## 固定结构
+ 
+@@ -18,9 +18,11 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed
+ ├── index.md                     # L0：系统总览、领域地图、主业务链路
+ ├── domains/<domain>/index.md    # L1：领域职责、核心规则、主题导航
+ ├── domains/<domain>/<topic>.md  # L2：流程、状态机、组件或规则细节
+-├── assets/                      # SVG、图片、独立 HTML 等静态资源
++├── diagrams/<slug>.json         # Archify 图源
++├── diagrams/<slug>.html         # Archify 交互图与交付回执
++├── assets/                      # 图片、SVG、其他静态资源
+ ├── .atlas.json                  # Atlas 版本与源码根
+-└── _site/                       # 生成物
++└── _site/                       # 生成物，只发布页面、图 HTML 和 assets
+ ```
+ 
+ 新页面先写离读者最近的一层，再按复杂度向下拆。每页只讲一个主题；L0 回答「系统是什么」，L1 回答「领域负责什么」，L2 回答「这条逻辑怎样工作」。细则与 frontmatter 模板见 [references/layout.md](references/layout.md)。
+@@ -44,21 +46,21 @@ stdout 为 JSON。退出码：0 成功，1 校验或执行失败，2 等待确
+ 
+ 1. 用 `status` 或目录列表识别已有内容；没有 Atlas 时走 `init`，然后继续建立首批真实页面，空骨架不是完成。
+ 2. 先读入口、配置、核心模块和已有文档，写 L0 与一个最有价值的 L1；复杂流程再建 L2。优先覆盖主业务链路，覆盖不全时保留 `draft`，不虚构完整性。
+-3. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；图只承担文字难以表达的结构。
+-4. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接。静态资源放 `assets/`，使用 Atlas 根内相对链接。
+-5. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：主链路可从上至下走完、所有本地链接有效、L1/L2 有源码映射、生成站点可打开。
++3. 为 L1/L2 填 `sources`：使用源码根相对路径，可写文件、目录或 glob。写清业务规则、关键分支、失败路径和实体关系；复杂结构需要交互图时按 [references/diagrams.md](references/diagrams.md) 调用 Archify。
++4. 从 L0 链到每个 L1，从 L1 链到所属 L2，并保留返回上级的链接。交互图放 `diagrams/`，其他静态资源放 `assets/`，使用 Atlas 根内相对链接。
++5. 语义复核后运行 `verify`，再运行 `build` 和 `check`。完成标志：主链路可从上至下走完、所有本地链接有效、L1/L2 有源码映射、关联图已完成 Archify `finalize`、生成站点可打开。
+ 
+ ## 代码变动后的自愈
+ 
+-`status` 比较每页记录的 `source_digest` 与当前源码内容，输出 `stale_pages` 和 `missing_sources`。它不依赖 Git，也能发现未提交变更；`verified_commit` 仅用于追溯。
++`status` 比较每页记录的 `source_digest` 与当前源码内容，输出 `stale_pages`、`affected_diagrams` 和 `missing_sources`。它不依赖 Git，也能发现未提交变更；`verified_commit` 仅用于追溯。
+ 
+ 1. 对每个过期页重新阅读其 `sources` 与相关调用链，判断业务语义、架构边界和图是否变化。
+-2. 只改受影响页面及其上级导航；源码路径变化时同步修正 `sources`。内容未变也要明确核对后再 `verify`，刷新摘要不能替代语义复核。
++2. 只改受影响页面及其上级导航；源码路径变化时同步修正 `sources`。更新图源后必须重新运行 Archify `finalize`，交付回执会绑定 JSON 与 HTML；内容未变也要明确核对后再 `verify`，刷新摘要不能替代语义复核。
+ 3. 新代码尚未覆盖时，把它并入现有主题或新增最小页面；未覆盖区域保持可见的草稿状态，随主链路优先级渐进补齐。
+-4. 重新 `build` + `check`，以 `stale_pages` 清空、断链为零作为本轮收口。
++4. 重新 `build` + `check`，以 `stale_pages` 清空、断链和图交付错误为零作为本轮收口。
+ 
+-变更路由、图与静态 HTML 的处理见 [references/maintenance.md](references/maintenance.md)。自愈是「发现影响 → 人工或 agent 复核 → 更新 → 验证」的闭环，不声称能从代码自动生成正确的业务解释。
++变更路由与静态资源处理见 [references/maintenance.md](references/maintenance.md)。自愈是「发现影响 → 人工或 agent 复核 → 更新 → 验证」的闭环，不声称能从代码自动生成正确的业务解释。
+ 
+ ## 交付
+ 
+-回执给出 Atlas 根、`_site/index.html`、本轮新增/更新页面、过期页清零结果及仍为 `draft` 的范围。凭据写 `<REDACTED>`；不自动 commit / push，不改业务源码。
++回执给出 Atlas 根、`_site/index.html`、本轮新增/更新页面与图、过期页清零结果及仍为 `draft` 的范围。凭据写 `<REDACTED>`；不自动 commit / push，不改业务源码。
+diff --git a/skills/project-atlas/evals/cases.yaml b/skills/project-atlas/evals/cases.yaml
+index 2ddccee..7aa86bd 100644
+--- a/skills/project-atlas/evals/cases.yaml
++++ b/skills/project-atlas/evals/cases.yaml
+@@ -12,6 +12,13 @@ cases:
+       - status 将受影响页面列入 stale_pages，并报告失效映射。
+       - agent 重读代码，更新业务说明、图和 sources 后才执行 verify。
+       - 最终 stale_pages 为空，Markdown 与 HTML 链接均通过检查。
++  - id: finalize-archify-diagram
++    input: 下单主链路需要跨系统时序图，随后源码变化导致图中的失败分支与证据行号变化。
++    expected:
++      - 加载 archify，复用 diagrams/order-submit.json，并通过 finalize 生成同名 HTML。
++      - 页面链接交互图；build 只发布 HTML，不发布 JSON 与交付回执。
++      - status 将该图列入 affected_diagrams；修改 JSON 后未重新 finalize 时 verify 和 check 失败。
++      - finalize 成功后 verify、build、check 均通过，节点 ID 与既有深链保持稳定。
+   - id: route-general-wiki
+     input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
+     expected:
+diff --git a/b/skills/project-atlas/references/diagrams.md b/skills/project-atlas/references/diagrams.md
+new file mode 100644
+index 0000000..780d78d
+--- /dev/null
++++ b/skills/project-atlas/references/diagrams.md
+@@ -0,0 +1,59 @@
++# Archify 交互图
++
++需要架构图、复杂业务流、跨系统时序、数据流或状态机时，加载已安装的 `archify` skill 并遵循其当版 schema 与 authoring 细则。Atlas 只规定图如何进入文档和自愈闭环，不复制 Archify 的字段定义。
++
++Archify 是可选依赖：已有文档和普通静态资源不需要 Node.js；新建或更新交互图时需要 Node.js 18+ 与 Archify。安装外部 skill 前沿用使用环境的审计流程。
++
++## 类型路由
++
++| 内容 | Archify type |
++|---|---|
++| 组件、服务、存储与边界 | `architecture` |
++| 业务处理、审批、补偿 | `workflow` |
++| 跨系统调用与返回 | `sequence` |
++| 数据加工、流转与血缘 | `dataflow` |
++| 状态、重试与终态 | `lifecycle` |
++| 表、字段、键与关系 | `erd` |
++| 模块或能力的单父包含关系 | `tree` |
++
++其他类型按 Archify 当版 Type router 选择。线性三步直接用文字列表，不为了有图而画图。
++
++## 持久路径
++
++每张图使用同名源和产物：
++
++```text
++<atlas>/diagrams/<slug>.json
++<atlas>/diagrams/<slug>.html
++```
++
++从 `<atlas>` 运行命令，`meta.output` 写 `diagrams/<slug>.html`。该目录同时保存 Archify 的 delivery、finalize 和浏览器检查回执；Atlas 构建只发布 `.html`。
++
++```bash
++node <archify-skill>/bin/archify.mjs finalize <type> \
++  diagrams/<slug>.json diagrams/<slug>.html \
++  --repo-root <project> --quality showcase --json
++```
++
++仓库证据图必须带 `--repo-root <project>`；描述性图可省略。首次和每次修复都直接运行完整 `finalize`，沿用 Archify 的诊断与修复上限。同一图持续复用原 JSON，保持节点 ID 稳定，避免已有 `#focus=`、`#route=` 等深链失效。
++
++## 页面链接
++
++在相关 L0/L1/L2 用普通 Markdown 链接打开独立交互图：
++
++```markdown
++[打开订单处理时序图](../diagrams/order-submit.html)
++```
++
++首版不嵌 `iframe`，也不把 Archify 回执或 JSON 发布到 `_site/`。简单静态图仍可放 `assets/`，无需伪造 Archify 回执。
++
++## 交付门禁
++
++`atlasctl check` 对页面引用的 Archify 图检查：
++
++- 同名 JSON、HTML、`.delivery.json` 与 `.finalize-summary.json` 存在。
++- finalize 回执 `ok=true`，delivery 为当前成功状态。
++- 回执中的 specification/artifact SHA-256 与字节数匹配当前 JSON/HTML。
++- 不存在 `.delivery-pending.json`、`.delivery-lock.json` 或 `.archify-delivery-lock.json`。
++
++修改 JSON 或 HTML 后重新 `finalize`，不手改回执。Archify 失败时保留最后一份通过检查的图，完成修复前页面不能通过 `verify`。
+diff --git a/skills/project-atlas/references/layout.md b/skills/project-atlas/references/layout.md
+index 215ff72..a8c206d 100644
+--- a/skills/project-atlas/references/layout.md
++++ b/skills/project-atlas/references/layout.md
+@@ -43,7 +43,8 @@ verified_commit:
+ 
+ - L0 必须直链每个 L1；L1 必须直链所属 L2。
+ - 每个 L1 链回 `index.md`，每个 L2 链回本领域 `index.md`。
+-- 使用相对路径，例如 `../assets/diagrams/order.svg` 或 `../../index.md`。
++- Archify 交互图使用 `diagrams/<slug>.html`，同名 `.json` 是可编辑图源；从相关页面用相对路径链接。
++- 其他静态资源使用 `assets/` 内相对链接，例如 `assets/diagrams/order.svg` 对应的页面链接。
+ - Markdown 中保留 `.md` 扩展名；`build` 在 HTML 镜像中改为 `.html` 并保留锚点。
+ - 本地链接指向 Atlas 内已经存在的文件。源码追溯使用 `sources`，避免静态站点依赖仓库外路径。
+ 
+@@ -51,4 +52,4 @@ verified_commit:
+ 
+ 架构页写组件职责、交互、边界和关键取舍；业务页写触发者、业务步骤、规则、异常和结果。函数逐行走读、完整文件清单、依赖版本和启动命令留在源码或项目既有文档中，只在它们解释架构契约时引用结论。
+ 
+-复杂分叉、状态机、跨系统时序和非平凡数据流配图；线性三步用列表即可。图片、SVG 和独立 HTML 放 `assets/`，从相关页面链接，不把大图嵌进 L0。
++复杂分叉、状态机、跨系统时序和非平凡数据流配 Archify 交互图；线性三步用列表即可。图承担文字难以表达的结构，页面提供上下文与阅读重点，不把大图嵌进 L0。
+diff --git a/skills/project-atlas/references/maintenance.md b/skills/project-atlas/references/maintenance.md
+index efd2564..8807f90 100644
+--- a/skills/project-atlas/references/maintenance.md
++++ b/skills/project-atlas/references/maintenance.md
+@@ -12,29 +12,28 @@
+ | 仅实现重构且外部行为不变 | 核对映射页的语义；确认无内容变化后 `verify` |
+ | 新模块未进入 Atlas | 按主链路价值并入现有 L1/L2，或增加最小下钻页 |
+ 
+-`stale` 是计算状态，不手写到 frontmatter。`source_digest` 不一致表示需要复核；`missing_sources` 表示映射已失效，先调整路径再复核。每轮只处理 `stale_pages` 与当前需求涉及的页面，无需重写整个 Atlas。
++`stale` 是计算状态，不手写到 frontmatter。`source_digest` 不一致表示需要复核；`missing_sources` 表示映射已失效，先调整路径再复核。`affected_diagrams` 列出过期页面链接的 Archify 图。每轮只处理 `stale_pages` 与当前需求涉及的页面，无需重写整个 Atlas。
+ 
+ ## 复核顺序
+ 
+ 1. 读取页面全文和当前 `sources`，保留仍成立的人工说明。
+ 2. 沿代码调用链核实主路径、关键分支和失败结果；没有证据的内容标为草稿或删除。
+-3. 更新当前页，再检查上级摘要和同级交叉链接是否仍成立。
+-4. 对本轮页面运行 `verify`，随后运行 `build` 和 `check`。`check` 将断链、跨层缺链、缺失映射和过期页列为错误。
++3. 更新当前页，再检查上级摘要、同级交叉链接和 `affected_diagrams` 是否仍成立。图源变化后按 Archify 契约重新 `finalize`；仓库证据的行号或 commit 变化也同步更新。
++4. 对本轮页面运行 `verify`，随后运行 `build` 和 `check`。`check` 将断链、跨层缺链、缺失映射、过期页和无效图交付列为错误。
+ 
+ ## 图与静态文件
+ 
+-静态资源统一放 `assets/`：
+-
+-- 架构图、流程图、状态图优先生成可缩放的 SVG；需要交互时使用自包含 HTML。
+-- 独立 HTML 的 `href` / `src` 也使用 Atlas 内相对路径。构建时会检查目标并改写其中的 `.md` 链接。
++- 复杂且需要探索的图使用 `diagrams/` 中的 Archify JSON + HTML；简单静态图和其他资源放 `assets/`。
+ - 图的标题和正文使用与页面相同的领域术语；图旁写一句阅读重点和对应业务页链接。
+-- 删除或移动资源后运行 `check`，修复所有引用。构建会复制全部 `assets/`，因此保留仍能支持理解的资源。
++- Archify 的 JSON、delivery/finalize 回执和浏览器证据不发布到 `_site/`；`build` 只复制图 HTML。
++- 独立静态 HTML 的 `href` / `src` 使用 Atlas 内相对路径。构建时检查目标并改写其中的 `.md` 链接。
++- 删除或移动资源后运行 `check`，修复所有引用。保留仍能支持理解的资源。
+ 
+-`_site/` 全部由 `build` 重建，直接编辑只会被下一次构建覆盖。需要改内容时编辑 Markdown 或 `assets/` 真源。
++`_site/` 全部由 `build` 重建，直接编辑只会被下一次构建覆盖。需要改内容时编辑 Markdown、Archify JSON 或 `assets/` 真源。
+ 
+ ## 完成门
+ 
+-- `build` 成功，`_site/index.html` 能作为入口离线打开。
+-- `check.ok=true`，`stale_pages=[]`，没有断链或缺失的上级/下级导航。
+-- 本轮涉及的复杂逻辑图与文字一致，静态 HTML 中的 Markdown 链接已生成对应 HTML 跳转。
++- `build` 成功，`_site/index.html` 能作为入口离线打开，交互图只发布 HTML。
++- `check.ok=true`，`stale_pages=[]`，没有断链、缺失导航或图回执/摘要错误。
++- 本轮涉及的复杂逻辑图与文字一致，Archify `finalize` 已通过，静态 HTML 中的 Markdown 链接已生成对应 HTML 跳转。
+ - 未覆盖范围仍标 `draft`，回执明确说明，避免把局部覆盖描述成全量覆盖。
+diff --git a/skills/project-atlas/scripts/atlasctl.py b/skills/project-atlas/scripts/atlasctl.py
+index c9c2f5a..9b40335 100644
+--- a/skills/project-atlas/scripts/atlasctl.py
++++ b/skills/project-atlas/scripts/atlasctl.py
+@@ -223,9 +223,9 @@ def markdown_adjacency(pages: list[Page], root: Path) -> dict[str, set[str]]:
+ 
+ 
+ def iter_static_html(root: Path):
+-    assets = root / "assets"
+-    if assets.is_dir():
+-        yield from sorted(assets.rglob("*.html"))
++    for directory in (root / "assets", root / "diagrams"):
++        if directory.is_dir():
++            yield from sorted(directory.rglob("*.html"))
+ 
+ 
+ def validate_links(pages: list[Page], root: Path) -> list[str]:
+@@ -248,6 +248,103 @@ def validate_links(pages: list[Page], root: Path) -> list[str]:
+     return errors
+ 
+ 
++def linked_archify_diagrams(page: Page, root: Path) -> list[Path]:
++    diagrams = []
++    diagram_root = (root / "diagrams").resolve()
++    for raw_url in LINK_RE.findall(page.body):
++        try:
++            target, _ = local_target(page.path.parent, raw_url, root)
++        except AtlasError:
++            continue
++        if target is None or target.suffix.lower() != ".html":
++            continue
++        if target == diagram_root or diagram_root in target.parents:
++            diagrams.append(target)
++    return diagrams
++
++
++def file_sha256(path: Path) -> tuple[str, int]:
++    digest = hashlib.sha256()
++    size = 0
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
++            digest.update(chunk)
++            size += len(chunk)
++    return digest.hexdigest(), size
++
++
++def read_receipt(path: Path, kind: str, rel: str, errors: list[str]) -> dict[str, object]:
++    if not path.is_file():
++        errors.append(f"diagram_{kind}_missing:{rel}")
++        return {}
++    try:
++        receipt = json.loads(path.read_text(encoding="utf-8"))
++    except (json.JSONDecodeError, UnicodeError):
++        errors.append(f"diagram_{kind}_invalid:{rel}")
++        return {}
++    if not isinstance(receipt, dict):
++        errors.append(f"diagram_{kind}_invalid:{rel}")
++        return {}
++    return receipt
++
++
++def validate_receipt_bindings(
++    receipt: dict[str, object], source: Path, artifact: Path, rel: str, kind: str, errors: list[str]
++) -> None:
++    for key, path in (("specification", source), ("artifact", artifact)):
++        binding = receipt.get(key)
++        if not isinstance(binding, dict):
++            errors.append(f"diagram_{kind}_{key}_missing:{rel}")
++            continue
++        digest, size = file_sha256(path)
++        if binding.get("sha256") != digest or binding.get("bytes") != size:
++            errors.append(f"diagram_{key}_mismatch:{rel}")
++
++
++def validate_archify_diagrams(pages: list[Page], root: Path) -> list[str]:
++    errors = []
++    artifacts = {artifact for page in pages for artifact in linked_archify_diagrams(page, root)}
++    for artifact in sorted(artifacts):
++        rel = artifact.relative_to(root.resolve()).as_posix()
++        for path, code in (
++            (artifact.with_suffix(".delivery-pending.json"), "delivery_pending"),
++            (artifact.with_suffix(".delivery-lock.json"), "delivery_lock"),
++            (artifact.parent / ".archify-delivery-lock.json", "delivery_lock"),
++        ):
++            if path.exists():
++                errors.append(f"diagram_{code}:{rel}")
++        if not artifact.is_file():
++            errors.append(f"diagram_html_missing:{rel}")
++            continue
++        source = artifact.with_suffix(".json")
++        if not source.is_file():
++            errors.append(f"diagram_source_missing:{rel}")
++            continue
++        delivery = read_receipt(artifact.with_suffix(".delivery.json"), "delivery", rel, errors)
++        if delivery and (delivery.get("status") != "current" or delivery.get("command") != "deliver"):
++            errors.append(f"diagram_delivery_invalid:{rel}")
++        if delivery:
++            validate_receipt_bindings(delivery, source, artifact, rel, "delivery", errors)
++        summary = read_receipt(artifact.with_suffix(".finalize-summary.json"), "finalize", rel, errors)
++        if summary and (summary.get("ok") is not True or summary.get("command") != "finalize"):
++            errors.append(f"diagram_finalize_invalid:{rel}")
++        if summary:
++            validate_receipt_bindings(summary, source, artifact, rel, "finalize", errors)
++    return sorted(set(errors))
++
++
++def affected_archify_diagrams(pages: list[Page], states: list[dict[str, object]], root: Path) -> list[str]:
++    stale = {str(state["page"]) for state in states if state["stale"]}
++    return sorted(
++        {
++            artifact.relative_to(root.resolve()).as_posix()
++            for page in pages
++            if page.rel in stale
++            for artifact in linked_archify_diagrams(page, root)
++        }
++    )
++
++
+ def safe_source_spec(spec: str) -> str:
+     normalized = spec.replace("\\", "/").removeprefix("./")
+     path = Path(normalized)
+@@ -360,6 +457,7 @@ def command_init(args: argparse.Namespace) -> int:
+         )
+     root.mkdir(parents=True, exist_ok=True)
+     (root / "domains" / "core").mkdir(parents=True, exist_ok=True)
++    (root / "diagrams").mkdir(parents=True, exist_ok=True)
+     (root / "assets" / "diagrams").mkdir(parents=True, exist_ok=True)
+     config = {"version": 1, "source": os.path.relpath(source, root)}
+     (root / ".atlas.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+@@ -416,12 +514,13 @@ verified_commit:
+ 
+ ## 架构图
+ 
+-复杂结构或流程的图放入 `assets/diagrams/`，在这里链接。
++复杂结构或流程使用 Archify 时，图源与交互图放入 `diagrams/`，在这里链接 HTML。
+ 
+ [返回系统总览](../../index.md)
+ """,
+         encoding="utf-8",
+     )
++    (root / "diagrams" / ".gitkeep").write_text("", encoding="utf-8")
+     (root / "assets" / "diagrams" / ".gitkeep").write_text("", encoding="utf-8")
+     return emit({"ok": True, "root": str(root), "source": str(source), "next": "write pages, then verify and build"})
+ 
+@@ -437,6 +536,7 @@ def command_status(args: argparse.Namespace) -> int:
+             "root": str(root),
+             "source": str(source),
+             "stale_pages": [item["page"] for item in states if item["stale"]],
++            "affected_diagrams": affected_archify_diagrams(pages, states, root),
+             "draft_pages": [item["page"] for item in states if item["status"] == "draft"],
+             "pages": states,
+             "errors": load_errors,
+@@ -488,7 +588,8 @@ def command_verify(args: argparse.Namespace) -> int:
+         return emit({"ok": False, "errors": load_errors}, 1)
+     by_rel = {page.rel: page for page in pages}
+     commit = git_head(source)
+-    verified = []
++    selected = []
++    digests = {}
+     errors = []
+     for raw in args.page:
+         rel = Path(raw).as_posix()
+@@ -505,9 +606,15 @@ def command_verify(args: argparse.Namespace) -> int:
+         if missing:
+             errors.append(f"source_mapping_missing:{rel}:{','.join(missing)}")
+             continue
+-        update_verification(page, digest, commit)
+-        verified.append(rel)
+-    return emit({"ok": not errors, "verified": verified, "commit": commit, "errors": errors}, 1 if errors else 0)
++        errors.extend(validate_archify_diagrams([page], root))
++        selected.append(page)
++        digests[rel] = digest
++    if errors:
++        return emit({"ok": False, "verified": [], "commit": commit, "errors": sorted(set(errors))}, 1)
++    for page in selected:
++        update_verification(page, digests[page.rel], commit)
++    verified = [page.rel for page in selected]
++    return emit({"ok": True, "verified": verified, "commit": commit, "errors": []})
+ 
+ 
+ def slugify(text: str) -> str:
+@@ -672,12 +779,32 @@ def build_static_assets(root: Path, site: Path) -> int:
+     return count
+ 
+ 
++def build_archify_diagrams(root: Path, site: Path) -> int:
++    diagrams = root / "diagrams"
++    count = 0
++    if not diagrams.is_dir():
++        return count
++    for path in sorted(diagrams.rglob("*.html")):
++        rel = path.relative_to(root)
++        target = site / rel
++        target.parent.mkdir(parents=True, exist_ok=True)
++        text = path.read_text(encoding="utf-8")
++        text = HTML_URL_RE.sub(
++            lambda match: f"{match.group(1)}={match.group(2)}{rewrite_md_url(match.group(3))}{match.group(2)}",
++            text,
++        )
++        target.write_text(text, encoding="utf-8")
++        count += 1
++    return count
++
++
+ def command_build(args: argparse.Namespace) -> int:
+     root = Path(args.root).resolve()
+     source = source_root(root)
+     pages, load_errors = load_pages(root)
+     errors, warnings = validate_structure(pages, load_errors)
+     errors.extend(validate_links(pages, root))
++    errors.extend(validate_archify_diagrams(pages, root))
+     if errors:
+         return emit({"ok": False, "errors": sorted(set(errors)), "warnings": warnings}, 1)
+     states = {item["page"]: item for item in freshness(pages, source, root)}
+@@ -690,8 +817,9 @@ def command_build(args: argparse.Namespace) -> int:
+         target.parent.mkdir(parents=True, exist_ok=True)
+         target.write_text(render_page(page, bool(states[page.rel]["stale"])), encoding="utf-8")
+     assets = build_static_assets(root, site)
++    diagrams = build_archify_diagrams(root, site)
+     stale = [rel for rel, state in states.items() if state["stale"]]
+-    return emit({"ok": True, "site": str(site), "pages": len(pages), "assets": assets, "stale_pages": stale, "warnings": warnings})
++    return emit({"ok": True, "site": str(site), "pages": len(pages), "assets": assets, "diagrams": diagrams, "stale_pages": stale, "warnings": warnings})
+ 
+ 
+ def command_check(args: argparse.Namespace) -> int:
+@@ -700,6 +828,7 @@ def command_check(args: argparse.Namespace) -> int:
+     pages, load_errors = load_pages(root)
+     errors, warnings = validate_structure(pages, load_errors)
+     errors.extend(validate_links(pages, root))
++    errors.extend(validate_archify_diagrams(pages, root))
+     states = freshness(pages, source, root)
+     for state in states:
+         if state["stale"]:
+@@ -707,7 +836,16 @@ def command_check(args: argparse.Namespace) -> int:
+         for missing in state["missing_sources"]:
+             errors.append(f"source_mapping_missing:{state['page']}:{missing}")
+     errors = sorted(set(errors))
+-    return emit({"ok": not errors, "errors": errors, "warnings": warnings, "stale_pages": [item["page"] for item in states if item["stale"]]}, 1 if errors else 0)
++    return emit(
++        {
++            "ok": not errors,
++            "errors": errors,
++            "warnings": warnings,
++            "stale_pages": [item["page"] for item in states if item["stale"]],
++            "affected_diagrams": affected_archify_diagrams(pages, states, root),
++        },
++        1 if errors else 0,
++    )
+ 
+ 
+ def parser() -> argparse.ArgumentParser:
+diff --git a/skills/project-atlas/tests/test_atlasctl.py b/skills/project-atlas/tests/test_atlasctl.py
+index 513b298..3f99245 100644
+--- a/skills/project-atlas/tests/test_atlasctl.py
++++ b/skills/project-atlas/tests/test_atlasctl.py
+@@ -2,6 +2,7 @@
+ 
+ from __future__ import annotations
+ 
++import hashlib
+ import io
+ import json
+ import sys
+@@ -113,6 +114,54 @@ verified_commit:
+         )
+         self.assertEqual(code, 0, result)
+ 
++    def refresh_archify_receipts(self, slug: str = "trade") -> None:
++        artifact = self.atlas / "diagrams" / f"{slug}.html"
++        source = artifact.with_suffix(".json")
++
++        def binding(path: Path) -> dict[str, object]:
++            content = path.read_bytes()
++            return {"sha256": hashlib.sha256(content).hexdigest(), "bytes": len(content)}
++
++        specification = binding(source)
++        diagram = binding(artifact)
++        self.write_page(
++            f"diagrams/{slug}.delivery.json",
++            json.dumps(
++                {
++                    "status": "current",
++                    "command": "deliver",
++                    "specification": specification,
++                    "artifact": diagram,
++                }
++            ),
++        )
++        self.write_page(
++            f"diagrams/{slug}.finalize-summary.json",
++            json.dumps(
++                {
++                    "ok": True,
++                    "command": "finalize",
++                    "specification": specification,
++                    "artifact": diagram,
++                }
++            ),
++        )
++
++    def make_archify_diagram(self, slug: str = "trade") -> None:
++        self.write_page(
++            f"diagrams/{slug}.json",
++            json.dumps({"meta": {"output": f"diagrams/{slug}.html"}, "nodes": []}),
++        )
++        self.write_page(f"diagrams/{slug}.html", "<html><body>interactive diagram</body></html>")
++        self.refresh_archify_receipts(slug)
++        domain = self.atlas / "domains/trade/index.md"
++        domain.write_text(
++            domain.read_text(encoding="utf-8").replace(
++                "\n[返回总览]", f"\n- [交互图](../../diagrams/{slug}.html)\n\n[返回总览]"
++            ),
++            encoding="utf-8",
++        )
++
+     def test_build_static_site_and_rewrite_links(self) -> None:
+         self.make_main_flow()
+         self.verify_all()
+@@ -128,6 +177,57 @@ verified_commit:
+         code, result = self.run_cli("check", "--root", str(self.atlas))
+         self.assertEqual(code, 0, result)
+ 
++    def test_archify_build_publishes_only_html(self) -> None:
++        self.make_main_flow()
++        self.make_archify_diagram()
++        self.verify_all()
++        code, result = self.run_cli("build", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++        self.assertEqual(result["diagrams"], 1)
++        self.assertTrue((self.atlas / "_site" / "diagrams" / "trade.html").is_file())
++        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.json").exists())
++        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.delivery.json").exists())
++        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.finalize-summary.json").exists())
++        code, result = self.run_cli("check", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++
++    def test_archify_source_change_requires_finalize(self) -> None:
++        self.make_main_flow()
++        self.make_archify_diagram()
++        self.verify_all()
++        (self.project / "src" / "orders.py").write_text("def submit():\n    return 'pending'\n", encoding="utf-8")
++        code, result = self.run_cli("status", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++        self.assertEqual(result["affected_diagrams"], ["diagrams/trade.html"])
++        source = self.atlas / "diagrams" / "trade.json"
++        source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
++        code, result = self.run_cli(
++            "verify", "--root", str(self.atlas), "--page", "domains/trade/index.md"
++        )
++        self.assertEqual(code, 1)
++        self.assertIn("diagram_specification_mismatch:diagrams/trade.html", result["errors"])
++        code, result = self.run_cli("check", "--root", str(self.atlas))
++        self.assertEqual(code, 1)
++        self.refresh_archify_receipts()
++        self.verify_all()
++        code, result = self.run_cli("check", "--root", str(self.atlas))
++        self.assertEqual(code, 0, result)
++
++    def test_archify_pending_or_missing_receipt_blocks_delivery(self) -> None:
++        self.make_main_flow()
++        self.make_archify_diagram()
++        self.write_page("diagrams/trade.delivery-pending.json", "{}")
++        code, result = self.run_cli(
++            "verify", "--root", str(self.atlas), "--page", "domains/trade/index.md"
++        )
++        self.assertEqual(code, 1)
++        self.assertIn("diagram_delivery_pending:diagrams/trade.html", result["errors"])
++        (self.atlas / "diagrams" / "trade.delivery-pending.json").unlink()
++        (self.atlas / "diagrams" / "trade.finalize-summary.json").unlink()
++        code, result = self.run_cli("check", "--root", str(self.atlas))
++        self.assertEqual(code, 1)
++        self.assertIn("diagram_finalize_missing:diagrams/trade.html", result["errors"])
++
+     def test_source_change_requires_semantic_reverification(self) -> None:
+         self.make_main_flow()
+         self.verify_all()
+diff --git a/skills/project-atlas/tests/test_project_atlas_contract.py b/skills/project-atlas/tests/test_project_atlas_contract.py
+index f09889f..aa8b87c 100644
+--- a/skills/project-atlas/tests/test_project_atlas_contract.py
++++ b/skills/project-atlas/tests/test_project_atlas_contract.py
+@@ -37,11 +37,27 @@ class ProjectAtlasContractTest(unittest.TestCase):
+         maintenance = (ROOT / "references" / "maintenance.md").read_text(encoding="utf-8")
+         self.assertIn("Markdown 是可编辑真源", skill)
+         self.assertIn("_site/index.html", skill)
+-        self.assertIn("独立 HTML", maintenance)
++        self.assertIn("独立静态 HTML", maintenance)
+         self.assertIn(".md", maintenance)
+ 
++    def test_archify_is_optional_and_finalize_is_required(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        diagrams = (ROOT / "references" / "diagrams.md").read_text(encoding="utf-8")
++        self.assertIn("archify skill", skill)
++        self.assertIn("diagrams/<slug>.json", skill)
++        self.assertIn("affected_diagrams", skill)
++        self.assertIn("可选依赖", diagrams)
++        self.assertIn("node <archify-skill>/bin/archify.mjs finalize", diagrams)
++        self.assertIn("SHA-256", diagrams)
++        self.assertIn("不手改回执", diagrams)
++
+     def test_references_and_evals_exist(self) -> None:
+-        for rel in ("references/layout.md", "references/maintenance.md", "evals/cases.yaml"):
++        for rel in (
++            "references/layout.md",
++            "references/maintenance.md",
++            "references/diagrams.md",
++            "evals/cases.yaml",
++        ):
+             self.assertTrue((ROOT / rel).is_file(), rel)
+ 
+ 

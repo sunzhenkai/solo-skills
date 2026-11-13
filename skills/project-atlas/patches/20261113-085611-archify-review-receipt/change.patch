@@ -1,0 +1,26 @@
+diff --git a/skills/project-atlas/references/diagrams.md b/skills/project-atlas/references/diagrams.md
+index 780d78d..f15a7ca 100644
+--- a/skills/project-atlas/references/diagrams.md
++++ b/skills/project-atlas/references/diagrams.md
+@@ -37,6 +37,8 @@ node <archify-skill>/bin/archify.mjs finalize <type> \
+ 
+ 仓库证据图必须带 `--repo-root <project>`；描述性图可省略。首次和每次修复都直接运行完整 `finalize`，沿用 Archify 的诊断与修复上限。同一图持续复用原 JSON，保持节点 ID 稳定，避免已有 `#focus=`、`#route=` 等深链失效。
+ 
++修复轮按 Archify 要求使用 `--out-dir <review-dir>` 时，finalize 摘要会写入该 review 目录。成功后把 `<review-dir>/<slug>.finalize-summary.json` 原样复制为 `diagrams/<slug>.finalize-summary.json`，作为 Atlas 的规范摘要；保留摘要字节与证据路径，不修改回执内容。
++
+ ## 页面链接
+ 
+ 在相关 L0/L1/L2 用普通 Markdown 链接打开独立交互图：
+diff --git a/skills/project-atlas/tests/test_project_atlas_contract.py b/skills/project-atlas/tests/test_project_atlas_contract.py
+index aa8b87c..4e025e8 100644
+--- a/skills/project-atlas/tests/test_project_atlas_contract.py
++++ b/skills/project-atlas/tests/test_project_atlas_contract.py
+@@ -50,6 +50,8 @@ class ProjectAtlasContractTest(unittest.TestCase):
+         self.assertIn("node <archify-skill>/bin/archify.mjs finalize", diagrams)
+         self.assertIn("SHA-256", diagrams)
+         self.assertIn("不手改回执", diagrams)
++        self.assertIn("--out-dir <review-dir>", diagrams)
++        self.assertIn("规范摘要", diagrams)
+ 
+     def test_references_and_evals_exist(self) -> None:
+         for rel in (

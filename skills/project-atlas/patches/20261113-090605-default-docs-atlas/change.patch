@@ -1,0 +1,115 @@
+diff --git a/skills/project-atlas/SKILL.md b/skills/project-atlas/SKILL.md
+index d65a794..97f07e7 100644
+--- a/skills/project-atlas/SKILL.md
++++ b/skills/project-atlas/SKILL.md
+@@ -29,15 +29,15 @@ compatibility: Requires Python 3.9+; Git is optional for recording the reviewed
+ 
+ ## atlasctl
+ 
+-`<this-skill>` 是本 skill 的安装目录。所有命令只写 `--root` 指向的 Atlas；`verify` 只修改指定页面的复核元数据。
++`<this-skill>` 是本 skill 的安装目录。默认 `<atlas>` 是 `<project>/docs/atlas`：`init` 根据 `--source` 推导，其他命令从项目根运行时读取 `./docs/atlas`。显式 `--root` 可覆盖默认落点；`verify` 只修改指定页面的复核元数据。
+ 
+ ```bash
+ ATLASCTL="python3 <this-skill>/scripts/atlasctl.py"
+-$ATLASCTL init --root <atlas> --source <project> --confirm
+-$ATLASCTL status --root <atlas>
+-$ATLASCTL verify --root <atlas> --page <page> [page...]
+-$ATLASCTL build --root <atlas>
+-$ATLASCTL check --root <atlas>
++$ATLASCTL init --source <project> --confirm
++$ATLASCTL status
++$ATLASCTL verify --page <page> [page...]
++$ATLASCTL build
++$ATLASCTL check
+ ```
+ 
+ stdout 为 JSON。退出码：0 成功，1 校验或执行失败，2 等待确认。`init` 首次先不带 `--confirm`，向用户展示 `prompt` 后再按 `confirm_args` 执行；已有 Atlas 直接进入 `status`。
+diff --git a/skills/project-atlas/evals/cases.yaml b/skills/project-atlas/evals/cases.yaml
+index 7aa86bd..0f34130 100644
+--- a/skills/project-atlas/evals/cases.yaml
++++ b/skills/project-atlas/evals/cases.yaml
+@@ -3,7 +3,7 @@ cases:
+   - id: bootstrap-main-flow
+     input: 为一个尚无架构文档的 Web 项目建立 Atlas，先覆盖一条下单主链路，并生成可浏览 HTML。
+     expected:
+-      - init 经确认后创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
++      - init 经确认后在项目 docs/atlas 创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
+       - L1/L2 的 sources 指向实际源码，页面之间形成上下级双向链接。
+       - build 生成 _site/index.html，check.ok=true；未覆盖范围保持 draft。
+   - id: heal-source-change
+diff --git a/skills/project-atlas/scripts/atlasctl.py b/skills/project-atlas/scripts/atlasctl.py
+index 9b40335..97447e4 100644
+--- a/skills/project-atlas/scripts/atlasctl.py
++++ b/skills/project-atlas/scripts/atlasctl.py
+@@ -437,8 +437,8 @@ def freshness(pages: list[Page], source: Path, atlas: Path) -> list[dict[str, ob
+ 
+ 
+ def command_init(args: argparse.Namespace) -> int:
+-    root = Path(args.root).resolve()
+     source = Path(args.source).resolve()
++    root = Path(args.root).resolve() if args.root else source / "docs" / "atlas"
+     if not source.is_dir():
+         raise AtlasError(f"source directory does not exist: {source}")
+     if (root / ".atlas.json").exists():
+@@ -852,16 +852,16 @@ def parser() -> argparse.ArgumentParser:
+     result = argparse.ArgumentParser(prog="atlasctl")
+     sub = result.add_subparsers(dest="command", required=True)
+     init = sub.add_parser("init")
+-    init.add_argument("--root", required=True)
++    init.add_argument("--root")
+     init.add_argument("--source", required=True)
+     init.add_argument("--confirm", action="store_true")
+     init.set_defaults(func=command_init)
+     for name in ("status", "build", "check"):
+         cmd = sub.add_parser(name)
+-        cmd.add_argument("--root", required=True)
++        cmd.add_argument("--root", default="docs/atlas")
+         cmd.set_defaults(func={"status": command_status, "build": command_build, "check": command_check}[name])
+     verify = sub.add_parser("verify")
+-    verify.add_argument("--root", required=True)
++    verify.add_argument("--root", default="docs/atlas")
+     verify.add_argument("--page", nargs="+", required=True)
+     verify.set_defaults(func=command_verify)
+     return result
+diff --git a/skills/project-atlas/tests/test_atlasctl.py b/skills/project-atlas/tests/test_atlasctl.py
+index 3f99245..299b5b5 100644
+--- a/skills/project-atlas/tests/test_atlasctl.py
++++ b/skills/project-atlas/tests/test_atlasctl.py
+@@ -286,6 +286,21 @@ verified_commit:
+         self.assertEqual(code, 1)
+         self.assertIn("topic_not_linked_from_domain:domains/trade/refund.md", result["errors"])
+ 
++    def test_default_root_is_docs_atlas_and_explicit_root_wins(self) -> None:
++        other_project = Path(self.tmp.name) / "other-project"
++        other_project.mkdir()
++        code, result = self.run_cli("init", "--source", str(other_project), "--confirm")
++        self.assertEqual(code, 0, result)
++        self.assertEqual(Path(result["root"]), other_project / "docs" / "atlas")
++        self.assertEqual(atlasctl.parser().parse_args(["status"]).root, "docs/atlas")
++        self.assertEqual(atlasctl.parser().parse_args(["verify", "--page", "index.md"]).root, "docs/atlas")
++        custom = Path(self.tmp.name) / "custom-atlas"
++        code, result = self.run_cli(
++            "init", "--source", str(other_project), "--root", str(custom), "--confirm"
++        )
++        self.assertEqual(code, 0, result)
++        self.assertEqual(Path(result["root"]), custom)
++
+     def test_init_requires_confirmation_and_preserves_existing_directory(self) -> None:
+         other = Path(self.tmp.name) / "other-atlas"
+         code, result = self.run_cli("init", "--root", str(other), "--source", str(self.project))
+diff --git a/skills/project-atlas/tests/test_project_atlas_contract.py b/skills/project-atlas/tests/test_project_atlas_contract.py
+index 4e025e8..aab2097 100644
+--- a/skills/project-atlas/tests/test_project_atlas_contract.py
++++ b/skills/project-atlas/tests/test_project_atlas_contract.py
+@@ -53,6 +53,11 @@ class ProjectAtlasContractTest(unittest.TestCase):
+         self.assertIn("--out-dir <review-dir>", diagrams)
+         self.assertIn("规范摘要", diagrams)
+ 
++    def test_default_project_root_is_docs_atlas(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("<project>/docs/atlas", skill)
++        self.assertIn("显式 `--root` 可覆盖默认落点", skill)
++
+     def test_references_and_evals_exist(self) -> None:
+         for rel in (
+             "references/layout.md",

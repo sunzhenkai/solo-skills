@@ -37,11 +37,34 @@ class ProjectAtlasContractTest(unittest.TestCase):
         maintenance = (ROOT / "references" / "maintenance.md").read_text(encoding="utf-8")
         self.assertIn("Markdown 是可编辑真源", skill)
         self.assertIn("_site/index.html", skill)
-        self.assertIn("独立 HTML", maintenance)
+        self.assertIn("独立静态 HTML", maintenance)
         self.assertIn(".md", maintenance)
 
+    def test_archify_is_optional_and_finalize_is_required(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        diagrams = (ROOT / "references" / "diagrams.md").read_text(encoding="utf-8")
+        self.assertIn("archify skill", skill)
+        self.assertIn("diagrams/<slug>.json", skill)
+        self.assertIn("affected_diagrams", skill)
+        self.assertIn("可选依赖", diagrams)
+        self.assertIn("node <archify-skill>/bin/archify.mjs finalize", diagrams)
+        self.assertIn("SHA-256", diagrams)
+        self.assertIn("不手改回执", diagrams)
+        self.assertIn("--out-dir <review-dir>", diagrams)
+        self.assertIn("规范摘要", diagrams)
+
+    def test_default_project_root_is_docs_atlas(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("<project>/docs/atlas", skill)
+        self.assertIn("显式 `--root` 可覆盖默认落点", skill)
+
     def test_references_and_evals_exist(self) -> None:
-        for rel in ("references/layout.md", "references/maintenance.md", "evals/cases.yaml"):
+        for rel in (
+            "references/layout.md",
+            "references/maintenance.md",
+            "references/diagrams.md",
+            "evals/cases.yaml",
+        ):
             self.assertTrue((ROOT / rel).is_file(), rel)
 
 

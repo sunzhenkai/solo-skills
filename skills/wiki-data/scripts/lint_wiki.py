@@ -70,7 +70,13 @@ FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)", re.S)
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("wiki_root", type=Path, help="Workspace root containing wiki/")
+    parser.add_argument(
+        "wiki_root",
+        nargs="?",
+        type=Path,
+        default=Path("docs/wiki"),
+        help="Workspace root containing wiki/ (default: docs/wiki)",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable report")
     index_mode = parser.add_mutually_exclusive_group()
     index_mode.add_argument(

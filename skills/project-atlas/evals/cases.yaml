@@ -3,7 +3,7 @@ cases:
   - id: bootstrap-main-flow
     input: 为一个尚无架构文档的 Web 项目建立 Atlas，先覆盖一条下单主链路，并生成可浏览 HTML。
     expected:
-      - init 经确认后创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
+      - init 经确认后在项目 docs/atlas 创建三层骨架，随后补写真实的 L0、L1 和必要的 L2。
       - L1/L2 的 sources 指向实际源码，页面之间形成上下级双向链接。
       - build 生成 _site/index.html，check.ok=true；未覆盖范围保持 draft。
   - id: heal-source-change
@@ -12,6 +12,13 @@ cases:
       - status 将受影响页面列入 stale_pages，并报告失效映射。
       - agent 重读代码，更新业务说明、图和 sources 后才执行 verify。
       - 最终 stale_pages 为空，Markdown 与 HTML 链接均通过检查。
+  - id: finalize-archify-diagram
+    input: 下单主链路需要跨系统时序图，随后源码变化导致图中的失败分支与证据行号变化。
+    expected:
+      - 加载 archify，复用 diagrams/order-submit.json，并通过 finalize 生成同名 HTML。
+      - 页面链接交互图；build 只发布 HTML，不发布 JSON 与交付回执。
+      - status 将该图列入 affected_diagrams；修改 JSON 后未重新 finalize 时 verify 和 check 失败。
+      - finalize 成功后 verify、build、check 均通过，节点 ID 与既有深链保持稳定。
   - id: route-general-wiki
     input: 用户要整理跨项目会议纪要和经验，而非当前项目的架构与业务流程。
     expected:

@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import lint_wiki  # noqa: E402
 
 
 class ContractTest(unittest.TestCase):
@@ -23,6 +27,12 @@ class ContractTest(unittest.TestCase):
     def test_frontmatter_name_matches_directory(self) -> None:
         self.assertIn("name: wiki-data", self.skill)
         self.assertEqual(ROOT.name, "wiki-data")
+
+    def test_default_project_workspace_is_docs_wiki(self) -> None:
+        self.assertIn("{PROJECT_ROOT}/docs/wiki", self.skill)
+        self.assertIn("{PROJECT_ROOT}/docs/wiki", self.layout)
+        self.assertEqual(lint_wiki.parse_args([]).wiki_root, Path("docs/wiki"))
+        self.assertEqual(lint_wiki.parse_args(["custom/wiki"]).wiki_root, Path("custom/wiki"))
 
     def test_reference_and_script_exist(self) -> None:
         for rel in (

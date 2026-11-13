@@ -1,6 +1,6 @@
 # 工作区布局
 
-`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
+`{WIKI_ROOT}` 的 canonical 布局；项目内默认是 `{PROJECT_ROOT}/docs/wiki`，显式指定的已有工作区保持原路径。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
 
 ```text
 {WIKI_ROOT}/

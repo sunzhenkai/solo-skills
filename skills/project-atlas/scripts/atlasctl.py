@@ -223,9 +223,9 @@ def markdown_adjacency(pages: list[Page], root: Path) -> dict[str, set[str]]:
 
 
 def iter_static_html(root: Path):
-    assets = root / "assets"
-    if assets.is_dir():
-        yield from sorted(assets.rglob("*.html"))
+    for directory in (root / "assets", root / "diagrams"):
+        if directory.is_dir():
+            yield from sorted(directory.rglob("*.html"))
 
 
 def validate_links(pages: list[Page], root: Path) -> list[str]:
@@ -246,6 +246,103 @@ def validate_links(pages: list[Page], root: Path) -> list[str]:
         if target is not None and not target.exists():
             errors.append(f"broken_link:{rel}:{raw_url}")
     return errors
+
+
+def linked_archify_diagrams(page: Page, root: Path) -> list[Path]:
+    diagrams = []
+    diagram_root = (root / "diagrams").resolve()
+    for raw_url in LINK_RE.findall(page.body):
+        try:
+            target, _ = local_target(page.path.parent, raw_url, root)
+        except AtlasError:
+            continue
+        if target is None or target.suffix.lower() != ".html":
+            continue
+        if target == diagram_root or diagram_root in target.parents:
+            diagrams.append(target)
+    return diagrams
+
+
+def file_sha256(path: Path) -> tuple[str, int]:
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+            size += len(chunk)
+    return digest.hexdigest(), size
+
+
+def read_receipt(path: Path, kind: str, rel: str, errors: list[str]) -> dict[str, object]:
+    if not path.is_file():
+        errors.append(f"diagram_{kind}_missing:{rel}")
+        return {}
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError):
+        errors.append(f"diagram_{kind}_invalid:{rel}")
+        return {}
+    if not isinstance(receipt, dict):
+        errors.append(f"diagram_{kind}_invalid:{rel}")
+        return {}
+    return receipt
+
+
+def validate_receipt_bindings(
+    receipt: dict[str, object], source: Path, artifact: Path, rel: str, kind: str, errors: list[str]
+) -> None:
+    for key, path in (("specification", source), ("artifact", artifact)):
+        binding = receipt.get(key)
+        if not isinstance(binding, dict):
+            errors.append(f"diagram_{kind}_{key}_missing:{rel}")
+            continue
+        digest, size = file_sha256(path)
+        if binding.get("sha256") != digest or binding.get("bytes") != size:
+            errors.append(f"diagram_{key}_mismatch:{rel}")
+
+
+def validate_archify_diagrams(pages: list[Page], root: Path) -> list[str]:
+    errors = []
+    artifacts = {artifact for page in pages for artifact in linked_archify_diagrams(page, root)}
+    for artifact in sorted(artifacts):
+        rel = artifact.relative_to(root.resolve()).as_posix()
+        for path, code in (
+            (artifact.with_suffix(".delivery-pending.json"), "delivery_pending"),
+            (artifact.with_suffix(".delivery-lock.json"), "delivery_lock"),
+            (artifact.parent / ".archify-delivery-lock.json", "delivery_lock"),
+        ):
+            if path.exists():
+                errors.append(f"diagram_{code}:{rel}")
+        if not artifact.is_file():
+            errors.append(f"diagram_html_missing:{rel}")
+            continue
+        source = artifact.with_suffix(".json")
+        if not source.is_file():
+            errors.append(f"diagram_source_missing:{rel}")
+            continue
+        delivery = read_receipt(artifact.with_suffix(".delivery.json"), "delivery", rel, errors)
+        if delivery and (delivery.get("status") != "current" or delivery.get("command") != "deliver"):
+            errors.append(f"diagram_delivery_invalid:{rel}")
+        if delivery:
+            validate_receipt_bindings(delivery, source, artifact, rel, "delivery", errors)
+        summary = read_receipt(artifact.with_suffix(".finalize-summary.json"), "finalize", rel, errors)
+        if summary and (summary.get("ok") is not True or summary.get("command") != "finalize"):
+            errors.append(f"diagram_finalize_invalid:{rel}")
+        if summary:
+            validate_receipt_bindings(summary, source, artifact, rel, "finalize", errors)
+    return sorted(set(errors))
+
+
+def affected_archify_diagrams(pages: list[Page], states: list[dict[str, object]], root: Path) -> list[str]:
+    stale = {str(state["page"]) for state in states if state["stale"]}
+    return sorted(
+        {
+            artifact.relative_to(root.resolve()).as_posix()
+            for page in pages
+            if page.rel in stale
+            for artifact in linked_archify_diagrams(page, root)
+        }
+    )
 
 
 def safe_source_spec(spec: str) -> str:
@@ -340,8 +437,8 @@ def freshness(pages: list[Page], source: Path, atlas: Path) -> list[dict[str, ob
 
 
 def command_init(args: argparse.Namespace) -> int:
-    root = Path(args.root).resolve()
     source = Path(args.source).resolve()
+    root = Path(args.root).resolve() if args.root else source / "docs" / "atlas"
     if not source.is_dir():
         raise AtlasError(f"source directory does not exist: {source}")
     if (root / ".atlas.json").exists():
@@ -360,6 +457,7 @@ def command_init(args: argparse.Namespace) -> int:
         )
     root.mkdir(parents=True, exist_ok=True)
     (root / "domains" / "core").mkdir(parents=True, exist_ok=True)
+    (root / "diagrams").mkdir(parents=True, exist_ok=True)
     (root / "assets" / "diagrams").mkdir(parents=True, exist_ok=True)
     config = {"version": 1, "source": os.path.relpath(source, root)}
     (root / ".atlas.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
@@ -416,12 +514,13 @@ verified_commit:
 
 ## 架构图
 
-复杂结构或流程的图放入 `assets/diagrams/`，在这里链接。
+复杂结构或流程使用 Archify 时，图源与交互图放入 `diagrams/`，在这里链接 HTML。
 
 [返回系统总览](../../index.md)
 """,
         encoding="utf-8",
     )
+    (root / "diagrams" / ".gitkeep").write_text("", encoding="utf-8")
     (root / "assets" / "diagrams" / ".gitkeep").write_text("", encoding="utf-8")
     return emit({"ok": True, "root": str(root), "source": str(source), "next": "write pages, then verify and build"})
 
@@ -437,6 +536,7 @@ def command_status(args: argparse.Namespace) -> int:
             "root": str(root),
             "source": str(source),
             "stale_pages": [item["page"] for item in states if item["stale"]],
+            "affected_diagrams": affected_archify_diagrams(pages, states, root),
             "draft_pages": [item["page"] for item in states if item["status"] == "draft"],
             "pages": states,
             "errors": load_errors,
@@ -488,7 +588,8 @@ def command_verify(args: argparse.Namespace) -> int:
         return emit({"ok": False, "errors": load_errors}, 1)
     by_rel = {page.rel: page for page in pages}
     commit = git_head(source)
-    verified = []
+    selected = []
+    digests = {}
     errors = []
     for raw in args.page:
         rel = Path(raw).as_posix()
@@ -505,9 +606,15 @@ def command_verify(args: argparse.Namespace) -> int:
         if missing:
             errors.append(f"source_mapping_missing:{rel}:{','.join(missing)}")
             continue
-        update_verification(page, digest, commit)
-        verified.append(rel)
-    return emit({"ok": not errors, "verified": verified, "commit": commit, "errors": errors}, 1 if errors else 0)
+        errors.extend(validate_archify_diagrams([page], root))
+        selected.append(page)
+        digests[rel] = digest
+    if errors:
+        return emit({"ok": False, "verified": [], "commit": commit, "errors": sorted(set(errors))}, 1)
+    for page in selected:
+        update_verification(page, digests[page.rel], commit)
+    verified = [page.rel for page in selected]
+    return emit({"ok": True, "verified": verified, "commit": commit, "errors": []})
 
 
 def slugify(text: str) -> str:
@@ -672,12 +779,32 @@ def build_static_assets(root: Path, site: Path) -> int:
     return count
 
 
+def build_archify_diagrams(root: Path, site: Path) -> int:
+    diagrams = root / "diagrams"
+    count = 0
+    if not diagrams.is_dir():
+        return count
+    for path in sorted(diagrams.rglob("*.html")):
+        rel = path.relative_to(root)
+        target = site / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        text = path.read_text(encoding="utf-8")
+        text = HTML_URL_RE.sub(
+            lambda match: f"{match.group(1)}={match.group(2)}{rewrite_md_url(match.group(3))}{match.group(2)}",
+            text,
+        )
+        target.write_text(text, encoding="utf-8")
+        count += 1
+    return count
+
+
 def command_build(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     source = source_root(root)
     pages, load_errors = load_pages(root)
     errors, warnings = validate_structure(pages, load_errors)
     errors.extend(validate_links(pages, root))
+    errors.extend(validate_archify_diagrams(pages, root))
     if errors:
         return emit({"ok": False, "errors": sorted(set(errors)), "warnings": warnings}, 1)
     states = {item["page"]: item for item in freshness(pages, source, root)}
@@ -690,8 +817,9 @@ def command_build(args: argparse.Namespace) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(render_page(page, bool(states[page.rel]["stale"])), encoding="utf-8")
     assets = build_static_assets(root, site)
+    diagrams = build_archify_diagrams(root, site)
     stale = [rel for rel, state in states.items() if state["stale"]]
-    return emit({"ok": True, "site": str(site), "pages": len(pages), "assets": assets, "stale_pages": stale, "warnings": warnings})
+    return emit({"ok": True, "site": str(site), "pages": len(pages), "assets": assets, "diagrams": diagrams, "stale_pages": stale, "warnings": warnings})
 
 
 def command_check(args: argparse.Namespace) -> int:
@@ -700,6 +828,7 @@ def command_check(args: argparse.Namespace) -> int:
     pages, load_errors = load_pages(root)
     errors, warnings = validate_structure(pages, load_errors)
     errors.extend(validate_links(pages, root))
+    errors.extend(validate_archify_diagrams(pages, root))
     states = freshness(pages, source, root)
     for state in states:
         if state["stale"]:
@@ -707,23 +836,32 @@ def command_check(args: argparse.Namespace) -> int:
         for missing in state["missing_sources"]:
             errors.append(f"source_mapping_missing:{state['page']}:{missing}")
     errors = sorted(set(errors))
-    return emit({"ok": not errors, "errors": errors, "warnings": warnings, "stale_pages": [item["page"] for item in states if item["stale"]]}, 1 if errors else 0)
+    return emit(
+        {
+            "ok": not errors,
+            "errors": errors,
+            "warnings": warnings,
+            "stale_pages": [item["page"] for item in states if item["stale"]],
+            "affected_diagrams": affected_archify_diagrams(pages, states, root),
+        },
+        1 if errors else 0,
+    )
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="atlasctl")
     sub = result.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init")
-    init.add_argument("--root", required=True)
+    init.add_argument("--root")
     init.add_argument("--source", required=True)
     init.add_argument("--confirm", action="store_true")
     init.set_defaults(func=command_init)
     for name in ("status", "build", "check"):
         cmd = sub.add_parser(name)
-        cmd.add_argument("--root", required=True)
+        cmd.add_argument("--root", default="docs/atlas")
         cmd.set_defaults(func={"status": command_status, "build": command_build, "check": command_check}[name])
     verify = sub.add_parser("verify")
-    verify.add_argument("--root", required=True)
+    verify.add_argument("--root", default="docs/atlas")
     verify.add_argument("--page", nargs="+", required=True)
     verify.set_defaults(func=command_verify)
     return result

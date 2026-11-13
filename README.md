@@ -80,6 +80,8 @@ npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 
+可选依赖：[`archify`](https://github.com/tt-a1i/archify) 仅用于 `project-atlas` 新建或更新交互图；普通 Atlas 构建不需要它，也不纳入 `make install-deps` / `check-deps`。
+
 > Web UI 交付细则见 `skills/taskrail/references/ui-delivery.md`（不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
 
 ### 一键安装（Makefile）

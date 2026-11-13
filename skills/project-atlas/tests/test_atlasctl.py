@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import sys
@@ -113,6 +114,54 @@ verified_commit:
         )
         self.assertEqual(code, 0, result)
 
+    def refresh_archify_receipts(self, slug: str = "trade") -> None:
+        artifact = self.atlas / "diagrams" / f"{slug}.html"
+        source = artifact.with_suffix(".json")
+
+        def binding(path: Path) -> dict[str, object]:
+            content = path.read_bytes()
+            return {"sha256": hashlib.sha256(content).hexdigest(), "bytes": len(content)}
+
+        specification = binding(source)
+        diagram = binding(artifact)
+        self.write_page(
+            f"diagrams/{slug}.delivery.json",
+            json.dumps(
+                {
+                    "status": "current",
+                    "command": "deliver",
+                    "specification": specification,
+                    "artifact": diagram,
+                }
+            ),
+        )
+        self.write_page(
+            f"diagrams/{slug}.finalize-summary.json",
+            json.dumps(
+                {
+                    "ok": True,
+                    "command": "finalize",
+                    "specification": specification,
+                    "artifact": diagram,
+                }
+            ),
+        )
+
+    def make_archify_diagram(self, slug: str = "trade") -> None:
+        self.write_page(
+            f"diagrams/{slug}.json",
+            json.dumps({"meta": {"output": f"diagrams/{slug}.html"}, "nodes": []}),
+        )
+        self.write_page(f"diagrams/{slug}.html", "<html><body>interactive diagram</body></html>")
+        self.refresh_archify_receipts(slug)
+        domain = self.atlas / "domains/trade/index.md"
+        domain.write_text(
+            domain.read_text(encoding="utf-8").replace(
+                "\n[返回总览]", f"\n- [交互图](../../diagrams/{slug}.html)\n\n[返回总览]"
+            ),
+            encoding="utf-8",
+        )
+
     def test_build_static_site_and_rewrite_links(self) -> None:
         self.make_main_flow()
         self.verify_all()
@@ -127,6 +176,57 @@ verified_commit:
         self.assertIn("由 project-atlas 生成", topic)
         code, result = self.run_cli("check", "--root", str(self.atlas))
         self.assertEqual(code, 0, result)
+
+    def test_archify_build_publishes_only_html(self) -> None:
+        self.make_main_flow()
+        self.make_archify_diagram()
+        self.verify_all()
+        code, result = self.run_cli("build", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["diagrams"], 1)
+        self.assertTrue((self.atlas / "_site" / "diagrams" / "trade.html").is_file())
+        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.json").exists())
+        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.delivery.json").exists())
+        self.assertFalse((self.atlas / "_site" / "diagrams" / "trade.finalize-summary.json").exists())
+        code, result = self.run_cli("check", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+
+    def test_archify_source_change_requires_finalize(self) -> None:
+        self.make_main_flow()
+        self.make_archify_diagram()
+        self.verify_all()
+        (self.project / "src" / "orders.py").write_text("def submit():\n    return 'pending'\n", encoding="utf-8")
+        code, result = self.run_cli("status", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["affected_diagrams"], ["diagrams/trade.html"])
+        source = self.atlas / "diagrams" / "trade.json"
+        source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        code, result = self.run_cli(
+            "verify", "--root", str(self.atlas), "--page", "domains/trade/index.md"
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("diagram_specification_mismatch:diagrams/trade.html", result["errors"])
+        code, result = self.run_cli("check", "--root", str(self.atlas))
+        self.assertEqual(code, 1)
+        self.refresh_archify_receipts()
+        self.verify_all()
+        code, result = self.run_cli("check", "--root", str(self.atlas))
+        self.assertEqual(code, 0, result)
+
+    def test_archify_pending_or_missing_receipt_blocks_delivery(self) -> None:
+        self.make_main_flow()
+        self.make_archify_diagram()
+        self.write_page("diagrams/trade.delivery-pending.json", "{}")
+        code, result = self.run_cli(
+            "verify", "--root", str(self.atlas), "--page", "domains/trade/index.md"
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("diagram_delivery_pending:diagrams/trade.html", result["errors"])
+        (self.atlas / "diagrams" / "trade.delivery-pending.json").unlink()
+        (self.atlas / "diagrams" / "trade.finalize-summary.json").unlink()
+        code, result = self.run_cli("check", "--root", str(self.atlas))
+        self.assertEqual(code, 1)
+        self.assertIn("diagram_finalize_missing:diagrams/trade.html", result["errors"])
 
     def test_source_change_requires_semantic_reverification(self) -> None:
         self.make_main_flow()
@@ -185,6 +285,21 @@ verified_commit:
         code, result = self.run_cli("check", "--root", str(self.atlas))
         self.assertEqual(code, 1)
         self.assertIn("topic_not_linked_from_domain:domains/trade/refund.md", result["errors"])
+
+    def test_default_root_is_docs_atlas_and_explicit_root_wins(self) -> None:
+        other_project = Path(self.tmp.name) / "other-project"
+        other_project.mkdir()
+        code, result = self.run_cli("init", "--source", str(other_project), "--confirm")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(Path(result["root"]), other_project / "docs" / "atlas")
+        self.assertEqual(atlasctl.parser().parse_args(["status"]).root, "docs/atlas")
+        self.assertEqual(atlasctl.parser().parse_args(["verify", "--page", "index.md"]).root, "docs/atlas")
+        custom = Path(self.tmp.name) / "custom-atlas"
+        code, result = self.run_cli(
+            "init", "--source", str(other_project), "--root", str(custom), "--confirm"
+        )
+        self.assertEqual(code, 0, result)
+        self.assertEqual(Path(result["root"]), custom)
 
     def test_init_requires_confirmation_and_preserves_existing_directory(self) -> None:
         other = Path(self.tmp.name) / "other-atlas"

@@ -1,0 +1,85 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index 7c307ac..293041c 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -39,13 +39,14 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ 
+ ## 绑定 `WIKI_ROOT`
+ 
+-会话绑定一个工作区根目录 `{WIKI_ROOT}`。路径由用户给出，或在 cwd 发现既有布局后确认。
++会话绑定一个工作区根目录 `{WIKI_ROOT}`。项目内的默认落点是 `{PROJECT_ROOT}/docs/wiki`，其中 `{PROJECT_ROOT}` 是当前项目根；用户显式指定的路径优先。
+ 
+ **既有布局**：`{WIKI_ROOT}/purpose.md` 与 `{WIKI_ROOT}/wiki/` 同时存在。
+ 
+ 1. 用户指定了目录 → 绑定该目录。
+-2. cwd 已是既有布局 → 绑定 cwd，并报告路径。
+-3. 否则列出候选（cwd 下含大量 `.md` 但无 `wiki/`），请用户选择 **init** 或给出路径。确认前不写盘。
++2. cwd 的 `docs/wiki` 已是既有布局 → 绑定该目录，并报告路径。
++3. cwd 本身已是既有布局 → 绑定 cwd，兼容已有工作区。
++4. 否则将 `{PROJECT_ROOT}/docs/wiki` 作为拟创建落点，确认研究/知识范围后走 **init**。确认前不写盘。
+ 
+ 禁止猜测家目录或机器特例路径。
+ 
+diff --git a/skills/wiki-data/references/layout.md b/skills/wiki-data/references/layout.md
+index 17bc7af..95efe16 100644
+--- a/skills/wiki-data/references/layout.md
++++ b/skills/wiki-data/references/layout.md
+@@ -1,6 +1,6 @@
+ # 工作区布局
+ 
+-`{WIKI_ROOT}` 的 canonical 布局。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
++`{WIKI_ROOT}` 的 canonical 布局；项目内默认是 `{PROJECT_ROOT}/docs/wiki`，显式指定的已有工作区保持原路径。`purpose.md` 与 `rules.md` 在工作区根，不在 `wiki/` 内。业务文档默认保存到 `{WIKI_ROOT}/wiki/` 下对应 typed 目录。
+ 
+ ```text
+ {WIKI_ROOT}/
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index ce3c86e..585825c 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -70,7 +70,13 @@ FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)", re.S)
+ 
+ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("wiki_root", type=Path, help="Workspace root containing wiki/")
++    parser.add_argument(
++        "wiki_root",
++        nargs="?",
++        type=Path,
++        default=Path("docs/wiki"),
++        help="Workspace root containing wiki/ (default: docs/wiki)",
++    )
+     parser.add_argument("--json", action="store_true", help="Print machine-readable report")
+     index_mode = parser.add_mutually_exclusive_group()
+     index_mode.add_argument(
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index 00e1312..93da2ed 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -2,10 +2,14 @@
+ 
+ from __future__ import annotations
+ 
++import sys
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++
++import lint_wiki  # noqa: E402
+ 
+ 
+ class ContractTest(unittest.TestCase):
+@@ -24,6 +28,12 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("name: wiki-data", self.skill)
+         self.assertEqual(ROOT.name, "wiki-data")
+ 
++    def test_default_project_workspace_is_docs_wiki(self) -> None:
++        self.assertIn("{PROJECT_ROOT}/docs/wiki", self.skill)
++        self.assertIn("{PROJECT_ROOT}/docs/wiki", self.layout)
++        self.assertEqual(lint_wiki.parse_args([]).wiki_root, Path("docs/wiki"))
++        self.assertEqual(lint_wiki.parse_args(["custom/wiki"]).wiki_root, Path("custom/wiki"))
++
+     def test_reference_and_script_exist(self) -> None:
+         for rel in (
+             "references/layout.md",

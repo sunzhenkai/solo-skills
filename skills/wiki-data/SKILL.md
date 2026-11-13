@@ -39,13 +39,14 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
 
 ## 绑定 `WIKI_ROOT`
 
-会话绑定一个工作区根目录 `{WIKI_ROOT}`。路径由用户给出，或在 cwd 发现既有布局后确认。
+会话绑定一个工作区根目录 `{WIKI_ROOT}`。项目内的默认落点是 `{PROJECT_ROOT}/docs/wiki`，其中 `{PROJECT_ROOT}` 是当前项目根；用户显式指定的路径优先。
 
 **既有布局**：`{WIKI_ROOT}/purpose.md` 与 `{WIKI_ROOT}/wiki/` 同时存在。
 
 1. 用户指定了目录 → 绑定该目录。
-2. cwd 已是既有布局 → 绑定 cwd，并报告路径。
-3. 否则列出候选（cwd 下含大量 `.md` 但无 `wiki/`），请用户选择 **init** 或给出路径。确认前不写盘。
+2. cwd 的 `docs/wiki` 已是既有布局 → 绑定该目录，并报告路径。
+3. cwd 本身已是既有布局 → 绑定 cwd，兼容已有工作区。
+4. 否则将 `{PROJECT_ROOT}/docs/wiki` 作为拟创建落点，确认研究/知识范围后走 **init**。确认前不写盘。
 
 禁止猜测家目录或机器特例路径。
 
