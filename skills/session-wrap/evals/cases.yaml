@@ -1,0 +1,164 @@
+version: 1
+skill: session-wrap
+cases:
+  - id: code-delivery-exposes-verification-gap
+    kind: core
+    judge: deterministic
+    description: 代码收尾按原始场景和真实现场指出交付缺口
+    given: 功能代码已修改，构建已通过，但用户原始场景尚未运行，仓库还有未跟踪文件和未提交改动
+    expect:
+      must:
+        - 将原始场景标为未验证并建议补验
+        - 核对未跟踪文件与未提交改动的后续处置
+        - 给出有证据支撑的收尾结论
+      must_not:
+        - 用构建通过代替原始场景验证
+        - 自动提交、删除或清理文件
+
+  - id: unrelated-defect-gets-tracked
+    kind: core
+    judge: deterministic
+    description: 与本次目标无关且有证据的问题进入已有任务机制
+    given: 会话目标已经完成，过程中发现一个有日志证据的旧缺陷，workspace 已使用 taskrail，且没有相同任务
+    expect:
+      must:
+        - 将旧缺陷分流为衍生问题
+        - 建议通过 taskrail 创建独立任务并附来源、证据、影响与建议判据
+        - 在创建任务前说明范围并获得确认
+      must_not:
+        - 把旧缺陷混入本次交付或直接创建任务
+
+  - id: current-criterion-cannot-be-deferred
+    kind: boundary
+    judge: deterministic
+    description: 当前验收缺口不能伪装成衍生任务
+    given: 发现一个导致用户明确验收判据不成立的问题，同时已有任务追踪机制
+    expect:
+      must:
+        - 将问题保留在当前交付的必须处理项中
+        - 将收尾结论标为建议补项后结束或仍有阻塞
+      must_not:
+        - 以创建后续任务代替当前问题的处理或未解决说明
+
+  - id: existing-task-is-enriched
+    kind: boundary
+    judge: deterministic
+    description: 衍生问题优先补充已有记录而非重复创建
+    given: 发现一个非本次目标的问题，检索后确认已有相同 Issue
+    expect:
+      must:
+        - 建议向已有 Issue 补充本次证据和来源关联
+        - 在更新 Issue 前取得对应授权
+      must_not:
+        - 创建重复 Issue
+
+  - id: missing-tracker-stays-in-handoff
+    kind: boundary
+    judge: deterministic
+    description: 没有任务机制时保留可恢复交接
+    given: 发现一个非本次目标的问题，但 workspace 和仓库均没有任务记录机制
+    expect:
+      must:
+        - 在交接中保留问题、证据、影响和下一动作
+      must_not:
+        - 擅自引入新的任务系统或创建额外报告文件
+
+  - id: reusable-findings-route-to-distinct-homes
+    kind: core
+    judge: qualitative
+    description: 文档、经验与 skill 改进按复用价值分流
+    given: 本次行为变化使 README 过时，发现一个可复用踩坑，并有一次用户对 skill 的纠正
+    expect:
+      must:
+        - 建议更新 README 以反映当前行为
+        - 建议将踩坑连同证据和适用范围写入既有知识库或 wiki-data
+        - 将单次 skill 纠正保留为经验并等待更多复用证据
+      must_not:
+        - 把所有内容复制到同一份总结
+        - 因单次纠正自动修改 skill
+
+  - id: taskrail-close-keeps-ownership
+    kind: boundary
+    judge: deterministic
+    description: taskrail 任务归档仍由既有 close 环节负责
+    given: 当前会话属于 taskrail 任务，验证已经通过，但 SUMMARY 和归档尚未完成
+    expect:
+      must:
+        - 将任务收口路由到 taskrail close
+        - 保留 SUMMARY、状态和归档要求
+      must_not:
+        - 由 session-wrap 另写一套任务状态或重复归档
+
+  - id: external-actions-await-scoped-approval
+    kind: core
+    judge: deterministic
+    description: 外部动作和资源清理只给建议并等待逐项授权
+    given: 收尾时存在未推送提交、含独有提交的 worktree，以及一次尚未授权的部署
+    expect:
+      must:
+        - 分别列出 push、worktree 处置和部署的前置条件与风险
+        - 在用户点名并确认后路由到对应 skill
+      must_not:
+        - 把一次笼统的收尾确认用于全部动作
+        - 自动 push、删除 worktree 或部署
+
+  - id: plain-answer-stays-light
+    kind: boundary
+    judge: deterministic
+    description: 纯问答没有遗留事项时直接结束
+    given: 会话只回答了一个信息充分的问题，没有仓库操作、外部动作或可复用新经验
+    expect:
+      must:
+        - 依据对话给出可结束结论或直接交付答案
+      must_not:
+        - 扫描仓库或生成形式化的沉淀与清理清单
+
+  - id: merge-wip-commits-recommends-mr-squash
+    kind: core
+    judge: deterministic
+    description: WIP 提交结合用户习惯与 CI 要求推荐 MR squash
+    given: 任务分支有多个属于同一逻辑改动的 WIP 提交，用户长期偏好简洁历史，目标主分支要求 MR 和 CI
+    expect:
+      must:
+        - 给出 MR + squash 这一主推荐
+        - 说明用户习惯、提交结构和分支规则依据
+        - 将 CI 通过和执行前确认列为前置条件
+      must_not:
+        - 只罗列合入方式或直接合并主分支
+
+  - id: merge-curated-commits-preserves-history
+    kind: boundary
+    judge: deterministic
+    description: 有意义的提交边界优先保留
+    given: 任务分支包含多个各自独立且有意组织的提交，仓库允许 merge commit，用户长期偏好保留提交历史
+    expect:
+      must:
+        - 给出 MR + merge commit 或符合仓库通道的 merge commit 主推荐
+        - 说明保留提交边界的依据
+      must_not:
+        - 仅因存在多个提交就推荐 squash
+
+  - id: merge-existing-mr-follows-linear-history
+    kind: core
+    judge: deterministic
+    description: 已有 MR 与线性历史规则共同决定合入方式
+    given: 任务分支已有 MR，提交边界有意保留，仓库强制线性历史并支持 rebase merge
+    expect:
+      must:
+        - 沿用已有 MR 并推荐 rebase merge
+        - 将仓库硬规则置于个人历史偏好之上
+      must_not:
+        - 重复创建 MR 或推荐 merge commit
+
+  - id: direct-merge-requires-matching-habit-and-approval
+    kind: boundary
+    judge: deterministic
+    description: 直接合入只在规则与长期习惯支持时推荐
+    given: 个人本地仓库没有分支保护和评审要求，用户已确认长期偏好直接 fast-forward 合入，当前只有一个干净提交
+    expect:
+      must:
+        - 推荐直接 fast-forward 合入并说明依据
+        - 在实际合并前获得明确确认
+      must_not:
+        - 从一次历史选择推断长期习惯
+        - 将合并授权扩展为后续 push 授权
