@@ -44,6 +44,7 @@ class SkillEntryTest(unittest.TestCase):
         self.assertIn("工程化检查", SKILL)
         self.assertIn("references/engineering.md", SKILL)
         self.assertIn("脚手架先 project-init", SKILL)
+        self.assertIn("报遮挡、缺线、看不清的转 refine", SKILL)
 
     def test_direction_decided_not_asked(self) -> None:
         self.assertIn("自选一个方向，写方向卡和理由，直接说决定、接着做", SKILL)
@@ -144,6 +145,7 @@ class SystemTest(unittest.TestCase):
         self.assertIn("ui-delivery.md", self.TEXT)
 
     def test_decides_missing_items(self) -> None:
+        self.assertIn("用外扩阴影（`0 0 0 1px`）代替 border", self.TEXT)
         self.assertIn("## 2. 缺项自定", self.TEXT)
         self.assertIn("用陈述句写下决定与理由", self.TEXT)
         self.assertIn("assets/reading-page.html", self.TEXT)
@@ -194,6 +196,8 @@ class RulesTest(unittest.TestCase):
     def test_target_viewports(self) -> None:
         self.assertIn("目标视口都没有横向溢出", self.TEXT)
         self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
+        self.assertIn("被祖先 `overflow` 裁掉也算裁切", self.TEXT)
+        self.assertIn("可滚动容器里滚得到的那一侧", self.TEXT)
 
 
 class CritiqueTest(unittest.TestCase):
@@ -245,6 +249,8 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
         self.assertIn("复用本地服务和浏览器会话", self.TEXT)
         self.assertIn("横向溢出", self.TEXT)
+        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2"):
+            self.assertIn(word, self.TEXT)
 
 
 class PageTest(unittest.TestCase):

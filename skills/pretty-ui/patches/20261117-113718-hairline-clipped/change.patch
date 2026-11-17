@@ -1,0 +1,154 @@
+diff --git a/skills/pretty-ui/references/evidence.md b/skills/pretty-ui/references/evidence.md
+index 48871df..c8aa4ae 100644
+--- a/skills/pretty-ui/references/evidence.md
++++ b/skills/pretty-ui/references/evidence.md
+@@ -29,7 +29,16 @@
+ 
+ ```js
+ (() => {
+-  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [] };
++  const px = (v) => parseFloat(v) || 0;
++  const out = (s) => {   // 画在 border-box 外的装饰：非 inset 阴影的 spread、outline
++    let m = s.outlineStyle === "none" ? 0 : px(s.outlineWidth) + px(s.outlineOffset);
++    for (const seg of (s.boxShadow === "none" ? "" : s.boxShadow).split(/,(?![^(]*\))/)) {
++      const len = seg.match(/-?[\d.]+px/g) || [];
++      if (!/inset/.test(seg) && len.length >= 4) m = Math.max(m, px(len[3]));
++    }
++    return m;
++  };
++  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
+   for (const el of document.querySelectorAll("p, li, dd, blockquote, td")) {
+     const t = el.textContent.trim(), s = getComputedStyle(el), size = parseFloat(s.fontSize);
+     if (t.length < 30 || !el.offsetWidth) continue;
+@@ -41,11 +50,29 @@
+     if (size < 12.5) r.字太小.push(tag + " " + size + "px");
+     if (lh < (zh ? 1.5 : 1.4)) r.行高过紧.push(tag + " " + lh.toFixed(2));
+   }
++  for (const el of document.querySelectorAll("*")) {
++    const d = out(getComputedStyle(el));
++    if (d <= 0 || !el.offsetWidth) continue;
++    let a = el.parentElement;
++    for (; a; a = a.parentElement) {
++      const s = getComputedStyle(a);
++      if (s.overflowX !== "visible" || s.overflowY !== "visible") break;
++    }
++    if (!a) continue;
++    const e = el.getBoundingClientRect(), b = a.getBoundingClientRect(), s = getComputedStyle(a);
++    const sx = a.scrollWidth > a.clientWidth, sy = a.scrollHeight > a.clientHeight, edge = [];
++    if (e.left - d < b.left + px(s.borderLeftWidth) - 0.5 && !sx) edge.push("左");
++    if (e.right + d > b.right - px(s.borderRightWidth) + 0.5 && !sx) edge.push("右");
++    if (e.top - d < b.top + px(s.borderTopWidth) - 0.5 && !sy) edge.push("上");
++    if (e.bottom + d > b.bottom - px(s.borderBottomWidth) + 0.5 && !sy) edge.push("下");
++    const name = (x) => x.tagName.toLowerCase() + (x.getAttribute("class") ? "." + x.getAttribute("class").split(" ")[0] : "");
++    if (edge.length) r.环被裁.push(name(el) + " 被裁" + edge.join("") + "，裁它：" + name(a));
++  }
+   return r;
+ })()
+ ```
+ 
+-表格单元格里的短行不算行太长；它只是线索，结论以截图为准。
++表格单元格里的短行不算行太长；它只是线索，结论以截图为准。「环被裁」指用 `0 0 0 1px` 这类外扩阴影或 outline 画的细线，被祖先的 `overflow` 裁掉——内容没被裁，`横向溢出` 抓不到它。可滚动容器里滚得到的那一侧不算；判 1px 级细线时用 `deviceScaleFactor: 2` 截图并按像素取样，1x 下环只有 1 个物理像素，落在小数坐标上会被抗锯齿摊薄。
+ 
+ ## 4. 证据路径
+ 
+diff --git a/skills/pretty-ui/references/rules.md b/skills/pretty-ui/references/rules.md
+index d75ef13..6a7308e 100644
+--- a/skills/pretty-ui/references/rules.md
++++ b/skills/pretty-ui/references/rules.md
+@@ -41,7 +41,7 @@ P0 清单（即使用户只问了别的，也要报）：
+ - **H2** 主次靠字号、字重、明度三个杠杆配合；文字颜色不超过三档，字重不超过两档，界面文字字重不低于 400。
+ - **H3** 标签是次要的：能直接表意的值就去掉“标签：值”的格式，或合并、降级标签；规格类内容里，用户扫视找的那一项才加重。
+ - **H4** 标题大小按它在页面里的级别定，而不是按标签名（h1、h2）定；语义标签保留，样式单独写。
+-- **H5** 图标比旁边的文字浅一两级；细线边框看不清时加粗而不是加深。
++- **H5** 图标比旁边的文字浅一两级；细线边框看不清时加粗而不是加深（被祖先裁掉的环加粗也看不见，那是 S8）。
+ - **H6** 每页一个主操作，次要操作用描边或弱底，辅助操作用链接样式；破坏性操作按级别排，只有在确认对话框里它才是主操作。
+ - **H7** 内容页首屏是第一排内容或工作区，导航和标题区不把内容推出首屏。
+ 
+@@ -54,7 +54,7 @@ P0 清单（即使用户只问了别的，也要报）：
+ - **S5** 固定尺寸的元素（侧栏、图标、头像）用固定宽度；小视口里任何元素都不比大视口时更宽。
+ - **S6** 手机布局是单独设计的，大元素缩得比小元素快；组件内边距随字号变化。
+ - **S7** 对齐到少数几条锚线：整页的标题和正文块共享两三条左边缘起点。
+-- **S8** 目标视口都没有横向溢出、重叠、裁切；响应式页面至少验 1280 与 375，点击区域至少约 40×40px。
++- **S8** 目标视口都没有横向溢出、重叠、裁切；用 `0 0 0 1px` 外扩阴影或 outline 画的细线被祖先 `overflow` 裁掉也算裁切；响应式页面至少验 1280 与 375，点击区域至少约 40×40px。
+ - **S9** 一处分隔只用一种手段：间距、底色差、边框、阴影四选一，通常间距或底色差就够。
+ 
+ ### T 排版
+@@ -143,6 +143,7 @@ P0 清单（即使用户只问了别的，也要报）：
+ - 完全没有阴影：扁平设计成立，检查深度是否由颜色承担（D4）。
+ - 居中的短标题或一两行的标语（T6）。
+ - 视觉上隐藏的标题（H4）。
++- 可滚动容器里滚得到的那一侧，外扩阴影被裁（S8）。
+ - 同一列内容里宽度不同的段落与表格（T2）。
+ - 确认对话框里醒目的红色删除按钮：这里破坏性操作就是主操作（H6）。
+ - 上下不对称的标题外边距（S3）。
+diff --git a/skills/pretty-ui/references/system.md b/skills/pretty-ui/references/system.md
+index bd07e66..2ce55a8 100644
+--- a/skills/pretty-ui/references/system.md
++++ b/skills/pretty-ui/references/system.md
+@@ -91,7 +91,7 @@ python3 scripts/contrast.py --matrix pairs.json   # {"pairs": [{"name": "正文"
+ ```
+ 
+   阴影表达离用户多近：按钮 1 级、下拉菜单 3 级、模态框 5 级，按层级选而不是按好看选。光源来自上方，阴影只向下偏移、不横向偏移。需要更细腻时用两段阴影，一段紧贴的接触阴影、一段大而柔的环境阴影，层级越高接触阴影越淡。凸起元素的上沿用手挑的浅一级颜色，而不是叠半透明白。暗色模式里深度靠表面明度区分（越高的层越亮），阴影退居其次。
+-- **边框**：1px 和 2px 两档。分隔优先用间距和底色差，边框留给输入框和需要明确边界的地方。
++- **边框**：1px 和 2px 两档。分隔优先用间距和底色差，边框留给输入框和需要明确边界的地方。用外扩阴影（`0 0 0 1px`）代替 border 时，容器内要留 1px 余量或不用 `overflow`，否则细线会被裁；改不了容器就用 inset 阴影或真 border。
+ 
+ ## 6. 两层 token
+ 
+diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
+index 968009e..2623f73 100644
+--- a/skills/pretty-ui/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -12,13 +12,13 @@ description: 构建好看的界面：定设计方向、建设计体系（token
+ - **天花板靠方向**：从品类、受众和内容推出一句北极星和一张方向卡，力气花在一个记忆点上，其余安静。
+ - **以画面为准**：看过真实截图才算看过；读源码只能证明实现与设计一致，证明不了好看。
+ 
+-方向、取值和取舍由本 skill 直接决定：用陈述句把决定和理由写进设计说明，接着做。
++方向、取值和取舍由本 skill 定：陈述句写决定和理由，接着做。
+ 
+ ## 路由
+ 
+ | 请求 | 模式 | 做法 |
+ | --- | --- | --- |
+-| 点名的小改：改色、调间距、改文案、删指定元素 | 小改 | 直接改；动了颜色、间距或样式，就在目标视口看一眼改动处和相邻元素 |
++| 点名的小改：改色、调间距、改文案、删指定元素 | 小改 | 直接改；动了颜色、间距或样式，就在目标视口看一眼改动处和相邻元素；报遮挡、缺线、看不清的转 refine |
+ | 单组件打磨、小范围改版 | build 轻量 | 写下方的轻量方向卡，跳过第 3 步；看图用基础档，按 critique.md 自查后交付 |
+ | 新界面、整体改版、照参考图还原 | build | 走下方主流程；照图还原时参考图就是方向，同视口截图并排比到位 |
+ | 已有界面不好看、要优化 | refine | 先截图诊断出带规则号的问题，按扫查顺序修，沿用既有体系，交付前后对比 |
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+index 9979647..9e98334 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -44,6 +44,7 @@ class SkillEntryTest(unittest.TestCase):
+         self.assertIn("工程化检查", SKILL)
+         self.assertIn("references/engineering.md", SKILL)
+         self.assertIn("脚手架先 project-init", SKILL)
++        self.assertIn("报遮挡、缺线、看不清的转 refine", SKILL)
+ 
+     def test_direction_decided_not_asked(self) -> None:
+         self.assertIn("自选一个方向，写方向卡和理由，直接说决定、接着做", SKILL)
+@@ -144,6 +145,7 @@ class SystemTest(unittest.TestCase):
+         self.assertIn("ui-delivery.md", self.TEXT)
+ 
+     def test_decides_missing_items(self) -> None:
++        self.assertIn("用外扩阴影（`0 0 0 1px`）代替 border", self.TEXT)
+         self.assertIn("## 2. 缺项自定", self.TEXT)
+         self.assertIn("用陈述句写下决定与理由", self.TEXT)
+         self.assertIn("assets/reading-page.html", self.TEXT)
+@@ -194,6 +196,8 @@ class RulesTest(unittest.TestCase):
+     def test_target_viewports(self) -> None:
+         self.assertIn("目标视口都没有横向溢出", self.TEXT)
+         self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
++        self.assertIn("被祖先 `overflow` 裁掉也算裁切", self.TEXT)
++        self.assertIn("可滚动容器里滚得到的那一侧", self.TEXT)
+ 
+ 
+ class CritiqueTest(unittest.TestCase):
+@@ -245,6 +249,8 @@ class EvidenceTest(unittest.TestCase):
+         self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
+         self.assertIn("复用本地服务和浏览器会话", self.TEXT)
+         self.assertIn("横向溢出", self.TEXT)
++        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2"):
++            self.assertIn(word, self.TEXT)
+ 
+ 
+ class PageTest(unittest.TestCase):

@@ -29,7 +29,16 @@
 
 ```js
 (() => {
-  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [] };
+  const px = (v) => parseFloat(v) || 0;
+  const out = (s) => {   // 画在 border-box 外的装饰：非 inset 阴影的 spread、outline
+    let m = s.outlineStyle === "none" ? 0 : px(s.outlineWidth) + px(s.outlineOffset);
+    for (const seg of (s.boxShadow === "none" ? "" : s.boxShadow).split(/,(?![^(]*\))/)) {
+      const len = seg.match(/-?[\d.]+px/g) || [];
+      if (!/inset/.test(seg) && len.length >= 4) m = Math.max(m, px(len[3]));
+    }
+    return m;
+  };
+  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
   for (const el of document.querySelectorAll("p, li, dd, blockquote, td")) {
     const t = el.textContent.trim(), s = getComputedStyle(el), size = parseFloat(s.fontSize);
     if (t.length < 30 || !el.offsetWidth) continue;
@@ -41,11 +50,29 @@
     if (size < 12.5) r.字太小.push(tag + " " + size + "px");
     if (lh < (zh ? 1.5 : 1.4)) r.行高过紧.push(tag + " " + lh.toFixed(2));
   }
+  for (const el of document.querySelectorAll("*")) {
+    const d = out(getComputedStyle(el));
+    if (d <= 0 || !el.offsetWidth) continue;
+    let a = el.parentElement;
+    for (; a; a = a.parentElement) {
+      const s = getComputedStyle(a);
+      if (s.overflowX !== "visible" || s.overflowY !== "visible") break;
+    }
+    if (!a) continue;
+    const e = el.getBoundingClientRect(), b = a.getBoundingClientRect(), s = getComputedStyle(a);
+    const sx = a.scrollWidth > a.clientWidth, sy = a.scrollHeight > a.clientHeight, edge = [];
+    if (e.left - d < b.left + px(s.borderLeftWidth) - 0.5 && !sx) edge.push("左");
+    if (e.right + d > b.right - px(s.borderRightWidth) + 0.5 && !sx) edge.push("右");
+    if (e.top - d < b.top + px(s.borderTopWidth) - 0.5 && !sy) edge.push("上");
+    if (e.bottom + d > b.bottom - px(s.borderBottomWidth) + 0.5 && !sy) edge.push("下");
+    const name = (x) => x.tagName.toLowerCase() + (x.getAttribute("class") ? "." + x.getAttribute("class").split(" ")[0] : "");
+    if (edge.length) r.环被裁.push(name(el) + " 被裁" + edge.join("") + "，裁它：" + name(a));
+  }
   return r;
 })()
 ```
 
-表格单元格里的短行不算行太长；它只是线索，结论以截图为准。
+表格单元格里的短行不算行太长；它只是线索，结论以截图为准。「环被裁」指用 `0 0 0 1px` 这类外扩阴影或 outline 画的细线，被祖先的 `overflow` 裁掉——内容没被裁，`横向溢出` 抓不到它。可滚动容器里滚得到的那一侧不算；判 1px 级细线时用 `deviceScaleFactor: 2` 截图并按像素取样，1x 下环只有 1 个物理像素，落在小数坐标上会被抗锯齿摊薄。
 
 ## 4. 证据路径
 
