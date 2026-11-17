@@ -1,0 +1,130 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index a5914f5..4a5750b 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -42,7 +42,20 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ - **清理**：本次产生的临时产物和 worktree；先核对未提交改动、独有提交及使用中的资源，未知文件保留。
+ - **交接**：剩余问题、待用户决策、下一动作、证据位置和恢复入口。
+ 
+-### 4. 分流衍生问题
++### 4. 推荐分支合入
++
++发现未合并任务分支时，核对 source / target、默认分支、已有 MR / PR、CI / 评审、分支保护、仓库历史合入方式和提交结构。用户习惯只采用本次明确选择或已确认的长期偏好，不从单次历史猜测。
++
++按「仓库硬规则与分支保护 > 用户本次明确选择 > 已确认的长期习惯 > 仓库历史惯例 > 提交结构」裁决，给出一个主推荐，不只罗列选项：
++
++- 已有 MR / PR：优先沿用，不重复创建；目标分支要求评审或 CI 时也走 MR / PR。
++- 多个 WIP 提交属于一个逻辑改动，且用户或仓库偏好简洁历史：推荐 squash。
++- 多个提交各自有意义且需要保留边界：推荐 merge commit；仓库要求线性历史时推荐 rebase merge。
++- 直接合入：仅在仓库允许且符合用户习惯或仓库惯例时推荐；共享主分支仍需单独确认，push 不随合并自动授权。
++
++推荐包含合入通道与历史处理方式，例如 `MR + squash`。证据不足时沿用仓库既有惯例并标明不确定；target 或强制规则无法判断时先查证，不猜默认分支。
++
++### 5. 分流衍生问题
+ 
+ 影响当前目标或 criterion 的问题留在当前交付中处理。与本次目标无关的旧 bug、技术债、文档缺漏或环境隐患，先查 workspace 与仓库已有的任务记录机制：
+ 
+@@ -52,7 +65,7 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ 建议任务包含问题、来源、证据、影响、复现方式（如有）、建议判据和相关路径。证据不足标为待查证，不把猜测批量转成任务。创建或更新记录前进入写入确认。
+ 
+-### 5. 路由值得沉淀的内容
++### 6. 路由值得沉淀的内容
+ 
+ 只沉淀跨任务仍有价值、现有文档尚未表达的内容；先找既有落点并去重，没有新经验就不硬造复盘。
+ 
+@@ -91,6 +104,9 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 值得沉淀：
+ - <内容> → <落点与接收 skill>
+ 
++分支合入：
++- <source> → <target>；推荐 <MR / PR + squash / merge commit / rebase merge 或直接合入>；依据 <习惯与现场证据>；前置 <CI、评审等>
++
+ 待你确认：
+ - <写入或外部动作> → <范围、前置条件与主要风险>
+ 
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 280abb9..686224a 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -57,6 +57,22 @@ class SessionWrapContractTest(unittest.TestCase):
+     def test_cleanup_recommendations_preserve_unique_work(self) -> None:
+         self.assertIn("先核对未提交改动、独有提交及使用中的资源，未知文件保留", SKILL)
+ 
++    def test_merge_recommendation_uses_rules_habits_and_commit_shape(self) -> None:
++        self.assertIn("### 4. 推荐分支合入", SKILL)
++        for evidence in ("已有 MR / PR", "CI / 评审", "分支保护", "仓库历史合入方式", "提交结构"):
++            self.assertIn(evidence, SKILL)
++        self.assertIn("用户习惯只采用本次明确选择或已确认的长期偏好", SKILL)
++        self.assertIn("仓库硬规则与分支保护 > 用户本次明确选择 > 已确认的长期习惯", SKILL)
++        self.assertIn("给出一个主推荐，不只罗列选项", SKILL)
++
++    def test_merge_recommendation_covers_strategy_and_scoped_approval(self) -> None:
++        self.assertIn("优先沿用，不重复创建", SKILL)
++        for strategy in ("squash", "merge commit", "rebase merge", "直接合入"):
++            self.assertIn(strategy, SKILL)
++        self.assertIn("推荐包含合入通道与历史处理方式，例如 `MR + squash`", SKILL)
++        self.assertIn("共享主分支仍需单独确认，push 不随合并自动授权", SKILL)
++        self.assertIn("分支合入：", SKILL)
++
+     def test_output_is_compact_and_routable(self) -> None:
+         for section in ("必须处理", "衍生问题", "值得沉淀", "待你确认", "交接"):
+             self.assertIn(section, SKILL)
+diff --git a/skills/session-wrap/evals/cases.yaml b/skills/session-wrap/evals/cases.yaml
+index c022819..591b052 100644
+--- a/skills/session-wrap/evals/cases.yaml
++++ b/skills/session-wrap/evals/cases.yaml
+@@ -112,3 +112,53 @@ cases:
+         - 依据对话给出可结束结论或直接交付答案
+       must_not:
+         - 扫描仓库或生成形式化的沉淀与清理清单
++
++  - id: merge-wip-commits-recommends-mr-squash
++    kind: core
++    judge: deterministic
++    description: WIP 提交结合用户习惯与 CI 要求推荐 MR squash
++    given: 任务分支有多个属于同一逻辑改动的 WIP 提交，用户长期偏好简洁历史，目标主分支要求 MR 和 CI
++    expect:
++      must:
++        - 给出 MR + squash 这一主推荐
++        - 说明用户习惯、提交结构和分支规则依据
++        - 将 CI 通过和执行前确认列为前置条件
++      must_not:
++        - 只罗列合入方式或直接合并主分支
++
++  - id: merge-curated-commits-preserves-history
++    kind: boundary
++    judge: deterministic
++    description: 有意义的提交边界优先保留
++    given: 任务分支包含多个各自独立且有意组织的提交，仓库允许 merge commit，用户长期偏好保留提交历史
++    expect:
++      must:
++        - 给出 MR + merge commit 或符合仓库通道的 merge commit 主推荐
++        - 说明保留提交边界的依据
++      must_not:
++        - 仅因存在多个提交就推荐 squash
++
++  - id: merge-existing-mr-follows-linear-history
++    kind: core
++    judge: deterministic
++    description: 已有 MR 与线性历史规则共同决定合入方式
++    given: 任务分支已有 MR，提交边界有意保留，仓库强制线性历史并支持 rebase merge
++    expect:
++      must:
++        - 沿用已有 MR 并推荐 rebase merge
++        - 将仓库硬规则置于个人历史偏好之上
++      must_not:
++        - 重复创建 MR 或推荐 merge commit
++
++  - id: direct-merge-requires-matching-habit-and-approval
++    kind: boundary
++    judge: deterministic
++    description: 直接合入只在规则与长期习惯支持时推荐
++    given: 个人本地仓库没有分支保护和评审要求，用户已确认长期偏好直接 fast-forward 合入，当前只有一个干净提交
++    expect:
++      must:
++        - 推荐直接 fast-forward 合入并说明依据
++        - 在实际合并前获得明确确认
++      must_not:
++        - 从一次历史选择推断长期习惯
++        - 将合并授权扩展为后续 push 授权
