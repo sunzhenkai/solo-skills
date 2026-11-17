@@ -47,7 +47,7 @@ git diff HEAD
 
 ## 安全默认
 
-安全默认：沿用现有 git config 与 hooks；路径级暂存；每次新建 commit；普通 `git push`；只在确有变更时提交；密钥类文件留在提交之外。
+安全默认：沿用现有 git config 与 hooks；路径级暂存；每次新建 commit；普通 `git push`（可用时经 `grepom push` 先扫密钥）；只在确有变更时提交；密钥类文件留在提交之外。
 
 以下情况先确认——用户明确要求才做，并先说明风险：
 
@@ -62,6 +62,14 @@ git diff HEAD
 - 用路径级 `git add -- <paths>`（`git add -A` 容易带入无关或敏感文件）。
 - 提交前过一遍 untracked 清单，排除 `.env`、密钥、大产物。
 - 排除浏览器调试产物：`page-*.png` / `*screenshot*.png`、`trace.zip`、`playwright-report/`。
+
+## push 前扫密钥
+
+文件名排除挡不住写进代码或配置里的密钥，所以 push 前再扫一次内容：
+
+- 有 `grepom` 时，在仓库根把下文命令里的 `git push <参数>` 换成 `grepom push -- <参数>`：先按 gitleaks 规则扫工作区，干净才推，命中即拒推。
+- 命中时停下，报告规则、文件和行号，不贴完整匹配内容。`grepom push -f` 只是忽略扫描结果、照样推送（不是 git 强推），仅在用户针对具体命中确认是误报后使用。
+- 没有 `grepom` 时照常 `git push`，在收尾里写明「未做密钥扫描」。
 
 ## 提交并推送
 
@@ -82,7 +90,7 @@ EOF
 
 ## 收尾
 
-链式命令已含确认用 `git status -sb`；简短告知：分支、commit 摘要、是否已 push。
+链式命令已含确认用 `git status -sb`；简短告知：分支、commit 摘要、是否已 push、是否做过密钥扫描。
 
 ## 何时问用户
 

@@ -1,0 +1,56 @@
+diff --git a/skills/skill-upgrader/SKILL.md b/skills/skill-upgrader/SKILL.md
+index 7a0af3c..801c065 100644
+--- a/skills/skill-upgrader/SKILL.md
++++ b/skills/skill-upgrader/SKILL.md
+@@ -16,6 +16,7 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自
+ |-------|------|
+ | **本 skill** | 任意 Skill：模式门禁后，`update`（改正文/配套）或 `self-upgrade`（加 examples/evals/experience）；二者都走 `<skill-dir>/patches/` |
+ | `evolve` 模式（原 `skill-evolver`） | 基于多次真实执行：提案 → `evolutions/` 候选 → eval → 晋升生产稿；进入时读 [references/evolve.md](references/evolve.md) |
++| `agent-docs-writer` | 从零创建 Skill、只读评审 agent 文档；评审发现需要改已有 Skill 时交回本 skill |
+ 
+ - 用户点名 `skill-evolver` 或要求按**执行经验**进化时：选 `evolve` 模式，按 [references/evolve.md](references/evolve.md) 执行（用 `evolutions/`，不写 `patches/`）；下文工作流/patch 协议只适用于 `update` / `self-upgrade`。
+ - `update` / `self-upgrade` **不**根据经验改目标 Skill 的核心行为（那是 `evolve`）。目标尚未具备自进化目录且用户要自更新时，走 `self-upgrade`。
+@@ -38,9 +39,9 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自
+ 2. **点名自进化 / 自更新 / 加 examples·evals·experience / 升级为可进化** → `self-upgrade`。
+ 3. **两者都像或都不像**：先问一句二选一，不猜。笼统的「优化一下这个 Skill」不算已选定模式。
+ 4. **按真实执行经验进化正文**（含点名 `skill-evolver`）→ `evolve`。
+-5. **从零创建 Skill** → 停止；走写作/安装类流程。
++5. **从零创建 Skill** → 停止；交给 `agent-docs-writer` 的 `skill` 路径。
+ 
+-一次会话只处理 **一个** 目标 Skill、**一种** 模式、**一轮** patch。
++一轮 patch 只解决 **一个** 内聚问题、使用 **一种** 模式。同一问题跨多个 Skill（如两个 Skill 的边界互指）时，每个目标 Skill 各建一份 patch 目录，proposal 的 Conflict check 互相注明配套 patch。
+ 
+ ## 门禁（通用）
+ 
+diff --git a/skills/skill-upgrader/references/evolve.md b/skills/skill-upgrader/references/evolve.md
+index 7d1e5ac..b04dd42 100644
+--- a/skills/skill-upgrader/references/evolve.md
++++ b/skills/skill-upgrader/references/evolve.md
+@@ -201,7 +201,7 @@ risk:
+ - 不把密钥、内部 URL、公司代码、个人凭据写进 Skill
+ - 不把内部项目代号、私有 trace/日志文件名写进 SKILL.md、进化产物（proposal.yaml / eval.md / decision.md）及关联 commit message
+ - 不删除仍在生效的安全/门禁规则，除非证据表明该规则本身在制造系统性失败，且用户确认
+-- 不把本 skill 用于从零创建新 Skill（那是写作/安装类 skill 的事）
++- 不把本 skill 用于从零创建新 Skill（交给 `agent-docs-writer`）
+ - 一次会话最多推进 **一个** 目标 Skill 的一轮进化
+ 
+ ## 交付
+diff --git a/skills/skill-upgrader/tests/test_skill_upgrader_contract.py b/skills/skill-upgrader/tests/test_skill_upgrader_contract.py
+index beb1f2d..cc6d5fd 100644
+--- a/skills/skill-upgrader/tests/test_skill_upgrader_contract.py
++++ b/skills/skill-upgrader/tests/test_skill_upgrader_contract.py
+@@ -27,6 +27,14 @@ class ModeGateContract(unittest.TestCase):
+         self.assertIn("references/evolve.md", SKILL)
+         self.assertTrue((ROOT / "references" / "evolve.md").is_file())
+ 
++    def test_creation_routes_to_agent_docs_writer(self) -> None:
++        self.assertIn("交给 `agent-docs-writer` 的 `skill` 路径", SKILL)
++        self.assertIn("| `agent-docs-writer` | 从零创建 Skill", SKILL)
++
++    def test_cross_skill_issue_gets_one_patch_per_skill(self) -> None:
++        self.assertIn("每个目标 Skill 各建一份 patch 目录", SKILL)
++        self.assertIn("互相注明配套 patch", SKILL)
++
+ 
+ class EvolveContract(unittest.TestCase):
+     def test_evolve_writes_evolutions_and_needs_eval_decision(self) -> None:

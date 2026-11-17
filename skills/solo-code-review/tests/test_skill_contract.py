@@ -10,6 +10,13 @@ DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8"
 MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
 
 
+class DescriptionTest(unittest.TestCase):
+    def test_description_keeps_trigger_and_leaves_output_details_to_body(self) -> None:
+        head = SKILL.split("---", 2)[1]
+        self.assertIn("结果按 P0~Pn 分级落盘", head)
+        self.assertNotIn("docs/reviews", head)
+
+
 class ScopeConfirmGateTest(unittest.TestCase):
     def test_confirm_gate_table_present(self) -> None:
         self.assertIn("确定审查范围（确认门）", SKILL)

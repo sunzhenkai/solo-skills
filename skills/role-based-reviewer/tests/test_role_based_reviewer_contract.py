@@ -44,6 +44,14 @@ class RbrContractTest(unittest.TestCase):
     def test_skill_under_8kb(self) -> None:
         self.assertLessEqual(len((ROOT / "SKILL.md").read_bytes()), 8192)
 
+    def test_skill_role_follows_repo_description_convention(self) -> None:
+        text = (ROOT / "references" / "roles" / "skill.md").read_text(encoding="utf-8")
+        self.assertIn("description 应是正向的 WHAT + WHEN", text)
+        self.assertIn("与相邻 skill 的边界写在正文一句", text)
+        self.assertIn("high / medium / low 依次对应这三级", text)
+        self.assertIn("`agent-docs-writer` → 从零新建 skill", text)
+        self.assertNotIn("何时不用", text)
+
 
 if __name__ == "__main__":
     unittest.main()

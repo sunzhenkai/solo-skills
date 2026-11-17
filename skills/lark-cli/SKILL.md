@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 ## 三道门禁（防上下文膨胀）
 
-1. **门 1 · 收窄触发**：用户点名本 skill /「飞书 CLI」/ `lark-cli`，或明确要操作飞书业务（发消息、查日程、改文档、多维表格等）。闲聊「飞书是什么」不加载。
+1. **门 1 · 手动进入**：本 skill 仅手动调用，用户点名本 skill /「飞书 CLI」/ `lark-cli` 时进入。点名后要操作飞书业务（发消息、查日程、改文档、多维表格等）才走门 2；只是问「飞书是什么」时直接回答，不读上游正文。
 2. **门 2 · 先路由再读**：对照 [catalog](references/catalog.md) 选定**一个**业务 skill；意图不清时先问，不猜。
 3. **门 3 · 按需加载**（用 Shell 跑 CLI 读取正文）：
    - 认证/配置/登录/权限 → 只 `lark-cli skills read lark-shared`
@@ -26,7 +26,7 @@ disable-model-invocation: true
 ## 加载上游 skill
 
 ```bash
-command -v lark-cli || { echo "missing lark-cli; run: dotf lark-cli -i"; exit 1; }
+command -v lark-cli || { echo "missing lark-cli; run: npm install -g @larksuite/cli"; exit 1; }
 
 # 路由表过时或 id 不确定时，用内嵌清单核对
 lark-cli skills list

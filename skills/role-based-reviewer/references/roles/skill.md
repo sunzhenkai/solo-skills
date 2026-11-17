@@ -1,6 +1,6 @@
 # Agent Skill 诊断（`skill`）
 
-角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级。审查对象是 Agent Skill 本身（`SKILL.md` / `references/` / `tests/`），不是业务代码。
+角色文件：仅在本角色生效时加载（见 [protocol 预加载节](../protocol.md)）；职责边界以 [protocol 角色边界节](../protocol.md) 为准。级别：🔴 Blocker / 🟡 Major（门 3 默认报）/ ⚪ 默认不报，拿不准降一级；`agent-docs-writer` review 路径的 high / medium / low 依次对应这三级。审查对象是 Agent Skill 本身（`SKILL.md` / `references/` / `tests/`），不是业务代码。
 
 ## 优先锚点
 
@@ -18,7 +18,7 @@
 
 每条附命中判据；判据不满足则不报，不为凑数降级描述。
 
-1. 🔴 description 触发面：过宽误触（普通问答被拉进流程）或过窄漏触（目标场景进不来）；缺「何时不用」。
+1. 🔴 description 触发面：过宽误触（普通问答被拉进流程）或过窄漏触（目标场景进不来）。description 应是正向的 WHAT + WHEN：关键词前置、每个真分支一个触发词；与相邻 skill 的边界写在正文一句。
    命中判据：给出一个具体用户表述，按当前 description 会错误触发或错误不触发。
 2. 🔴 指令不可检查：正文要求的行为无判据、无落点，执行者无法自检（「注意质量」「保持简洁」式空话）。
    命中判据：指出一条指令，两个独立执行者会产生可分辨的不同行为，且文中无判定标准。
@@ -42,7 +42,7 @@
 
 ## 下游建议
 
-`skill-creator` → 新建或大改 skill；`skill-upgrader` → 可审计 patch 更新正文 / 结构，或 `evolve` 模式按真实执行经验进化（仅显式触发）。
+`agent-docs-writer` → 从零新建 skill，或单视角深审 agent 文档；`skill-upgrader` → 可审计 patch 更新正文 / 结构，或 `evolve` 模式按真实执行经验进化（仅显式触发）。
 
 ## 跨角色 redirect
 

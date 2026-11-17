@@ -106,7 +106,8 @@ class ContractTest(unittest.TestCase):
         self.assertIn("生命周期与健康统计", self.layout)
 
     def test_handoff_boundaries(self) -> None:
-        self.assertIn("project-spec-mirror", self.skill)
+        self.assertIn("原 `project-spec-mirror` 已下线", self.skill)
+        self.assertNotIn("archive/skills/", self.skill)
         self.assertIn("project-atlas", self.skill)
         self.assertIn("project-explore", self.skill)
         self.assertIn("用户明确要求查证原因时交给 `trouble-grill`", self.skill)

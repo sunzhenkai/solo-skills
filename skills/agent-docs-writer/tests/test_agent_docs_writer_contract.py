@@ -109,6 +109,10 @@ class ReviewContract(unittest.TestCase):
             self.assertIn(needle, REVIEW)
         self.assertIn("已有 Skill 交给 `skill-upgrader`", REVIEW)
 
+    def test_severity_maps_to_role_based_reviewer(self) -> None:
+        self.assertIn("三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报", REVIEW)
+        self.assertIn("交给它的 `roles=skill`", REVIEW)
+
 
 if __name__ == "__main__":
     unittest.main()

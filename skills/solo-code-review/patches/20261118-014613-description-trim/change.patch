@@ -1,0 +1,31 @@
+diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
+index 81ebaa1..d4744ea 100644
+--- a/skills/solo-code-review/SKILL.md
++++ b/skills/solo-code-review/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: solo-code-review
+ name: solo-code-review
+-description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
++description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request，结果按 P0~Pn 分级落盘。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
+ license: MIT
+ ---
+ 
+diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
+index 03601da..b90ccb9 100644
+--- a/skills/solo-code-review/tests/test_skill_contract.py
++++ b/skills/solo-code-review/tests/test_skill_contract.py
+@@ -10,6 +10,13 @@ DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8"
+ MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
+ 
+ 
++class DescriptionTest(unittest.TestCase):
++    def test_description_keeps_trigger_and_leaves_output_details_to_body(self) -> None:
++        head = SKILL.split("---", 2)[1]
++        self.assertIn("结果按 P0~Pn 分级落盘", head)
++        self.assertNotIn("docs/reviews", head)
++
++
+ class ScopeConfirmGateTest(unittest.TestCase):
+     def test_confirm_gate_table_present(self) -> None:
+         self.assertIn("确定审查范围（确认门）", SKILL)

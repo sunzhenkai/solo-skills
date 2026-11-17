@@ -17,9 +17,20 @@ class WikiDataHandoffContract(unittest.TestCase):
         self.assertIn("只有 `confirmed` 可作为根因归档", SKILL)
 
     def test_default_persistence_remains_independent(self) -> None:
-        self.assertIn("tasks/ongoing/{task-name}/TASK.md", SKILL)
         self.assertIn("未提出归档或没有 `wiki-data` 时", SKILL)
         self.assertIn("仍按上述位置落盘，排查流程不变", SKILL)
+
+    def test_taskrail_persistence_follows_ledger_contract(self) -> None:
+        self.assertIn("`evidence/diagnose.md` 追加每轮记录", SKILL)
+        self.assertIn("tasks/ongoing/<parent>/subtasks/<child>/", SKILL)
+        self.assertIn("写入 `context/current.md` 的结论表", SKILL)
+        self.assertIn("`TASK.md` 只保留热状态，由 taskrail 维护", SKILL)
+        self.assertIn("本 skill 是 diagnose 环节的排查方法", SKILL)
+
+    def test_description_states_positive_trigger(self) -> None:
+        head = SKILL.split("---", 2)[1]
+        self.assertIn("多轮或易发散的排查", head)
+        self.assertNotIn("不走本流程", head)
 
 
 if __name__ == "__main__":

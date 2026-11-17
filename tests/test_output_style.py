@@ -71,6 +71,17 @@ class OutputStyleTest(unittest.TestCase):
             _, warns = chk.run(s)
         self.assertEqual(warns, [])
 
+    def test_lint_warns_negative_description(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "skills" / "demo"
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(
+                "---\nname: demo\ndescription: 排查根因时使用；简单问题直接修，不走本流程。\n---\n\n正文。\n",
+                encoding="utf-8",
+            )
+            _, warns = chk.run(Path(tmp) / "skills")
+        self.assertTrue(any("反向表述「不走」" in w for w in warns))
+
 
 if __name__ == "__main__":
     unittest.main()

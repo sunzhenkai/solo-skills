@@ -64,6 +64,17 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不调用 `grill-with-docs`", self.tracks)
         self.assertIn("`$taskrail`", self.tracks)
 
+    def test_complex_follows_taskrail_routing(self) -> None:
+        complex_track = self.tracks.split("## Complex", 1)[1]
+        self.assertIn("做 `intent` 意图确认", complex_track)
+        self.assertIn("按 `$taskrail` 路由产出当前最小计划", complex_track)
+        self.assertIn("`$taskflow` 按 direct 或 OpenSpec 实施", complex_track)
+        self.assertIn("经 `$taskrail` verify / close 写 `done`", complex_track)
+        understand = self.stages.split("## 理解", 1)[1].split("## ", 1)[0]
+        self.assertIn("`$taskrail` 的 `intent`", understand)
+        for text in (self.tracks, self.stages):
+            self.assertNotIn("wizard", text)
+
     def test_human_only_on_plan_review_and_wrap_up(self) -> None:
         self.assertIn("方案评审与收尾", self.skill)
         self.assertIn("默认推荐 `human`", self.tracks)

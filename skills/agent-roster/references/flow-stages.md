@@ -6,13 +6,13 @@
 
 Resident。不派出。
 
-Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 wizard 与 grill。
+Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 `intent`，之后按其路由按需 explore / grill。
 
 完成标准：任务一句话可检验；Track 已写入 spine；Orchestrator 的 Kind + Model 已记录。
 
 ## 定方案 `plan`
 
-澄清、选方案、写 Frozen Input 在本会话。Simple 的 plan 本会话写入 cache Handoff 即可，可不再派。Medium / Complex 写 OpenSpec / design 产物时派出，prompt 只含已选方案与约束。
+澄清、选方案、写 Frozen Input 在本会话。Simple 的 plan 本会话写入 cache Handoff 即可，可不再派。Medium 写 OpenSpec 产物、Complex 写 taskrail PLAN / design 或 OpenSpec 产物时派出，prompt 只含已选方案与约束。
 
 完成标准：该 Track 的方案产物路径已写入 spine。Simple 至少有目标 / 改哪里 / 不做啥。
 
@@ -50,6 +50,6 @@ Optional Stage。实现结束后在本会话问做不做。Simple 默认跳过�
 
 是否 archive、是否 `$commit-push` 在本会话决定。可 `human`（只摘要、不派出）。
 
-Medium：`$openspec-archive-change`。Complex：归档 `{task}-driver`。Simple 无 archive。
+Medium：`$openspec-archive-change`。Complex：有 driver 时归档 `{task}-driver`，任务由 `$taskrail` close 写 `done` 并归档。Simple 无 archive。
 
 完成标准：约定的收尾动作已完成或明确跳过；spine 状态为 `done`。

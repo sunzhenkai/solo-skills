@@ -1,7 +1,7 @@
 ---
 id: trouble-grill
 name: trouble-grill
-description: 根因排查时持续拷问 agent 自己，防止失焦、把假设当结论、思路闭塞。排查开始、下结论、切换方向、收口时触发；单步可复现的简单问题直接修，不走本流程。
+description: 根因排查时持续拷问 agent 自己：立可证伪锚点、给假设分级、过四道门才下根因结论，防止失焦和思路闭塞。多轮或易发散的排查在开始、下结论、切换方向、收口时使用。
 ---
 
 # Trouble Grill —— 排查根因时拷问自己
@@ -9,6 +9,8 @@ description: 根因排查时持续拷问 agent 自己，防止失焦、把假设
 排查复杂根因（多轮、易发散）时，用「锚点 + 假设板 + 门禁」自我拷问。不是流程编排，是三把防失焦的闸门。
 
 **不适用**：单步可复现、报错信息直接指向原因的问题——直接修，不上板。
+
+在 taskrail 任务里，本 skill 是 diagnose 环节的排查方法：何时进入、退出和重新路由仍由 taskrail 决定，记录按下文「落盘」写入任务目录。
 
 ## 先立锚点
 
@@ -113,7 +115,7 @@ description: 根因排查时持续拷问 agent 自己，防止失焦、把假设
 
 推荐保存位置（按优先级）：
 
-- 在 taskrail 任务里 → `tasks/ongoing/{task-name}/TASK.md` 的「进展」段；
+- 在 taskrail 任务里 → 任务目录（`tasks/ongoing/<task-id>/`，子任务为 `tasks/ongoing/<parent>/subtasks/<child>/`）的 `evidence/diagnose.md` 追加每轮记录；坐实或推翻的结论连同回退条件写入 `context/current.md` 的结论表。`TASK.md` 只保留热状态，由 taskrail 维护；
 - 无任务台账 → 工作区已有存档约定（如 `archives/sessions/{date}/{slug}.md`）则循之；没有该约定时，落盘前先问用户放哪，不要在任意 cwd 造目录；
 - 跨会话的偏好 / 已坐实结论 → 有持久记忆工具（如 MCP 记忆服务）则同步，没有则写回台账文件。
 

@@ -112,6 +112,14 @@ class PushGateContract(unittest.TestCase):
     def test_push_rejected_never_force(self) -> None:
         self.assertIn("若无上游或被拒绝，说明原因并停下，等用户决定", self.text)
 
+    def test_secret_scan_before_push(self) -> None:
+        self.assertIn("## push 前扫密钥", self.text)
+        self.assertIn("把下文命令里的 `git push <参数>` 换成 `grepom push -- <参数>`", self.text)
+        self.assertIn("命中时停下，报告规则、文件和行号", self.text)
+        self.assertIn("仅在用户针对具体命中确认是误报后使用", self.text)
+        self.assertIn("在收尾里写明「未做密钥扫描」", self.text)
+        self.assertIn("是否做过密钥扫描", self.text)
+
 
 
 class ConflictFlowContract(unittest.TestCase):

@@ -1,0 +1,28 @@
+diff --git a/skills/agent-docs-writer/references/review.md b/skills/agent-docs-writer/references/review.md
+index d782c6f..2cb197a 100644
+--- a/skills/agent-docs-writer/references/review.md
++++ b/skills/agent-docs-writer/references/review.md
+@@ -51,7 +51,7 @@
+ 建议：可检查的目标行为或最小修改方向
+ ```
+ 
+-级别使用 `high` / `medium` / `low`：high 表示会稳定导致错误行为或安全问题，medium 表示常见场景明显受损，low 表示局部可维护性问题。没有证据支撑的猜想放入“待验证”，不计为已确认发现。
++级别使用 `high` / `medium` / `low`：high 表示会稳定导致错误行为或安全问题，medium 表示常见场景明显受损，low 表示局部可维护性问题。三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报；需要与其他岗位视角并列审查时，交给它的 `roles=skill`，判据与本节一致。没有证据支撑的猜想放入“待验证”，不计为已确认发现。
+ 
+ 完成标志：每项发现都能定位、解释影响并转化为可验收动作；总结同时说明已验证范围和评审盲区。
+ 
+diff --git a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+index f5ef9ca..b6b2c92 100644
+--- a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
++++ b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+@@ -109,6 +109,10 @@ class ReviewContract(unittest.TestCase):
+             self.assertIn(needle, REVIEW)
+         self.assertIn("已有 Skill 交给 `skill-upgrader`", REVIEW)
+ 
++    def test_severity_maps_to_role_based_reviewer(self) -> None:
++        self.assertIn("三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报", REVIEW)
++        self.assertIn("交给它的 `roles=skill`", REVIEW)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

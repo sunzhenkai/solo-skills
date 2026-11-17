@@ -14,7 +14,10 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状�
 
 ## 执行方法
 1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。
-2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。
+2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
+   - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
+   - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
+   - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
 3. 完成通知说明各仓库分支 / worktree、验证结果和如何合入；不 push、不自动清理 worktree。
 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
 5. 按 [archive-reopen.md](archive-reopen.md) 同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。

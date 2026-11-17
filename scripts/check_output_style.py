@@ -4,6 +4,7 @@
 1. SKILL.md 告警（指导线，不阻断）：
    - 超过 8192 字节；
    - description 超过 300 字符（常驻上下文，应只留 WHAT + WHEN 的真分支）；
+   - description 含反向表述（「不走 / 不适用 / 何时不用」等），边界应写在正文一句；
    - 引用链超一层：SKILL.md 直链的文件再链到 SKILL.md 未直链的同 skill 文件；
    - 禁令词密度高：「不要 / 禁止 / 不得 …」≥8 处且每 KB ≥2.5 处（应改正向表述，硬闸配正向句）。
 2. taskrail references/intent.md：
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LIMIT = 8192
 DESC_LIMIT = 300
 BAN = re.compile(r"不要|禁止|不得|严禁|切勿|不准|\*\*不\*\*")
+DESC_NEG = re.compile(r"何时不用|不走|不适用|不触发|不要|不应|不用于")
 BAN_MIN, BAN_PER_KB = 8, 2.5
 LINK = re.compile(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)")
 FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "我的决定")
@@ -86,6 +88,9 @@ def check_skill_lint(skills: Path) -> list[str]:
         desc = description(front)
         if len(desc) > DESC_LIMIT:
             warns.append(f"{rel}: description {len(desc)} 字符 > {DESC_LIMIT}")
+        neg = DESC_NEG.search(desc)
+        if neg:
+            warns.append(f"{rel}: description 含反向表述「{neg.group(0)}」，改写为正向 WHAT + WHEN，边界放正文")
         n = len(BAN.findall(body))
         per_kb = n * 1024 / max(len(body.encode()), 1)
         if n >= BAN_MIN and per_kb >= BAN_PER_KB:

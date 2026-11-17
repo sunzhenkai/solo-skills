@@ -1,7 +1,7 @@
 ---
 id: service-manager
 name: service-manager
-description: 项目服务管理：从 Makefile、package.json、docker-compose 等探索服务启动方式，统一执行 list / start / stop / restart / status / logs。按项目隔离缓存与日志；安全停止（进程组优先）；缺 name 默认询问。完成后给出改动范围、影响面与服务访问方式总结。在启动、停止、查看项目服务时使用。
+description: 项目服务管理：从 Makefile、package.json、docker-compose 等探索服务启动方式，统一执行 list / start / stop / restart / status / logs，并给出服务访问方式。在启动、停止、重启项目服务，或查看服务状态与日志时使用。
 ---
 
 # 服务管理

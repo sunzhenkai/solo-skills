@@ -10,7 +10,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | --- | --- |
 | `taskrail` | **任务轨道（唯一编排入口）**：按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；自动规划切片与 `subtasks/`，按依赖推进并在父任务做集成验收；direct / OpenSpec、human / goal 相互独立；workspace 台账可恢复，统一验证、总结知识并归档 |
 | `taskflow` | direct / OpenSpec 两种执行适配器共用 workspace 多仓 git worktree 隔离；OpenSpec 子 change 按依赖滚动展开、逐片提交，driver 归档后仍回 taskrail 验收 |
-| `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa） |
+| `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
 | `anti-lazy` | 意图对齐与差距检查：用提示引导模型核实现场、选择关键下一步并按证据收口 |
 | `session-wrap` | 会话收尾：只读核查交付缺口、衍生任务、知识沉淀、外部动作与资源清理，确认后路由执行 |
 
@@ -62,9 +62,20 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 skill 源在仓库的 `skills/<id>/`；CLI 的发现优先级前缀含 `skills/`，整仓安装即可：
 
 ```bash
-npx skills add sunzhenkai/solo-skills                 # 全部
-npx skills add sunzhenkai/solo-skills -s taskflow     # 只装一个
+npx skills add sunzhenkai/solo-skills                                    # 全部
+npx skills add sunzhenkai/solo-skills -s commit-push                     # 只装一个
+npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s pretty-ui   # 按依赖组成组安装
 ```
+
+### 依赖组
+
+下表的 skill 用相对链接直接读取另一个 skill 的文件，单独安装会断链，需要一起装。其余 skill 之间只按名称互相指向，对方没装时按各自正文降级执行。新增跨 skill 相对链接时在此登记，`tests/test_cross_skill_refs.py` 会核对。
+
+| Skill | 需要同装 | 原因 |
+| --- | --- | --- |
+| `taskrail` | `taskflow`、`pretty-ui` | execute 委托 taskflow；Web UI 交付读取 pretty-ui 的体系、方向与评审细则 |
+| `taskflow` | `taskrail` | 确认协议、完成清单与用户表达以 taskrail 为准 |
+| `role-based-reviewer` | `pretty-ui` | design 角色引用 pretty-ui 的视觉规则号 |
 
 ### dotfiles 编目（第三方）
 

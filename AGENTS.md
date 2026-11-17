@@ -20,7 +20,7 @@ python3 -m pytest skills -q               # 全部测试（有 pytest 时）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
 python3 -m unittest discover -s skills/<id>/tests -p 'test_*.py'
 
-make check-style    # 输出风格检查（SKILL.md >8KB、description 过长、引用链超一层、禁令词偏多只告警）
+make check-style    # 输出风格检查（SKILL.md >8KB、description 过长或含反向表述、引用链超一层、禁令词偏多只告警）
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
 make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
@@ -46,6 +46,7 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 - 结构缺失（无 `examples/` / `evals/` / `experience/`）先走 **skill-upgrader** 一次性升级结构。
 - 基于真实执行经验改正文走 **skill-upgrader 的 `evolve` 模式**（原 skill-evolver）：仅显式触发，**禁止自动进化**（一次失败 / 一次用户纠正都不足以改 skill）；先展示 Evolution Proposal，用户确认后才写 `evolutions/<date-slug>/`（proposal.yaml + decision.md + eval.md + 候选稿）。
 - 变更留审计痕迹：每次改某个 skill 的正文或配套，就在该 skill 下新建 `patches/<YYYYMMDD-HHMMSS>-<slug>/`（proposal.md + change.patch + result.md），或走 `evolutions/`。`patches/` 有变更即补：skill 第一次被改时随该次变更创建，不预建空目录。
+- 跨 skill 引用要登记：skill 改名、合并或删除被其他 skill 引用的概念时，在 `archive/README.md`「改名、合并与删除的概念」加一行；新增指向其他 skill 文件的相对链接时，在 README「依赖组」登记。`tests/test_cross_skill_refs.py` 据此检查所有调用方。
 
 ## 外部依赖（不在本仓）
 

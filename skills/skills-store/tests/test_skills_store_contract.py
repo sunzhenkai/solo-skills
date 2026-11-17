@@ -66,6 +66,10 @@ class SkillMdTextContract(unittest.TestCase):
         self.assertIn("以 `npx skills --help`", cli)
         self.assertIn("裸 `npx skills update` 会进入交互询问", cli)
 
+    def test_audit_script_located_by_skill_placeholder(self) -> None:
+        self.assertIn('AUDIT="<this-skill>/scripts/audit-skill.sh"', self.text)
+        self.assertNotIn("BASH_SOURCE", self.text)
+
     def test_audit_surface_equals_install_surface(self) -> None:
         self.assertIn("审计面=安装面", self.text)
         for d in ("patches/", "evals/", "experience/", "evolutions/"):

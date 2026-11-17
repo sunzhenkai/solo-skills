@@ -32,9 +32,9 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 
 | Stage | Resident | 派出 | 绑定 |
 |---|---|---|---|
-| 理解 | 是 | 否 | `$taskrail` 建任务，走 wizard 与 design 第一步的 grill（自问自答，不调用 `grill-with-docs`） |
-| 定方案 | 澄清、approve | 写产物时 | `$taskrail` 的 design（写方案）→ approve → handoff → `$taskflow` `taskflow-new` → `$openspec-propose`。`handoff` 仍属本 Stage，不写代码 |
-| 方案评审 | 确认 Assignment | 只读 | 审 design + driver / 子 change 产物 |
-| 实现 | 确认 Assignment | 必须 | `$taskflow` 实施子 change |
+| 理解 | 是 | 否 | `$taskrail` 建任务并做 `intent` 意图确认；之后按 taskrail 路由按需进入 explore / grill（grill 自问自答，不调用 `grill-with-docs`） |
+| 定方案 | 澄清；需要时 approve | 写产物时 | 按 `$taskrail` 路由产出当前最小计划，命中时进入 design / approve / decompose。执行走 OpenSpec 时先过 handoff，再由 `$taskflow` 建 driver 并 `$openspec-propose`；走 direct 时 PLAN 即方案产物。本 Stage 不写代码 |
+| 方案评审 | 确认 Assignment | 只读 | 审 PLAN / design，以及 driver / 子 change 产物（若有） |
+| 实现 | 确认 Assignment | 必须 | `$taskflow` 按 direct 或 OpenSpec 实施 |
 | 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
-| 收尾 | 确认 Assignment | 需要时 | 归档 driver；任务过 `$taskrail` 完成清单后标 `done` 并归档；可选 `$commit-push` |
+| 收尾 | 确认 Assignment | 需要时 | 有 driver 时归档；任务经 `$taskrail` verify / close 写 `done` 并归档；可选 `$commit-push` |

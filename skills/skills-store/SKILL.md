@@ -33,16 +33,10 @@ description: "用 npx skills（vercel-labs/skills）搜索、安装、移除、�
 | 本仓库 `skills/` 经 sync 分发 | 已由仓库维护，无需重复审计 |
 | `find` / `list` / `use`（不安装） | 不审计 |
 
-审计脚本（与本 SKILL.md 同目录）：
+审计脚本在本 skill 的安装目录（`<this-skill>`，即本 SKILL.md 所在目录）下，执行前替换成实际路径：
 
 ```bash
-# 项目内 skill 自带脚本
-SKILL_ROOT="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")"
-AUDIT="$SKILL_ROOT/scripts/audit-skill.sh"
-
-# 或按安装位置：
-# 项目: .cursor/skills/skills-store/scripts/audit-skill.sh
-# 全局: ~/.cursor/skills/skills-store/scripts/audit-skill.sh
+AUDIT="<this-skill>/scripts/audit-skill.sh"
 ```
 
 ### 安装前工作流（先临时拉取 → 审计 → 再正式安装）

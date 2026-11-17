@@ -1,0 +1,99 @@
+diff --git a/skills/taskrail/examples/README.md b/skills/taskrail/examples/README.md
+index f0bbc48..bc8a17b 100644
+--- a/skills/taskrail/examples/README.md
++++ b/skills/taskrail/examples/README.md
+@@ -2,5 +2,5 @@
+ 
+ 经过验证的优秀执行案例（惰性补齐）。
+ 
+-- [minimal-webui/](minimal-webui/README.md)：full 档 Web UI 交接后的台账与证据快照；`tests/test_e2e_handoff_flow.py` 端到端回放 handoff → check_handoff → ui_evidence_check。
+-- 意图确认的口语复述与 `wizard/intent.md` 结构化示例：[../references/intent.md](../references/intent.md) 第 3、7 节。
++- [minimal-webui/](minimal-webui/README.md)：旧 handoff 兼容回归样例（保留旧 full 档台账），Web UI 交接后的台账与证据快照；`tests/test_e2e_handoff_flow.py` 端到端回放 handoff → check_handoff → ui_evidence_check。
++- 意图确认的口语复述与结构化意图：[../references/intent.md](../references/intent.md)「流程」第 3 步与「覆盖清单」节。
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 0d87a64..e2ad02a 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -14,7 +14,10 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状
+ 
+ ## 执行方法
+ 1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。
+-2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。
++2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
++   - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
++   - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
++   - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
+ 3. 完成通知说明各仓库分支 / worktree、验证结果和如何合入；不 push、不自动清理 worktree。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+ 5. 按 [archive-reopen.md](archive-reopen.md) 同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
+diff --git a/skills/taskrail/references/diagnose.md b/skills/taskrail/references/diagnose.md
+index 6c8f10e..f2fc852 100644
+--- a/skills/taskrail/references/diagnose.md
++++ b/skills/taskrail/references/diagnose.md
+@@ -17,6 +17,7 @@ bug、性能退化、 flaky test 或修复后失败的原因尚未证明。
+ 2. 每次只检验一个因果假设，保留命令、结果和反证；原始日志落 evidence。
+ 3. 能加回归测试时先让测试在修复前失败；无法复现要写已试范围与剩余不确定性。
+ 4. 同类失败没有新证据时停止盲试，补探索或 grill。
++5. 多轮或易发散的根因排查按 `trouble-grill` 的锚点、假设板与四道门执行，记录写本任务 `evidence/diagnose.md`；未安装时按本文件方法执行。
+ 
+ ## 产出
+ `evidence/repro*.md` 或指针、基线、根因证据、回归测试方向；更新 context/current。
+diff --git a/skills/taskrail/references/explore.md b/skills/taskrail/references/explore.md
+index 2b9a273..d8e0031 100644
+--- a/skills/taskrail/references/explore.md
++++ b/skills/taskrail/references/explore.md
+@@ -13,7 +13,7 @@
+ 目标、criterion、涉及仓库和已有 context/sources。
+ 
+ ## 执行方法
+-1. 先读用户原话、workspace / 项目说明、目标模块与既有测试，再扩大到直接依赖；不全仓扫描。
++1. 先读用户原话、workspace / 项目说明；项目有 Atlas（默认 `docs/atlas/`）或知识 wiki（默认 `docs/wiki/`）时先读入口与相关页，再读目标模块与既有测试，扩大到直接依赖；不全仓扫描。证据层级与渐进加载可按 `project-explore` 执行，过期或冲突以当前源码为准。
+ 2. 只读探索。面广可并行只读 worker，限定主题和范围。
+ 3. 结论标 confirmed / assumed，记录 source_repo、commit、文件:行或命令；原始输出落证据文件。
+ 4. 复用未失效结果，不因跨会话重读。
+diff --git a/skills/taskrail/tests/test_neighbor_skill_contract.py b/skills/taskrail/tests/test_neighbor_skill_contract.py
+new file mode 100644
+index 0000000..ef2cc3a
+--- /dev/null
++++ b/skills/taskrail/tests/test_neighbor_skill_contract.py
+@@ -0,0 +1,40 @@
++"""taskrail 环节与相邻 skill 的接入：排查方法、已有知识与收口落点。"""
++
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def read(name: str) -> str:
++    return (ROOT / "references" / name).read_text(encoding="utf-8")
++
++
++class NeighborSkillContract(unittest.TestCase):
++    def test_diagnose_uses_trouble_grill_for_divergent_root_cause(self) -> None:
++        diagnose = read("diagnose.md")
++        self.assertIn("按 `trouble-grill` 的锚点、假设板与四道门执行", diagnose)
++        self.assertIn("记录写本任务 `evidence/diagnose.md`", diagnose)
++        self.assertIn("未安装时按本文件方法执行", diagnose)
++
++    def test_explore_reads_existing_knowledge_first(self) -> None:
++        explore = read("explore.md")
++        self.assertIn("项目有 Atlas（默认 `docs/atlas/`）或知识 wiki（默认 `docs/wiki/`）时先读入口与相关页", explore)
++        self.assertIn("过期或冲突以当前源码为准", explore)
++
++    def test_close_routes_knowledge_to_owning_skills(self) -> None:
++        close = read("close.md")
++        self.assertIn("`stale_pages` 非空就把复核交给 `project-atlas`", close)
++        self.assertIn("踩坑和操作台账交给 `wiki-data`", close)
++        self.assertIn("跨任务的 skill 改进交给 `skill-upgrader`", close)
++
++    def test_examples_index_has_no_removed_wizard_path(self) -> None:
++        index = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
++        self.assertIn("旧 handoff 兼容回归样例", index)
++        self.assertNotIn("wizard/intent.md", index)
++
++
++if __name__ == "__main__":
++    unittest.main()

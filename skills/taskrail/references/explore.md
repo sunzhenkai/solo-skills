@@ -13,7 +13,7 @@
 目标、criterion、涉及仓库和已有 context/sources。
 
 ## 执行方法
-1. 先读用户原话、workspace / 项目说明、目标模块与既有测试，再扩大到直接依赖；不全仓扫描。
+1. 先读用户原话、workspace / 项目说明；项目有 Atlas（默认 `docs/atlas/`）或知识 wiki（默认 `docs/wiki/`）时先读入口与相关页，再读目标模块与既有测试，扩大到直接依赖；不全仓扫描。证据层级与渐进加载可按 `project-explore` 执行，过期或冲突以当前源码为准。
 2. 只读探索。面广可并行只读 worker，限定主题和范围。
 3. 结论标 confirmed / assumed，记录 source_repo、commit、文件:行或命令；原始输出落证据文件。
 4. 复用未失效结果，不因跨会话重读。
