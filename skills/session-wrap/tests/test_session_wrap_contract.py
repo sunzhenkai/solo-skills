@@ -1,4 +1,4 @@
-"""session-wrap 文本契约测试：锁定证据收尾、衍生任务路由与写入确认。"""
+"""session-wrap 文本契约测试：锁定证据收尾、方案合成、缺口记账与分档授权。"""
 from __future__ import annotations
 
 import unittest
@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
 
 
 class SessionWrapContractTest(unittest.TestCase):
@@ -47,12 +48,33 @@ class SessionWrapContractTest(unittest.TestCase):
         self.assertIn("单次失败先留作经验", SKILL)
         self.assertIn("操作台账记录有追溯价值的动作、环境、结果、影响和回滚方式", SKILL)
 
-    def test_every_write_or_external_action_requires_scoped_confirmation(self) -> None:
-        self.assertIn("「收尾」只授权只读检查与建议", SKILL)
-        self.assertIn("执行任何建议前，先说明目标和范围并获得确认", SKILL)
-        self.assertIn("创建任务、更新台账、写文档 / wiki、修改 skill", SKILL)
+    def test_findings_are_synthesized_into_one_ordered_plan(self) -> None:
+        self.assertIn("把前面每一步的发现合成一个有序方案", SKILL)
+        self.assertIn("不把问题清单丢回给用户", SKILL)
+        self.assertIn("每个发现必须有一个归属", SKILL)
+        self.assertIn("补验当前缺口 → 提交 → 台账与知识落点 → 衍生处理", SKILL)
+        self.assertIn("同一发现只出现一次", SKILL)
+
+    def test_confirmation_scope_follows_three_tiers(self) -> None:
+        self.assertIn("收尾项直接做", SKILL)
+        self.assertIn("一次确认覆盖方案内全部编号步骤", SKILL)
+        self.assertIn("额外缺口只有用户点名才处理", SKILL)
         self.assertIn("按目标环境逐项明确授权", SKILL)
-        self.assertIn("一次确认只覆盖用户点名的动作或同范围动作组", SKILL)
+        self.assertIn("不随方案确认生效", SKILL)
+        self.assertIn("中途新发现要加步骤或升级风险，重新确认", SKILL)
+        self.assertIn("一次确认等于授权方案内全部编号步骤，不含「需单独授权」项", PLAN)
+
+    def test_low_risk_wrap_up_does_not_wait_for_approval(self) -> None:
+        self.assertIn("低风险、结论唯一的收尾记账与本次临时资源清理可以直接完成", SKILL)
+        self.assertIn("直接完成并简要报告，不占用用户确认", SKILL)
+        self.assertIn("停掉本会话启动的本机临时服务", SKILL)
+
+    def test_unconfirmed_gaps_fall_back_to_the_ledger(self) -> None:
+        self.assertIn("用户只授权收尾项时，把缺口写入当前任务的 `context/current.md`「未决问题」，不新建任务", SKILL)
+        self.assertIn("写入 `context/current.md` 的「未决问题」表", PLAN)
+        self.assertIn("`解决形式` 写「另开任务」或「不纳入」", PLAN)
+        self.assertIn("不代写 `SUMMARY.md`", PLAN)
+        self.assertIn("没有台账：留在会话交接，不新建文件", PLAN)
 
     def test_cleanup_recommendations_preserve_unique_work(self) -> None:
         self.assertIn("先核对未提交改动、独有提交及使用中的资源，未知文件保留", SKILL)
@@ -71,14 +93,17 @@ class SessionWrapContractTest(unittest.TestCase):
             self.assertIn(strategy, SKILL)
         self.assertIn("推荐包含合入通道与历史处理方式，例如 `MR + squash`", SKILL)
         self.assertIn("共享主分支仍需单独确认，push 不随合并自动授权", SKILL)
-        self.assertIn("分支合入：", SKILL)
+        self.assertIn("需单独授权", SKILL)
+        self.assertIn("<合入 / push / 部署 / 删除>", SKILL)
 
     def test_output_is_compact_and_routable(self) -> None:
-        for section in ("必须处理", "衍生问题", "值得沉淀", "待你确认", "交接"):
+        for section in ("结论", "收尾方案", "额外缺口", "需单独授权", "恢复入口"):
             self.assertIn(section, SKILL)
         self.assertIn("按「证据 → 建议动作或落点」组织，空章节省略", SKILL)
-        self.assertIn("可选优化最多三项", SKILL)
+        self.assertIn("每条一行", SKILL)
+        self.assertIn("可选项最多三项", SKILL)
         self.assertIn("没有遗留事项时只报可结束，不创建额外报告文件", SKILL)
+        self.assertNotIn("待你确认", SKILL)
 
     def test_adjacent_skills_keep_their_responsibilities(self) -> None:
         self.assertIn("`anti-lazy` 负责交付前的意图与差距检查", SKILL)
