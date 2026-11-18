@@ -1,7 +1,7 @@
 ---
 id: project-atlas
 name: project-atlas
-description: 项目 Atlas：把架构图、业务规则和处理流程整理成可下钻的金字塔文档，维护 Markdown、HTML 与静态资源互链；按源码映射增量更新并复核代码变动造成的过期页面。用户要求项目知识地图、架构可视化、业务逻辑梳理、文档下钻、静态站点或文档自愈时使用。
+description: 项目 Atlas：把项目架构、业务规则和处理流程维护为可下钻的 Markdown 与 HTML 文档，并按源码映射增量更新、复核过期页面。用户要求建立或更新项目 Atlas、持久化项目知识地图 / 架构 / 业务文档、生成 Atlas 静态站点或复核过期 Atlas 页面时使用。
 compatibility: Requires Python 3.9+; Git is optional for recording the reviewed commit. Creating or updating Archify diagrams additionally requires Node.js 18+ and the archify skill.
 ---
 

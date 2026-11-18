@@ -44,6 +44,12 @@ class ContractTest(unittest.TestCase):
         # 占位符只在正文渲染，写进 frontmatter 会让 sync 的残留校验失败。
         self.assertNotIn("{{slash:", fm)
 
+    def test_roles_is_parameter_after_manual_entry(self) -> None:
+        text = _skill()
+        fm = _frontmatter(text)
+        self.assertIn("手动点名 role-chat 进入后，用 roles= 选择角色", fm)
+        self.assertIn("`roles=`、角色短名和多视角要求都是进入后的输入，不单独触发", text)
+
     def test_gate_sections_present(self) -> None:
         text = _skill()
         self.assertIn("仅手动触发", text)

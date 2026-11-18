@@ -58,6 +58,19 @@ class ProjectAtlasContractTest(unittest.TestCase):
         self.assertIn("<project>/docs/atlas", skill)
         self.assertIn("显式 `--root` 可覆盖默认落点", skill)
 
+    def test_description_scopes_persistent_atlas_routes(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        description = next(
+            line for line in skill.splitlines() if line.startswith("description:")
+        )
+        for marker in (
+            "建立或更新项目 Atlas",
+            "持久化项目知识地图",
+            "Atlas 静态站点",
+            "复核过期 Atlas 页面",
+        ):
+            self.assertIn(marker, description)
+
     def test_complex_system_views_and_reading_acceptance_are_explicit(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         layout = (ROOT / "references" / "layout.md").read_text(encoding="utf-8")

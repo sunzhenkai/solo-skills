@@ -1,7 +1,7 @@
 ---
 id: agent-roster
 name: agent-roster
-description: 跨机器 agent 名册与委派。用于把定计划、评审或实施委派给另一个 agent（点名 Role 时用其默认 Endpoint）；登记、探测、查询可用 agent；按 Stage 编排多 agent 工作流（flow 模式，原 agent-roster-flow）。
+description: 跨机器 agent 名册与委派。用于把计划制定、评审或实施委派给另一个 agent（点名 Role 时用其默认 Endpoint）；登记、探测、查询可用 agent；按 Stage 编排多 agent 工作流（flow 模式，原 agent-roster-flow）。
 ---
 
 # Agent Roster
