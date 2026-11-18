@@ -12,7 +12,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `taskflow` | direct / OpenSpec 两种执行适配器共用 workspace 多仓 git worktree 隔离；OpenSpec 子 change 按依赖滚动展开、逐片提交，driver 归档后仍回 taskrail 验收 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
 | `anti-lazy` | 意图对齐与差距检查：用提示引导模型核实现场、选择关键下一步并按证据收口 |
-| `session-wrap` | 会话收尾：只读核查交付缺口、衍生任务、知识沉淀、外部动作与资源清理，确认后路由执行 |
+| `session-wrap` | 会话收尾：梳理收尾清单并记录缺口，对需拍板的项给出带推荐的选项，确认后执行并汇报结果与缺口列表 |
 
 ### 跨 agent 委派
 
