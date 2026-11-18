@@ -36,8 +36,8 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `pretty-ui` | 构建好看的界面：设计方向、设计体系（token）、看真实截图打磨与评审；也把已有内容做成静态 HTML 阅读页 |
-| `ui-kit` | 可复用 UI 设计语言 + 复制即用的 React 模板（代码在 `sunzhenkai/ui-templates-skill`）：语言规范、token 契约与主题定制、项目 DESIGN.md |
+| `pretty-ui` | 通用 UI 设计、实现与评审引擎：既有/非 React 项目沿用原技术栈，提供设计方向、设计体系、截图打磨、评审与静态 HTML 阅读页 |
+| `ui-kit` | **默认 UI 总入口**：按技术栈分派 pretty-ui 或 React 模板路线，衔接风格包、专项 UI skills、DESIGN.md 与验收 |
 
 ### 知识与内容
 
@@ -65,7 +65,7 @@ skill 源在仓库的 `skills/<id>/`；CLI 的发现优先级前缀含 `skills/`
 ```bash
 npx skills add sunzhenkai/solo-skills                                    # 全部
 npx skills add sunzhenkai/solo-skills -s commit-push                     # 只装一个
-npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s pretty-ui   # 按依赖组成组安装
+npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s ui-kit -s pretty-ui # 按依赖组成组安装
 ```
 
 ### 依赖组
@@ -74,9 +74,10 @@ npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s pretty-ui   # �
 
 | Skill | 需要同装 | 原因 |
 | --- | --- | --- |
-| `taskrail` | `taskflow`、`pretty-ui` | execute 委托 taskflow；Web UI 交付读取 pretty-ui 的体系、方向与评审细则 |
+| `ui-kit` | `pretty-ui` | 默认 UI 总入口的既有/非 React 通用路线直接读取 pretty-ui |
+| `taskrail` | `taskflow`、`ui-kit`、`pretty-ui` | execute 委托 taskflow；Web UI 先经 ui-kit 分派，并读取 pretty-ui 的体系、方向与评审细则 |
 | `taskflow` | `taskrail` | 确认协议、完成清单与用户表达以 taskrail 为准 |
-| `role-based-reviewer` | `pretty-ui` | design 角色引用 pretty-ui 的视觉规则号 |
+| `role-based-reviewer` | `ui-kit`、`pretty-ui` | design 角色将视觉返修交回 ui-kit，并引用 pretty-ui 的视觉规则号 |
 
 ### dotfiles 编目（第三方）
 

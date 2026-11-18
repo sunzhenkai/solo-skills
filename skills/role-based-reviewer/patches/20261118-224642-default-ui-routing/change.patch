@@ -1,0 +1,32 @@
+diff --git a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+index 142b20c..836c604 100644
+--- a/skills/role-based-reviewer/references/roles/design.md
++++ b/skills/role-based-reviewer/references/roles/design.md
+@@ -128,7 +128,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ ## 下游建议
+ 
+-设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交给 pretty-ui；修复类结论交回常规实现流程。
++设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交回 [ui-kit](../../../ui-kit/SKILL.md) 分派，通用路线由 pretty-ui 承接，模板路线沿用 ui-template 契约；修复类结论交回常规实现流程。
+ 
+ ## 跨角色 redirect
+ 
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index fa820e3..5de49c6 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -37,6 +37,14 @@ class RbrContractTest(unittest.TestCase):
+         self.assertIn("X 组（X1–X12）", text)
+         self.assertTrue((roles / "../../../pretty-ui/references/rules.md").resolve().is_file())
+ 
++    def test_design_visual_rework_returns_to_ui_kit(self) -> None:
++        roles = ROOT / "references" / "roles"
++        text = (roles / "design.md").read_text(encoding="utf-8")
++        self.assertIn("[ui-kit](../../../ui-kit/SKILL.md)", text)
++        self.assertIn("通用路线由 pretty-ui 承接", text)
++        self.assertIn("模板路线沿用 ui-template 契约", text)
++        self.assertTrue((roles / "../../../ui-kit/SKILL.md").resolve().is_file())
++
+     def test_no_silent_downgrade(self) -> None:
+         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("不静默改成同源自审", text)

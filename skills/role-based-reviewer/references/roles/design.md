@@ -128,7 +128,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ## 下游建议
 
-设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交给 pretty-ui；修复类结论交回常规实现流程。
+设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交回 [ui-kit](../../../ui-kit/SKILL.md) 分派，通用路线由 pretty-ui 承接，模板路线沿用 ui-template 契约；修复类结论交回常规实现流程。
 
 ## 跨角色 redirect
 

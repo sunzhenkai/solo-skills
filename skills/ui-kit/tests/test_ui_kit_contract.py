@@ -39,6 +39,23 @@ class SkillEntryTest(unittest.TestCase):
     def test_boundary_with_pretty_ui(self) -> None:
         self.assertIn("与 pretty-ui 的边界", SKILL)
 
+    def test_default_router_and_named_skill_priority(self) -> None:
+        for phrase in ("默认 UI 总入口", "唯一主承接方", "默认入口不等于统一框架", "用户点名具体 skill"):
+            self.assertIn(phrase, SKILL)
+
+    def test_general_route_supports_existing_and_non_react(self) -> None:
+        for phrase in ("已有项目、非 React", "沿用项目现有框架", "不生成 React 模板文件", "](../pretty-ui/SKILL.md)"):
+            self.assertIn(phrase, SKILL)
+
+    def test_template_and_style_package_routes(self) -> None:
+        for phrase in ("ui-template.lock.json", "ui-template-apply/SKILL.md", "ui-template-design/SKILL.md", "ui-template-author/SKILL.md", "非模板项目要建设计体系"):
+            self.assertIn(phrase, SKILL)
+
+    def test_specialists_and_orchestration_handoff(self) -> None:
+        for name in ("baseline-ui", "improve-ui", "fixing-accessibility", "fixing-metadata", "fixing-motion-performance", "component-canvas", "create-canvas", "create-design-md", "frontend-slides", "taskrail", "role-based-reviewer"):
+            self.assertIn(f"`{name}`", SKILL)
+        self.assertIn("视觉返修回本 skill 分派", SKILL)
+
     def test_template_repo_located(self) -> None:
         self.assertIn("github.com/sunzhenkai/ui-templates-skill", SKILL)
         self.assertIn("UI_TEMPLATES_DIR", SKILL)

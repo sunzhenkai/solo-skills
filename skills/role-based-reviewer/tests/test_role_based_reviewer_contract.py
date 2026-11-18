@@ -37,6 +37,14 @@ class RbrContractTest(unittest.TestCase):
         self.assertIn("X 组（X1–X12）", text)
         self.assertTrue((roles / "../../../pretty-ui/references/rules.md").resolve().is_file())
 
+    def test_design_visual_rework_returns_to_ui_kit(self) -> None:
+        roles = ROOT / "references" / "roles"
+        text = (roles / "design.md").read_text(encoding="utf-8")
+        self.assertIn("[ui-kit](../../../ui-kit/SKILL.md)", text)
+        self.assertIn("通用路线由 pretty-ui 承接", text)
+        self.assertIn("模板路线沿用 ui-template 契约", text)
+        self.assertTrue((roles / "../../../ui-kit/SKILL.md").resolve().is_file())
+
     def test_no_silent_downgrade(self) -> None:
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("不静默改成同源自审", text)

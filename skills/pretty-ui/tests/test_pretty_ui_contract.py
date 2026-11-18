@@ -36,6 +36,11 @@ class SkillEntryTest(unittest.TestCase):
         for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
             self.assertIn(creed, SKILL)
 
+    def test_ui_kit_boundary(self) -> None:
+        self.assertIn("由 ui-kit 分派到既有或非 React 项目", frontmatter(SKILL)["description"])
+        self.assertIn("与 ui-kit 的边界", SKILL)
+        self.assertIn("保留直接点名调用", SKILL)
+
     def test_routing_modes(self) -> None:
         for mode in ("| 小改 |", "| build |", "| refine |", "| review |", "| system |", "| page |"):
             self.assertIn(mode, SKILL)

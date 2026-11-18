@@ -45,6 +45,12 @@ class AestheticGoalTest(unittest.TestCase):
         self.assertIn("pretty-ui/references/system.md", UI)
         self.assertIn("two-pass", UI)
 
+    def test_ui_kit_selects_route_before_implementation(self) -> None:
+        self.assertIn("[ui-kit](../../ui-kit/SKILL.md)", UI)
+        self.assertTrue((REF / "../../ui-kit/SKILL.md").resolve().is_file())
+        for phrase in ("既有/非 React", "ui-template lock", "像素保真", "无（ui-template）"):
+            self.assertIn(phrase, UI)
+
     def test_pretty_ui_links_resolve(self) -> None:
         for name, text in (("done.md", DONE), ("ui-delivery.md", UI)):
             for target in re.findall(r"\]\((\.\./\.\./pretty-ui/[^)#]+)\)", text):
