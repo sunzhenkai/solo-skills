@@ -16,17 +16,19 @@ sunzhenkai 的第一方 Agent Skills 集合（公开仓，MIT）：任务流编�
 无构建、无 lint 配置；自动化门禁以契约测试和临时 git 仓集成测试为主。测试用 stdlib unittest 编写，可由 pytest 收集；没有 pytest 时用 unittest：
 
 ```bash
-python3 -m pytest skills -q               # 全部测试（有 pytest 时）
+python3 -m pytest skills tests -q         # 全部测试：各 skill 的 tests/ + 仓级 tests/（有 pytest 时）
 python3 -m pytest skills/<id>/tests -q    # 单个 skill 的测试
+python3 -m unittest discover -s tests -p 'test_*.py'              # 仓级测试（跨 skill 引用、项目名、输出风格等）
 python3 -m unittest discover -s skills/<id>/tests -p 'test_*.py'
 
-make check-style    # 输出风格检查（SKILL.md >8KB、description 过长或含反向表述、引用链超一层、禁令词偏多只告警）
+make check-names    # 扫描具体项目名（.project-denylist；命中非零退出）
+make check-style    # 输出风格检查（SKILL.md >8KB、description 过长或含反向表述、引用链超一层、禁令词偏多为告警；意图复述模板与 user-report 结构缺失为错误）
 make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
-make install-deps   # 安装外部依赖（openspec-* + grilling），结尾跑 check-deps
+make install-deps   # 安装外部依赖（openspec-* + grilling / grill-with-docs / domain-modeling），结尾跑 check-deps
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
 ```
 
-`SKILLS_DIR=` 可覆盖安装目标（默认 `~/.agents/skills`）。已用 `dotf agents -c` 的环境不需要本 Makefile。
+`SKILLS_DIR=` 可覆盖 `install-openspec` 与 `check-deps` 的目录（默认 `~/.agents/skills`）；`install-matt` 经 `npx skills add -g` 装到其全局目录，不受它影响。已用 `dotf agents -c` 的环境不需要本 Makefile。
 
 ## 结构约定
 
@@ -58,8 +60,9 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
+| `playwright` + `axe-core`（运行时，非 skill） | pip / npm | taskrail 的 Web UI 证据检查（`taskrail/scripts/ui_evidence_check.py`） |
 
-- 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference，由本仓自问自答（方法见 `taskrail/references/grill.md`），不委托外部 skill。
+- 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference，由本仓自问自答（方法见 `taskrail/references/grill.md`），不委托外部 skill。外部的 `grilling` / `grill-with-docs` 方向相反——拷问用户，只在 agent-roster flow 模式与无台账一次性拷问中使用。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
 ### task* 要点
@@ -84,7 +87,7 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 
 ## 公开仓纪律
 
-- 提交前跑 `make check-names`、`make check-style`（`.project-denylist` 列具体项目名；确需保留的行加 `project-name-allow`）与 `python3 -m pytest skills -q`；无 pytest 时按上文用 unittest 分 Skill 运行。
+- 提交前跑 `make check-names`、`make check-style`（`.project-denylist` 列具体项目名；确需保留的行加 `project-name-allow`）与 `python3 -m pytest skills tests -q`；无 pytest 时按上文用 unittest 分别运行仓级 `tests/` 与各 Skill 的 `tests/`。
 
 - **这是开源仓库**：任何提交都可能被公开检索，应避免提交隐私信息（密钥、内部 URL、主机名、内网地址、公司/项目名、真实任务描述）。写任何文件前自查一次。
 - **只放机制，不放数据**：名册、案例、路由规则、运行痕迹存使用者私有位置。

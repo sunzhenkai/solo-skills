@@ -91,6 +91,7 @@ npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s pretty-ui   # �
 | `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
 | `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
+| `playwright` + `axe-core`（运行时，非 skill） | `pip install playwright && playwright install chromium`；交付仓 `npm i -D axe-core` | taskrail 的 Web UI 证据检查（`skills/taskrail/scripts/ui_evidence_check.py`） |
 
 可选依赖：[`archify`](https://github.com/tt-a1i/archify) 仅用于 `project-atlas` 新建或更新交互图；普通 Atlas 构建不需要它，也不纳入 `make install-deps` / `check-deps`。
 
@@ -101,12 +102,12 @@ npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s pretty-ui   # �
 不在 `dotf` 环境里时，用仓库根的 Makefile：
 
 ```bash
-make install-deps   # 外部依赖全量（openspec-* + grilling）+ 结尾 check-deps
+make install-deps   # 外部依赖全量（openspec-* + grilling / grill-with-docs / domain-modeling）+ 结尾 check-deps
 make check-deps     # 逐项检查 ~/.agents/skills，缺项非零退出
 make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ```
 
-细分 target：`install-openspec` / `install-matt`。安装位置可用 `SKILLS_DIR=` 覆盖。
+细分 target：`install-openspec` / `install-matt`。`SKILLS_DIR=` 可覆盖 `install-openspec` 与 `check-deps` 的目录；`install-matt` 经 `npx skills add -g` 装到其全局目录，不受它影响。
 
 已用 `dotf agents -c` 的不需要本 Makefile——`dotf` 已覆盖上述来源（openspec-* 由同一入口调 `openspec init` 生成）。
 

@@ -11,7 +11,8 @@
 # 若你已用 dotfiles 编目（`dotf agents -c`），无需本 Makefile——它已覆盖上述全部来源。
 # 本 Makefile 是给不在 dotf 环境里的用户的独立安装路径，目标目录同为 ~/.agents/skills。
 
-SKILLS_DIR ?= $(HOME)/.agents/skills
+DEFAULT_SKILLS_DIR := $(HOME)/.agents/skills
+SKILLS_DIR ?= $(DEFAULT_SKILLS_DIR)
 
 MATT_SKILLS   := grilling grill-with-docs domain-modeling
 OPENSPEC_SKILLS := openspec-explore openspec-propose openspec-apply-change openspec-archive-change
@@ -21,7 +22,7 @@ EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS)
 .PHONY: help install-deps install-matt install-openspec install-acpx check-deps check-names check-style
 
 help:
-	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling）并跑 check"
+	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling / grill-with-docs / domain-modeling）并跑 check"
 	@echo "make install-matt          只装 grilling / grill-with-docs / domain-modeling"
 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
@@ -33,7 +34,7 @@ install-deps: install-matt install-openspec
 	@$(MAKE) --no-print-directory check-deps
 
 install-matt:
-	@mkdir -p $(SKILLS_DIR)
+	@[ "$(SKILLS_DIR)" = "$(DEFAULT_SKILLS_DIR)" ] || echo "注意：install-matt 经 npx skills add -g 装到其全局目录，不受 SKILLS_DIR=$(SKILLS_DIR) 影响" >&2
 	npx -y skills add mattpocock/skills -g -y $(addprefix -s ,$(MATT_SKILLS))
 
 install-openspec:
