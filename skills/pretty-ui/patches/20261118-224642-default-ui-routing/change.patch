@@ -1,5 +1,5 @@
 diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
-index c54d689..ca43b4d 100644
+index c54d689..11db7b2 100644
 --- a/skills/pretty-ui/SKILL.md
 +++ b/skills/pretty-ui/SKILL.md
 @@ -1,7 +1,7 @@
@@ -7,7 +7,7 @@ index c54d689..ca43b4d 100644
  id: pretty-ui
  name: pretty-ui
 -description: 构建好看的界面：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。用户要做或美化 UI、嫌界面不好看、要 UI 评审、设计规范、token / 组件统一、UI 架构优化、网页阅读页时使用。
-+description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。由 ui-kit 分派到既有或非 React 项目，或用户点名 pretty-ui、要求 UI 评审、设计规范、token / 组件统一、网页阅读页时使用。
++description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。由 ui-kit 分派到既有或非 React 项目，或用户点名 pretty-ui 时使用。
  ---
  
  # Pretty UI
@@ -20,16 +20,53 @@ index c54d689..ca43b4d 100644
  ## 路由
  
  | 请求 | 模式 | 做法 |
+diff --git a/skills/pretty-ui/patches/20261118-224642-default-ui-routing/change.patch b/skills/pretty-ui/patches/20261118-224642-default-ui-routing/change.patch
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/pretty-ui/patches/20261118-224642-default-ui-routing/proposal.md b/skills/pretty-ui/patches/20261118-224642-default-ui-routing/proposal.md
+new file mode 100644
+index 0000000..328ec47
+--- /dev/null
++++ b/skills/pretty-ui/patches/20261118-224642-default-ui-routing/proposal.md
+@@ -0,0 +1,11 @@
++# Proposal：pretty-ui 作为通用路线下游
++
++## Intent
++保留 pretty-ui 全部设计、实现、截图打磨与评审能力，把自动定位收窄为 ui-kit 的既有/非 React 通用路线，同时保留用户直接点名调用，消除两个宽泛默认入口的竞争。
++
++## Files
++- `skills/pretty-ui/SKILL.md`
++- `skills/pretty-ui/tests/test_pretty_ui_contract.py`
++
++## Tests
++验证 frontmatter 的 ui-kit 分派关系、正文边界与直接点名兼容性；原有方向、证据、规则和停止标准测试不变。
+diff --git a/skills/pretty-ui/patches/20261118-224642-default-ui-routing/result.md b/skills/pretty-ui/patches/20261118-224642-default-ui-routing/result.md
+new file mode 100644
+index 0000000..b11e43a
+--- /dev/null
++++ b/skills/pretty-ui/patches/20261118-224642-default-ui-routing/result.md
+@@ -0,0 +1,9 @@
++# Result：pretty-ui 作为通用路线下游
++
++## Outcome
++pretty-ui 保留全部设计、实现、截图打磨和评审能力，自动定位调整为 ui-kit 的既有/非 React 通用路线；直接点名调用保持兼容。评审 F-1 已修复：WHEN 只保留 ui-kit 分派或明确点名 pretty-ui，不再用通用 UI 评审/设计规范等词绕过默认入口。
++
++## Verification
++- 相关聚焦测试与跨引用测试：95 passed（合计）。
++- 全仓：620 passed, 3 skipped, 2 subtests passed。
++- check-names / check-style / check-deps 与 diff check：通过。
 diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
-index 9e98334..c04f9c7 100644
+index 9e98334..ad02402 100644
 --- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
 +++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
-@@ -36,6 +36,11 @@ class SkillEntryTest(unittest.TestCase):
+@@ -36,6 +36,13 @@ class SkillEntryTest(unittest.TestCase):
          for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
              self.assertIn(creed, SKILL)
  
 +    def test_ui_kit_boundary(self) -> None:
-+        self.assertIn("由 ui-kit 分派到既有或非 React 项目", frontmatter(SKILL)["description"])
++        description = frontmatter(SKILL)["description"]
++        self.assertIn("由 ui-kit 分派到既有或非 React 项目", description)
++        self.assertTrue(description.endswith("或用户点名 pretty-ui 时使用。"))
 +        self.assertIn("与 ui-kit 的边界", SKILL)
 +        self.assertIn("保留直接点名调用", SKILL)
 +

@@ -1,7 +1,7 @@
 ---
 id: pretty-ui
 name: pretty-ui
-description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。由 ui-kit 分派到既有或非 React 项目，或用户点名 pretty-ui、要求 UI 评审、设计规范、token / 组件统一、网页阅读页时使用。
+description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。由 ui-kit 分派到既有或非 React 项目，或用户点名 pretty-ui 时使用。
 ---
 
 # Pretty UI

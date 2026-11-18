@@ -37,7 +37,9 @@ class SkillEntryTest(unittest.TestCase):
             self.assertIn(creed, SKILL)
 
     def test_ui_kit_boundary(self) -> None:
-        self.assertIn("由 ui-kit 分派到既有或非 React 项目", frontmatter(SKILL)["description"])
+        description = frontmatter(SKILL)["description"]
+        self.assertIn("由 ui-kit 分派到既有或非 React 项目", description)
+        self.assertTrue(description.endswith("或用户点名 pretty-ui 时使用。"))
         self.assertIn("与 ui-kit 的边界", SKILL)
         self.assertIn("保留直接点名调用", SKILL)
 
