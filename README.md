@@ -37,6 +37,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | Skill | 用途 |
 | --- | --- |
 | `pretty-ui` | 构建好看的界面：设计方向、设计体系（token）、看真实截图打磨与评审；也把已有内容做成静态 HTML 阅读页 |
+| `ui-kit` | 可复用 UI 设计语言 + 复制即用的 React 模板（代码在 `sunzhenkai/ui-templates-skill`）：语言规范、token 契约与主题定制、项目 DESIGN.md |
 
 ### 知识与内容
 
