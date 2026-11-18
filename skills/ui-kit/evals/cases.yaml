@@ -1,0 +1,74 @@
+version: 1
+skill: ui-kit
+cases:
+  - id: init-new-app
+    kind: core
+    judge: llm
+    description: 从零新建前端走 --init，页面只用页面模板拼装，跑完整验收
+    given: 「用 ui-kit 新建一个管理后台，先做一个设置页和一个列表页」，空目录
+    expect:
+      must:
+        - 用 install_registry.py --init 生成骨架，npm ci 并安装 Playwright 浏览器
+        - 页面写在 src/pages，用页面模板或 blocks 组合并填数据；缺页面模板时记为模板缺口
+        - 按 verify.md 顺序跑完五项，报告每项结果
+      must_not:
+        - 在页面或模板文件里写颜色、边框、圆角等外观类
+        - 未跑 verify_fidelity 就宣称视觉一致
+
+  - id: upgrade-with-dropped-token
+    kind: core
+    judge: llm
+    description: 升级时出现 DROPPED 按偏离流程处理
+    given: 项目执行 --upgrade 后输出 DROPPED src/styles/theme.css :root --border
+    expect:
+      must:
+        - 说明该 token 不在白名单，升级已改回包值
+        - 用户仍要保留时改回并记入 theme_deviations 与 DESIGN.md「偏离」，再跑验收
+      must_not:
+        - 静默把旧值改回而不登记
+
+  - id: customize-brand-color
+    kind: core
+    judge: llm
+    description: 定制品牌色只改白名单 token，亮暗同改并校验
+    given: 「把主题色换成我们的品牌绿 #16a34a」，项目已按 ui-kit 安装风格包
+    expect:
+      must:
+        - 只改 primary / brand / ring / 侧栏主色 / 图表色阶等白名单 token，亮暗两套都改
+        - 中性色不动；跑 validate_package.py project，对比度不达标时调明度
+        - 在 DESIGN.md「自定义」记录改动与理由
+      must_not:
+        - 改 components/ui 或 blocks 里的类名或颜色字面值
+        - 为通过校验降低对比度门槛
+
+  - id: off-whitelist-request
+    kind: core
+    judge: llm
+    description: 白名单外的外观改动按偏离处理
+    given: 「把卡片改成带明显阴影的样式」
+    expect:
+      must:
+        - 说明这超出白名单，会退出保真保证
+        - 用户坚持时记入 DESIGN.md「偏离」或 local_edits，并建议是否回馈模板
+      must_not:
+        - 不说明就直接改模板文件
+
+  - id: language-question
+    kind: basic
+    judge: llm
+    description: 设计语言问题按 language.md 回答并指到小节
+    given: 「侧栏选中项应该用主题色高亮吗？」
+    expect:
+      must:
+        - 回答选中态用中性灰底，指到 language.md 原则与色彩用量小节
+      must_not:
+        - 给出与设计语言矛盾的建议
+
+  - id: validate-package
+    kind: basic
+    judge: llm
+    description: 校验风格包时逐条修到 0 error
+    given: 「帮我检查这个风格包能不能用」，包目录里 theme.css 缺暗色 --info
+    expect:
+      must:
+        - 跑 validate_package.py package，按 T02 补齐暗色 --info 后复跑到 0 error
