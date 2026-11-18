@@ -92,7 +92,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-LIST_FIELDS = {"tags", "aliases", "sources", "related"}
+LIST_FIELDS = {"tags", "aliases", "sources", "related", "symptoms"}
+EXPERIENCE_KINDS = {"practice", "pitfall", "pattern"}
+SYMPTOM_KINDS = {"pitfall", "pattern"}
 
 
 def parse_inline_list(value: str) -> list[str] | None:
@@ -389,6 +391,28 @@ def validate_source_reference(
     return None
 
 
+def pitfall_instances(
+    page: dict,
+    mapping: dict[str, str],
+    ambiguous: set[str],
+    page_by_rel: dict[str, dict],
+) -> set[str]:
+    found: set[str] = set()
+    for reference in page["lists"].get("related", []):
+        value = reference.strip()
+        is_wikilink = value.startswith("[[") and value.endswith("]]")
+        target = split_wikilink(value[2:-2]) if is_wikilink else value
+        if not target or is_ambiguous_wikilink(target, ambiguous):
+            continue
+        resolved = resolve_wikilink(target, mapping)
+        if resolved is None or resolved == page["rel"]:
+            continue
+        target_page = page_by_rel[resolved]
+        if target_page["fm"].get("kind") == "pitfall" and not is_archived(target_page):
+            found.add(resolved)
+    return found
+
+
 def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
     mapping, ambiguous = build_resolvers(pages)
     page_by_rel = {page["rel"]: page for page in pages}
@@ -505,6 +529,39 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
                     rel,
                     "archive_reason / superseded_by 需要 archived_at",
                 )
+
+            experience_kind = fm.get("kind", "")
+            if experience_kind and (
+                page_type != "experience" or experience_kind not in EXPERIENCE_KINDS
+            ):
+                add(
+                    "kind_invalid",
+                    "error",
+                    rel,
+                    "kind 只用于 experience，取值 practice / pitfall / pattern，"
+                    f"当前 type={page_type!r} kind={experience_kind!r}",
+                )
+            if (
+                not archived
+                and page_type == "experience"
+                and experience_kind in SYMPTOM_KINDS
+            ):
+                if not page["lists"].get("symptoms"):
+                    add(
+                        "symptoms_missing",
+                        "warning",
+                        rel,
+                        f"{experience_kind} 经验缺少 symptoms（现象检索词）",
+                    )
+                if experience_kind == "pattern":
+                    instances = pitfall_instances(page, mapping, ambiguous, page_by_rel)
+                    if len(instances) < 2:
+                        add(
+                            "pattern_instances_insufficient",
+                            "warning",
+                            rel,
+                            f"related 中的活跃 pitfall 实例为 {len(instances)} 个，至少需要 2 个",
+                        )
 
             parsed_dates = {}
             for field in (
@@ -708,6 +765,21 @@ def lint_log(text: str) -> list[dict]:
     return issues
 
 
+def index_summary(page: dict) -> str:
+    fm = page["fm"]
+    summary = fm.get("description", "")
+    experience_kind = fm.get("kind", "")
+    if fm.get("type") != "experience" or experience_kind not in SYMPTOM_KINDS:
+        return summary
+    parts = [f"[{experience_kind}]"]
+    if summary:
+        parts.append(summary)
+    symptoms = page["lists"].get("symptoms", [])
+    if symptoms:
+        parts.append("现象：" + "、".join(symptoms))
+    return " ".join(parts)
+
+
 def render_index(pages: list[dict], index_date: str | None = None) -> str:
     grouped: dict[str, list[dict]] = {name: [] for name, _ in INDEX_HEADINGS}
     archived: list[dict] = []
@@ -720,7 +792,7 @@ def render_index(pages: list[dict], index_date: str | None = None) -> str:
             "slug": page["stem"],
             "title": page["title"],
             "type": fm.get("type", ""),
-            "description": fm.get("description", ""),
+            "description": index_summary(page),
             "date": fm.get("date", ""),
             "confidence": fm.get("confidence", ""),
             "status": fm.get("status", ""),

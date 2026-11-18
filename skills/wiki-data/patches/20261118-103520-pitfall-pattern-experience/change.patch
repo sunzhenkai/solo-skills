@@ -1,0 +1,441 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index d6a2846..c0d61ff 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -32,7 +32,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ | `guide` | 了解工作区目标、结构、覆盖与缺口 | 只读 | 已按真实 `ls` 报出目标、结构、覆盖与缺口 |
+ | `init` | 尚无 wiki 布局，或要把一堆本地文档收成 wiki | 确认后创建骨架 | 骨架齐全、`WIKI_ROOT` 已绑定、log 已追加 init |
+ | `ingest` | 把文件、粘贴文本或对话编进 wiki，总结经验或更新台账 | 确认范围后写 `wiki/` | 新写页已回读、`sources` 可追溯、lint 无 error、log 已追加 |
+-| `query` | 问 wiki 里已有的知识，或相似任务执行前查经验 | 默认只读；归档问答需确认 | 回答逐条带出处、置信度与时效，未覆盖处明说「wiki 尚未覆盖」 |
++| `query` | 问 wiki 里已有的知识，或相似任务执行前查经验、排查时按现象查坑 | 默认只读；归档问答需确认 | 回答逐条带出处、置信度与时效，未覆盖处明说「wiki 尚未覆盖」 |
+ | `archive` | 整页被替代或不再适用 | 先给计划，确认后原地标记 | 历史与链接保留、索引归入已归档、lint 无 error、log 已追加 |
+ | `reopen` | 恢复已归档页面 | 核实后解除归档标记 | 当前主张已核实或降级、历史保留、索引与 log 已更新 |
+ | `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+diff --git a/skills/wiki-data/references/ingest.md b/skills/wiki-data/references/ingest.md
+index 899b0e5..d8f1026 100644
+--- a/skills/wiki-data/references/ingest.md
++++ b/skills/wiki-data/references/ingest.md
+@@ -32,13 +32,16 @@
+ 
+ 先向用户展示**归档列表**，再按列表摄入。归档列表即保存计划，每项列出：摘要、保存价值（未来用于什么）、候选 `type`、新建 / 更新 / 合并目标、上下文证据（原话要点或来源）、拟定置信度、核实日期与复审日期（如需要）。计划末尾列出**不纳入项及理由**，如重复、越界、一次性细节或无后续价值。归档列表即本次写入范围；后续发现遗漏时先补充列表再写。既有范围确认与隐私门禁不变。
+ 
+-## 排查记录
++## 排查记录与坑
+ 
+-用户明确要求归档 `trouble-grill` 记录时，按本页流程摄入，保留锚点、证据等级、用户输入、路径（含 `dead-end`）、验证盲区与回退条件。
++用户明确要求归档 `trouble-grill` 记录时，按本页流程摄入，保留锚点、证据等级、用户输入、路径（含 `dead-end`）、验证盲区与回退条件。会话收尾的弯路复盘交来的坑候选同样按本节摄入。
+ 
+-- 整份排查记录先写 `wiki/sources/` 摘要；跨来源归纳时再写 `wiki/synthesis/`；形成可复用做法时再写 `wiki/experiences/`。
+-- 只有 `confirmed` 假设可写成根因；其他等级保留为线索或开放问题。
+-- 归档范围以用户确认的排查记录为准。
++- 整份排查记录先写 `wiki/sources/` 摘要；一次具体问题写一页 `kind: pitfall` 的经验；跨来源归纳时再写 `wiki/synthesis/`；多个坑共享的识别信号与判别方法由 organize 归纳为 `kind: pattern`。
++- 只有 `confirmed` 假设可写成根因；其他等级保留为线索或开放问题。根因未坐实的坑页保持 `status: draft`，在「经验结论」写明未定位并列出已排除的假设。
++- 先用现象词检索：报错原文、组件名和现象描述，对照既有页的 `symptoms`、标题与正文。同一个坑再次出现时，在原页「复发记录」追加日期、新现象、新证据与原结论是否仍成立，并把新现象词并入 `symptoms`；现象相似但根因不同时另建页面并互相链接。
++- 字段落点：被推翻的假设、`dead-end` 路径与用户纠正连同当时的误导信号和绕过的轮次写入「误判与弯路」；决定性证据与重来时的前 1–3 步写入「最短判别」；验证盲区与回退条件写入「边界与失效条件」。
++- 主机、项目、版本等专名留在坑页；去掉专名后仍成立的规律在归档列表中标为模式候选。既有坑页已记过同类规律时，同一份列表提议按 [organize.md](organize.md)「归纳排查模式」新建或更新模式页。排查方法本身的弯路（检索词偏差、跳过能一刀切分的对照实验等）记在「误判与弯路」，不单独建页。
++- 归档范围以用户确认的排查记录或坑候选为准。
+ 
+ ## 经验与台账
+ 
+@@ -91,6 +94,7 @@
+ - [ ] 业务页 frontmatter 含 title / type / date / confidence / description / sources，经验与台账含 status，source 含 origin / captured_at；所需核实与复审字段齐全
+ - [ ] 主张级例外已标置信度，冲突、纠正与失效内容保留来源、日期和状态
+ - [ ] 经验含触发信号、预防与处理、验证方式；validated 有对应验证证据
++- [ ] 坑页有 `symptoms`、「误判与弯路」与「最短判别」；同一个坑复发已追加到原页
+ - [ ] 文件类摄入有 `wiki/sources/` 摘要
+ - [ ] 旧页保留原有信息与来源，台账历史只追加
+ - [ ] 已回读并跑 lint，error 为 0
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index 252fe56..231bdc7 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -9,7 +9,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
+ ```
+ 
+-默认及 `--check-index` 均只读并校验索引一致性；`--write-index` 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面列入末尾「已归档」表。`--json` 的 `stats` 包含 active / archived / draft / validated / deprecated / review_overdue 数量，供 guide 使用。
++默认及 `--check-index` 均只读并校验索引一致性；`--write-index` 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面列入末尾「已归档」表；`pitfall` / `pattern` 经验的摘要前标 `kind`、后附 `symptoms`，便于按现象扫读。`--json` 的 `stats` 包含 active / archived / draft / validated / deprecated / review_overdue 数量，供 guide 使用。
+ 
+ ## 检查码
+ 
+@@ -25,6 +25,9 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
+ | `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
+ | `date_invalid` | error | date / created / last_verified / review_after / archived_at / captured_at 不是有效的 YYYY-MM-DD |
+ | `archive_metadata_invalid` | error | 已归档页缺 archive_reason，或 archive_reason / superseded_by 在没有 archived_at 时单独出现 |
++| `kind_invalid` | error | `kind` 用在非 experience 页，或取值不是 practice / pitfall / pattern |
++| `symptoms_missing` | warning | 活跃的 pitfall / pattern 经验缺少现象检索词 `symptoms` |
++| `pattern_instances_insufficient` | warning | 活跃 pattern 的 `related` 链接的活跃 pitfall 实例少于 2 个 |
+ | `review_overdue` | warning | 活跃页已到复审日；归档页不产生此项 |
+ | `description_missing` | warning | 活跃业务页缺少索引摘要 |
+ | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
+@@ -54,6 +57,8 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
+ 
+ **错位 / 重复 / 耦合**：保留独有事实与历史，按既有 organize 契约处理。
+ 
++**坑与排查模式**：`symptoms` 从排查记录或页面正文的现象中补，不编造；实例不足的模式页补链真实实例，确实只有一个实例时按 organize 降回坑页里的候选规律。
++
+ ## 脚本做不到的（需 LLM）
+ 
+ - 页面间事实矛盾与过时主张
+diff --git a/skills/wiki-data/references/organize.md b/skills/wiki-data/references/organize.md
+index ef5a716..0b1b956 100644
+--- a/skills/wiki-data/references/organize.md
++++ b/skills/wiki-data/references/organize.md
+@@ -7,7 +7,17 @@
+ ## 步骤
+ 
+ 1. 跑 lint，按真实输出描述结构；只描述 lint 实际报出的目录（如没有 `wiki/entity/`、`wiki/skills/` 就不提）。
+-2. 识别：重复页、孤立页、错位、实体-概念耦合、缺失反链。
+-3. 给出方案（合并 / 移动 / 补链 / 拆名）。确认前不改。
++2. 识别：重复页、孤立页、错位、实体-概念耦合、缺失反链、可归纳为排查模式的坑。
++3. 给出方案（合并 / 移动 / 补链 / 拆名 / 归纳模式）。确认前不改。
+ 4. 执行前读所有受影响页。合并必须保留双方独有信息。
+ 5. 再跑 lint；更新 index；结构变更追加 `## [YYYY-MM-DD] organize | …`。
++
++## 归纳排查模式
++
++至少两个活跃的 `kind: pitfall` 页共享同一类误导信号或同一个最短判别时，在方案中提议新建或更新一页 `kind: pattern`：
++
++- 标题用中性的机制或规律名，不含具体系统名；`symptoms` 写跨实例的通用现象词。
++- 「触发信号」写跨实例的现象组合，「最短判别」写可以先做的通用判别，「误判与弯路」汇总共同的误判，「证据」与 `related` 列出全部实例。
++- 实例页在 `related` 回链模式页；实例自身内容留在原页，不搬进模式页。
++- 模式页默认 `status: draft`；之后有新实例按其「最短判别」命中并验证，再改为 `validated`。
++- 只有一个实例时不建模式页，在坑页的「边界与失效条件」记下候选规律。
+diff --git a/skills/wiki-data/references/page-types.md b/skills/wiki-data/references/page-types.md
+index a1d7375..93ef4aa 100644
+--- a/skills/wiki-data/references/page-types.md
++++ b/skills/wiki-data/references/page-types.md
+@@ -8,7 +8,7 @@
+ | concept | `wiki/concepts/` | 可复用的术语、方法、框架、机制、理论 | 定义、核心要点、相关实体、来源 |
+ | source | `wiki/sources/` | 一份 raw 源的摘要，不是原件 | 摘要、关键观点、相关实体/概念 |
+ | synthesis | `wiki/synthesis/` | 跨源分析 | 问题/目的、分析、引用、后续 |
+-| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界 | 适用场景、触发信号、经验结论、预防与处理、验证方式、证据、边界与失效条件、来源 |
++| experience | `wiki/experiences/` | 可复用的经验结论及其证据、适用边界；`kind` 区分一般做法、具体的坑与跨坑的排查模式 | 适用场景、触发信号、经验结论、预防与处理、验证方式、证据、边界与失效条件、来源；坑与排查模式见下文「坑与排查模式」 |
+ | ledger | `wiki/ledgers/` | 一个业务对象的当前状态与历史变化 | 当前状态、历史、来源 |
+ | comparison | `wiki/comparisons/` | 对比 | 对比维度、异同、结论 |
+ | query | `wiki/queries/` | 值得留下的问答 | 问题、回答、引用 |
+@@ -33,16 +33,19 @@ related: []
+ ```
+ 
+ - 更新时不要轻易改 `type`、`title`、`created`（若已有）。
+-- `tags` / `aliases` / `sources` / `related` 做并集去重，不覆盖删除旧值。
++- `tags` / `aliases` / `sources` / `related` / `symptoms` 做并集去重，不覆盖删除旧值。
+ - `date` 用本次写入日；`created` 只在首次创建时加。
+ - `description` 是一句话摘要，供索引与候选筛选使用；活跃页应填写，缺失会产生 warning。`aliases` 记录常用别名、缩写和中英变体，可用于链接解析；同名或别名冲突时必须使用路径限定链接。
+ - 活跃业务页必须有非空 `sources`。每项指向 `wiki/sources/` 页标题、`[[来源页面]]` 或 `raw/sources/` 内的相对文件名；来源必须存在。`origin` 为 `user-input` / `conversation` 的 source 页本身可为空。归档页保留既有来源，不强制补写历史字段。
+ - 活跃 `source` 页还必须有 `origin` 与 `captured_at: YYYY-MM-DD`；`origin` 使用 raw 相对路径、`user-input` 或 `conversation`，`content_hash` 可选，存在时为源内容的 SHA-256 十六进制摘要。
+-- `tags` / `aliases` / `sources` / `related` 使用 inline list（如 `[alpha, beta]`）。lint 支持标量、空值和 inline list，不支持的 frontmatter 行会报错，不静默忽略。
++- `tags` / `aliases` / `sources` / `related` / `symptoms` 使用 inline list（如 `[alpha, beta]`）。lint 支持标量、空值和 inline list，不支持的 frontmatter 行会报错，不静默忽略。
+ - 所有业务页必须有 `confidence: high | medium | low`，只表示证据强度，不表示重要性或真实概率。
+ - `last_verified: YYYY-MM-DD` 是主张与来源最后核实的日期，不是编辑日期；`high` 必须有此字段。
+ - `review_after: YYYY-MM-DD` 是下一次复审期限，易变知识必须填写；到期只表示需要复审，不自动降低证据强度或判定内容错误。
+ - `experience` 必须有 `status: draft | validated | deprecated`；`validated` 页必须同时记录 `last_verified` 和 `review_after`。
++- `experience` 可选 `kind: practice | pitfall | pattern`，缺省为 `practice`（一般可复用做法）。`pitfall` 记一次具体问题从现象到根因，一个坑一页，标题写成「现象 → 根因」，根因未定位时写「现象 → 未定位」；`pattern` 归纳多个坑共享的识别信号与先做的判别，标题用中性的机制或规律名。`kind` 与 `status` 正交。
++- `pitfall` 与 `pattern` 应有非空 `symptoms`：排查者当时能看到的报错原文、现象描述和误导性的表面结论。检索坑以它为主要入口，根因词写在正文。
++- `pattern` 的 `related` 至少列两个活跃的 `pitfall` 实例，实例页的 `related` 回链该模式页。
+ - `ledger` 必须有 `status`，取值沿用该业务的既有词表；`date` 表示当前状态最后更新时间。
+ - `archived_at: YYYY-MM-DD` 存在即表示整页已归档，必须同时填写 `archive_reason`；`superseded_by: "[[替代页面]]"` 可选。三个字段只描述页面生命周期，与 experience 的验证状态、ledger 的业务状态正交。
+ - 归档页保留原路径、类型、来源与正文历史；重开时移除上述归档字段，并在正文保留归档与重开记录。
+@@ -59,6 +62,18 @@ related: []
+ 
+ 纠正事实时保留旧主张，标明「已更正」、日期、新来源与替代结论。冲突主张并列保存并保持 `low`，有裁决证据后再更新等级；经验整页失效用 `deprecated`，其他页面用主张级状态保留历史。
+ 
++## 坑与排查模式
++
++`pitfall` 与 `pattern` 在 experience 必需章节之外加两节，`pitfall` 再加一节：
++
++| 章节 | 写什么 |
++|------|--------|
++| 误判与弯路 | 当时看起来像什么，先后怀疑过什么，各自被哪条证据推翻，绕了几轮；用户纠正与排查方法本身的弯路也记在这里 |
++| 最短判别 | 一锤定音的实验或观察；知道答案后重来，前 1–3 步做什么 |
++| 复发记录（仅 pitfall） | 只追加 `### [YYYY-MM-DD] 复发`：新现象、新证据、原结论是否仍成立 |
++
++`pitfall` 的「经验结论」只写已坐实的根因因果链；未坐实时保持 `status: draft`，写明未定位并列出已排除的假设。`pattern` 的「证据」列出全部实例，「预防与处理」从最短判别写起。
++
+ 系统页可不设业务 `type`。模板页只存在于 `wiki/templates/`。
+ 
+ ## 实体 vs 概念
+@@ -199,6 +214,49 @@ sources: []
+ - [[来源页面]]
+ ```
+ 
++### experience（pitfall / pattern）
++
++```markdown
++---
++title: 现象 → 根因
++type: experience
++kind: pitfall
++date: YYYY-MM-DD
++confidence: low
++status: draft
++symptoms: []
++tags: []
++sources: []
++related: []
++---
++
++# 适用场景
++
++## 触发信号
++
++## 误判与弯路
++
++## 经验结论
++
++## 最短判别
++
++## 预防与处理
++
++## 验证方式
++
++## 证据
++
++## 边界与失效条件
++
++## 复发记录
++
++## 来源
++
++- [[来源页面]]
++```
++
++`pattern` 沿用此模板：`kind: pattern`，标题改为中性规律名，去掉「复发记录」，`related` 列出实例。
++
+ ### ledger
+ 
+ ```markdown
+diff --git a/skills/wiki-data/references/query.md b/skills/wiki-data/references/query.md
+index 79927df..2b6e2ad 100644
+--- a/skills/wiki-data/references/query.md
++++ b/skills/wiki-data/references/query.md
+@@ -7,7 +7,7 @@
+ 1. **明确问题**：识别对象、环境、时间范围与任务场景，以及是否限定类型、状态、标签或包含历史归档。回答「当前状态」时必须有相应的核实时间。
+ 2. **检查目录**：先运行 `lint_wiki.py "{WIKI_ROOT}" --check-index`。索引有效时读 `wiki/index.md` 和必要的 `wiki/overview.md`，当前类型表提供活跃候选，「已归档」表只提供历史候选。报 `index_stale` 时明确提示索引过期，改用文件系统的目录列表与 `rg` 检索，不以旧索引断言覆盖完整；查询阶段保持只读，不自动重建。
+ 3. **检索候选**：搜索标题、正文、frontmatter 与 aliases，覆盖缩写和中英变体。当前问题先读无 `archived_at` 的页面；归档命中只用于补充历史或提示覆盖缺口。用户明确查询历史时再纳入归档页全文。同名或别名歧义未裁决时，使用路径限定链接并并列候选，不采用先命中者。
+-4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索活跃的 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。未命中时明确说「未检索到匹配经验」。
++4. **执行前预检**：相似任务、重复操作或旧问题再次出现时，先按适用场景与触发信号检索活跃的 `wiki/experiences/`，再读关联概念、实体与台账；把匹配经验的预防与处理、验证方式列成执行前检查项。排查开始或卡住时，用现象词（报错原文、组件名、现象描述）检索 `symptoms`、标题与正文，猜测的根因词只作补充；`kind: pattern` 页一并检索。命中坑或排查模式时，把「最短判别」排在检查项第一位，并列出「误判与弯路」中的已知误判。未命中时明确说「未检索到匹配经验」。
+ 5. **全文核对**：读最相关页面及其直接引用的来源页，核对 `sources` 指向、具体主张的置信度、适用范围、`archived_at`、`last_verified` 与 `review_after`。索引摘要、文件名或单条搜索命中不能单独支撑结论；页面级高置信度不能覆盖主张级低置信度。
+ 6. **组织回答**：先给直接答案，再按结论附 `[[页面标题]]`、置信度和核实日期。证据不足就写「wiki 尚未覆盖」，不要转到 `raw/` 重新拼答案，除非用户明确要求查源材料。仅命中归档页时写「当前知识未覆盖，仅有历史记录」，再按需概述历史并附归档日期、原因与替代页。
+ 7. **保留冲突**：页面间结论冲突时并列各自来源、时间、适用范围与置信度，指出当前无法裁决的部分，不静默挑选一条。
+@@ -22,6 +22,7 @@
+ ## 经验与台账
+ 
+ - 查经验时回答适用场景、触发信号、结论、预防与处理、验证方式、证据和失效条件。`status: draft` 只是待验证线索，`deprecated` 只作历史参考；两者都不能作为已验证的现行建议。
++- 查坑时先说现象吻合到什么程度，再给最短判别、已知误判、根因及其状态。现象只部分吻合时指出差异，建议先跑最短判别确认，再沿用旧结论。
+ - `review_after` 早于查询当日表示需要复审，不等于已经证伪。逾期或缺少 `last_verified` 的内容只按历史记录陈述；用户问现实是否仍成立时，说明时效缺口，经重新核实后再称为当前事实。
+ - 查业务对象现状时优先读活跃 `wiki/ledgers/` 的「当前状态」与 frontmatter `status` / `date` / `last_verified`，需要经过时再读「历史」。不要把 `wiki/log.md` 的 wiki 操作记录当成业务状态。
+ - 只有单次材料、没有经验页时，可以概述材料并标明尚未归纳为经验；不要把它包装成已验证规律。
+diff --git a/skills/wiki-data/scripts/lint_wiki.py b/skills/wiki-data/scripts/lint_wiki.py
+index 585825c..d1e2a6b 100755
+--- a/skills/wiki-data/scripts/lint_wiki.py
++++ b/skills/wiki-data/scripts/lint_wiki.py
+@@ -92,7 +92,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+     return parser.parse_args(argv)
+ 
+ 
+-LIST_FIELDS = {"tags", "aliases", "sources", "related"}
++LIST_FIELDS = {"tags", "aliases", "sources", "related", "symptoms"}
++EXPERIENCE_KINDS = {"practice", "pitfall", "pattern"}
++SYMPTOM_KINDS = {"pitfall", "pattern"}
+ 
+ 
+ def parse_inline_list(value: str) -> list[str] | None:
+@@ -389,6 +391,28 @@ def validate_source_reference(
+     return None
+ 
+ 
++def pitfall_instances(
++    page: dict,
++    mapping: dict[str, str],
++    ambiguous: set[str],
++    page_by_rel: dict[str, dict],
++) -> set[str]:
++    found: set[str] = set()
++    for reference in page["lists"].get("related", []):
++        value = reference.strip()
++        is_wikilink = value.startswith("[[") and value.endswith("]]")
++        target = split_wikilink(value[2:-2]) if is_wikilink else value
++        if not target or is_ambiguous_wikilink(target, ambiguous):
++            continue
++        resolved = resolve_wikilink(target, mapping)
++        if resolved is None or resolved == page["rel"]:
++            continue
++        target_page = page_by_rel[resolved]
++        if target_page["fm"].get("kind") == "pitfall" and not is_archived(target_page):
++            found.add(resolved)
++    return found
++
++
+ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+     mapping, ambiguous = build_resolvers(pages)
+     page_by_rel = {page["rel"]: page for page in pages}
+@@ -506,6 +530,39 @@ def lint_issues(pages: list[dict], wiki_dir: Path) -> list[dict]:
+                     "archive_reason / superseded_by 需要 archived_at",
+                 )
+ 
++            experience_kind = fm.get("kind", "")
++            if experience_kind and (
++                page_type != "experience" or experience_kind not in EXPERIENCE_KINDS
++            ):
++                add(
++                    "kind_invalid",
++                    "error",
++                    rel,
++                    "kind 只用于 experience，取值 practice / pitfall / pattern，"
++                    f"当前 type={page_type!r} kind={experience_kind!r}",
++                )
++            if (
++                not archived
++                and page_type == "experience"
++                and experience_kind in SYMPTOM_KINDS
++            ):
++                if not page["lists"].get("symptoms"):
++                    add(
++                        "symptoms_missing",
++                        "warning",
++                        rel,
++                        f"{experience_kind} 经验缺少 symptoms（现象检索词）",
++                    )
++                if experience_kind == "pattern":
++                    instances = pitfall_instances(page, mapping, ambiguous, page_by_rel)
++                    if len(instances) < 2:
++                        add(
++                            "pattern_instances_insufficient",
++                            "warning",
++                            rel,
++                            f"related 中的活跃 pitfall 实例为 {len(instances)} 个，至少需要 2 个",
++                        )
++
+             parsed_dates = {}
+             for field in (
+                 "date",
+@@ -708,6 +765,21 @@ def lint_log(text: str) -> list[dict]:
+     return issues
+ 
+ 
++def index_summary(page: dict) -> str:
++    fm = page["fm"]
++    summary = fm.get("description", "")
++    experience_kind = fm.get("kind", "")
++    if fm.get("type") != "experience" or experience_kind not in SYMPTOM_KINDS:
++        return summary
++    parts = [f"[{experience_kind}]"]
++    if summary:
++        parts.append(summary)
++    symptoms = page["lists"].get("symptoms", [])
++    if symptoms:
++        parts.append("现象：" + "、".join(symptoms))
++    return " ".join(parts)
++
++
+ def render_index(pages: list[dict], index_date: str | None = None) -> str:
+     grouped: dict[str, list[dict]] = {name: [] for name, _ in INDEX_HEADINGS}
+     archived: list[dict] = []
+@@ -720,7 +792,7 @@ def render_index(pages: list[dict], index_date: str | None = None) -> str:
+             "slug": page["stem"],
+             "title": page["title"],
+             "type": fm.get("type", ""),
+-            "description": fm.get("description", ""),
++            "description": index_summary(page),
+             "date": fm.get("date", ""),
+             "confidence": fm.get("confidence", ""),
+             "status": fm.get("status", ""),
+diff --git a/skills/wiki-data/tests/test_lint_wiki.py b/skills/wiki-data/tests/test_lint_wiki.py
+index d170325..6ec92af 100644
+--- a/skills/wiki-data/tests/test_lint_wiki.py
++++ b/skills/wiki-data/tests/test_lint_wiki.py
+@@ -354,6 +354,63 @@ class LintWikiTest(unittest.TestCase):
+         self.assertEqual(code, 1)
+         self.assertIn("frontmatter_invalid", out)
+ 
++    def write_experience(self, slug: str, title: str, kind: str, extra: str, body: str) -> None:
++        write(
++            self.wiki / "experiences" / f"{slug}.md",
++            f"---\ntitle: {title}\ntype: experience\nkind: {kind}\ndate: 2026-09-15\n"
++            "confidence: medium\nsources: [original.txt]\ndescription: 示例\nstatus: draft\n"
++            f"{extra}---\n\n{body}\n",
++        )
++
++    def test_pitfalls_and_pattern_pass_and_show_symptoms_in_index(self) -> None:
++        for slug, title in (("worker-a", "改配置不生效 → 守护进程用旧环境"), ("worker-b", "改配置不生效 → 挂载仍指向旧文件")):
++            self.write_experience(
++                slug,
++                title,
++                "pitfall",
++                "symptoms: [改配置不生效, 重载返回成功]\nrelated: [[[启动快照滞后]]]\n",
++                "模式 [[启动快照滞后]]",
++            )
++        self.write_experience(
++            "startup-snapshot",
++            "启动快照滞后",
++            "pattern",
++            "symptoms: [改配置不生效]\nrelated: [[[experiences/worker-a]], [[experiences/worker-b]]]\n",
++            "实例 [[experiences/worker-a]] [[experiences/worker-b]]",
++        )
++        code, out = self.run_lint("--write-index")
++        self.assertEqual(code, 0, out)
++        code, out = self.run_lint("--check-index")
++        self.assertEqual(code, 0, out)
++        for issue in ("kind_invalid", "symptoms_missing", "pattern_instances_insufficient"):
++            self.assertNotIn(issue, out)
++        index = (self.wiki / "index.md").read_text(encoding="utf-8")
++        self.assertIn("[pitfall] 示例 现象：改配置不生效、重载返回成功", index)
++        self.assertIn("[pattern] 示例 现象：改配置不生效", index)
++
++    def test_pitfall_kind_and_pattern_instance_checks(self) -> None:
++        self.write_experience("no-symptoms", "无现象词", "pitfall", "", "模式 [[孤例模式]]")
++        self.write_experience(
++            "lonely-pattern",
++            "孤例模式",
++            "pattern",
++            "symptoms: [偶发超时]\nrelated: [[[无现象词]]]\n",
++            "实例 [[无现象词]]",
++        )
++        _, out = self.run_lint()
++        self.assertIn("symptoms_missing", out)
++        self.assertIn("pattern_instances_insufficient", out)
++        self.assertNotIn("kind_invalid", out)
++
++        self.write_experience("bad-kind", "错误类别", "lesson", "", "模式 [[孤例模式]]")
++        write(
++            self.wiki / "concepts" / "kind-on-concept.md",
++            "---\ntitle: Kind on concept\ntype: concept\nkind: pitfall\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n",
++        )
++        code, out = self.run_lint()
++        self.assertEqual(code, 1)
++        self.assertEqual(out.count("kind_invalid"), 2)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/wiki-data/tests/test_wiki_data_contract.py b/skills/wiki-data/tests/test_wiki_data_contract.py
+index be59789..907468e 100644
+--- a/skills/wiki-data/tests/test_wiki_data_contract.py
++++ b/skills/wiki-data/tests/test_wiki_data_contract.py
+@@ -203,6 +203,25 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("未检索到匹配经验", self.query)
+         self.assertIn("只有「验证方式」已有对应结果和来源时才改为 `validated`", self.ingest)
+ 
++    def test_pitfalls_are_searchable_by_symptom_and_generalize(self) -> None:
++        self.assertIn("kind: practice | pitfall | pattern", self.types)
++        self.assertIn("「现象 → 根因」", self.types)
++        self.assertIn("检索坑以它为主要入口", self.types)
++        for section in ("误判与弯路", "最短判别", "复发记录"):
++            self.assertIn(section, self.types)
++            self.assertIn(section, self.ingest)
++        self.assertIn("同一个坑再次出现时，在原页「复发记录」追加", self.ingest)
++        self.assertIn("根因未坐实的坑页保持 `status: draft`", self.ingest)
++        self.assertIn("去掉专名后仍成立的规律在归档列表中标为模式候选", self.ingest)
++        self.assertIn("排查时按现象查坑", self.skill)
++        self.assertIn("排查开始或卡住时，用现象词", self.query)
++        self.assertIn("把「最短判别」排在检查项第一位", self.query)
++        self.assertIn("## 归纳排查模式", self.organize)
++        self.assertIn("至少两个活跃的 `kind: pitfall` 页", self.organize)
++        self.assertIn("有新实例按其「最短判别」命中并验证，再改为 `validated`", self.organize)
++        for code in ("kind_invalid", "symptoms_missing", "pattern_instances_insufficient"):
++            self.assertIn(code, self.lint)
++
+     def test_corrections_and_deprecated_knowledge_keep_history(self) -> None:
+         self.assertIn("已更正", self.ingest)
+         self.assertIn("替代页链接", self.ingest)

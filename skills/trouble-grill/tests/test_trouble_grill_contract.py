@@ -27,6 +27,13 @@ class WikiDataHandoffContract(unittest.TestCase):
         self.assertIn("`TASK.md` 只保留热状态，由 taskrail 维护", SKILL)
         self.assertIn("本 skill 是 diagnose 环节的排查方法", SKILL)
 
+    def test_anchor_triggers_symptom_lookup_of_known_pitfalls(self) -> None:
+        self.assertIn("锚点立好后先查已有的坑：用现象词", SKILL)
+        self.assertIn("有 `wiki-data` 时走其 `query` 的执行前预检", SKILL)
+        self.assertIn("把它的「最短判别」作为第一个验证动作", SKILL)
+        self.assertIn("旧根因在本次验证前按 `guess` 上板", SKILL)
+        self.assertIn("未命中就说明已查过", SKILL)
+
     def test_description_states_positive_trigger(self) -> None:
         head = SKILL.split("---", 2)[1]
         self.assertIn("多轮或易发散的排查", head)

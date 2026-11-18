@@ -203,6 +203,25 @@ class ContractTest(unittest.TestCase):
         self.assertIn("未检索到匹配经验", self.query)
         self.assertIn("只有「验证方式」已有对应结果和来源时才改为 `validated`", self.ingest)
 
+    def test_pitfalls_are_searchable_by_symptom_and_generalize(self) -> None:
+        self.assertIn("kind: practice | pitfall | pattern", self.types)
+        self.assertIn("「现象 → 根因」", self.types)
+        self.assertIn("检索坑以它为主要入口", self.types)
+        for section in ("误判与弯路", "最短判别", "复发记录"):
+            self.assertIn(section, self.types)
+            self.assertIn(section, self.ingest)
+        self.assertIn("同一个坑再次出现时，在原页「复发记录」追加", self.ingest)
+        self.assertIn("根因未坐实的坑页保持 `status: draft`", self.ingest)
+        self.assertIn("去掉专名后仍成立的规律在归档列表中标为模式候选", self.ingest)
+        self.assertIn("排查时按现象查坑", self.skill)
+        self.assertIn("排查开始或卡住时，用现象词", self.query)
+        self.assertIn("把「最短判别」排在检查项第一位", self.query)
+        self.assertIn("## 归纳排查模式", self.organize)
+        self.assertIn("至少两个活跃的 `kind: pitfall` 页", self.organize)
+        self.assertIn("有新实例按其「最短判别」命中并验证，再改为 `validated`", self.organize)
+        for code in ("kind_invalid", "symptoms_missing", "pattern_instances_insufficient"):
+            self.assertIn(code, self.lint)
+
     def test_corrections_and_deprecated_knowledge_keep_history(self) -> None:
         self.assertIn("已更正", self.ingest)
         self.assertIn("替代页链接", self.ingest)

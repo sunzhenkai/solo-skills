@@ -77,6 +77,31 @@ cases:
         - 把所有内容复制到同一份总结
         - 因单次纠正自动修改 skill
 
+  - id: costly-troubleshooting-yields-pitfall-candidate
+    kind: core
+    judge: qualitative
+    description: 绕了多轮的排查在收尾时提炼成可按现象检索的坑候选
+    given: 本次排查先后怀疑配置和上游，两条路都被证据推翻，第三轮靠对照实验坐实根因；任务目录有 trouble-grill 排查记录，workspace 已有 wiki
+    expect:
+      must:
+        - 从排查记录提炼现象词、被推翻的误判、决定性证据和重来时的最短路径
+        - 把坑候选放进收尾方案的知识落点步骤，交 wiki-data 写入
+        - 标出去掉专名后可迁移的模式候选，或写明无
+      must_not:
+        - 只记录根因而丢掉误判与最短判别
+        - 未经方案确认直接写入 wiki
+
+  - id: smooth-session-skips-detour-review
+    kind: boundary
+    judge: deterministic
+    description: 没有排查代价的会话不做弯路复盘
+    given: 会话一次定位并修复了报错直接指向的问题，没有死路、方向纠正或超时
+    expect:
+      must:
+        - 跳过弯路复盘
+      must_not:
+        - 为凑格式生成坑候选或复盘文件
+
   - id: taskrail-close-keeps-ownership
     kind: boundary
     judge: deterministic
