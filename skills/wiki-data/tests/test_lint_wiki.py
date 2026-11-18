@@ -354,6 +354,63 @@ class LintWikiTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("frontmatter_invalid", out)
 
+    def write_experience(self, slug: str, title: str, kind: str, extra: str, body: str) -> None:
+        write(
+            self.wiki / "experiences" / f"{slug}.md",
+            f"---\ntitle: {title}\ntype: experience\nkind: {kind}\ndate: 2026-09-15\n"
+            "confidence: medium\nsources: [original.txt]\ndescription: 示例\nstatus: draft\n"
+            f"{extra}---\n\n{body}\n",
+        )
+
+    def test_pitfalls_and_pattern_pass_and_show_symptoms_in_index(self) -> None:
+        for slug, title in (("worker-a", "改配置不生效 → 守护进程用旧环境"), ("worker-b", "改配置不生效 → 挂载仍指向旧文件")):
+            self.write_experience(
+                slug,
+                title,
+                "pitfall",
+                "symptoms: [改配置不生效, 重载返回成功]\nrelated: [[[启动快照滞后]]]\n",
+                "模式 [[启动快照滞后]]",
+            )
+        self.write_experience(
+            "startup-snapshot",
+            "启动快照滞后",
+            "pattern",
+            "symptoms: [改配置不生效]\nrelated: [[[experiences/worker-a]], [[experiences/worker-b]]]\n",
+            "实例 [[experiences/worker-a]] [[experiences/worker-b]]",
+        )
+        code, out = self.run_lint("--write-index")
+        self.assertEqual(code, 0, out)
+        code, out = self.run_lint("--check-index")
+        self.assertEqual(code, 0, out)
+        for issue in ("kind_invalid", "symptoms_missing", "pattern_instances_insufficient"):
+            self.assertNotIn(issue, out)
+        index = (self.wiki / "index.md").read_text(encoding="utf-8")
+        self.assertIn("[pitfall] 示例 现象：改配置不生效、重载返回成功", index)
+        self.assertIn("[pattern] 示例 现象：改配置不生效", index)
+
+    def test_pitfall_kind_and_pattern_instance_checks(self) -> None:
+        self.write_experience("no-symptoms", "无现象词", "pitfall", "", "模式 [[孤例模式]]")
+        self.write_experience(
+            "lonely-pattern",
+            "孤例模式",
+            "pattern",
+            "symptoms: [偶发超时]\nrelated: [[[无现象词]]]\n",
+            "实例 [[无现象词]]",
+        )
+        _, out = self.run_lint()
+        self.assertIn("symptoms_missing", out)
+        self.assertIn("pattern_instances_insufficient", out)
+        self.assertNotIn("kind_invalid", out)
+
+        self.write_experience("bad-kind", "错误类别", "lesson", "", "模式 [[孤例模式]]")
+        write(
+            self.wiki / "concepts" / "kind-on-concept.md",
+            "---\ntitle: Kind on concept\ntype: concept\nkind: pitfall\ndate: 2026-09-15\nconfidence: medium\nsources: [original.txt]\ndescription: 示例\n---\n",
+        )
+        code, out = self.run_lint()
+        self.assertEqual(code, 1)
+        self.assertEqual(out.count("kind_invalid"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

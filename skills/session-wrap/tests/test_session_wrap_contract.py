@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
 PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
+DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
 
 
 class SessionWrapContractTest(unittest.TestCase):
@@ -47,6 +48,21 @@ class SessionWrapContractTest(unittest.TestCase):
             self.assertIn(route, SKILL)
         self.assertIn("单次失败先留作经验", SKILL)
         self.assertIn("操作台账记录有追溯价值的动作、环境、结果、影响和回滚方式", SKILL)
+
+    def test_costly_troubleshooting_becomes_searchable_pitfall_candidates(self) -> None:
+        self.assertIn("references/detour-review.md", SKILL)
+        self.assertIn("做弯路复盘，产出坑候选", SKILL)
+        for signal in ("`dead-end`", "用户纠正过排查方向", "最终根因与最初的猜测不同", "明显超出"):
+            self.assertIn(signal, DETOUR)
+        self.assertIn("都不命中则跳过", DETOUR)
+        self.assertIn("优先读 `trouble-grill` 已落盘的排查记录", DETOUR)
+        for question in ("**现象**", "**误判**", "**决定性证据**", "**最短路径**", "**可迁移规律**"):
+            self.assertIn(question, DETOUR)
+        for field in ("现象词：", "误判：", "最短判别：", "根因：", "模式候选：", "证据："):
+            self.assertIn(field, DETOUR)
+        self.assertIn("`kind: pitfall`", DETOUR)
+        self.assertIn("建议用 `skill-upgrader` 改进排查 skill", DETOUR)
+        self.assertIn("随收尾方案一次确认", DETOUR)
 
     def test_findings_are_synthesized_into_one_ordered_plan(self) -> None:
         self.assertIn("把前面每一步的发现合成一个有序方案", SKILL)

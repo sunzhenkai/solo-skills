@@ -1,0 +1,31 @@
+diff --git a/skills/trouble-grill/SKILL.md b/skills/trouble-grill/SKILL.md
+index a0dc80c..b195444 100644
+--- a/skills/trouble-grill/SKILL.md
++++ b/skills/trouble-grill/SKILL.md
+@@ -21,6 +21,8 @@ description: 根因排查时持续拷问 agent 自己：立可证伪锚点、给
+ 
+ 每次想发散前先问：**这个动作能推进回答锚点吗？** 不能就不做。
+ 
++锚点立好后先查已有的坑：用现象词（报错原文、组件名、现象描述）检索，有 `wiki-data` 时走其 `query` 的执行前预检，否则检索工作区既有的经验库。命中时把它的「最短判别」作为第一个验证动作，旧根因在本次验证前按 `guess` 上板；「误判与弯路」里记过的方向，要有本次新证据才重新上板。未命中就说明已查过，继续排查。
++
+ ## 假设板：强制分级，禁止越级
+ 
+ 每个可能的解释都上板，标四件事：
+diff --git a/skills/trouble-grill/tests/test_trouble_grill_contract.py b/skills/trouble-grill/tests/test_trouble_grill_contract.py
+index 0352833..9a73d82 100644
+--- a/skills/trouble-grill/tests/test_trouble_grill_contract.py
++++ b/skills/trouble-grill/tests/test_trouble_grill_contract.py
+@@ -27,6 +27,13 @@ class WikiDataHandoffContract(unittest.TestCase):
+         self.assertIn("`TASK.md` 只保留热状态，由 taskrail 维护", SKILL)
+         self.assertIn("本 skill 是 diagnose 环节的排查方法", SKILL)
+ 
++    def test_anchor_triggers_symptom_lookup_of_known_pitfalls(self) -> None:
++        self.assertIn("锚点立好后先查已有的坑：用现象词", SKILL)
++        self.assertIn("有 `wiki-data` 时走其 `query` 的执行前预检", SKILL)
++        self.assertIn("把它的「最短判别」作为第一个验证动作", SKILL)
++        self.assertIn("旧根因在本次验证前按 `guess` 上板", SKILL)
++        self.assertIn("未命中就说明已查过", SKILL)
++
+     def test_description_states_positive_trigger(self) -> None:
+         head = SKILL.split("---", 2)[1]
+         self.assertIn("多轮或易发散的排查", head)

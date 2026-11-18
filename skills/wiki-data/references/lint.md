@@ -9,7 +9,7 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
 python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
 ```
 
-默认及 `--check-index` 均只读并校验索引一致性；`--write-index` 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面列入末尾「已归档」表。`--json` 的 `stats` 包含 active / archived / draft / validated / deprecated / review_overdue 数量，供 guide 使用。
+默认及 `--check-index` 均只读并校验索引一致性；`--write-index` 重建 `wiki/index.md`，不改其它文件。活跃页保留在对应类型表，带 `archived_at` 的页面列入末尾「已归档」表；`pitfall` / `pattern` 经验的摘要前标 `kind`、后附 `symptoms`，便于按现象扫读。`--json` 的 `stats` 包含 active / archived / draft / validated / deprecated / review_overdue 数量，供 guide 使用。
 
 ## 检查码
 
@@ -25,6 +25,9 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
 | `verification_missing` | error | high 缺 last_verified，或 validated 经验缺 last_verified / review_after |
 | `date_invalid` | error | date / created / last_verified / review_after / archived_at / captured_at 不是有效的 YYYY-MM-DD |
 | `archive_metadata_invalid` | error | 已归档页缺 archive_reason，或 archive_reason / superseded_by 在没有 archived_at 时单独出现 |
+| `kind_invalid` | error | `kind` 用在非 experience 页，或取值不是 practice / pitfall / pattern |
+| `symptoms_missing` | warning | 活跃的 pitfall / pattern 经验缺少现象检索词 `symptoms` |
+| `pattern_instances_insufficient` | warning | 活跃 pattern 的 `related` 链接的活跃 pitfall 实例少于 2 个 |
 | `review_overdue` | warning | 活跃页已到复审日；归档页不产生此项 |
 | `description_missing` | warning | 活跃业务页缺少索引摘要 |
 | `log_format_invalid` | error | `log.md` 条目前缀不符合 `## [YYYY-MM-DD] action \| description` |
@@ -53,6 +56,8 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --json
 **孤立页**：活跃页从相关页面补入链；归档页无需为消除孤立警告补链。
 
 **错位 / 重复 / 耦合**：保留独有事实与历史，按既有 organize 契约处理。
+
+**坑与排查模式**：`symptoms` 从排查记录或页面正文的现象中补，不编造；实例不足的模式页补链真实实例，确实只有一个实例时按 organize 降回坑页里的候选规律。
 
 ## 脚本做不到的（需 LLM）
 
