@@ -43,6 +43,11 @@ class SkillEntryTest(unittest.TestCase):
         for phrase in ("默认 UI 总入口", "唯一主承接方", "默认入口不等于统一框架", "用户点名具体 skill"):
             self.assertIn(phrase, SKILL)
 
+    def test_one_way_dependency_contract(self) -> None:
+        self.assertIn("依赖保持单向", SKILL)
+        self.assertIn("独立下游只描述自身契约", SKILL)
+        self.assertIn("不反向引用 ui-kit", SKILL)
+
     def test_general_route_supports_existing_and_non_react(self) -> None:
         for phrase in ("已有项目、非 React", "沿用项目现有框架", "不生成 React 模板文件", "](../pretty-ui/SKILL.md)"):
             self.assertIn(phrase, SKILL)

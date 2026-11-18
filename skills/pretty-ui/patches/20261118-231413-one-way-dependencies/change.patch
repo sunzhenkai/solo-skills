@@ -1,0 +1,42 @@
+diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
+index 11db7b2..eb7fde7 100644
+--- a/skills/pretty-ui/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: pretty-ui
+ name: pretty-ui
+-description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。由 ui-kit 分派到既有或非 React 项目，或用户点名 pretty-ui 时使用。
++description: 通用 UI 设计、实现与评审引擎：定设计方向、建设计体系（token、组件）、做页面或组件、看真实截图打磨与评审、做 UI 工程化检查，或把已有内容做成静态 HTML 阅读页。用户点名 pretty-ui 时使用。
+ ---
+ 
+ # Pretty UI
+@@ -14,8 +14,6 @@ description: 通用 UI 设计、实现与评审引擎：定设计方向、建设
+ 
+ 方向、取值和取舍由本 skill 定：陈述句写决定和理由，接着做。
+ 
+-与 ui-kit 的边界：ui-kit 是默认总入口；本 skill 承接既有/非 React 项目的通用设计、实现、打磨与评审，保留直接点名调用，不要求项目迁入 React 模板。
+-
+ ## 路由
+ 
+ | 请求 | 模式 | 做法 |
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+index ad02402..aa4dda0 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -36,12 +36,10 @@ class SkillEntryTest(unittest.TestCase):
+         for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
+             self.assertIn(creed, SKILL)
+ 
+-    def test_ui_kit_boundary(self) -> None:
++    def test_independent_entry(self) -> None:
+         description = frontmatter(SKILL)["description"]
+-        self.assertIn("由 ui-kit 分派到既有或非 React 项目", description)
+-        self.assertTrue(description.endswith("或用户点名 pretty-ui 时使用。"))
+-        self.assertIn("与 ui-kit 的边界", SKILL)
+-        self.assertIn("保留直接点名调用", SKILL)
++        self.assertTrue(description.endswith("用户点名 pretty-ui 时使用。"))
++        self.assertNotIn("ui-kit", SKILL)
+ 
+     def test_routing_modes(self) -> None:
+         for mode in ("| 小改 |", "| build |", "| refine |", "| review |", "| system |", "| page |"):

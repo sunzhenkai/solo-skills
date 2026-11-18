@@ -36,12 +36,10 @@ class SkillEntryTest(unittest.TestCase):
         for creed in ("地板靠规则", "天花板靠方向", "以画面为准"):
             self.assertIn(creed, SKILL)
 
-    def test_ui_kit_boundary(self) -> None:
+    def test_independent_entry(self) -> None:
         description = frontmatter(SKILL)["description"]
-        self.assertIn("由 ui-kit 分派到既有或非 React 项目", description)
-        self.assertTrue(description.endswith("或用户点名 pretty-ui 时使用。"))
-        self.assertIn("与 ui-kit 的边界", SKILL)
-        self.assertIn("保留直接点名调用", SKILL)
+        self.assertTrue(description.endswith("用户点名 pretty-ui 时使用。"))
+        self.assertNotIn("ui-kit", SKILL)
 
     def test_routing_modes(self) -> None:
         for mode in ("| 小改 |", "| build |", "| refine |", "| review |", "| system |", "| page |"):

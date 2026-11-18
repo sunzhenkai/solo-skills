@@ -1,0 +1,28 @@
+diff --git a/skills/ui-kit/SKILL.md b/skills/ui-kit/SKILL.md
+index 6117a69..790cb0d 100644
+--- a/skills/ui-kit/SKILL.md
++++ b/skills/ui-kit/SKILL.md
+@@ -14,6 +14,7 @@ description: 默认 UI 总入口：为新建或既有 Web UI 选择实现路线
+ - **模板路线**：**外观只在代码里**，token、组件、blocks、应用骨架和页面模板以代码发布；**模型只写内容**，页面组合认证组件并填数据，外观差异只来自主题白名单。
+ 
+ 与 pretty-ui 的边界：ui-kit 负责默认分派和模板契约；pretty-ui 负责通用设计、实现、打磨与评审，也可被用户直接点名。
++依赖保持单向：本 skill 记录下游与交接；独立下游只描述自身契约，不反向引用 ui-kit。
+ 
+ ## 总路由
+ 
+diff --git a/skills/ui-kit/tests/test_ui_kit_contract.py b/skills/ui-kit/tests/test_ui_kit_contract.py
+index 124b4e0..40ec334 100644
+--- a/skills/ui-kit/tests/test_ui_kit_contract.py
++++ b/skills/ui-kit/tests/test_ui_kit_contract.py
+@@ -43,6 +43,11 @@ class SkillEntryTest(unittest.TestCase):
+         for phrase in ("默认 UI 总入口", "唯一主承接方", "默认入口不等于统一框架", "用户点名具体 skill"):
+             self.assertIn(phrase, SKILL)
+ 
++    def test_one_way_dependency_contract(self) -> None:
++        self.assertIn("依赖保持单向", SKILL)
++        self.assertIn("独立下游只描述自身契约", SKILL)
++        self.assertIn("不反向引用 ui-kit", SKILL)
++
+     def test_general_route_supports_existing_and_non_react(self) -> None:
+         for phrase in ("已有项目、非 React", "沿用项目现有框架", "不生成 React 模板文件", "](../pretty-ui/SKILL.md)"):
+             self.assertIn(phrase, SKILL)
