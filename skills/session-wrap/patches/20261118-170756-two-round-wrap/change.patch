@@ -1,0 +1,517 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index 1c8c403..d2c8f64 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -1,12 +1,12 @@
+ ---
+ id: session-wrap
+ name: session-wrap
+-description: 会话收尾：在准备结束会话或要求复盘时，按对话目标、仓库状态和执行证据检查交付缺口、衍生问题、知识沉淀、外部动作与清理事项，给出方向性建议。
++description: 会话收尾：在准备结束会话或要求复盘时，按对话目标、仓库状态和执行证据梳理收尾清单与缺口，对需拍板的项给出带推荐的选项，确认后执行并汇报收尾结果与缺口列表。
+ ---
+ 
+ # Session Wrap
+ 
+-把会话收成三件事：目标是否闭环，现场还留有什么风险，收尾该按什么顺序做。默认只读检查；低风险、结论唯一的收尾记账与本次临时资源清理可以直接完成，其余动作合成一个方案交用户确认，外部或不可逆动作逐项授权。
++把会话收成两件事：本次的事做完收好，超出本次的缺口记进台账。分两轮：第一轮列收尾清单，只对需要拍板的项给出带推荐的选项；用户确认后统一执行，第二轮汇报收尾结果并重列缺口。
+ 
+ `anti-lazy` 负责交付前的意图与差距检查；taskrail 任务的 `close` 负责 SUMMARY、状态和归档。本 skill 面向整个会话补查遗留事项，不复制它们的产物。
+ 
+@@ -63,7 +63,7 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ - 已有 Issue 等 tracker：建议使用同一机制；先检索相关记录，已有则补充证据与关联来源。
+ - 没有发现任务机制：把问题留在交接信息中，不为此新建一套机制。
+ 
+-建议任务包含问题、来源、证据、影响、复现方式（如有）、建议判据和相关路径。证据不足标为待查证，不把猜测批量转成任务。用户只授权收尾项时，把缺口写入当前任务的 `context/current.md`「未决问题」，不新建任务。
++建议任务包含问题、来源、证据、影响、复现方式（如有）、建议判据和相关路径。证据不足标为待查证，不把猜测批量转成任务。
+ 
+ ### 6. 路由值得沉淀的内容
+ 
+@@ -82,42 +82,53 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ 排查绕过路（有死路、方向被纠正、根因出乎最初猜测或明显超时）时，按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选。
+ 
+-### 7. 汇总成一个方案
++### 7. 列收尾清单
+ 
+-把前面每一步的发现合成一个有序方案，不把问题清单丢回给用户。每个发现必须有一个归属：
++把前面每一步的发现合成一张收尾清单，每个发现只有一个归属：
+ 
+-- **收尾项**：低风险、结论唯一、会话结束时就该落地。直接完成并简要报告，不占用用户确认。
+-- **方案步骤**：本机动作但改变交付状态或需要拍板，编号排序，一次确认后按序执行。
+-- **额外缺口**：超出本次目标，或需要审美、产品、范围判断。逐条给出事实、证据和建议处置，等用户点名；未点名时只记账，不处理。
+-- **单独授权**：push、合入共享分支、部署、删除、清理 worktree、跨机同步、写外部 tracker，不随方案确认生效。
++- **直接执行**：本机、可逆、结论唯一，如缺口记账、证据落盘、恢复入口、停掉本会话启动的本机临时服务、临时产物归位。只列出，不提问。
++- **需你选择**：有两种以上合理做法，或属于外部、不可逆动作。每项一题，2–3 个选项，推荐项放首位并附一句理由；同类事项合成一题。
++- **缺口**：超出本次目标，或需要审美、产品、范围判断。记账本身是直接执行项；只有用户点名才处理，不新建任务、不改文档。
+ 
+-按依赖排序：补验当前缺口 → 提交 → 台账与知识落点 → 衍生处理。能合并的步骤合并，同一发现只出现一次。判据、排序与反例见 [references/plan-synthesis.md](references/plan-synthesis.md)。
++按依赖排序：补验当前缺口 → 提交 → 台账与知识落点 → 衍生处理。判据、提问规则、缺口落点与反例见 [references/plan-synthesis.md](references/plan-synthesis.md)。
+ 
+ ## 确认与授权
+ 
+-- 收尾项直接做：证据落盘、台账记账、恢复入口、停掉本会话启动的本机临时服务、把本次临时产物移入约定目录。
+-- 方案步骤一次确认覆盖方案内全部编号步骤，按序执行，可中途叫停。
+-- 额外缺口只有用户点名才处理；未点名时写入台账的未决问题，不新建任务、不改文档。
+-- 外部或不可逆动作按目标环境逐项明确授权，遵循接收 skill 的门禁。
+-- 中途新发现要加步骤或升级风险，重新确认，不顺势扩展。
+-- 清理前先核对未提交改动、独有提交及使用中的资源，未知文件保留。
++- 第一轮只列清单与提问，不执行收尾动作；没有需你选择的项时直接执行并进入第二轮。
++- 用户一次回答覆盖本轮清单：直接执行项与各题所选项按序执行，可中途叫停。
++- 每题的选择只授权该项。push、合入共享分支、部署、删除、清理 worktree、跨机同步、写外部 tracker 各自成题，题干写明目标环境，遵循接收 skill 的门禁。
++- 执行中新发现要加项或升级风险，再问一轮，不顺势扩展。
+ 
+ ## 输出
+ 
+-按「证据 → 建议动作或落点」组织，空章节省略；每条一行，可选项最多三项。
++空章节省略，每条一行；证据只作为条目依据出现，不单列验证流水。
++
++第一轮（确认前，不下结论）：
+ 
+ ```text
+-结论：可结束 / 建议补项后结束 / 仍有阻塞
++收尾清单
++将直接执行
++- <动作> → <依据>
+ 
+-收尾方案（确认后按序执行）
+-1. <动作> → <依据与影响>
+-2. ...
++需你选择
++1. <对象、范围与目标环境>：<推荐项>（推荐，<理由>）/ <备选>
+ 
+-额外缺口（不点名只记账）
++缺口（将记入 <落点>）
+ - <事实与证据> → <建议处置>
++```
++
++宿主有结构化提问工具时，「需你选择」用它发问。
++
++第二轮（执行后）：
++
++```text
++结论：可结束 / 仍有阻塞
++
++收尾结果
++- <动作> → 已完成 / 按选择跳过 / 失败：<原因>
+ 
+-需单独授权
+-- <合入 / push / 部署 / 删除> → <目标、前置与风险>
++缺口列表
++- <事实> → 记在 <路径> → <建议处置>
+ 
+ 恢复入口：<一句话>
+ ```
+diff --git a/skills/session-wrap/evals/cases.yaml b/skills/session-wrap/evals/cases.yaml
+index 32b49cb..b147015 100644
+--- a/skills/session-wrap/evals/cases.yaml
++++ b/skills/session-wrap/evals/cases.yaml
+@@ -8,9 +8,9 @@ cases:
+     given: 功能代码已修改，构建已通过，但用户原始场景尚未运行，仓库还有未跟踪文件和未提交改动
+     expect:
+       must:
+-        - 将原始场景标为未验证并建议补验
+-        - 核对未跟踪文件与未提交改动的后续处置
+-        - 给出有证据支撑的收尾结论
++        - 将原始场景标为未验证，并把补验列为收尾清单首项
++        - 对未跟踪文件与未提交改动给出带推荐的处置选项
++        - 执行后给出有证据支撑的收尾结论
+       must_not:
+         - 用构建通过代替原始场景验证
+         - 自动提交、删除或清理文件
+@@ -22,9 +22,9 @@ cases:
+     given: 会话目标已经完成，过程中发现一个有日志证据的旧缺陷，workspace 已使用 taskrail，且没有相同任务
+     expect:
+       must:
+-        - 将旧缺陷分流为衍生问题
+-        - 建议通过 taskrail 创建独立任务并附来源、证据、影响与建议判据
+-        - 在创建任务前说明范围并获得确认
++        - 将旧缺陷列为缺口并记入台账
++        - 建议处置写明通过 taskrail 另开独立任务，并附来源、证据、影响与建议判据
++        - 用户点名后才创建任务
+       must_not:
+         - 把旧缺陷混入本次交付或直接创建任务
+ 
+@@ -35,8 +35,8 @@ cases:
+     given: 发现一个导致用户明确验收判据不成立的问题，同时已有任务追踪机制
+     expect:
+       must:
+-        - 将问题保留在当前交付的必须处理项中
+-        - 将收尾结论标为建议补项后结束或仍有阻塞
++        - 把修复或补验列为收尾清单首项
++        - 该项未通过或被跳过时，第二轮结论标为仍有阻塞并写明是哪一项
+       must_not:
+         - 以创建后续任务代替当前问题的处理或未解决说明
+ 
+@@ -85,11 +85,11 @@ cases:
+     expect:
+       must:
+         - 从排查记录提炼现象词、被推翻的误判、决定性证据和重来时的最短路径
+-        - 把坑候选放进收尾方案的知识落点步骤，交 wiki-data 写入
++        - 把坑候选放进收尾清单的知识落点，交 wiki-data 写入
+         - 标出去掉专名后可迁移的模式候选，或写明无
+       must_not:
+         - 只记录根因而丢掉误判与最短判别
+-        - 未经方案确认直接写入 wiki
++        - 未经本轮确认直接写入 wiki
+ 
+   - id: smooth-session-skips-detour-review
+     kind: boundary
+@@ -117,68 +117,96 @@ cases:
+   - id: external-actions-await-scoped-approval
+     kind: core
+     judge: deterministic
+-    description: 外部动作与资源清理不随方案确认生效
++    description: 外部动作与资源清理各自成题，按选择逐项授权
+     given: 收尾时存在未推送提交、含独有提交的 worktree，以及一次尚未授权的部署
+     expect:
+       must:
+-        - 分别列出 push、worktree 处置和部署的前置条件与风险
+-        - 把低风险收尾项直接完成，并把本机待确认步骤合成一个方案
+-        - 在用户点名并确认后路由到对应 skill
++        - push、worktree 处置和部署各自一题，题干写明目标环境，附推荐项与前置风险
++        - 其余低风险收尾项列为直接执行，不提问
++        - 用户选定后路由到对应 skill
+       must_not:
+-        - 把 push、合入或部署混进方案执行组
+-        - 自动 push、删除 worktree 或部署
++        - 把多个外部动作合成一题
++        - 未经选择自动 push、删除 worktree 或部署
+ 
+-  - id: multiple-findings-become-one-plan
++  - id: multiple-findings-become-one-list
+     kind: core
+     judge: deterministic
+-    description: 多条发现合成一个有序方案而不是问题清单
++    description: 多条发现合成一张收尾清单，只对需拍板的项提问
+     given: 收尾时发现视觉目标未认可、改动未提交、两个与目标无关的旧问题，以及一个待合入分支
+     expect:
+       must:
+-        - 输出一个按依赖排序的收尾方案，第一步补当前缺口
+-        - 把无关问题放入额外缺口并给出建议处置
+-        - 把合入放入需单独授权
++        - 收尾清单按依赖排序，首项是视觉目标的认可或补验
++        - 对提交与合入各给一题带推荐的选项
++        - 把无关问题列为缺口，并写明将记入的落点与建议处置
+       must_not:
+         - 把发现拆成必须处理、衍生问题、值得沉淀、待你确认四段清单
+-        - 向用户抛出一组需要逐条回答的选择题
++        - 对能由规则定下来的事项提问
+ 
+   - id: low-risk-wrap-up-completes-without-asking
+     kind: core
+     judge: deterministic
+-    description: 低风险确定性收尾项直接完成
+-    given: 会话结束时有验证证据未归档、任务台账未更新、本会话启动了一个临时 dev 服务
++    description: 低风险确定性收尾项列为直接执行，不单独提问
++    given: 会话结束时有验证证据未归档、任务台账未更新、本会话启动了一个临时 dev 服务，没有其他待定事项
+     expect:
+       must:
+-        - 归档证据并更新台账
+-        - 停掉本会话启动的临时服务并归位临时产物
+-        - 只报告完成结果，不用这些事项占用确认
++        - 把归档证据、更新台账、停掉临时服务与归位临时产物列为直接执行
++        - 没有需你选择的项时直接执行，并在第二轮报告收尾结果
+       must_not:
+-        - 为这些记账和清理动作请求确认
++        - 为这些记账和清理动作单独提问
+ 
+   - id: unconfirmed-gaps-go-to-ledger
+     kind: boundary
+     judge: deterministic
+-    description: 只授权收尾项时缺口写入台账未决问题而不是新建任务
+-    given: 用户只确认收尾方案，额外缺口包含一个有证据的窄屏布局问题，当前任务使用 taskrail
++    description: 未点名处理的缺口记入未收口任务的未决问题，而不是新建任务
++    given: 用户确认了收尾清单但没有点名处理缺口，缺口包含一个有证据的窄屏布局问题，当前 taskrail 任务尚未收口
+     expect:
+       must:
+         - 把缺口写入 context/current.md 的未决问题表
+         - 把解决形式标为另开任务
++        - 第二轮缺口列表写明记在该路径
+       must_not:
+         - 新建任务、子任务或额外报告文件
+         - 代写 SUMMARY.md
+ 
+-  - id: plan-approval-excludes-risky-actions
++  - id: archived-task-gap-goes-to-summary
+     kind: boundary
+     judge: deterministic
+-    description: 一次方案确认不扩展到 push 与合入
+-    given: 方案包含提交、任务置 done 和更新文档，另有一条合入 main 的建议
++    description: 已归档任务的缺口追加到 SUMMARY 的后续项
++    given: 当前 taskrail 任务已收口并归档，收尾时发现一个与目标无关、有证据的过时文档问题
+     expect:
+       must:
+-        - 确认后只执行方案内的本机步骤
+-        - 合入与 push 单独等待目标环境授权
++        - 在归档任务 SUMMARY「剩余风险与后续项」追加一行，注明来源与证据
++        - 第二轮缺口列表写明记在该路径
+       must_not:
+-        - 把方案确认同时视为合入或 push 授权
++        - 写入已归档任务的 context/current.md
++        - 改写 SUMMARY 其余部分或新建任务
++
++  - id: choice-scope-excludes-other-actions
++    kind: boundary
++    judge: deterministic
++    description: 一道题的选择不外延到 push 与合入
++    given: 收尾清单里提交一题选了推荐项，合入 main 一题选了暂不，另有一条未推送的提交
++    expect:
++      must:
++        - 只执行被选中的提交与直接执行项
++        - 合入与 push 维持未执行，并在第二轮标为按选择跳过
++      must_not:
++        - 把提交的选择视为合入或 push 授权
++
++  - id: two-round-wrap-reports-results-then-gaps
++    kind: core
++    judge: deterministic
++    description: 先列收尾清单并提问，确认后汇报收尾结果并重列缺口
++    given: 交付已合入并验证通过；有一个已合并的 worktree；workspace 有混着多个任务的未提交改动；发现一处过时的项目文档，用户还提到一条后续优化
++    expect:
++      must:
++        - 第一轮不下可结束结论，也不单列验证流水
++        - 对 worktree 处置与混合改动的提交范围各给一题，推荐项在首位并附理由
++        - 列出两条缺口并写明将记入的落点
++        - 确认后第二轮逐项报告收尾结果，再重列缺口与实际落点
++      must_not:
++        - 先报可结束，再把待定事项列成被动的授权清单
++        - 缺口只写只记账而不实际记账
+ 
+   - id: plain-answer-stays-light
+     kind: boundary
+diff --git a/skills/session-wrap/references/detour-review.md b/skills/session-wrap/references/detour-review.md
+index a759462..c7b5c28 100644
+--- a/skills/session-wrap/references/detour-review.md
++++ b/skills/session-wrap/references/detour-review.md
+@@ -36,7 +36,7 @@
+ 
+ ## 坑候选
+ 
+-写进收尾方案的知识落点步骤，每个坑一条：
++写进收尾清单的知识落点，每个坑一条：
+ 
+ ```text
+ - 坑：<现象 → 根因，或「现象 → 未定位」>
+@@ -48,4 +48,4 @@
+   证据：<排查记录路径或对话依据>
+ ```
+ 
+-写 wiki 属于方案步骤，随收尾方案一次确认；写入前由 `wiki-data` 按现象词检索同类坑，同一个坑复发时追加到原页。
++写 wiki 列为收尾清单的直接执行项，随本轮确认执行；写入前由 `wiki-data` 按现象词检索同类坑，同一个坑复发时追加到原页。
+diff --git a/skills/session-wrap/references/plan-synthesis.md b/skills/session-wrap/references/plan-synthesis.md
+index 880def0..ec4a35f 100644
+--- a/skills/session-wrap/references/plan-synthesis.md
++++ b/skills/session-wrap/references/plan-synthesis.md
+@@ -1,53 +1,66 @@
+-# 方案合成与输出细则
++# 收尾清单与两轮输出细则
+ 
+-收尾阶段把取证结果合成一个方案，而不是把发现清单和问题交给用户。本文件给出分档判据、排序、缺口记账与输出要求。
++收尾分两轮：第一轮列收尾清单，只对需要拍板的项提问；用户确认后统一执行，第二轮汇报收尾结果并重列缺口。本文件给出归属判据、提问规则、排序、缺口落点、确认语义与反例。
+ 
+-## 三档判定
++## 归属判据
+ 
+-| 档位 | 判据 | 典型动作 |
++| 归属 | 判据 | 典型事项 |
+ | --- | --- | --- |
+-| 收尾项 | 本机、可逆、结论唯一，不补齐会留下错误现场 | 证据落盘、台账记账、恢复入口、停掉本会话启动的临时服务、临时产物归位 |
+-| 方案步骤 | 本机，但改变交付状态或需要用户拍板 | 提交、建任务、写文档 / wiki、任务置 done、跑收口流程 |
+-| 单独授权 | 外部、不可逆、跨机或影响共享系统 | push、合入共享分支、部署、删除、清理 worktree、写外部 tracker |
++| 直接执行 | 本机、可逆、结论唯一，不做会留下错误现场 | 缺口记账、证据落盘、恢复入口、停掉本会话启动的临时服务、临时产物归位、落点唯一的坑候选写入 wiki |
++| 需你选择 | 有两种以上合理做法，或用户可能有不同取舍 | 提交范围与说明、合入方式、任务是否收口、是否补验或如何补验 |
++| 需你选择（逐项授权） | 外部、不可逆、跨机或影响共享系统 | push、合入共享分支、部署、删除、清理 worktree、跨机同步、写外部 tracker |
++| 缺口 | 超出本次目标，或需要审美、产品、范围判断 | 旧 bug、技术债、过时文档、环境隐患、用户提到的后续优化 |
+ 
+-不属于三档的发现就是额外缺口：给出事实、证据、影响和建议处置（处理 / 另开任务 / 不纳入），等用户点名。
++提交属于用户点名才做的动作，始终作为需你选择的一题；范围清楚时把它作为推荐项给出。
+ 
+-提交不因为「会话结束」进入收尾项：提交范围与 message 需要判断，仍走方案确认。
++## 提问规则
++
++- 每项一题，2–3 个选项；推荐项放首位，标「推荐」并附一句依据。
++- 题干脱离上下文也能看懂：写清对象、范围和影响，例如「`<repo>` 有 N 项未提交改动，混有其他任务的文件」。
++- 同类事项合成一题，例如同一仓库的提交范围；外部或不可逆动作一项一题，题干写明目标环境（远端、分支、机器）。
++- 能由规则、证据或用户已确认的偏好定下来的，归入直接执行，不提问。
++- 宿主有结构化提问工具时用它发问，正文只留清单摘要；没有时在正文用编号与选项列出。
+ 
+ ## 排序
+ 
+-1. 补验或修复当前目标的缺口；仍未通过时结论为仍有阻塞。
++1. 补验或修复当前目标的缺口；仍未通过（含按选择跳过补验）时第二轮结论为仍有阻塞，并写明是哪一项。
+ 2. 提交、任务状态与收口流程。
+ 3. 台账记账与知识落点。
+ 4. 衍生任务与外部动作。
+ 
+-同一证据或同一文件只写一次；方案步骤引用缺口编号，不重复描述。
+-
+-## 缺口记账
++同一发现只出现一次；题目引用清单条目，不重复描述。
+ 
+-用户只授权收尾项时，额外缺口写进台账，不遗忘也不擅自扩大范围：
++## 缺口落点
+ 
+-- taskrail 任务：写入 `context/current.md` 的「未决问题」表，`解决形式` 写「另开任务」或「不纳入」；不代写 `SUMMARY.md`，不新建子任务。
+-- 有 Issue 等 tracker：写入属于外部动作，等授权。
+-- 没有台账：留在会话交接，不新建文件。
++缺口记账是直接执行项，按执行时的任务状态取落点（本轮先收口的任务按已收口处理），取第一个可用的：
+ 
+-## 输出要求
++1. 任务未收口：写入 `context/current.md` 的「未决问题」表，`解决形式` 写「另开任务」或「不纳入」。
++2. 任务已收口或已归档：在 SUMMARY「剩余风险与后续项」追加一行，注明来源会话与证据；只追加，不改写 SUMMARY 其余部分。
++3. 有 Issue 等 tracker：写入属于外部动作，作为需你选择的一题；未获授权时退到下一条。
++4. 都没有：只留在第二轮的缺口列表，不新建文件。
+ 
+-- 四块：结论、收尾方案、额外缺口、需单独授权；加恢复入口。
+-- 空章节省略；每条一行；必要时补一行依据路径。
+-- 方案是一个有序序列，步骤可执行、可叫停；不写「选项 A / B」式选择题。
+-- 可选项最多三项。
++记账不新建任务或子任务；用户点名「另开任务」时再路由到 taskrail 或已有 tracker。
+ 
+ ## 确认语义
+ 
+-- 一次确认等于授权方案内全部编号步骤，不含「需单独授权」项。
+-- 「需单独授权」按目标环境逐项点名，不随方案确认生效。
+-- 额外缺口不因方案确认而处理；未点名时只记账。
+-- 中途扩充方案或提升风险，重新确认。
++- 第一轮不执行收尾动作，只读取证照常进行；没有需你选择的项时直接执行并进入第二轮。
++- 用户一次回答覆盖本轮清单：直接执行项与各题所选项按排序执行，可中途叫停。
++- 每题的选择只授权该项，不外延到其他动作：选了提交不等于授权 push，选了合入不等于授权部署。
++- 缺口不因确认而处理；未点名时只记账。
++- 执行中新发现要加项或升级风险，再问一轮。
++
++## 两轮输出
++
++- 第一轮：收尾清单，分将直接执行、需你选择、缺口（写明将记入的落点）三块；不下结论。
++- 第二轮：结论、收尾结果（每项写已完成、按选择跳过或失败及原因）、缺口列表（事实 → 记在哪 → 建议处置）、恢复入口。
++- 空章节省略；每条一行；必要时补一行依据路径。
+ 
+ ## 反例
+ 
+-- 把多条发现和「待你确认」问题原样丢回用户。
+-- 把外部动作混进方案执行组。
+-- 对同一条发现重复描述或重复列清单。
++- 先报「可结束」，再把未定的提交、清理列在后面等用户自己处理。
++- 单列一段「已核对事实」复述验证流水。
++- 把拿不准的事列成被动的「需授权」清单就结束，不给选项和推荐。
++- 缺口只写「只记账」，没有实际记账，也没写落点。
++- 对能由规则定下来的事提问，或把发现清单原样丢回给用户。
++- 把多个外部动作合成一题，或用一题的选择顶替其他动作的授权。
+ - 为凑格式生成复盘或额外报告文件。
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 9ff4eee..35453f7 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -1,4 +1,4 @@
+-"""session-wrap 文本契约测试：锁定证据收尾、方案合成、缺口记账与分档授权。"""
++"""session-wrap 文本契约测试：锁定证据收尾、收尾清单、两轮确认、缺口记账与逐项授权。"""
+ from __future__ import annotations
+ 
+ import unittest
+@@ -62,35 +62,49 @@ class SessionWrapContractTest(unittest.TestCase):
+             self.assertIn(field, DETOUR)
+         self.assertIn("`kind: pitfall`", DETOUR)
+         self.assertIn("建议用 `skill-upgrader` 改进排查 skill", DETOUR)
+-        self.assertIn("随收尾方案一次确认", DETOUR)
++        self.assertIn("随本轮确认执行", DETOUR)
+ 
+-    def test_findings_are_synthesized_into_one_ordered_plan(self) -> None:
+-        self.assertIn("把前面每一步的发现合成一个有序方案", SKILL)
+-        self.assertIn("不把问题清单丢回给用户", SKILL)
+-        self.assertIn("每个发现必须有一个归属", SKILL)
++    def test_findings_become_one_wrap_list(self) -> None:
++        self.assertIn("把前面每一步的发现合成一张收尾清单", SKILL)
++        self.assertIn("每个发现只有一个归属", SKILL)
++        for kind in ("**直接执行**", "**需你选择**", "**缺口**"):
++            self.assertIn(kind, SKILL)
+         self.assertIn("补验当前缺口 → 提交 → 台账与知识落点 → 衍生处理", SKILL)
+-        self.assertIn("同一发现只出现一次", SKILL)
+-
+-    def test_confirmation_scope_follows_three_tiers(self) -> None:
+-        self.assertIn("收尾项直接做", SKILL)
+-        self.assertIn("一次确认覆盖方案内全部编号步骤", SKILL)
+-        self.assertIn("额外缺口只有用户点名才处理", SKILL)
+-        self.assertIn("按目标环境逐项明确授权", SKILL)
+-        self.assertIn("不随方案确认生效", SKILL)
+-        self.assertIn("中途新发现要加步骤或升级风险，重新确认", SKILL)
+-        self.assertIn("一次确认等于授权方案内全部编号步骤，不含「需单独授权」项", PLAN)
+-
+-    def test_low_risk_wrap_up_does_not_wait_for_approval(self) -> None:
+-        self.assertIn("低风险、结论唯一的收尾记账与本次临时资源清理可以直接完成", SKILL)
+-        self.assertIn("直接完成并简要报告，不占用用户确认", SKILL)
++        self.assertIn("同一发现只出现一次", PLAN)
++
++    def test_two_rounds_confirm_once_and_scope_each_choice(self) -> None:
++        self.assertIn("第一轮只列清单与提问，不执行收尾动作", SKILL)
++        self.assertIn("用户一次回答覆盖本轮清单", SKILL)
++        self.assertIn("每题的选择只授权该项", SKILL)
++        self.assertIn("题干写明目标环境", SKILL)
++        self.assertIn("只有用户点名才处理", SKILL)
++        self.assertIn("执行中新发现要加项或升级风险，再问一轮", SKILL)
++        self.assertIn("选了提交不等于授权 push", PLAN)
++        self.assertIn("缺口不因确认而处理", PLAN)
++
++    def test_undecided_items_get_options_with_a_recommendation(self) -> None:
++        self.assertIn("推荐项放首位并附一句理由", SKILL)
++        self.assertIn("同类事项合成一题", SKILL)
++        self.assertIn("宿主有结构化提问工具时", SKILL)
++        self.assertIn("题干脱离上下文也能看懂", PLAN)
++        self.assertIn("外部或不可逆动作一项一题", PLAN)
++        self.assertIn("能由规则、证据或用户已确认的偏好定下来的，归入直接执行，不提问", PLAN)
++        self.assertIn("提交属于用户点名才做的动作，始终作为需你选择的一题", PLAN)
++
++    def test_deterministic_items_are_listed_not_asked(self) -> None:
++        self.assertIn("只列出，不提问", SKILL)
++        self.assertIn("没有需你选择的项时直接执行并进入第二轮", SKILL)
+         self.assertIn("停掉本会话启动的本机临时服务", SKILL)
+ 
+-    def test_unconfirmed_gaps_fall_back_to_the_ledger(self) -> None:
+-        self.assertIn("用户只授权收尾项时，把缺口写入当前任务的 `context/current.md`「未决问题」，不新建任务", SKILL)
+-        self.assertIn("写入 `context/current.md` 的「未决问题」表", PLAN)
++    def test_gaps_are_recorded_by_task_state(self) -> None:
++        self.assertIn("记账本身是直接执行项", SKILL)
++        self.assertIn("按执行时的任务状态取落点", PLAN)
++        self.assertIn("任务未收口：写入 `context/current.md` 的「未决问题」表", PLAN)
+         self.assertIn("`解决形式` 写「另开任务」或「不纳入」", PLAN)
+-        self.assertIn("不代写 `SUMMARY.md`", PLAN)
+-        self.assertIn("没有台账：留在会话交接，不新建文件", PLAN)
++        self.assertIn("任务已收口或已归档：在 SUMMARY「剩余风险与后续项」追加一行", PLAN)
++        self.assertIn("只追加，不改写 SUMMARY 其余部分", PLAN)
++        self.assertIn("都没有：只留在第二轮的缺口列表，不新建文件", PLAN)
++        self.assertIn("记账不新建任务或子任务", PLAN)
+ 
+     def test_cleanup_recommendations_preserve_unique_work(self) -> None:
+         self.assertIn("先核对未提交改动、独有提交及使用中的资源，未知文件保留", SKILL)
+@@ -109,18 +123,26 @@ class SessionWrapContractTest(unittest.TestCase):
+             self.assertIn(strategy, SKILL)
+         self.assertIn("推荐包含合入通道与历史处理方式，例如 `MR + squash`", SKILL)
+         self.assertIn("共享主分支仍需单独确认，push 不随合并自动授权", SKILL)
+-        self.assertIn("需单独授权", SKILL)
+-        self.assertIn("<合入 / push / 部署 / 删除>", SKILL)
+ 
+-    def test_output_is_compact_and_routable(self) -> None:
+-        for section in ("结论", "收尾方案", "额外缺口", "需单独授权", "恢复入口"):
++    def test_output_has_two_rounds(self) -> None:
++        self.assertIn("第一轮（确认前，不下结论）", SKILL)
++        self.assertIn("第二轮（执行后）", SKILL)
++        for section in ("收尾清单", "将直接执行", "需你选择", "缺口（将记入 <落点>）"):
+             self.assertIn(section, SKILL)
+-        self.assertIn("按「证据 → 建议动作或落点」组织，空章节省略", SKILL)
++        for section in ("结论：可结束 / 仍有阻塞", "收尾结果", "缺口列表", "记在 <路径>", "恢复入口"):
++            self.assertIn(section, SKILL)
++        self.assertIn("证据只作为条目依据出现，不单列验证流水", SKILL)
+         self.assertIn("每条一行", SKILL)
+-        self.assertIn("可选项最多三项", SKILL)
++        self.assertIn("2–3 个选项", SKILL)
+         self.assertIn("没有遗留事项时只报可结束，不创建额外报告文件", SKILL)
+         self.assertNotIn("待你确认", SKILL)
+ 
++    def test_counterexamples_cover_premature_close_and_unrecorded_gaps(self) -> None:
++        self.assertIn("先报「可结束」，再把未定的提交、清理列在后面", PLAN)
++        self.assertIn("单列一段「已核对事实」复述验证流水", PLAN)
++        self.assertIn("列成被动的「需授权」清单就结束", PLAN)
++        self.assertIn("没有实际记账，也没写落点", PLAN)
++
+     def test_adjacent_skills_keep_their_responsibilities(self) -> None:
+         self.assertIn("`anti-lazy` 负责交付前的意图与差距检查", SKILL)
+         self.assertIn("taskrail 任务的 `close` 负责 SUMMARY、状态和归档", SKILL)

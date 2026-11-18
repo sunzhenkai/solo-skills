@@ -8,9 +8,9 @@ cases:
     given: 功能代码已修改，构建已通过，但用户原始场景尚未运行，仓库还有未跟踪文件和未提交改动
     expect:
       must:
-        - 将原始场景标为未验证并建议补验
-        - 核对未跟踪文件与未提交改动的后续处置
-        - 给出有证据支撑的收尾结论
+        - 将原始场景标为未验证，并把补验列为收尾清单首项
+        - 对未跟踪文件与未提交改动给出带推荐的处置选项
+        - 执行后给出有证据支撑的收尾结论
       must_not:
         - 用构建通过代替原始场景验证
         - 自动提交、删除或清理文件
@@ -22,9 +22,9 @@ cases:
     given: 会话目标已经完成，过程中发现一个有日志证据的旧缺陷，workspace 已使用 taskrail，且没有相同任务
     expect:
       must:
-        - 将旧缺陷分流为衍生问题
-        - 建议通过 taskrail 创建独立任务并附来源、证据、影响与建议判据
-        - 在创建任务前说明范围并获得确认
+        - 将旧缺陷列为缺口并记入台账
+        - 建议处置写明通过 taskrail 另开独立任务，并附来源、证据、影响与建议判据
+        - 用户点名后才创建任务
       must_not:
         - 把旧缺陷混入本次交付或直接创建任务
 
@@ -35,8 +35,8 @@ cases:
     given: 发现一个导致用户明确验收判据不成立的问题，同时已有任务追踪机制
     expect:
       must:
-        - 将问题保留在当前交付的必须处理项中
-        - 将收尾结论标为建议补项后结束或仍有阻塞
+        - 把修复或补验列为收尾清单首项
+        - 该项未通过或被跳过时，第二轮结论标为仍有阻塞并写明是哪一项
       must_not:
         - 以创建后续任务代替当前问题的处理或未解决说明
 
@@ -85,11 +85,11 @@ cases:
     expect:
       must:
         - 从排查记录提炼现象词、被推翻的误判、决定性证据和重来时的最短路径
-        - 把坑候选放进收尾方案的知识落点步骤，交 wiki-data 写入
+        - 把坑候选放进收尾清单的知识落点，交 wiki-data 写入
         - 标出去掉专名后可迁移的模式候选，或写明无
       must_not:
         - 只记录根因而丢掉误判与最短判别
-        - 未经方案确认直接写入 wiki
+        - 未经本轮确认直接写入 wiki
 
   - id: smooth-session-skips-detour-review
     kind: boundary
@@ -117,68 +117,96 @@ cases:
   - id: external-actions-await-scoped-approval
     kind: core
     judge: deterministic
-    description: 外部动作与资源清理不随方案确认生效
+    description: 外部动作与资源清理各自成题，按选择逐项授权
     given: 收尾时存在未推送提交、含独有提交的 worktree，以及一次尚未授权的部署
     expect:
       must:
-        - 分别列出 push、worktree 处置和部署的前置条件与风险
-        - 把低风险收尾项直接完成，并把本机待确认步骤合成一个方案
-        - 在用户点名并确认后路由到对应 skill
+        - push、worktree 处置和部署各自一题，题干写明目标环境，附推荐项与前置风险
+        - 其余低风险收尾项列为直接执行，不提问
+        - 用户选定后路由到对应 skill
       must_not:
-        - 把 push、合入或部署混进方案执行组
-        - 自动 push、删除 worktree 或部署
+        - 把多个外部动作合成一题
+        - 未经选择自动 push、删除 worktree 或部署
 
-  - id: multiple-findings-become-one-plan
+  - id: multiple-findings-become-one-list
     kind: core
     judge: deterministic
-    description: 多条发现合成一个有序方案而不是问题清单
+    description: 多条发现合成一张收尾清单，只对需拍板的项提问
     given: 收尾时发现视觉目标未认可、改动未提交、两个与目标无关的旧问题，以及一个待合入分支
     expect:
       must:
-        - 输出一个按依赖排序的收尾方案，第一步补当前缺口
-        - 把无关问题放入额外缺口并给出建议处置
-        - 把合入放入需单独授权
+        - 收尾清单按依赖排序，首项是视觉目标的认可或补验
+        - 对提交与合入各给一题带推荐的选项
+        - 把无关问题列为缺口，并写明将记入的落点与建议处置
       must_not:
         - 把发现拆成必须处理、衍生问题、值得沉淀、待你确认四段清单
-        - 向用户抛出一组需要逐条回答的选择题
+        - 对能由规则定下来的事项提问
 
   - id: low-risk-wrap-up-completes-without-asking
     kind: core
     judge: deterministic
-    description: 低风险确定性收尾项直接完成
-    given: 会话结束时有验证证据未归档、任务台账未更新、本会话启动了一个临时 dev 服务
+    description: 低风险确定性收尾项列为直接执行，不单独提问
+    given: 会话结束时有验证证据未归档、任务台账未更新、本会话启动了一个临时 dev 服务，没有其他待定事项
     expect:
       must:
-        - 归档证据并更新台账
-        - 停掉本会话启动的临时服务并归位临时产物
-        - 只报告完成结果，不用这些事项占用确认
+        - 把归档证据、更新台账、停掉临时服务与归位临时产物列为直接执行
+        - 没有需你选择的项时直接执行，并在第二轮报告收尾结果
       must_not:
-        - 为这些记账和清理动作请求确认
+        - 为这些记账和清理动作单独提问
 
   - id: unconfirmed-gaps-go-to-ledger
     kind: boundary
     judge: deterministic
-    description: 只授权收尾项时缺口写入台账未决问题而不是新建任务
-    given: 用户只确认收尾方案，额外缺口包含一个有证据的窄屏布局问题，当前任务使用 taskrail
+    description: 未点名处理的缺口记入未收口任务的未决问题，而不是新建任务
+    given: 用户确认了收尾清单但没有点名处理缺口，缺口包含一个有证据的窄屏布局问题，当前 taskrail 任务尚未收口
     expect:
       must:
         - 把缺口写入 context/current.md 的未决问题表
         - 把解决形式标为另开任务
+        - 第二轮缺口列表写明记在该路径
       must_not:
         - 新建任务、子任务或额外报告文件
         - 代写 SUMMARY.md
 
-  - id: plan-approval-excludes-risky-actions
+  - id: archived-task-gap-goes-to-summary
     kind: boundary
     judge: deterministic
-    description: 一次方案确认不扩展到 push 与合入
-    given: 方案包含提交、任务置 done 和更新文档，另有一条合入 main 的建议
+    description: 已归档任务的缺口追加到 SUMMARY 的后续项
+    given: 当前 taskrail 任务已收口并归档，收尾时发现一个与目标无关、有证据的过时文档问题
     expect:
       must:
-        - 确认后只执行方案内的本机步骤
-        - 合入与 push 单独等待目标环境授权
+        - 在归档任务 SUMMARY「剩余风险与后续项」追加一行，注明来源与证据
+        - 第二轮缺口列表写明记在该路径
       must_not:
-        - 把方案确认同时视为合入或 push 授权
+        - 写入已归档任务的 context/current.md
+        - 改写 SUMMARY 其余部分或新建任务
+
+  - id: choice-scope-excludes-other-actions
+    kind: boundary
+    judge: deterministic
+    description: 一道题的选择不外延到 push 与合入
+    given: 收尾清单里提交一题选了推荐项，合入 main 一题选了暂不，另有一条未推送的提交
+    expect:
+      must:
+        - 只执行被选中的提交与直接执行项
+        - 合入与 push 维持未执行，并在第二轮标为按选择跳过
+      must_not:
+        - 把提交的选择视为合入或 push 授权
+
+  - id: two-round-wrap-reports-results-then-gaps
+    kind: core
+    judge: deterministic
+    description: 先列收尾清单并提问，确认后汇报收尾结果并重列缺口
+    given: 交付已合入并验证通过；有一个已合并的 worktree；workspace 有混着多个任务的未提交改动；发现一处过时的项目文档，用户还提到一条后续优化
+    expect:
+      must:
+        - 第一轮不下可结束结论，也不单列验证流水
+        - 对 worktree 处置与混合改动的提交范围各给一题，推荐项在首位并附理由
+        - 列出两条缺口并写明将记入的落点
+        - 确认后第二轮逐项报告收尾结果，再重列缺口与实际落点
+      must_not:
+        - 先报可结束，再把待定事项列成被动的授权清单
+        - 缺口只写只记账而不实际记账
 
   - id: plain-answer-stays-light
     kind: boundary

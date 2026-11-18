@@ -1,4 +1,4 @@
-"""session-wrap 文本契约测试：锁定证据收尾、方案合成、缺口记账与分档授权。"""
+"""session-wrap 文本契约测试：锁定证据收尾、收尾清单、两轮确认、缺口记账与逐项授权。"""
 from __future__ import annotations
 
 import unittest
@@ -62,35 +62,49 @@ class SessionWrapContractTest(unittest.TestCase):
             self.assertIn(field, DETOUR)
         self.assertIn("`kind: pitfall`", DETOUR)
         self.assertIn("建议用 `skill-upgrader` 改进排查 skill", DETOUR)
-        self.assertIn("随收尾方案一次确认", DETOUR)
+        self.assertIn("随本轮确认执行", DETOUR)
 
-    def test_findings_are_synthesized_into_one_ordered_plan(self) -> None:
-        self.assertIn("把前面每一步的发现合成一个有序方案", SKILL)
-        self.assertIn("不把问题清单丢回给用户", SKILL)
-        self.assertIn("每个发现必须有一个归属", SKILL)
+    def test_findings_become_one_wrap_list(self) -> None:
+        self.assertIn("把前面每一步的发现合成一张收尾清单", SKILL)
+        self.assertIn("每个发现只有一个归属", SKILL)
+        for kind in ("**直接执行**", "**需你选择**", "**缺口**"):
+            self.assertIn(kind, SKILL)
         self.assertIn("补验当前缺口 → 提交 → 台账与知识落点 → 衍生处理", SKILL)
-        self.assertIn("同一发现只出现一次", SKILL)
+        self.assertIn("同一发现只出现一次", PLAN)
 
-    def test_confirmation_scope_follows_three_tiers(self) -> None:
-        self.assertIn("收尾项直接做", SKILL)
-        self.assertIn("一次确认覆盖方案内全部编号步骤", SKILL)
-        self.assertIn("额外缺口只有用户点名才处理", SKILL)
-        self.assertIn("按目标环境逐项明确授权", SKILL)
-        self.assertIn("不随方案确认生效", SKILL)
-        self.assertIn("中途新发现要加步骤或升级风险，重新确认", SKILL)
-        self.assertIn("一次确认等于授权方案内全部编号步骤，不含「需单独授权」项", PLAN)
+    def test_two_rounds_confirm_once_and_scope_each_choice(self) -> None:
+        self.assertIn("第一轮只列清单与提问，不执行收尾动作", SKILL)
+        self.assertIn("用户一次回答覆盖本轮清单", SKILL)
+        self.assertIn("每题的选择只授权该项", SKILL)
+        self.assertIn("题干写明目标环境", SKILL)
+        self.assertIn("只有用户点名才处理", SKILL)
+        self.assertIn("执行中新发现要加项或升级风险，再问一轮", SKILL)
+        self.assertIn("选了提交不等于授权 push", PLAN)
+        self.assertIn("缺口不因确认而处理", PLAN)
 
-    def test_low_risk_wrap_up_does_not_wait_for_approval(self) -> None:
-        self.assertIn("低风险、结论唯一的收尾记账与本次临时资源清理可以直接完成", SKILL)
-        self.assertIn("直接完成并简要报告，不占用用户确认", SKILL)
+    def test_undecided_items_get_options_with_a_recommendation(self) -> None:
+        self.assertIn("推荐项放首位并附一句理由", SKILL)
+        self.assertIn("同类事项合成一题", SKILL)
+        self.assertIn("宿主有结构化提问工具时", SKILL)
+        self.assertIn("题干脱离上下文也能看懂", PLAN)
+        self.assertIn("外部或不可逆动作一项一题", PLAN)
+        self.assertIn("能由规则、证据或用户已确认的偏好定下来的，归入直接执行，不提问", PLAN)
+        self.assertIn("提交属于用户点名才做的动作，始终作为需你选择的一题", PLAN)
+
+    def test_deterministic_items_are_listed_not_asked(self) -> None:
+        self.assertIn("只列出，不提问", SKILL)
+        self.assertIn("没有需你选择的项时直接执行并进入第二轮", SKILL)
         self.assertIn("停掉本会话启动的本机临时服务", SKILL)
 
-    def test_unconfirmed_gaps_fall_back_to_the_ledger(self) -> None:
-        self.assertIn("用户只授权收尾项时，把缺口写入当前任务的 `context/current.md`「未决问题」，不新建任务", SKILL)
-        self.assertIn("写入 `context/current.md` 的「未决问题」表", PLAN)
+    def test_gaps_are_recorded_by_task_state(self) -> None:
+        self.assertIn("记账本身是直接执行项", SKILL)
+        self.assertIn("按执行时的任务状态取落点", PLAN)
+        self.assertIn("任务未收口：写入 `context/current.md` 的「未决问题」表", PLAN)
         self.assertIn("`解决形式` 写「另开任务」或「不纳入」", PLAN)
-        self.assertIn("不代写 `SUMMARY.md`", PLAN)
-        self.assertIn("没有台账：留在会话交接，不新建文件", PLAN)
+        self.assertIn("任务已收口或已归档：在 SUMMARY「剩余风险与后续项」追加一行", PLAN)
+        self.assertIn("只追加，不改写 SUMMARY 其余部分", PLAN)
+        self.assertIn("都没有：只留在第二轮的缺口列表，不新建文件", PLAN)
+        self.assertIn("记账不新建任务或子任务", PLAN)
 
     def test_cleanup_recommendations_preserve_unique_work(self) -> None:
         self.assertIn("先核对未提交改动、独有提交及使用中的资源，未知文件保留", SKILL)
@@ -109,17 +123,25 @@ class SessionWrapContractTest(unittest.TestCase):
             self.assertIn(strategy, SKILL)
         self.assertIn("推荐包含合入通道与历史处理方式，例如 `MR + squash`", SKILL)
         self.assertIn("共享主分支仍需单独确认，push 不随合并自动授权", SKILL)
-        self.assertIn("需单独授权", SKILL)
-        self.assertIn("<合入 / push / 部署 / 删除>", SKILL)
 
-    def test_output_is_compact_and_routable(self) -> None:
-        for section in ("结论", "收尾方案", "额外缺口", "需单独授权", "恢复入口"):
+    def test_output_has_two_rounds(self) -> None:
+        self.assertIn("第一轮（确认前，不下结论）", SKILL)
+        self.assertIn("第二轮（执行后）", SKILL)
+        for section in ("收尾清单", "将直接执行", "需你选择", "缺口（将记入 <落点>）"):
             self.assertIn(section, SKILL)
-        self.assertIn("按「证据 → 建议动作或落点」组织，空章节省略", SKILL)
+        for section in ("结论：可结束 / 仍有阻塞", "收尾结果", "缺口列表", "记在 <路径>", "恢复入口"):
+            self.assertIn(section, SKILL)
+        self.assertIn("证据只作为条目依据出现，不单列验证流水", SKILL)
         self.assertIn("每条一行", SKILL)
-        self.assertIn("可选项最多三项", SKILL)
+        self.assertIn("2–3 个选项", SKILL)
         self.assertIn("没有遗留事项时只报可结束，不创建额外报告文件", SKILL)
         self.assertNotIn("待你确认", SKILL)
+
+    def test_counterexamples_cover_premature_close_and_unrecorded_gaps(self) -> None:
+        self.assertIn("先报「可结束」，再把未定的提交、清理列在后面", PLAN)
+        self.assertIn("单列一段「已核对事实」复述验证流水", PLAN)
+        self.assertIn("列成被动的「需授权」清单就结束", PLAN)
+        self.assertIn("没有实际记账，也没写落点", PLAN)
 
     def test_adjacent_skills_keep_their_responsibilities(self) -> None:
         self.assertIn("`anti-lazy` 负责交付前的意图与差距检查", SKILL)
