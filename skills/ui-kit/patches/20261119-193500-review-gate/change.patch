@@ -1,0 +1,64 @@
+diff --git a/skills/ui-kit/SKILL.md b/skills/ui-kit/SKILL.md
+index 790cb0d..812734f 100644
+--- a/skills/ui-kit/SKILL.md
++++ b/skills/ui-kit/SKILL.md
+@@ -58,7 +58,7 @@ python3 <kit>/skills/ui-template-apply/scripts/validate_package.py project <项
+ python3 <kit>/skills/ui-template-apply/scripts/verify_fidelity.py --project <项目根>
+ ```
+ 
+-完成：validate 0 error，且保真比对 `fidelity: pass`（项目验收的完整顺序见 verify.md）。对比度不达标时调明度（L），不降门槛；缺 token 就补 token，不在组件里写字面值。通用路线按 pretty-ui 的截图、量测与评审标准验收，不跑模板保真命令。
++完成：validate 0 error，且保真比对 `fidelity: pass`，并且已登记的页面在 `ui-review.md` 里每个声明过的状态都是 reviewed（项目验收的完整顺序见 verify.md）。保真不覆盖页面文案、空态、390 宽和自定义画布。对比度不达标时调明度（L），不降门槛；缺 token 就补 token，不在组件里写字面值。通用路线按 pretty-ui 的截图、量测与评审标准验收，不跑模板保真命令。
+ 
+ ## 交付
+ 
+diff --git a/skills/ui-kit/references/update.md b/skills/ui-kit/references/update.md
+index ce21348..2d8ba3f 100644
+--- a/skills/ui-kit/references/update.md
++++ b/skills/ui-kit/references/update.md
+@@ -28,4 +28,4 @@ npm install   # 对照脚本打印的依赖补齐 package.json
+ 
+ ## 3. 收尾
+ 
+-按 verify.md 跑完整验收；在 DESIGN.md「验收记录」写新版本号和结果。
++按 verify.md 跑完整验收；在 DESIGN.md「验收记录」写新版本号和结果。`ui-review.md` 里带 `lock:` 且 `upstream:` 不高于新锁版本的项，只重拍对应路由，确认后再把该行改成 `- [x]`。
+diff --git a/skills/ui-kit/references/verify.md b/skills/ui-kit/references/verify.md
+index fea1b4d..f10dc42 100644
+--- a/skills/ui-kit/references/verify.md
++++ b/skills/ui-kit/references/verify.md
+@@ -18,8 +18,16 @@ npm run build
+ | J12 | 主题在白名单外偏离风格包 | 改回包值，或记入 `theme_deviations` |
+ | J03（警告） | 模板文件被改 | 撤回；确要保留记 `local_edits`，该文件退出保真 |
+ | `fidelity: FAIL` | 模板组件或页面模板渲染得和模板不一样 | 看 `test-results/` 的差异图，找到被改的模板文件或渲染配置并撤回 |
++| J10（已有 `pages`） | 缺 `ui-review.md`、缺路由，或某个声明过的状态没有审查行 | 按 ui-template-apply 的 07 补拍并写上 `- [x] state <name>` |
++| J11 | 审查里还有 `- [ ]` 或 `status: pending` | 修完再勾；受锁文件走 `upstream:`，见 update.md |
++| J13 | 审查点名了锁内文件，但锁版本还低于 `upstream:` | 升级模板到该版本后重拍该路由 |
+ 
+-J06 / J10 是 ui-template-apply 目检流程的提示；ui-kit 用像素比对代替目检，可忽略。
++两条都要过，互不替代：
++
++- **保真**：`verify_fidelity.py` 通过，只说明模板文件和 `ui-kit/*` story 没被改。页面文案、空态、390 宽和自定义画布不在保真范围内。
++- **产品页**：`validate_package.py project` 0 error。已经写了 `pages` 时，缺 `ui-review.md`、缺路由、缺声明过的状态都是 J10 错误；未结项或 `status: pending` 是 J11 错误。还没有页面清单时，J10 仍是警告（刚装完的骨架）。J06 仍是缺 `ui-decisions.yaml` 的警告。
++
++不要用保真通过代替产品页目检。
+ 
+ ## 保真比对做了什么
+ 
+diff --git a/skills/ui-kit/tests/test_ui_kit_contract.py b/skills/ui-kit/tests/test_ui_kit_contract.py
+index 40ec334..fc44342 100644
+--- a/skills/ui-kit/tests/test_ui_kit_contract.py
++++ b/skills/ui-kit/tests/test_ui_kit_contract.py
+@@ -108,10 +108,13 @@ class FlowTest(unittest.TestCase):
+         commands = ["npx tsc -b", "npx eslint .", "validate_package.py project .", "verify_fidelity.py --project .", "npm run build"]
+         positions = [text.index(c) for c in commands]
+         self.assertEqual(positions, sorted(positions))
+-        for code in ("J12", "J03", "`fidelity: FAIL`"):
++        for code in ("J12", "J03", "`fidelity: FAIL`", "J10", "J11", "J13"):
+             self.assertIn(code, text)
+         self.assertIn("零像素容差", text)
+         self.assertIn("白名单内的定制不会失败", text)
++        self.assertIn("不要用保真通过代替产品页目检", text)
++        self.assertNotIn("可忽略", text)
++        self.assertIn("每个声明过的状态都是 reviewed", SKILL)
+ 
+ 
+ class LanguageTest(unittest.TestCase):

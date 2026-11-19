@@ -58,7 +58,7 @@ python3 <kit>/skills/ui-template-apply/scripts/validate_package.py project <项�
 python3 <kit>/skills/ui-template-apply/scripts/verify_fidelity.py --project <项目根>
 ```
 
-完成：validate 0 error，且保真比对 `fidelity: pass`（项目验收的完整顺序见 verify.md）。对比度不达标时调明度（L），不降门槛；缺 token 就补 token，不在组件里写字面值。通用路线按 pretty-ui 的截图、量测与评审标准验收，不跑模板保真命令。
+完成：validate 0 error，且保真比对 `fidelity: pass`，并且已登记的页面在 `ui-review.md` 里每个声明过的状态都是 reviewed（项目验收的完整顺序见 verify.md）。保真不覆盖页面文案、空态、390 宽和自定义画布。对比度不达标时调明度（L），不降门槛；缺 token 就补 token，不在组件里写字面值。通用路线按 pretty-ui 的截图、量测与评审标准验收，不跑模板保真命令。
 
 ## 交付
 

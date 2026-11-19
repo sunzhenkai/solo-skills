@@ -108,10 +108,13 @@ class FlowTest(unittest.TestCase):
         commands = ["npx tsc -b", "npx eslint .", "validate_package.py project .", "verify_fidelity.py --project .", "npm run build"]
         positions = [text.index(c) for c in commands]
         self.assertEqual(positions, sorted(positions))
-        for code in ("J12", "J03", "`fidelity: FAIL`"):
+        for code in ("J12", "J03", "`fidelity: FAIL`", "J10", "J11", "J13"):
             self.assertIn(code, text)
         self.assertIn("零像素容差", text)
         self.assertIn("白名单内的定制不会失败", text)
+        self.assertIn("不要用保真通过代替产品页目检", text)
+        self.assertNotIn("可忽略", text)
+        self.assertIn("每个声明过的状态都是 reviewed", SKILL)
 
 
 class LanguageTest(unittest.TestCase):

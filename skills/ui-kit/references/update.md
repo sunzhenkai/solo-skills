@@ -28,4 +28,4 @@ npm install   # 对照脚本打印的依赖补齐 package.json
 
 ## 3. 收尾
 
-按 verify.md 跑完整验收；在 DESIGN.md「验收记录」写新版本号和结果。
+按 verify.md 跑完整验收；在 DESIGN.md「验收记录」写新版本号和结果。`ui-review.md` 里带 `lock:` 且 `upstream:` 不高于新锁版本的项，只重拍对应路由，确认后再把该行改成 `- [x]`。
