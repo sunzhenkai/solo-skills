@@ -38,6 +38,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | --- | --- |
 | `pretty-ui` | 通用 UI 设计、实现与评审引擎：既有/非 React 项目沿用原技术栈，提供设计方向、设计体系、截图打磨、评审与静态 HTML 阅读页 |
 | `ui-kit` | **默认 UI 总入口**：按技术栈分派 pretty-ui 或 React 模板路线，衔接风格包、专项 UI skills、DESIGN.md 与验收 |
+| `visualize` | 内容可视化编排：把文档、方案、对话或数据整理成带出处的视觉简报，交 archify（结构图）或 visual-explainer（讲解页）绘制，再核对事实与画面；下游缺失时降级到 pretty-ui 或 Mermaid |
 
 ### 知识与内容
 
@@ -95,7 +96,7 @@ npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s ui-kit -s prett
 | `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
 | `playwright` + `axe-core`（运行时，非 skill） | `pip install playwright && playwright install chromium`；交付仓 `npm i -D axe-core` | taskrail 的 Web UI 证据检查（`skills/taskrail/scripts/ui_evidence_check.py`） |
 
-可选依赖：[`archify`](https://github.com/tt-a1i/archify) 仅用于 `project-atlas` 新建或更新交互图；普通 Atlas 构建不需要它，也不纳入 `make install-deps` / `check-deps`。
+可选依赖：[`archify`](https://github.com/tt-a1i/archify) 用于 `project-atlas` 新建或更新交互图，以及 `visualize` 的结构图；[`visual-explainer`](https://github.com/nicobailon/visual-explainer) 用于 `visualize` 的讲解页（安装时把其 `plugins/visual-explainer/` 复制到 agent 的 skill 目录）。普通 Atlas 构建不需要 archify，`visualize` 缺少下游时降级到 `pretty-ui` 或 Mermaid；两者都不纳入 `make install-deps` / `check-deps`。
 
 > Web UI 交付细则见 `skills/taskrail/references/ui-delivery.md`（不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
 
