@@ -42,7 +42,8 @@ class TerminalTest(unittest.TestCase):
     def test_completion_notice_includes_integration_and_merge(self) -> None:
         report = (ROOT / "references" / "user-report.md").read_text(encoding="utf-8")
         self.assertIn("## 6. 完成通知", report)
-        self.assertIn("合入时", report)
+        self.assertIn("交付结果和验证结论", report)
+        self.assertIn("如何合入", report)
         self.assertIn("父任务只发一次总完成通知", report)
         self.assertIn("不自动 push 或清理 worktree", report)
 

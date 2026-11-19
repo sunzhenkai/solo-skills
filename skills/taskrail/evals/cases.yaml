@@ -164,17 +164,32 @@ cases:
         - 执行者自行接受 Blocker 或 Major
         - 把缺证据或缩小 criterion 当成已完成
 
-  - id: non-stop-progress-recap
+  - id: non-stop-updates-follow-cognitive-delta
     kind: core
     judge: llm
-    description: 非停点简要复述进度并继续
-    given: goal 的意图或方案节点，或两种模式的普通 reference 切换、片间检查点
+    description: 非停点只在用户认知需要更新时同步并继续
+    given: goal 的意图或方案节点，以及两种模式的普通 reference 切换、片间检查点
     expect:
       must:
-        - 用 1 至 2 句说明目前结果或判断与接下来动作，然后继续
+        - 有新增结果、判断、范围或风险时突出变化与下一动作，然后继续
+        - 纯路由、记账和内部状态迁移不单独向用户汇报
       must_not:
+        - 重复用户已经知道且未变化的背景
         - 以要不要或你看行吗收尾并等待回复
-        - 把非停点复述记为用户确认
+        - 把非停点同步记为用户确认
+
+  - id: user-report-is-layered-without-hiding-risk
+    kind: core
+    judge: llm
+    description: 默认摘要按决策需要展开且不省略交付风险
+    given: 一个已验证但仍存在非阻塞剩余风险的任务完成，用户随后追问落地细节
+    expect:
+      must:
+        - 默认先说交付结果和关键验证结论，保留剩余风险与必要落地信息
+        - 用户追问时再补充支撑证据、改动位置和恢复或合入所需细节
+      must_not:
+        - 按内部执行顺序转贴工具过程、状态字段或完整台账
+        - 以简洁为由省略验证缺口、未完成项或必要授权
 
   - id: true-blocker-never-auto-approved
     kind: edge
