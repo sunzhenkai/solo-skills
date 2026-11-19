@@ -1,0 +1,158 @@
+version: 1
+skill: visualize
+cases:
+  - id: plan-doc-to-structure-diagrams
+    kind: core
+    judge: deterministic
+    description: 技术方案里的组件与调用链分别画成 archify 结构图
+    given: 用户给出一份技术方案 Markdown，描述了四个服务的职责、依赖，以及一次下单请求的调用与返回；archify 与 Node.js 18+ 可用
+    expect:
+      must:
+        - 先写 brief.md，事实清单每条带章节出处
+        - 架构走 archify architecture、调用链走 archify sequence，两张图各用一个子目录
+        - 两张图都通过 finalize，交付核对行写明事实回查计数
+      must_not:
+        - 在图上加入方案里没有的服务或调用
+        - 把产物写进 skill 目录或下游默认目录
+
+  - id: comparison-with-numbers-to-explainer
+    kind: core
+    judge: qualitative
+    description: 含数字的方案对比做成 visual-explainer 讲解页
+    given: 用户给出两个缓存方案的对比，包含各自的延迟、成本和取舍说明，要求做成一页可视化讲解；visual-explainer 可用
+    expect:
+      must:
+        - 选 visual-explainer 讲解页，首屏是推荐结论句
+        - 延迟与成本数字配图形呈现，单位与口径保留原文
+        - 修完 render 列出的全部问题并看过截图拼版
+      must_not:
+        - 用 archify 画数值图表
+
+  - id: trivial-content-stays-text
+    kind: boundary
+    judge: deterministic
+    description: 线性不超过三步、用户没要求出图时用文字回答
+    given: 用户问「登录、选择套餐、付款」这三步怎么走，没有分支和数字，也没有说要画成图
+    expect:
+      must:
+        - 用列表回答，并说明为何不画
+      must_not:
+        - 生成 brief.md 或调用下游
+
+  - id: explicit-draw-request-still-draws
+    kind: boundary
+    judge: deterministic
+    description: 用户明确要求出图时，线性三步也照画
+    given: 用户说「把『登录、选择套餐、付款』这三步画成图」，没有分支和数字；archify 可用
+    expect:
+      must:
+        - 按主流程出一张 archify workflow 图
+        - 交付时提一句文字列表已经足够
+      must_not:
+        - 以内容太简单为由拒绝出图
+
+  - id: missing-facts-ask-user
+    kind: boundary
+    judge: deterministic
+    description: 画图必需的事实原文缺失时向用户要
+    given: 用户要把一份请假出行计划画成流程图，计划里没有出发日期和审批人
+    expect:
+      must:
+        - 向用户询问缺失的日期与审批人
+        - 图里只使用用户给出的值
+      must_not:
+        - 自行编造日期或审批人
+
+  - id: unsupported-label-removed
+    kind: failure
+    judge: deterministic
+    description: 回查发现无出处的节点时删除或标为推断
+    given: archify 首稿通过 finalize，但事实回查发现一个「消息队列」节点在原文和事实清单里都找不到出处
+    expect:
+      must:
+        - 删除该节点，或在图上和「读法」里标为推断
+        - 修改 candidate.json 后重跑 finalize 与回查
+      must_not:
+        - 因为 finalize 已通过就直接交付
+
+  - id: archify-missing-falls-back
+    kind: failure
+    judge: deterministic
+    description: archify 不可用时沿降级链改用下一项并说明
+    given: 用户要一张状态流转图；探测发现 archify 未安装，visual-explainer 可用
+    expect:
+      must:
+        - 改用 visual-explainer 单图页，并在「读法」写明降级原因
+        - 交付里给出 archify 的用途与安装方式，等待用户同意
+      must_not:
+        - 未经审计和同意自动安装 archify
+
+  - id: no-node-asks-before-text-fallback
+    kind: failure
+    judge: deterministic
+    description: 降级会变成以文字为主时先问用户
+    given: 用户要把一份复盘做成可视化讲解页；环境没有 Node.js，pretty-ui 可用
+    expect:
+      must:
+        - 先问补齐 Node.js 还是接受 pretty-ui 阅读页，推荐补齐，并写明所需版本
+        - 用户接受降级后走 pretty-ui page 模式，「读法」写明页面以文字为主
+      must_not:
+        - 不问就交付以文字为主的阅读页
+        - 把 render 或 finalize 失败当成通过
+
+  - id: repeated-gate-failure-stops
+    kind: failure
+    judge: deterministic
+    description: 两轮返修仍不过时停下报告
+    given: visual-explainer render 连续两轮修改后仍报同一个 ✗
+    expect:
+      must:
+        - 停止返修，报告失败的门禁、已尝试的修改和剩余问题
+      must_not:
+        - 整页重写或继续第三轮同类修改
+
+  - id: secrets-replaced-in-brief
+    kind: edge
+    judge: deterministic
+    description: 内容里的敏感值在简报阶段换成占位符
+    given: 用户给的部署说明含数据库密码和内网主机名，要求画成架构图
+    expect:
+      must:
+        - 简报和图里用占位符替代密码与主机名
+        - 交付前回查确认产物里没有原值
+      must_not:
+        - 把原始密码或主机名写进 brief.md 或 HTML
+
+  - id: offline-explainer-avoids-cdn
+    kind: edge
+    judge: qualitative
+    description: 要求离线的讲解页只用不依赖外部库的图形
+    given: 用户要一页离线可打开的概念讲解，内容含一个趋势数字序列
+    expect:
+      must:
+        - 简报约束写明离线
+        - 用 visual-explainer 自带的手绘 SVG 或内置图形组件呈现趋势
+      must_not:
+        - 引入需要从 CDN 加载的图表库
+
+  - id: product-page-routes-to-ui-kit
+    kind: boundary
+    judge: deterministic
+    description: 产品界面请求交给 ui-kit
+    given: 用户要求根据一份需求说明做一个设置页面
+    expect:
+      must:
+        - 识别为产品界面实现，交给 ui-kit 分派
+      must_not:
+        - 写视觉简报或调用 archify、visual-explainer
+
+  - id: persistent-atlas-routes-to-project-atlas
+    kind: boundary
+    judge: deterministic
+    description: 项目架构的持久文档交给 project-atlas
+    given: 用户要求为当前项目建立可随源码更新的架构文档和交互图
+    expect:
+      must:
+        - 交给 project-atlas，由它按自己的流程调用 archify
+      must_not:
+        - 把一次性图解目录当成持久 Atlas 交付
