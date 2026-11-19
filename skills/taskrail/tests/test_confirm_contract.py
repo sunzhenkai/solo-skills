@@ -60,9 +60,11 @@ class ConfirmContractTest(unittest.TestCase):
         self.assertIn("否则保持未完成", done)
         self.assertIn("不把假设当成用户决定", grill)
 
-    def test_non_stop_recap_does_not_wait(self) -> None:
+    def test_non_stop_updates_follow_user_cognition(self) -> None:
+        self.assertIn("用户需要知道的新增信息", self.text)
+        self.assertIn("纯内部迁移不单独汇报", self.text)
         self.assertIn("继续且不等回复", self.text)
-        self.assertIn("非停点复述不需要回复", self.text)
+        self.assertIn("非停点同步不需要回复", self.text)
 
     def test_no_suspension_five_tuple(self) -> None:
         self.assertFalse((ROOT / "references" / "suspension.md").exists())

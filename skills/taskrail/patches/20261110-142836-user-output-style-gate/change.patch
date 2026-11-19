@@ -1,0 +1,14 @@
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 7b891c8..55e3127 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -36,3 +36,9 @@ resume 以恢复用户上下文为目的，说明目标、已验证现状和下
+ 完成通知以交付结果和验证结论为主，按用户落地需要说明改动位置与如何合入；内部产物路径只在有助于恢复、合入或审计时给出。不以精简为由省略验证缺口、剩余风险、未完成项、必要授权或难回头决定。
+ 
+ 父任务只发一次总完成通知，汇总整体结果和集成验证；子任务完成按增量原则同步。任务归档不单独展开，不自动 push 或清理 worktree。
++
++## 前后对比
++
++- 前：「按内部执行顺序复述过程。」；后：「先说用户需要理解的结论与影响。」
++- 前：「每次路由都重复完整背景。」；后：「只同步用户认知增量。」
++- 前：「为简洁省略验证缺口。」；后：「默认摘要，同时保留决策所需风险。」

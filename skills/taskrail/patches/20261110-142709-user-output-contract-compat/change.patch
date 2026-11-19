@@ -1,0 +1,58 @@
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index e243da9..7b891c8 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -21,10 +21,11 @@ current_ref、status、driver、change id、checkbox 编号、criterion、slice
+ ## 4. 详略与风险匹配
+ 
+ 1. 普通可逆取舍按推荐直接定，**说决定，不提问**：用陈述句带一句理由，不以“要不要 / 你看行吗”收尾。意图、实施方案、approve 等停点按 [confirm-protocol.md](confirm-protocol.md) 等明确回复。
+-2. 难回头决定说明决定及理由，详略以用户能判断影响为准；陈述决定不等于获得危险动作授权。已做决定写 decisions.md。
++2. 难回头决定单独说，说明决定及理由，详略以用户能判断影响为准；陈述决定不等于获得危险动作授权。已做决定写 decisions.md。
+ 3. 执行中除确认协议停点外，真阻塞才停：删除或迁移数据、改共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）、缺凭据或只有用户知道的信息。停时突出影响、已完成部分和需要的外部输入。
+ 4. 同一验证连败两次、同一 P0 / P1 两轮未解、写不出可检查 criterion、意图仍对不上时停止盲试；先按 router 换动作，只有缺外部输入才 blocked。
+ 5. 确认展示以用户足以作出本次决定为限；风险、范围或验证策略变化时呈现新增信息，不重复未变化的背景。
++6. 内部记账与调度直接做，不转化为用户问题；没有认知增量时不独立汇报。
+ 
+ ## 5. 恢复与解释
+ 
+diff --git a/skills/taskrail/tests/test_decision_boundary_contract.py b/skills/taskrail/tests/test_decision_boundary_contract.py
+index f2d9e66..a1b42e0 100644
+--- a/skills/taskrail/tests/test_decision_boundary_contract.py
++++ b/skills/taskrail/tests/test_decision_boundary_contract.py
+@@ -13,7 +13,7 @@ class DecisionBoundaryTest(unittest.TestCase):
+             self.assertIn(s, UR)
+ 
+     def test_ordinary_no_stop(self) -> None:
+-        self.assertIn("普通可回头取舍", UR)
++        self.assertIn("普通可逆取舍", UR)
+         self.assertIn("直接定", UR)
+ 
+     def test_ledger(self) -> None:
+diff --git a/skills/taskrail/tests/test_decompose_contract.py b/skills/taskrail/tests/test_decompose_contract.py
+index c42ee03..ea83b2b 100644
+--- a/skills/taskrail/tests/test_decompose_contract.py
++++ b/skills/taskrail/tests/test_decompose_contract.py
+@@ -60,7 +60,9 @@ class DecomposeContractTest(unittest.TestCase):
+         self.assertIn("自动推进依赖已 done 的就绪项", text)
+         self.assertIn("正在做的优先", text)
+         self.assertIn("子任务 blocked 只停其依赖链", text)
+-        self.assertIn("N 个里完成 M 个", read("user-report.md"))
++        report = read("user-report.md")
++        self.assertIn("已验证现状", report)
++        self.assertIn("下一动作", report)
+         self.assertIn("取下一就绪项", read("ledger.md"))
+ 
+     def test_parent_does_not_load_every_child_context(self) -> None:
+diff --git a/skills/taskrail/tests/test_no_bookkeeping_questions.py b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+index cb445ad..5b4eae7 100644
+--- a/skills/taskrail/tests/test_no_bookkeeping_questions.py
++++ b/skills/taskrail/tests/test_no_bookkeeping_questions.py
+@@ -20,7 +20,7 @@ class NoBookkeepingQuestionsTest(unittest.TestCase):
+     def test_no_trailing_invitation_rule(self) -> None:
+         self.assertIn("不以“要不要 / 你看行吗”收尾", UR)
+         intent = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
+-        self.assertIn("理解偏了请纠正", intent)
++        self.assertIn("明确邀请纠正", intent)
+         self.assertIn("不把它当成每个普通步骤的固定尾问", intent)
+ 
+ 

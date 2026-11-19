@@ -13,7 +13,7 @@ class DecisionBoundaryTest(unittest.TestCase):
             self.assertIn(s, UR)
 
     def test_ordinary_no_stop(self) -> None:
-        self.assertIn("普通可回头取舍", UR)
+        self.assertIn("普通可逆取舍", UR)
         self.assertIn("直接定", UR)
 
     def test_ledger(self) -> None:

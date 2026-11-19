@@ -60,7 +60,9 @@ class DecomposeContractTest(unittest.TestCase):
         self.assertIn("自动推进依赖已 done 的就绪项", text)
         self.assertIn("正在做的优先", text)
         self.assertIn("子任务 blocked 只停其依赖链", text)
-        self.assertIn("N 个里完成 M 个", read("user-report.md"))
+        report = read("user-report.md")
+        self.assertIn("已验证现状", report)
+        self.assertIn("下一动作", report)
         self.assertIn("取下一就绪项", read("ledger.md"))
 
     def test_frontier_is_claimed_before_worker_dispatch(self) -> None:

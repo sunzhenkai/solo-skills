@@ -20,7 +20,7 @@ class NoBookkeepingQuestionsTest(unittest.TestCase):
     def test_no_trailing_invitation_rule(self) -> None:
         self.assertIn("不以“要不要 / 你看行吗”收尾", UR)
         intent = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
-        self.assertIn("理解偏了请纠正", intent)
+        self.assertIn("明确邀请纠正", intent)
         self.assertIn("不把它当成每个普通步骤的固定尾问", intent)
 
 
