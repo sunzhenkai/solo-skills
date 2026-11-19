@@ -69,7 +69,7 @@ class SkillEntryTest(unittest.TestCase):
     def test_routes_point_to_existing_references(self) -> None:
         for link in re.findall(r"\]\((references/[\w.-]+\.md)\)", SKILL):
             self.assertTrue((ROOT / link).is_file(), link)
-        for name in ("init.md", "update.md", "verify.md", "language.md", "tokens.md", "design-md.md"):
+        for name in ("init.md", "update.md", "migrate.md", "verify.md", "language.md", "tokens.md", "design-md.md"):
             self.assertIn(f"references/{name}", SKILL)
 
     def test_validation_command_and_done(self) -> None:
@@ -79,8 +79,9 @@ class SkillEntryTest(unittest.TestCase):
         self.assertIn("完成：validate 0 error，且保真比对 `fidelity: pass`", SKILL)
         self.assertIn("调明度（L），不降门槛", SKILL)
 
-    def test_migration_not_claimed(self) -> None:
-        self.assertIn("已有项目迁入模板尚未支持", SKILL)
+    def test_migration_route(self) -> None:
+        self.assertIn("已有 React 项目迁入模板", SKILL)
+        self.assertIn("references/migrate.md", SKILL)
 
 
 class FlowTest(unittest.TestCase):
@@ -102,6 +103,17 @@ class FlowTest(unittest.TestCase):
         self.assertIn("`DROPPED`", text)
         self.assertIn("--resolve", text)
         self.assertIn("按 verify.md 跑完整验收", text)
+
+    def test_migrate(self) -> None:
+        text = ref("migrate.md")
+        self.assertIn("不要用 `--init`", text)
+        for step in ("## 1. 盘点", "## 2. 安装", "## 3. 骨架", "## 4. 页面", "## 5. 适配层", "## 6. 验收", "## 回滚"):
+            self.assertIn(step, text)
+        self.assertIn("react-router@8", text)
+        self.assertIn("proxy[...].bypass", text)
+        self.assertIn("local_edits", text)
+        self.assertIn("scrollWidth - clientWidth", text)
+        self.assertIn("按 [verify.md](verify.md) 全套顺序执行", text)
 
     def test_verify(self) -> None:
         text = ref("verify.md")

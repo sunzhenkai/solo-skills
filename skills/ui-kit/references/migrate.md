@@ -1,0 +1,68 @@
+# 迁入模板
+
+已有 React 项目接入模板路线：后端与数据层留在原处，只替换外观与页面骨架。新项目走 [init.md](init.md)，本页只写给已有项目。
+
+## 0. 先判断值不值
+
+| 现状 | 做法 |
+| --- | --- |
+| React 19 + TS + Tailwind 4 + `@/*` → `src/*` | 直接按下文执行 |
+| React 18 或 Tailwind 3 | 先升级再迁；模板只支持 Tailwind 4 |
+| 页面超过 10 个 | 分两批：先一个 collection 加一个 detail 落地验收，再批量替换其余页面 |
+| 后端契约受限（上传、鉴权、鉴权 Cookie） | 原样保留；模板只接管渲染层 |
+
+## 1. 盘点
+
+列出每条路由对应的 pattern（collection / detail / form / settings / gallery / empty / list-detail / conversation），写进 `ui-decisions.yaml` 的 `pages`。同时记下：
+
+- **路由库与版本**：模板用 `react-router@8`，`Link`、`useSearchParams`、`useNavigate` 都从 `react-router` 导入。项目仍依赖 `react-router-dom@7` 时两套 router 上下文并存，先对齐包名再迁。
+- **i18n 与请求层**：模板用 TanStack Query + Zod，其它方案留在原处，本步不改数据层。
+- **待删旧件**：会被 AppShell 或 blocks 取代的页头、表格、卡片、统计条、主题开关、语言开关，逐个记下。
+
+## 2. 安装
+
+```bash
+python3 <kit>/skills/ui-template-apply/scripts/install_registry.py --project . --package quiet-inset
+npm i <脚本打印的依赖>
+```
+
+不要用 `--init`：骨架会覆盖现有入口。锁文件、`index.css`、`eslint.config.js`、vite alias 按 steps/02-install.md 补齐，缺一项后面每步都会踩。
+
+## 3. 骨架
+
+- 入口改成 `main.tsx` + `root.tsx`，外观由 AppShell 提供（侧栏、内容面板、主题与语言开关）；旧的 header、theme-provider、language-switcher 同批删除。
+- 深链接必须回到 SPA。dev server 把 API 前缀代理到后端时，让 `Accept: text/html` 的请求落到 `index.html`（Vite 的 `proxy[...].bypass` 返回 `"/index.html"`），否则刷新 `/resource/:id` 直接 404。
+- 未知路由用骨架的 NotFound 页，不要静默跳首页；验收脚本会检查这条。
+
+## 4. 页面
+
+一次一页，先 collection 再 detail，最后 form 与 settings：
+
+1. 从 `reference/` 复制同 pattern 的原型，只替换数据来源与文案。
+2. 页面组合 surfaces 与 blocks。lint 规则 `ui-template/no-layout-classes` 会拦住写在页面里的 flex / gap / border / padding 类，报错即说明该用 Rows / Row / Inline / Stack。
+3. 旧组件在本页替换完成后立刻删除，用 `grep` 确认无残留引用，不留兼容层。
+4. 只有一个 tab 的 Tabs、只有一种取值的统计条、只在首页出现一次的卡片：直接去掉，用 Section + Panel / Rows 表达。
+
+## 5. 适配层：模板假定与已有项目的落差
+
+| 落差 | 处理 |
+| --- | --- |
+| 一次改多个 URL 参数（清除筛选） | `blocks/router` 的 `useUrlState` 每次单独写 `setSearchParams`，同一轮内的并发调用互相覆盖，只剩最后一个。把更新聚到微任务里统一写回，或换成批量 setter；记入 `local_edits` 并回馈模板仓 |
+| 分页 | DataTable 页脚只放总数与翻页；每页选择放工具栏，窄容器下页脚放选择器会折成两行 |
+| 响应式 | 用容器查询（`@2xl/page:`）决定徽标、时间列的显隐，不写视口断点；同一行宁可少一列也不截断版本号 |
+| 语言 | 文案来自项目 i18n，blocks 内部文案是写死中文；保持单一语言，不混排 |
+| 主题 | 只改白名单 token；品牌色、圆角、字体进 `theme.css`，组件内不写字面值 |
+| 滚动 | 页面不写高度与 overflow，滚动由画布声明的 `data-scroll-region` 提供 |
+
+## 6. 验收
+
+按 [verify.md](verify.md) 全套顺序执行，再做 07-review 逐页对比。迁移项目额外确认：
+
+- `npx tsc -b`、`npx eslint .`、`npm run build` 通过，`dist` 仍可被后端嵌入；
+- 旧组件删除后 `grep` 无残留引用；
+- 深链接刷新、未知路由、空集、分页、写操作确认框与原项目行为一致；
+- 窄屏（390）无横向溢出，`scrollWidth - clientWidth` 为 0。
+
+## 回滚
+
+迁移在一个分支上逐页推进，每页一次提交。模板文件与 `ui-template.lock.json` 整体可逆；页面回退到迁移前版本即可，后端与数据层本轮未改。
