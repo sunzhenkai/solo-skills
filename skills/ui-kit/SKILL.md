@@ -28,7 +28,7 @@ description: 默认 UI 总入口：为新建或既有 Web UI 选择实现路线�
 | 非模板项目要建设计体系或 `DESIGN.md` | 走 pretty-ui system，不套用 ui-template 的 token 与 DESIGN.md 契约 |
 | HTML 演示文稿 | 交 `frontend-slides`，不进入产品 UI 实现路线 |
 
-混合请求先选主路线再串步骤。例如非 React 设置页缺设计体系，是 pretty-ui system → build；React 模板项目换主题，是定制 token → DESIGN.md → 验收。已有项目迁入模板尚未支持，先说明再与用户商定。
+混合请求先选主路线再串步骤。例如非 React 设置页缺设计体系，是 pretty-ui system → build；React 模板项目换主题，是定制 token → DESIGN.md → 验收。
 
 ## 模板仓与模板路由
 
@@ -37,6 +37,7 @@ description: 默认 UI 总入口：为新建或既有 Web UI 选择实现路线�
 | 请求 | 做法 |
 | --- | --- |
 | 从零新建 React 模板前端 | 按 [references/init.md](references/init.md) 生成骨架并写页面 |
+| 已有 React 项目迁入模板 | 按 [references/migrate.md](references/migrate.md) 盘点、逐页替换、清旧件并验收 |
 | 升级项目里的模板 | 按 [references/update.md](references/update.md) 看状态、升级、处理合并 |
 | 验收、检查视觉是否一致 | 按 [references/verify.md](references/verify.md) 跑完整验收 |
 | 问模板设计语言、某类元素该怎么做 | 按 [references/language.md](references/language.md) 回答，指到对应小节 |
