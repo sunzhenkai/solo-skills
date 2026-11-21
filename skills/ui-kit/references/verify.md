@@ -29,6 +29,18 @@ npm run build
 
 不要用保真通过代替产品页目检。
 
+## 校准不是保真
+
+保真证明「项目 = 模板」，**不证明「模板 = 参照产品」**。风格包与参照的偏差（字重、行高、控件档位、
+浮层阴影）只能靠 `ui-template-author` 的采集校准（见该 skill 的 `references/calibration.md`）与部署后
+线上复核发现——本地全绿但线上仍能查出错位是常态（quiet-inset 0.6.0 的浮层阴影接线缺口即如此）。
+
+模板或主题改动后的验证顺序，三者互不替代：
+
+1. **校准**：参照产品实测 vs 包 token / 组件类，采样驱动；
+2. **保真**：项目渲染 = 模板渲染（本文件本节的流程）；
+3. **线上复核**：部署后对真实页面抽 computed style，核对目标值。
+
 ## 保真比对做了什么
 
 `verify_fidelity.py` 在 `.ui-kit/` 下现场生成基线：骨架 + 项目的依赖锁 + 纯净模板文件 + 项目的 `theme.css` / `fonts.css`，渲染所有 `ui-kit/*` story（浅、深各一张）；再渲染项目自己的同一批 story，零像素容差比对。所以白名单内的定制不会失败，模板文件或渲染配置一改就失败。
@@ -36,3 +48,4 @@ npm run build
 - 首次运行要给基线装依赖，较慢；`--reuse-baseline` 跳过基线重建（主题没变时用）。
 - `.ui-kit/`、`storybook-static/`、`test-results/` 不提交（骨架的 `.gitignore` 已包含）。
 - Playwright 浏览器缺失时先 `npx playwright install chromium`。
+- **skip 不算绿**：渲染/保真用例因浏览器或依赖缺失被 skip 时，结果必须写明实际运行数而不是报「全绿」。python 侧先 `python3 -m pip install playwright` 再实跑（本机可能从未装过 python 包，历史 skip 常源于此）。
