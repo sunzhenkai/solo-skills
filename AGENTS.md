@@ -34,7 +34,7 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 
 每个 skill 自包含，目录相对各自根：
 
-- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description`）。description 是常驻上下文的触发指针，只写正向的 WHAT + WHEN：关键词前置，每个真分支一个触发词，不写「何时不用」；与相邻 skill 的边界放正文一句。
+- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description` / `version`）。description 是常驻上下文的触发指针，只写正向的 WHAT + WHEN：关键词前置，每个真分支一个触发词，不写「何时不用」；与相邻 skill 的边界放正文一句。`version` 为 semver（起 `1.0.0`）：行为或契约变化 bump minor，纯文字修正 bump patch；消费方（如应用 skill 接口）可按声明版本判断是否要求升级。
 - 主要靠用户点名触发、且没有别的 skill 自动调用的，frontmatter 设 `disable-model-invocation: true`，description 改成给人读的一行摘要。
 - SKILL.md 只从正文一层直链 `references/` 等文件，不经中间文件再跳。
 - `references/`：按需加载的细则。`scripts/`：**只依赖 Python 3 标准库**，不引第三方包。

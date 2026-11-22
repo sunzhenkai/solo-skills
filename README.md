@@ -40,6 +40,13 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `ui-kit` | **默认 UI 总入口**：按技术栈分派 pretty-ui 或 React 模板路线，衔接风格包、专项 UI skills、DESIGN.md 与验收 |
 | `visualize` | 内容可视化编排：把文档、方案、对话或数据整理成带出处的视觉简报，交 archify（结构图）或 visual-explainer（讲解页）绘制，再核对事实与画面；下游缺失时降级到 pretty-ui 或 Mermaid |
 
+### 项目设计模式与接入
+
+| Skill | 用途 |
+| --- | --- |
+| `project-design-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入 |
+| `agent-api-ops` | agent API 操作规范（内部 reference skill）：解析应用接入话术，保存 API Key 与 base URL，按 Bearer 调用业务接口并处理 401/403；被各应用话术与 project-design-patterns 引用 |
+
 ### 知识与内容
 
 | Skill | 用途 |

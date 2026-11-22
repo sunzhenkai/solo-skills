@@ -28,4 +28,5 @@ skill 改名、并入其他 skill，或删除了会被其他 skill 引用的概�
 | `llm-wiki` | `wiki-data` | 改名 |
 | `skill-evolver` | `skill-upgrader` | 并入为 `evolve` 模式 |
 | `agent-roster-flow` | `agent-roster` | 并入为 flow 模式 |
+| `app-api-ops` | `agent-api-ops` | 改名（初版未发布即更名，定位调整为内部 reference skill） |
 | `wizard` | — | taskrail 改为动态路由，不再有 wizard 环节 |
