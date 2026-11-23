@@ -21,6 +21,24 @@ class ContractTest(unittest.TestCase):
         self.assertRegex(text, r"(?m)^id: taskrail$")
         self.assertRegex(text, r"(?m)^name: taskrail$")
 
+    def test_entry_triage_precedes_task_binding(self) -> None:
+        skill = read("SKILL.md")
+        self.assertLess(skill.index("## 入口分诊"), skill.index("## 输入"))
+        self.assertLess(skill.index("## 入口分诊"), skill.index("## 绑定与恢复"))
+        for text in (
+            "持久任务轨道", "跨会话任务台账", "评审、解释或修改 taskrail 自身",
+            "agent-docs-writer", "skill-upgrader", "普通问答、只读分析或一次性改动",
+            "只有第二项绑定或恢复 TASK", "不写 TASK / INDEX，不建 worktree",
+        ):
+            self.assertIn(text, skill)
+
+    def test_resume_requires_existing_binding_or_explicit_command(self) -> None:
+        ledger = read("references", "ledger.md")
+        self.assertIn("当前会话已绑定任务时", ledger)
+        self.assertIn("用户只说“继续”就恢复该绑定", ledger)
+        self.assertIn("未绑定会话只有显式 `taskrail resume [task-id]` 才恢复", ledger)
+        self.assertIn("省略 task-id 时取最近更新任务", ledger)
+
     def test_references_exist_and_old_pipeline_is_removed(self) -> None:
         for name in (
             "contract.md", "router.md", "ref-contract.md", "plan.md", "explore.md",

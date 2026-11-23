@@ -1,7 +1,7 @@
 ---
 id: taskrail
 name: taskrail
-description: "任务轨道：在 workspace 中维护任务与父子任务，按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；direct 或 OpenSpec 均可执行，统一验证与知识收口。用于端到端代码开发、跨项目需求、/goal、resume、自动拆任务或只确认意图。"
+description: "持久任务轨道：用户要求用 taskrail 创建、确认意图、恢复、解释或列出任务，使用 /goal，或需要跨会话任务台账、父子任务拆分、多阶段或跨项目开发编排时，在 workspace 维护 TASK / PLAN / ROADMAP，按证据路由 references，并统一验证与知识收口。"
 ---
 
 # taskrail：任务轨道
@@ -9,6 +9,16 @@ description: "任务轨道：在 workspace 中维护任务与父子任务，按�
 面向用户默认简体中文；命令名、路径、状态值保持原文。
 
 把目标变成可恢复、可验证的开发任务。本 skill 负责事实、路由、父子任务和收口；代码实施交给 `taskflow`。契约真源：[references/contract.md](references/contract.md)；用户表达：[references/user-report.md](references/user-report.md)。
+
+## 入口分诊
+
+先判定用户要的交付物，再决定是否进入任务轨道：
+
+- 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
+- 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、多阶段或跨项目开发编排：按下文输入进入任务轨道。
+- 普通问答、只读分析或一次性改动，且没有上两项信号：直接回答、实施或使用对应领域 skill。
+
+只有第二项绑定或恢复 TASK。入口误加载时完成分诊即退出，不写 TASK / INDEX，不建 worktree。
 
 ## 输入
 

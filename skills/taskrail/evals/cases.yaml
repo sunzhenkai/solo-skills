@@ -1,6 +1,58 @@
 version: 1
 skill: taskrail
 cases:
+  - id: meta-skill-request-routes-to-owner
+    kind: regression
+    judge: llm
+    description: 讨论或修改 taskrail 自身时交给对应文档工具
+    given: 用户指出 taskrail 存在误触发并要求优化
+    expect:
+      must:
+        - 只读评审使用 agent-docs-writer，修改已有正文使用 skill-upgrader
+        - taskrail 仅作为讨论对象，入口分诊后直接返回结论或改动
+      must_not:
+        - 创建或恢复 TASK、写入 INDEX 或准备任务 worktree
+        - 把 skill 元层修改当成普通代码开发目标进入动态主循环
+
+  - id: ordinary-request-stays-outside-task-ledger
+    kind: regression
+    judge: llm
+    description: 普通问答、只读分析和一次性改动不自动建立任务轨道
+    given: 用户要求解释 taskrail 与 taskflow 的区别，随后要求修复一处明确文案错误
+    expect:
+      must:
+        - 分别直接回答和按项目现有方式实施并验证
+        - 需要领域方法时选择对应领域 skill
+      must_not:
+        - 仅因请求涉及开发或提到 taskrail 就创建 TASK、INDEX 或 worktree
+        - 要求用户先确认任务轨道意图和 PLAN
+
+  - id: unbound-continue-keeps-conversation-context
+    kind: regression
+    judge: llm
+    description: 未绑定会话的裸继续不恢复最近任务
+    given: 当前会话没有 taskrail 绑定，workspace 的 INDEX 存在一个最近更新任务，用户只说继续
+    expect:
+      must:
+        - 按当前对话的已知上下文继续，或在该上下文也不足时询问具体要继续什么
+        - 只有显式 taskrail resume 才按 task-id 或最近更新任务恢复台账
+      must_not:
+        - 读取 INDEX 后自行绑定最近更新任务
+        - 运行 reconcile、修改 TASK 或选择 ROADMAP 就绪项
+
+  - id: explicit-and-durable-orchestration-entry-preserved
+    kind: core
+    judge: llm
+    description: 显式命令和持久编排需求仍进入 taskrail
+    given: 用户分别使用 taskrail resume、/goal，以及要求跨会话推进父子任务和跨项目交付
+    expect:
+      must:
+        - 按对应命令或持久编排目标绑定、恢复或新建任务
+        - 保留动态 references、确认协议、执行适配器和统一完成门
+      must_not:
+        - 因入口收窄改为纯手动 skill
+        - 绕过意图确认、实施确认或验证收口
+
   - id: dynamic-reference-router
     kind: core
     judge: deterministic

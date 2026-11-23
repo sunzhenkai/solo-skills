@@ -16,7 +16,7 @@
 ## 绑定与新建
 
 - 先读 INDEX；缺失或漂移时运行 `task_state.py rebuild-index <workspace>`。
-- 同一件事恢复，无关事项新建；用户只说“继续”时恢复最近更新任务，拆过的任务按 ROADMAP 取下一就绪项。
+- 同一件事恢复，无关事项新建；当前会话已绑定任务时，用户只说“继续”就恢复该绑定，拆过的任务按 ROADMAP 取下一就绪项；未绑定会话只有显式 `taskrail resume [task-id]` 才恢复，省略 task-id 时取最近更新任务。
 - task id 用唯一 kebab-case；历史同名或 branch 冲突时加短后缀，不覆盖、不复用不明身份。
 - 新建使用 `task_state.py init`；子任务只能由 [decompose.md](decompose.md) 用 `--parent` 创建。
 - 是否把 tasks 纳入 git 由项目决定，不改 .gitignore。
