@@ -52,15 +52,14 @@ PATTERNS=(
   "exfil_env_secret|critical|(?i)(curl|wget|fetch|post|upload|send).{0,80}(\$(API|TOKEN|KEY|SECRET|PASSWORD|ENV|HOME)|process\.env|getenv|os\.environ)"
   # hardcoded_secret 值不以 "--" 开头（排除 CSS variable 设计 token，如
   # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
-  # 且要求引号包裹 / 非标识符符号 / 行尾结束。真实凭据（`api_key = "sk_live_..."`、
-  # `token: ghp_xxx`、高熵 base64 字符串）仍命中。
-  # hardcoded_secret 值不以 "--" 开头（排除 CSS variable 设计 token，如
-  # `project_token: --wt-color-app-shell` / `--wt-typography-display-sm`），
   # 且要求引号包裹 / 非标识符非函数调用符号 / 行尾结束。`(` 视为 JS 函数调用
   # 语法而非值分隔符：`var token = relationshipTokenGeometry(...)` /
   # `const token = preparedCacheDirectories.get(...)` 是赋值函数返回值，非凭据字面量。
   # 真实凭据 `api_key = "sk_live_..."` / `token: ghp_xxx` / 高熵 base64 字符串仍命中。
-  "hardcoded_secret|critical|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]|(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?((?!--)[A-Za-z0-9_\-]){20,}([^A-Za-z0-9_\-\(.]|\$)"
+  # 关键字要求左边界（排除字母数字）：`const indentToken = possibleUnexpectedIndent`
+  # 里的 `Token` 是驼峰变量名后缀，不是凭据键。`_` 不算边界，`GH_TOKEN` /
+  # `api_key` 这类环境变量/蛇形键仍命中。
+  "hardcoded_secret|critical|(?i)(?<![A-Za-z0-9])(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]|(?i)(?<![A-Za-z0-9])(api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?((?!--)[A-Za-z0-9_\-]){20,}([^A-Za-z0-9_\-\(.]|\$)"
   "bearer_literal|critical|(?i)Bearer\s+[A-Za-z0-9\-._~+/]{20,}=*"
   "eval_external|critical|(?i)\beval\s+.{0,80}(\$\(|\bcurl\b|\bwget\b|base64\s+(-d|--decode))"
   "obfuscated_exec|critical|(?i)base64\s+(-d|--decode).{0,40}\|\s*(ba)?sh"
@@ -142,6 +141,22 @@ scan_text_file() {
         skip_hooks | force_push | sudo_usage | modify_git_config | global_shell_rc | browser_session)
           if echo "$line" | grep -qiP '(不要|禁止|不记录|avoid|never|do not|don'\''t|不得|不可|warn|警告)' 2>/dev/null; then
             continue
+          fi
+          ;;
+        hardcoded_secret | bearer_literal)
+          # 自述占位值（`collector-fixture-token-not-real`、`dummy-secret-...`）是测试
+          # 夹具，不是凭据；降为 warn 交人确认。真凭据字面量不含这些词。
+          if echo "$line" | grep -qiP "(?:[:=]|Bearer)\s*[\"']?[A-Za-z0-9_.-]*(fixture|fake|dummy|placeholder|sample|not[-_]?real)[A-Za-z0-9_.-]*"; then
+            sev="warn"
+          fi
+          ;;
+        prompt_injection_override)
+          # 测试文件里的注入样本是断言输入（`const text = '... ignore previous
+          # instructions ...'`），不是写给读者的指令；仅这种「字符串字面量赋值」
+          # 形态降为 warn。散在正文/注释里的注入措辞仍是 critical。
+          if [[ "$rel" =~ (^|/)(tests?|__tests__)/|\.(test|spec)\.[a-z]+$ ]] &&
+            echo "$line" | grep -qP "=[[:space:]]*[\"'\`]"; then
+            sev="warn"
           fi
           ;;
         bypass_approval | jailbreak_role)
