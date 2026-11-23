@@ -1,33 +1,25 @@
----
-id: agent-api-ops
-name: agent-api-ops
-description: "Agent API 操作规范：解析应用设置页的「agent 接入话术」，保存 base URL 与 API Key，按 Bearer 认证调用业务接口并处理 401/403（内部 reference skill，被各应用接入话术与 project-design-patterns 引用，手动点名使用）。"
-version: 1.0.0
-disable-model-invocation: true
----
+# Agent API 操作规范（agent-api-ops）
 
-# Agent API 操作（agent-api-ops）
+> 本文件是 project-design-patterns「agent 数据接入」模式的**操作规范件**，随该 skill 一起发布与安装；原独立 skill `agent-api-ops`。各应用设置页的接入话术安装 `project-design-patterns` 后，按本规范操作。
 
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。
-
-本 skill 是 project-design-patterns「agent 数据接入」模式的**操作规范件**：各应用设置页的接入话术直接引用安装，agent 装好后按本规范操作。原 `app-api-ops` 更名而来，不绑定任何具体应用。
 
 把应用设置页发给你的「接入话术」变成可长期使用的 API 操作能力：凭证落盘成稳定配置，之后每次操作应用数据都走 HTTP API。应用的全部业务功能（增删改查、推送、配置）都经 API 完成；凭证管理（创建/删除 Key、登录登出）属于应用端能力，按话术与应用 UI 的说明交还用户处理。
 
 ## 接入流程
 
 1. **解析话术**：必含两项——API Base（服务地址）与 API Key（形如 `hela_sk_…`、`sk_willow_…` 等应用自定义前缀）；可能附带安装指引、skill 接口地址或端点概览。缺少任一项时向用户索取完整话术。
-2. **按话术安装**：话术要求安装某个 skill 时先执行其安装命令（如 `npx skills add <owner>/<repo> -s <skill> -g -y`），安装内容以装到的 SKILL.md 为准；本 skill 只提供通用规范，与具体应用的 skill 并行使用。
+2. **按话术安装**：话术要求安装某个 skill 时先执行其安装命令（如 `npx skills add <owner>/<repo> -s <skill> -g -y`），安装内容以装到的 SKILL.md 为准；本规范随 `project-design-patterns` 安装，与具体应用的专属 skill 并行使用。
 3. **保存凭证**：按下节约定落盘并回执「已保存 + 保存位置」，首次接入后做一次探活。
 4. **后续使用**：用户再提「操作 <应用>」时，先读已保存的配置再调用；配置缺失时向用户要新话术，而非猜测地址。
 
 ## 版本与更新
 
-- 本 skill frontmatter 的 `version` 是安装版本；应用 skill 接口（`{base}/skill.md`）头部以 `skill: agent-api-ops@X.Y.Z` 声明其编写所依据的版本。
+- 操作规范版本 = 本 skill（`project-design-patterns`）`SKILL.md` frontmatter 的 `version`；应用 skill 接口（`{base}/skill.md`）头部以 `skill: project-design-patterns@X.Y.Z` 声明其编写所依据的版本。
 - **每次会话首次操作某个应用前**执行版本检查：
-  1. 读本 skill 的 `version`；
+  1. 读 `project-design-patterns` 的 `SKILL.md` frontmatter `version`；
   2. 拉取该应用 `/skill.md`，取其声明的期望版本；
-  3. 期望版本高于本地 → 用安装命令覆盖升级（`npx skills add sunzhenkai/solo-skills -s agent-api-ops -g -y`），升级后重读本 skill 再操作；
+  3. 期望版本高于本地 → 用安装命令覆盖升级（`npx skills add sunzhenkai/solo-skills -s project-design-patterns -g -y`），升级后重读本文件再操作；
   4. 检查与升级尽量交给 subagent 执行（轻量、副作用小），主会话只接收「已是最新 / 已升级到 X.Y.Z / 升级失败」一句结论；没有 subagent 能力时就地执行。
 - 应用 skill 接口未声明版本（或没有该接口）时跳过检查，按现版本操作。
 
@@ -64,4 +56,4 @@ disable-model-invocation: true
 - 先读后写：写操作前先 GET 同类资源确认字段形状与现有值。
 - 删除、覆盖、批量修改类操作先向用户复述目标并等确认；创建类操作做完即报结果。
 - 每次操作向用户报告：做了什么、命中哪个端点、结果关键字段。
-- 操作记录只在对话中呈现；应用数据的沉淀交给对应的知识/笔记工具，本 skill 保存的仅是凭证与接入信息。
+- 操作记录只在对话中呈现；应用数据的沉淀交给对应的知识/笔记工具，本规范保存的仅是凭证与接入信息。

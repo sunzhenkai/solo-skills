@@ -37,10 +37,12 @@ class StructureContract(unittest.TestCase):
         for section in ["## 动机", "## 参与者", "## 落地件", "## 边界", "## 先例", "## 更正记录"]:
             self.assertIn(section, PATTERN, f"模式卡缺少 {section}")
 
-    def test_ops_skill_named(self) -> None:
-        """操作规范按名指向 agent-api-ops，含安装命令。"""
-        self.assertIn("agent-api-ops", PATTERN)
-        self.assertIn("npx skills add sunzhenkai/solo-skills -s agent-api-ops -g -y", PATTERN)
+    def test_ops_reference_named(self) -> None:
+        """操作规范是同 skill 的引用件，SKILL.md 直链，安装/升级走 project-design-patterns。"""
+        self.assertIn("references/agent-api-ops.md", SKILL)
+        self.assertTrue((ROOT / "references" / "agent-api-ops.md").is_file())
+        self.assertIn("npx skills add sunzhenkai/solo-skills -s project-design-patterns -g -y", PATTERN)
+        self.assertNotIn("-s agent-api-ops", PATTERN)
 
     def test_key_boundary(self) -> None:
         self.assertIn("Key 不能管理凭证与登出", PATTERN)
