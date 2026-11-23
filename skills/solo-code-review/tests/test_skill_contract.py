@@ -140,6 +140,10 @@ class BoundaryTest(unittest.TestCase):
         self.assertIn("默认只审查、不改代码", SKILL)
         self.assertIn("用户明确要求「顺手修」才可改代码", SKILL)
 
+    def test_role_review_routes_to_role_based_reviewer(self) -> None:
+        self.assertIn("交给 `role-based-reviewer`", SKILL)
+        self.assertLessEqual(len(SKILL.encode("utf-8")), 7600)
+
 
 class InjectionTest(unittest.TestCase):
     def test_self_evolution_pointer(self) -> None:

@@ -10,7 +10,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 
 | Stage | Resident | 派出 | 绑定 |
 |---|---|---|---|
-| 理解 | 是 | 否 | `$grill-with-docs` 推荐；需求已清可跳过 grill |
+| 理解 | 是 | 否 | 可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答；需求已清可跳过） |
 | 定方案 | 澄清在本会话 | 可不再派 | 轻量 plan Handoff；本会话写完即可 |
 | 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-based-reviewer` |
 | 实现 | 确认 Assignment | 必须 | 按 plan 改代码 |
@@ -21,7 +21,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 
 | Stage | Resident | 派出 | 绑定 |
 |---|---|---|---|
-| 理解 | 是 | 否 | `$grill-with-docs` 推荐 |
+| 理解 | 是 | 否 | 可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答） |
 | 定方案 | 澄清、选方案 | 写产物时 | 含糊则 `$openspec-explore`，然后 `$openspec-propose`。澄清在本会话完成后再派 |
 | 方案评审 | 确认 Assignment | 只读 | 审 proposal / design / specs；不过不得 apply |
 | 实现 | 确认 Assignment | 必须 | `$openspec-apply-change` |

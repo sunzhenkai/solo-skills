@@ -1,0 +1,29 @@
+diff --git a/skills/anti-lazy/SKILL.md b/skills/anti-lazy/SKILL.md
+index 8c26e5b..ec6275c 100644
+--- a/skills/anti-lazy/SKILL.md
++++ b/skills/anti-lazy/SKILL.md
+@@ -8,7 +8,7 @@ description: 意图对齐与差距检查：在非琐碎任务开始、方向漂
+ 
+ 把完成感暂时放到一边，重新看向用户、现场和差距。多想一层，是为了选对下一步；多找一条证据，是为了减少关键不确定性。
+ 
+-轻任务直接推进；复杂任务在动手、转向和交付前，让下面的问题在内部过一遍。根因排查的证据定级与假设验证交给 `trouble-grill`。
++轻任务直接推进；复杂任务在动手、转向和交付前，让下面的问题在内部过一遍。根因排查的证据定级与假设验证交给 `trouble-grill`；需要跨会话台账或父子拆分时升级到 `taskrail`，准备结束会话核对合入、清理与缺口台账时交给 `session-wrap`。
+ 
+ ## 意图｜用户想推进什么？
+ 
+diff --git a/skills/anti-lazy/tests/test_anti_lazy_contract.py b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+index 85e857b..6363abb 100644
+--- a/skills/anti-lazy/tests/test_anti_lazy_contract.py
++++ b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+@@ -40,6 +40,11 @@ class AntiLazyContractTest(unittest.TestCase):
+         self.assertIn("哪些检查实际运行过，结果是什么？", SKILL)
+         self.assertIn("外在表达保持简洁", SKILL)
+ 
++    def test_escalation_boundaries_are_explicit(self) -> None:
++        self.assertIn("`trouble-grill`", SKILL)
++        self.assertIn("`taskrail`", SKILL)
++        self.assertIn("`session-wrap`", SKILL)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

@@ -1,6 +1,6 @@
 # 前端
 
-本 reference 只在栈为 `frontend` 时读取，是前端分层与落地的唯一出处。用户点名 Vue / CRA 等则不要套本文件。
+本 reference 只在栈为 `frontend` 时读取，是前端通用空壳分层与落地的唯一出处。若项目选择 React 模板路线（含 `ui-template.lock.json`），交由 `ui-kit` 的模板 `init` 流程；用户点名 Vue / CRA 等则不要套本文件。
 
 本 reference 有两条路径，**一次只走一条**：
 
@@ -95,7 +95,7 @@ pnpm dlx shadcn@latest add button
 | Motion | **不安装** `motion`，除非用户要动效 |
 | Server State | 安装 `@tanstack/react-query`；在根部挂 `QueryClientProvider`（空配置，不写业务 query） |
 | Validation | 安装 `zod`；与 API 运行时校验共用 |
-| Design Spec | 写项目根 `DESIGN.md`：方向一句话、token 命名约定、组件模式（放 `src/components/`，`ui/` 留给 shadcn）、页面模式（一页一主任务、空/加载/错误态）；完整色阶与对比度校验留给后续 pretty-ui，init 只留可填模板，不虚构品牌色阶 |
+| Design Spec | 写项目根 `DESIGN.md`：方向一句话、token 命名约定、组件模式（放 `src/components/`，`ui/` 留给 shadcn）、页面模式（一页一主任务、空/加载/错误态）；后续 UI 路线分派与设计语言交由 `ui-kit`（通用路线的完整色阶与对比度校验留给后续 `pretty-ui`），init 只留可填模板，不虚构品牌色阶 |
 | Form | 不安装 `react-hook-form`，除非用户要表单 |
 | Client State | 不安装 `zustand`，除非用户要客户端全局状态 |
 | API Contract | 有 OpenAPI 文档（本地 `openapi.json` / 用户给出的 spec）时用官方 codegen（如 `openapi-typescript`）生成客户端，Zod 做运行时校验；**没有 spec 时不要虚构一整份 OpenAPI**。建 `src/lib/api/`：`client.ts` 薄封装 + 一个与健康检查对应的 Zod schema 作为合同示例 |

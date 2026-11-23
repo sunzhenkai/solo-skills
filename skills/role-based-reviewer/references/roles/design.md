@@ -65,7 +65,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ### 5. 视觉与一致性
 
-视觉意见落到 pretty-ui [rules.md](../../../pretty-ui/references/rules.md) 的规则号（H 层级、S 间距与布局、T 排版、C 色彩、D 深度、X AI 默认样貌），写成「规则号 + 现状 + 改法」；级别仍按本清单。
+视觉意见优先落到 `pretty-ui/references/rules.md` 的规则号（H 层级、S 间距与布局、T 排版、C 色彩、D 深度、X AI 默认样貌），写成「规则号 + 现状 + 改法」（未安装 `pretty-ui` 时直接按本清单编号写「清单号 + 现状 + 改法」）；级别仍按本清单。
 
 32. 🟡 [代码] 颜色/间距/圆角/阴影/字体走 design token，diff 中不新增硬编码值
 33. 🟡 [代码] 语义色全程一致：错误=红、成功=绿、警告=黄，不混用
@@ -128,7 +128,7 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
 
 ## 下游建议
 
-设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交回 [ui-kit](../../../ui-kit/SKILL.md) 分派，通用路线由 pretty-ui 承接，模板路线沿用 ui-template 契约；修复类结论交回常规实现流程。
+设计规格 / Active Instance 修订交回 task* 的 design 阶段；视觉方向、设计体系与界面打磨交回 `ui-kit/SKILL.md` 分派（未安装时交回常规实现流程），通用路线由 pretty-ui 承接，模板路线沿用 ui-template 契约；修复类结论交回常规实现流程。
 
 ## 跨角色 redirect
 

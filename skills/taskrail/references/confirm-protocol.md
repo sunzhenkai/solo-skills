@@ -25,4 +25,4 @@ criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界�
 
 ## 异源模型审
 
-使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 [critique.md](../../pretty-ui/references/critique.md)「迭代与停止」为准。
+使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。跨机器或跨模型 Endpoint 委派可经 `agent-roster` 执行（未安装时使用宿主异源 subagent）；派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 `pretty-ui/references/critique.md`「迭代与停止」为准（未安装 `pretty-ui` 时最多迭代两轮，未解按真阻塞停）。

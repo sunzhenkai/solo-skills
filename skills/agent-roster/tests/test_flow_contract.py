@@ -64,6 +64,12 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不调用 `grill-with-docs`", self.tracks)
         self.assertIn("`$taskrail`", self.tracks)
 
+    def test_flow_boundary_and_optional_grill_with_docs(self) -> None:
+        self.assertIn("常规单机多阶段任务走 `taskrail`", self.main)
+        self.assertIn("可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答", self.tracks)
+        self.assertIn("可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答", self.stages)
+        self.assertLessEqual(len(self.main.encode("utf-8")), 7700)
+
     def test_complex_follows_taskrail_routing(self) -> None:
         complex_track = self.tracks.split("## Complex", 1)[1]
         self.assertIn("做 `intent` 意图确认", complex_track)

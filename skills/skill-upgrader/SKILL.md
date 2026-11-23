@@ -18,8 +18,7 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自�
 | `evolve` 模式（原 `skill-evolver`） | 基于多次真实执行：提案 → `evolutions/` 候选 → eval → 晋升生产稿；进入时读 [references/evolve.md](references/evolve.md) |
 | `agent-docs-writer` | 从零创建 Skill、只读评审 agent 文档；评审发现需要改已有 Skill 时交回本 skill |
 
-- 用户点名 `skill-evolver` 或要求按**执行经验**进化时：选 `evolve` 模式，按 [references/evolve.md](references/evolve.md) 执行（用 `evolutions/`，不写 `patches/`）；下文工作流/patch 协议只适用于 `update` / `self-upgrade`。
-- `update` / `self-upgrade` **不**根据经验改目标 Skill 的核心行为（那是 `evolve`）。目标尚未具备自进化目录且用户要自更新时，走 `self-upgrade`。
+下文工作流与 patch 协议适用于 `update` / `self-upgrade`（不根据经验改核心行为）；按执行经验进化走 `evolve`（写 `evolutions/`）。
 
 ## 模式门禁（强制）
 
@@ -65,12 +64,7 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自�
 
 ## 公开性与隐私
 
-写入目标 Skill 的内容须可随该 Skill 分发：
-
-- 不写入个人姓名、账号、主机名、绝对家目录、凭据、密钥、内部 URL、公司信息或私有仓库内容。
-- 路径使用相对路径或语义占位符（如 `<skill-dir>`、`<skill-name>`）。
-- 示例使用虚构、通用数据。
-- 机器特例留在本地配置，不进入共享 Skill。
+写入目标 Skill 的内容须可公开分发：路径用相对路径或语义占位符（`<skill-dir>`），示例用虚构通用数据，不写入个人/公司/内部 URL/凭据/绝对家目录或机器特例。
 
 ## Patch 目录协议
 
@@ -107,9 +101,7 @@ update / self-upgrade 共用 7 步（模式门禁与定位 → 提案 → 风险
 - 不删除仍在生效的安全/门禁规则（除非 `update` 且用户确认该规则本身有害）
 - `evals/cases.yaml` 只写可验证期望，不写攻击步骤、exploit、凭据
 
-## Final Validation（self-upgrade）
-
-self-upgrade 收尾校验清单见 [references/self-upgrade.md](references/self-upgrade.md)「Final Validation」。
+`self-upgrade` 收尾按 [references/self-upgrade.md](references/self-upgrade.md)「Final Validation」核验。
 
 ## 交付
 

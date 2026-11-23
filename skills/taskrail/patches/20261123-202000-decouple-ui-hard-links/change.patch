@@ -1,0 +1,126 @@
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 99f74fd..9d71594 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -25,4 +25,4 @@ criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界
+ 
+ ## 异源模型审
+ 
+-使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。跨机器或跨模型 Endpoint 委派可经 `agent-roster` 执行（未安装时使用宿主异源 subagent）；派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 [critique.md](../../pretty-ui/references/critique.md)「迭代与停止」为准。
++使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。跨机器或跨模型 Endpoint 委派可经 `agent-roster` 执行（未安装时使用宿主异源 subagent）；派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 `pretty-ui/references/critique.md`「迭代与停止」为准（未安装 `pretty-ui` 时最多迭代两轮，未解按真阻塞停）。
+diff --git a/skills/taskrail/references/done.md b/skills/taskrail/references/done.md
+index 4f3726b..7067177 100644
+--- a/skills/taskrail/references/done.md
++++ b/skills/taskrail/references/done.md
+@@ -14,9 +14,9 @@
+ 
+ ## 观感验收
+ 
+-- 动手前按 [pretty-ui](../../pretty-ui/SKILL.md) 的「轻量方向卡」写视觉方向，整体改版用完整方向卡；规则见 [direction.md](../../pretty-ui/references/direction.md)，记录于 PLAN 质量属性。
+-- 用接近真实的演示数据，按 [evidence.md](../../pretty-ui/references/evidence.md) 在同路由同视口留改前 / 改后证据；代码变更后旧证据失效。
+-- 按 [critique.md](../../pretty-ui/references/critique.md) 派另一个模型审，问题带规则号，P0 / P1 即观感 Blocker / Major；迭代与停止以该文件「迭代与停止」为准。
++- 动手前按 `pretty-ui/SKILL.md` 的「轻量方向卡」写视觉方向，整体改版用完整方向卡；规则见 `pretty-ui/references/direction.md`，记录于 PLAN 质量属性。
++- 用接近真实的演示数据，按 `pretty-ui/references/evidence.md` 在同路由同视口留改前 / 改后证据；代码变更后旧证据失效。
++- 按 `pretty-ui/references/critique.md` 派另一个模型审，问题带规则号，P0 / P1 即观感 Blocker / Major；迭代与停止以该文件「迭代与停止」为准（未安装 `pretty-ui` 时直接按本节的改前 / 改后截图与异源模型审执行，最多两轮）。
+ - **goal：不停下问人**，按证据自迭代；**human：**评审过后由用户看截图，用户说可以才算完成。每轮结论与证据路径写验证记录。
+ 
+ 命中才读 [ui-delivery.md](ui-delivery.md)、[quality-appendix.md](quality-appendix.md) 和上述 pretty-ui 细则。
+diff --git a/skills/taskrail/references/ui-delivery.md b/skills/taskrail/references/ui-delivery.md
+index 3fe175b..43f0666 100644
+--- a/skills/taskrail/references/ui-delivery.md
++++ b/skills/taskrail/references/ui-delivery.md
+@@ -11,15 +11,15 @@
+ 
+ ## Active Instance（通用路线统一视觉时用）
+ 
+-- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 [pretty-ui 的 system.md](../../pretty-ui/references/system.md) 产出，有参照源先从参照提炼 tokens / primitive。
++- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 `pretty-ui/references/system.md` 产出，有参照源先从参照提炼 tokens / primitive。
+ - `tasks/` 只存指针与 digest（写在 `design/contract.md`），不复制 tokens / primitive 精确值。
+ - apply 只消费不改 core；要改共享 token / pattern 就回 design 修订并重新 freeze，刷新 digest。
+ 
+ ## 实现方法
+ 
+-先按 [ui-kit](../../ui-kit/SKILL.md) 选择唯一主路线：既有/非 React 项目走 pretty-ui；已有 ui-template lock 或明确选择 React 模板的项目走 ui-kit 模板流程。
++先按 `ui-kit/SKILL.md` 选择唯一主路线：既有/非 React 项目走 pretty-ui；已有 ui-template lock 或明确选择 React 模板的项目走 ui-kit 模板流程（未安装 `ui-kit` / `pretty-ui` 时沿用交付仓既有体系，仍执行下方机械门）。
+ 
+-通用路线先做一条主流程代表页，按 [pretty-ui](../../pretty-ui/SKILL.md) 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。模板路线按 ui-kit 的 init / update / verify 执行，以模板 lock 与像素保真作为体系证据；两条路线都保留下面的运行态与独立 design 评审门。
++通用路线先做一条主流程代表页，按 `pretty-ui/SKILL.md` 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。模板路线按 ui-kit 的 init / update / verify 执行，以模板 lock 与像素保真作为体系证据；两条路线都保留下面的运行态与独立 design 评审门。
+ 
+ ## 机械门
+ 
+diff --git a/skills/taskrail/tests/test_aesthetic_goal_contract.py b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+index 54b585d..346fd71 100644
+--- a/skills/taskrail/tests/test_aesthetic_goal_contract.py
++++ b/skills/taskrail/tests/test_aesthetic_goal_contract.py
+@@ -1,12 +1,14 @@
+-"""观感验收：goal 自迭代、human 给用户看图；方向卡、取证与评审手册来自 pretty-ui。"""
++"""观感验收：goal 自迭代、human 给用户看图；方向卡、取证与评审手册来自 pretty-ui（可选跨 skill 锚点）。"""
+ from __future__ import annotations
+ import re
+ import unittest
+ from pathlib import Path
+ 
+ REF = Path(__file__).resolve().parents[1] / "references"
++SKILLS = Path(__file__).resolve().parents[2]
+ DONE = (REF / "done.md").read_text(encoding="utf-8")
+ UI = (REF / "ui-delivery.md").read_text(encoding="utf-8")
++CONFIRM = (REF / "confirm-protocol.md").read_text(encoding="utf-8")
+ 
+ 
+ class AestheticGoalTest(unittest.TestCase):
+@@ -14,22 +16,21 @@ class AestheticGoalTest(unittest.TestCase):
+         self.assertIn("## 观感验收", DONE)
+ 
+     def test_direction_path(self) -> None:
+-        self.assertIn("pretty-ui/references/direction.md", DONE)
++        self.assertIn("`pretty-ui/references/direction.md`", DONE)
+         self.assertIn("轻量方向卡", DONE)
+ 
+     def test_light_card_from_pretty_ui_skill(self) -> None:
+-        self.assertIn("../../pretty-ui/SKILL.md", DONE)
++        self.assertIn("`pretty-ui/SKILL.md`", DONE)
+         self.assertIn("「轻量方向卡」", DONE)
+ 
+     def test_evidence_and_single_stop_rule(self) -> None:
+-        self.assertIn("pretty-ui/references/evidence.md", DONE)
++        self.assertIn("`pretty-ui/references/evidence.md`", DONE)
+         self.assertIn("critique.md", DONE)
+         self.assertIn("「迭代与停止」", DONE)
+-        confirm = (REF / "confirm-protocol.md").read_text(encoding="utf-8")
+-        self.assertIn("「迭代与停止」为准", confirm)
++        self.assertIn("「迭代与停止」为准", CONFIRM)
+ 
+     def test_review_follows_pretty_ui_critique(self) -> None:
+-        self.assertIn("pretty-ui/references/critique.md", DONE)
++        self.assertIn("`pretty-ui/references/critique.md`", DONE)
+         self.assertIn("问题带规则号，P0 / P1 即观感 Blocker / Major", DONE)
+ 
+     def test_goal_vs_human(self) -> None:
+@@ -42,19 +43,20 @@ class AestheticGoalTest(unittest.TestCase):
+         self.assertIn("改前 / 改后", DONE)
+ 
+     def test_active_instance_content_from_pretty_ui(self) -> None:
+-        self.assertIn("pretty-ui/references/system.md", UI)
++        self.assertIn("`pretty-ui/references/system.md`", UI)
+         self.assertIn("two-pass", UI)
+ 
+     def test_ui_kit_selects_route_before_implementation(self) -> None:
+-        self.assertIn("[ui-kit](../../ui-kit/SKILL.md)", UI)
+-        self.assertTrue((REF / "../../ui-kit/SKILL.md").resolve().is_file())
++        self.assertIn("`ui-kit/SKILL.md`", UI)
++        self.assertTrue((SKILLS / "ui-kit/SKILL.md").is_file())
+         for phrase in ("既有/非 React", "ui-template lock", "像素保真", "无（ui-template）"):
+             self.assertIn(phrase, UI)
+ 
+-    def test_pretty_ui_links_resolve(self) -> None:
+-        for name, text in (("done.md", DONE), ("ui-delivery.md", UI)):
+-            for target in re.findall(r"\]\((\.\./\.\./pretty-ui/[^)#]+)\)", text):
+-                self.assertTrue((REF / target).resolve().is_file(), f"{name} → {target}")
++    def test_optional_ui_anchors_exist_without_hard_relative_links(self) -> None:
++        for name, text in (("done.md", DONE), ("ui-delivery.md", UI), ("confirm-protocol.md", CONFIRM)):
++            self.assertNotRegex(text, r"\]\(\.\./\.\./(?:pretty-ui|ui-kit)/", f"{name} 不应保留跨 skill 相对硬链接")
++            for target in re.findall(r"`((?:pretty-ui|ui-kit)/(?:SKILL\.md|references/[A-Za-z0-9_.-]+\.md))`", text):
++                self.assertTrue((SKILLS / target).is_file(), f"{name} -> {target}")
+ 
+ 
+ if __name__ == "__main__":

@@ -11,15 +11,15 @@
 
 ## Active Instance（通用路线统一视觉时用）
 
-- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 [pretty-ui 的 system.md](../../pretty-ui/references/system.md) 产出，有参照源先从参照提炼 tokens / primitive。
+- 交付项目根 `design-system/v1`，`design-system.yaml` 为 `status: frozen`，带 contract / binding / projection 三条 digest。由 design 阶段在交付仓内建立并 freeze：`tokens.css`、`DESIGN.md`、`preview.html` 按 `pretty-ui/references/system.md` 产出，有参照源先从参照提炼 tokens / primitive。
 - `tasks/` 只存指针与 digest（写在 `design/contract.md`），不复制 tokens / primitive 精确值。
 - apply 只消费不改 core；要改共享 token / pattern 就回 design 修订并重新 freeze，刷新 digest。
 
 ## 实现方法
 
-先按 [ui-kit](../../ui-kit/SKILL.md) 选择唯一主路线：既有/非 React 项目走 pretty-ui；已有 ui-template lock 或明确选择 React 模板的项目走 ui-kit 模板流程。
+先按 `ui-kit/SKILL.md` 选择唯一主路线：既有/非 React 项目走 pretty-ui；已有 ui-template lock 或明确选择 React 模板的项目走 ui-kit 模板流程（未安装 `ui-kit` / `pretty-ui` 时沿用交付仓既有体系，仍执行下方机械门）。
 
-通用路线先做一条主流程代表页，按 [pretty-ui](../../pretty-ui/SKILL.md) 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。模板路线按 ui-kit 的 init / update / verify 执行，以模板 lock 与像素保真作为体系证据；两条路线都保留下面的运行态与独立 design 评审门。
+通用路线先做一条主流程代表页，按 `pretty-ui/SKILL.md` 的 build 主流程 two-pass：先定方向卡与壳层，出初稿后看截图、按问题表再修一轮；其余页面从它的壳层与字阶长出。其余切片照搬它，不并行另起风格。模板路线按 ui-kit 的 init / update / verify 执行，以模板 lock 与像素保真作为体系证据；两条路线都保留下面的运行态与独立 design 评审门。
 
 ## 机械门
 

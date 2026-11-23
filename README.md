@@ -72,19 +72,19 @@ skill 源在仓库的 `skills/<id>/`；CLI 的发现优先级前缀含 `skills/`
 ```bash
 npx skills add sunzhenkai/solo-skills                                    # 全部
 npx skills add sunzhenkai/solo-skills -s commit-push                     # 只装一个
-npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s ui-kit -s pretty-ui # 按依赖组成组安装
+npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow            # 核心双件套（纯后端/通用轻装）
+npx skills add sunzhenkai/solo-skills -s ui-kit -s pretty-ui             # UI 依赖组
 ```
 
 ### 依赖组
 
-下表的 skill 用相对链接直接读取另一个 skill 的文件，单独安装会断链，需要一起装。其余 skill 之间只按名称互相指向，对方没装时按各自正文降级执行。新增跨 skill 相对链接时在此登记，`tests/test_cross_skill_refs.py` 会核对。
+下表的 skill 用相对链接直接读取另一个 skill 的文件，单独安装会断链，需要一起装。其余 skill 之间只按名称或可选文件锚点互相指向，对方没装时按各自正文降级执行（`taskrail` 与 `role-based-reviewer` 对 `ui-kit` / `pretty-ui` 已解除强依赖，需要 Web UI 视觉验收/返修时再按需同装）。新增跨 skill 相对链接时在此登记，`tests/test_cross_skill_refs.py` 会核对。
 
 | Skill | 需要同装 | 原因 |
 | --- | --- | --- |
 | `ui-kit` | `pretty-ui` | 默认 UI 总入口的既有/非 React 通用路线直接读取 pretty-ui |
-| `taskrail` | `taskflow`、`ui-kit`、`pretty-ui` | execute 委托 taskflow；Web UI 先经 ui-kit 分派，并读取 pretty-ui 的体系、方向与评审细则 |
-| `taskflow` | `taskrail` | 确认协议、完成清单与用户表达以 taskrail 为准 |
-| `role-based-reviewer` | `ui-kit`、`pretty-ui` | design 角色将视觉返修交回 ui-kit，并引用 pretty-ui 的视觉规则号 |
+| `taskrail` | `taskflow` | 核心双件套（原子安装组合）：execute 委托 taskflow，共用 worktree 与多 worker 契约 |
+| `taskflow` | `taskrail` | 核心双件套（原子安装组合）：确认协议、完成清单与用户表达以 taskrail 为准 |
 
 ### dotfiles 编目（第三方）
 
@@ -94,25 +94,25 @@ npx skills add sunzhenkai/solo-skills -s taskrail -s taskflow -s ui-kit -s prett
 
 上表的 skill 之间互引（如 `taskrail` 交给 `taskflow`、`taskflow` 委托 `openspec-*`）都已在仓内解决；仍依赖下列**不在本仓库**的 skill / 工具（skill 目标目录同为 `~/.agents/skills`）：
 
-| 外部依赖 | 来源 | 被谁依赖 |
-| --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
-| `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问（grill-with-docs 含两跳到 `grilling` + `domain-modeling`） |
-| `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
-| `playwright` + `axe-core`（运行时，非 skill） | `pip install playwright && playwright install chromium`；交付仓 `npm i -D axe-core` | taskrail 的 Web UI 证据检查（`skills/taskrail/scripts/ui_evidence_check.py`） |
+| 外部依赖 | 级别 | 来源 | 被谁依赖 |
+| --- | --- | --- | --- |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | 必选（OpenSpec 路径） | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
+| `acpx`（二进制，非 skill） | 必选（委派执行） | https://acpx.sh | agent-roster 的委派执行 |
+| `playwright` + `axe-core`（运行时，非 skill） | 可选（Web UI 证据门） | `pip install playwright && playwright install chromium`；交付仓 `npm i -D axe-core` | taskrail 的 Web UI 证据检查（`skills/taskrail/scripts/ui_evidence_check.py`） |
+| `grilling` / `grill-with-docs` / `domain-modeling` | 可选 | `mattpocock/skills` | agent-roster（flow 模式 Simple/Medium 可选增强，未安装时本会话复述并自问自答）；无台账一次性拷问 |
+| `archify` | 可选 | https://github.com/tt-a1i/archify | `project-atlas` 新建或更新交互图；`visualize` 结构图 |
+| `visual-explainer` | 可选 | https://github.com/nicobailon/visual-explainer | `visualize` 讲解页（缺项时降级到 `pretty-ui` 或 Mermaid） |
 
-可选依赖：[`archify`](https://github.com/tt-a1i/archify) 用于 `project-atlas` 新建或更新交互图，以及 `visualize` 的结构图；[`visual-explainer`](https://github.com/nicobailon/visual-explainer) 用于 `visualize` 的讲解页（安装时把其 `plugins/visual-explainer/` 复制到 agent 的 skill 目录）。普通 Atlas 构建不需要 archify，`visualize` 缺少下游时降级到 `pretty-ui` 或 Mermaid；两者都不纳入 `make install-deps` / `check-deps`。
-
-> Web UI 交付细则见 `skills/taskrail/references/ui-delivery.md`（不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
+> 必选外部 skill（`openspec-*`）纳入 `make install-deps` / `check-deps`；可选依赖（`mattpocock/skills`、`archify`、`visual-explainer`）按需安装。Web UI 交付细则见 `skills/taskrail/references/ui-delivery.md`（不依赖仓外 UI skill）。安装仓外 skill 前走 skills-store 审计流程。
 
 ### 一键安装（Makefile）
 
 不在 `dotf` 环境里时，用仓库根的 Makefile：
 
 ```bash
-make install-deps   # 外部依赖全量（openspec-* + grilling / grill-with-docs / domain-modeling）+ 结尾 check-deps
-make check-deps     # 逐项检查 ~/.agents/skills，缺项非零退出
+make install-deps   # 必选外部依赖（openspec-*）+ 结尾 check-deps
+make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling
+make check-deps     # 检查必选外部依赖（~/.agents/skills），缺项非零退出
 make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ```
 

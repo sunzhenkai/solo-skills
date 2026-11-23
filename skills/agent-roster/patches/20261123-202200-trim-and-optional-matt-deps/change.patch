@@ -1,0 +1,104 @@
+diff --git a/skills/agent-roster/SKILL.md b/skills/agent-roster/SKILL.md
+index 853815b..5f6c73a 100644
+--- a/skills/agent-roster/SKILL.md
++++ b/skills/agent-roster/SKILL.md
+@@ -8,7 +8,7 @@ description: 跨机器 agent 名册与委派。用于把计划制定、评审或
+ 
+ ## flow 模式（原 agent-roster-flow）
+ 
+-使用者要按 Stage 串起多 agent 工作流（每段确认 Endpoint + Model 或 human，执行才委派）时，读 [references/flow.md](references/flow.md)；普通单次委派或修复走下方完整顺序即可。
++常规单机多阶段任务走 `taskrail`；需要按 Stage 显式给多机 / 多模型 Endpoint 派单（每段确认 Endpoint + Model 或 human，执行才委派）时读 [references/flow.md](references/flow.md)；普通单次委派走下方顺序。
+ 
+ ## 一次委派的完整顺序
+ 
+@@ -40,7 +40,7 @@ description: 跨机器 agent 名册与委派。用于把计划制定、评审或
+ 
+ ## 委派：怎么派
+ 
+-委派通过一层适配契约发出，本 skill 不绑定具体执行器。契约字段、命令形态、受限清单与降级步骤见 [references/delegation-contract.md](references/delegation-contract.md)；受控执行有入口脚本 `scripts/delegate.py`（run 目录 + decision.md + timeout 兜底一条命令），状态判定用 `scripts/run_status.py`。
++契约字段、受限清单与降级见 [references/delegation-contract.md](references/delegation-contract.md)；受控执行入口 `scripts/delegate.py`，状态判定 `scripts/run_status.py`。
+ 
+ 受派方只能是名册里的 Endpoint。Orchestrator 不是其中任何一个——即使自己正跑在被选中的那个 Agent Kind 上，也必须按契约把任务发出去，不能由自己顶上。「交给 codex 做实施」说的是委派路径，不是执行者身份；把两者混为一谈，这次委派就等于没有发生，既没有 Run 痕迹，也没有可复现的选人依据。
+ 
+@@ -59,25 +59,21 @@ description: 跨机器 agent 名册与委派。用于把计划制定、评审或
+ - **可写**：仅实施类委派。发起前必须确认工作目录处于干净状态，否则停下，说明哪些文件有未提交改动（受派方会改到用户的改动，属真阻塞）。
+   工作目录指受派方要写入的目录：在任务 worktree 里实施时，只看该 worktree 是否干净。
+ 
+-只读委派下受派方无法写文件，所以它的产出由 Orchestrator 从结果文本落盘到指定的 Handoff 路径——这条约束顺带保证了「定计划」这类委派永远不会偷偷动到代码。
++只读委派的产出由 Orchestrator 从结果文本落盘到指定 Handoff 路径。
+ 
+ ## 回收：产出与交接
+ 
+-- Run 痕迹留在 `~/.cache/`，**不进任何 git 仓库**。它量大、含完整对话，且极易混入敏感内容。
+-- Handoff 落在项目里调用方指定的路径。它是真正的工作成果，应该被看见、被评审、被提交。
++- Run 痕迹留在 `~/.cache/`（**不进 git**）；Handoff 落项目内调用方指定路径，串接委派时下一棒只读上一棒 Handoff。
+ - 每次委派都必须显式说明期望产出什么。说不清要什么产出的委派，说明任务本身还没想清楚。
+-- 串接多次委派时，下一棒读的是上一棒的 Handoff 文件，不是把上一棒的完整输出塞进 prompt。
+ 
+ ### 失败、超时与返工
+ 
+-`failed` 和 `timeout` 不是再跑一次就能消化的事。先分清是哪一类，再决定动作：
++先分清类别再处置，三类均写明类别进 Trace：
+ 
+ - **受派方没起来**（适配器报错、登录态失效、额度耗尽）→ 不要重试同一个 Endpoint。先跑 L1/L2 探测确认它是不是真的不可用。这次 Endpoint 来自 Role 时，按「角色」一节问这次换谁；否则回到路由换候选或问使用者。
+-- **起来了但没跑完**（timeout）→ 可以缩小范围重发一次，把已有的部分产出当输入。同一个 Endpoint 只重发一次，还不行就换人。
++- **起来了但没跑完**（timeout）→ 缩小范围带已有部分产出重发一次；同 Endpoint 仅重发一次，仍不行就换人。
+ - **跑完了但产出不对** → 不要重发。先判断是 prompt 没说清还是人选错了：前者改 prompt 重来，后者回到路由重选，并在 `decision.md` 末尾追加一句改判说明——不要改写原来那段理由。
+ 
+-三类都要写 Trace，且要在 Trace 里写明是哪一类。「超时了」不是教训，「这个 Endpoint 在这类任务上会超时」才是。
+-
+ ## 不变量
+ 
+ 正文里最容易被绕过的五条，执行途中逐条自查：
+diff --git a/skills/agent-roster/references/flow-stages.md b/skills/agent-roster/references/flow-stages.md
+index dd36b9f..a52590c 100644
+--- a/skills/agent-roster/references/flow-stages.md
++++ b/skills/agent-roster/references/flow-stages.md
+@@ -6,7 +6,7 @@
+ 
+ Resident。不派出。
+ 
+-Simple / Medium：推荐 `$grill-with-docs`。需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 `intent`，之后按其路由按需 explore / grill。
++Simple / Medium：可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答）；需求已清且使用者同意，可跳过 grill。Complex：`$taskrail` 的 `intent`，之后按其路由按需 explore / grill。
+ 
+ 完成标准：任务一句话可检验；Track 已写入 spine；Orchestrator 的 Kind + Model 已记录。
+ 
+diff --git a/skills/agent-roster/references/flow-tracks.md b/skills/agent-roster/references/flow-tracks.md
+index 1a0e3bd..30c43d7 100644
+--- a/skills/agent-roster/references/flow-tracks.md
++++ b/skills/agent-roster/references/flow-tracks.md
+@@ -10,7 +10,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ 
+ | Stage | Resident | 派出 | 绑定 |
+ |---|---|---|---|
+-| 理解 | 是 | 否 | `$grill-with-docs` 推荐；需求已清可跳过 grill |
++| 理解 | 是 | 否 | 可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答；需求已清可跳过） |
+ | 定方案 | 澄清在本会话 | 可不再派 | 轻量 plan Handoff；本会话写完即可 |
+ | 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-based-reviewer` |
+ | 实现 | 确认 Assignment | 必须 | 按 plan 改代码 |
+@@ -21,7 +21,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ 
+ | Stage | Resident | 派出 | 绑定 |
+ |---|---|---|---|
+-| 理解 | 是 | 否 | `$grill-with-docs` 推荐 |
++| 理解 | 是 | 否 | 可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答） |
+ | 定方案 | 澄清、选方案 | 写产物时 | 含糊则 `$openspec-explore`，然后 `$openspec-propose`。澄清在本会话完成后再派 |
+ | 方案评审 | 确认 Assignment | 只读 | 审 proposal / design / specs；不过不得 apply |
+ | 实现 | 确认 Assignment | 必须 | `$openspec-apply-change` |
+diff --git a/skills/agent-roster/tests/test_flow_contract.py b/skills/agent-roster/tests/test_flow_contract.py
+index 7305522..2c4c859 100644
+--- a/skills/agent-roster/tests/test_flow_contract.py
++++ b/skills/agent-roster/tests/test_flow_contract.py
+@@ -64,6 +64,12 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("不调用 `grill-with-docs`", self.tracks)
+         self.assertIn("`$taskrail`", self.tracks)
+ 
++    def test_flow_boundary_and_optional_grill_with_docs(self) -> None:
++        self.assertIn("常规单机多阶段任务走 `taskrail`", self.main)
++        self.assertIn("可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答", self.tracks)
++        self.assertIn("可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答", self.stages)
++        self.assertLessEqual(len(self.main.encode("utf-8")), 7700)
++
+     def test_complex_follows_taskrail_routing(self) -> None:
+         complex_track = self.tracks.split("## Complex", 1)[1]
+         self.assertIn("做 `intent` 意图确认", complex_track)

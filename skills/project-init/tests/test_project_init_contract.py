@@ -175,3 +175,5 @@ class ContractTest(unittest.TestCase):
         self.assertIn("Tailwind", fe)
         self.assertIn("DESIGN.md", fe)
         self.assertIn("lucide-react", fe)
+        self.assertIn("ui-kit", fe)
+        self.assertIn("ui-template.lock.json", fe)

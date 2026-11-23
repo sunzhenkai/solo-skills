@@ -43,7 +43,7 @@ class ContractTest(unittest.TestCase):
         for name in (
             "contract.md", "router.md", "ref-contract.md", "plan.md", "explore.md",
             "diagnose.md", "grill.md", "design.md", "approve.md", "decompose.md",
-            "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
+            "review.md", "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
             "ledger.md", "templates.md", "archive-reopen.md", "user-report.md",
             "confirm-protocol.md", "ui-delivery.md", "quality-appendix.md",
         ):
@@ -102,6 +102,17 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不默认加载", contract)
         self.assertIn("每次只加载选中的 reference", router)
         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
+
+    def test_hub_soft_links_in_on_demand_references(self) -> None:
+        review = read("references", "review.md")
+        self.assertIn("role-based-reviewer", review)
+        self.assertIn("solo-code-review", review)
+        self.assertIn("agent-roster", review)
+        self.assertIn("agent-roster", read("references", "confirm-protocol.md"))
+        self.assertIn("project-design-patterns", read("references", "design.md"))
+        close = read("references", "close.md")
+        self.assertIn("project-design-patterns", close)
+        self.assertIn("session-wrap", close)
 
     def test_no_deleted_compat_shells_in_skill(self) -> None:
         skill = read("SKILL.md")

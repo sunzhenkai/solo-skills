@@ -1,0 +1,122 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index e0a666d..1462ee9 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -65,10 +65,11 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 
+ | [design.md](references/design.md) | 契约、架构、兼容性与迁移 |
+ | [approve.md](references/approve.md) | 必要的人或模型批准 |
+ | [decompose.md](references/decompose.md) | 自动规划切片、`subtasks/` 与集成项 |
++| [review.md](references/review.md) | 按需独立评审分流与 findings 处置 |
+ | [verify.md](references/verify.md) | 判据、回归、集成与证据 |
+ | [close.md](references/close.md) | SUMMARY、知识提升与归档；归档 / 重开见 [archive-reopen.md](references/archive-reopen.md) |
+ 
+-`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按需走角色化只读评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
++`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按 [review.md](references/review.md) 分流独立评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
+ 
+ ## 固定不变量
+ 
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 7b42ff9..f7af2b2 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -17,8 +17,9 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状
+ 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
+    - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
+    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
++   - 跨项目验证的通用方案模式可交 `project-design-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
+    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
+-3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；分支 / worktree 等位置细节按合入和恢复需要展开。不 push、不自动清理 worktree。
++3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；分支 / worktree 等位置细节按合入和恢复需要展开。不 push、不自动清理 worktree；需要会话级收尾（分支合入建议、清理 worktree、确认 push 或弯路复盘）时交 `session-wrap` 处理。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+ 5. 按 [archive-reopen.md](archive-reopen.md) 同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
+ 
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 3646aab..99f74fd 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -25,4 +25,4 @@ criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界
+ 
+ ## 异源模型审
+ 
+-使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 [critique.md](../../pretty-ui/references/critique.md)「迭代与停止」为准。
++使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。跨机器或跨模型 Endpoint 委派可经 `agent-roster` 执行（未安装时使用宿主异源 subagent）；派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 [critique.md](../../pretty-ui/references/critique.md)「迭代与停止」为准。
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index aca2f12..de5545a 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -17,7 +17,7 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 2. 推荐与被放弃方案各写取舍；独立难逆决定写 ADR 并按 [user-report.md](user-report.md) 告知，术语写 glossary。
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+ 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+-5. Web UI 按需读 ui-delivery；对比表按需读 design-detail。
++5. 涉及跨项目通用接入或已沉淀模式时，可先查 `project-design-patterns`（未安装则跳过）；Web UI 按需读 ui-delivery；对比表按需读 design-detail。
+ 
+ ## 产出
+ `design/README.md` 索引、`design/<topic>.md`、按需 ADR / contract / glossary；decisions 写决定。
+diff --git a/skills/taskrail/references/review.md b/skills/taskrail/references/review.md
+new file mode 100644
+index 0000000..1b54057
+--- /dev/null
++++ b/skills/taskrail/references/review.md
+@@ -0,0 +1,30 @@
++# review：按需独立评审
++
++## 目的
++在高风险、公共契约、复杂 diff、安全 / 性能敏感或观感交付时引入独立只读评审，暴露实现者盲区。
++
++## 进入条件
++公共契约 / 迁移变化、复杂或高风险 diff、安全 / 性能敏感改动、观感交付，或用户 / 方案要求独立评审。
++
++## 跳过条件
++小且可逆改动，execute 阶段的 diff 自检与测试已覆盖全部风险。
++
++## 所需输入
++criterion、当前提交号或 worktree diff、审与不审范围、相关 design / 契约与运行态证据（截图 / 测试输出）。
++
++## 执行方法
++1. 按评审目标分流：
++   - 多岗位、方案、契约、观感或 Skill 评审：调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。
++   - 纯 Git diff / MR / PR 自动化代码审查：调用 `solo-code-review`。
++   - 对应下游 skill 未安装时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。
++2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `F-n` 跟踪。
++3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
++
++## 产出
++`reviews/<topic>.md` 评审报告与 findings 处置记录。
++
++## 完成门
++所有 Blocker / Major 已 `fixed` 并重验，或按确认协议记为 `accepted-recorded`。
++
++## 退出与重入
++全部处置通过转 verify；指向实现回 execute，指向方案回 design / grill。代码变化后受影响的 findings 作废重审。
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index 2495fc4..5d6e41c 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -43,7 +43,7 @@ class ContractTest(unittest.TestCase):
+         for name in (
+             "contract.md", "router.md", "ref-contract.md", "plan.md", "explore.md",
+             "diagnose.md", "grill.md", "design.md", "approve.md", "decompose.md",
+-            "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
++            "review.md", "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
+             "ledger.md", "templates.md", "archive-reopen.md", "user-report.md",
+             "confirm-protocol.md", "ui-delivery.md", "quality-appendix.md",
+         ):
+@@ -103,6 +103,17 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("每次只加载选中的 reference", router)
+         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
+ 
++    def test_hub_soft_links_in_on_demand_references(self) -> None:
++        review = read("references", "review.md")
++        self.assertIn("role-based-reviewer", review)
++        self.assertIn("solo-code-review", review)
++        self.assertIn("agent-roster", review)
++        self.assertIn("agent-roster", read("references", "confirm-protocol.md"))
++        self.assertIn("project-design-patterns", read("references", "design.md"))
++        close = read("references", "close.md")
++        self.assertIn("project-design-patterns", close)
++        self.assertIn("session-wrap", close)
++
+     def test_no_deleted_compat_shells_in_skill(self) -> None:
+         skill = read("SKILL.md")
+         self.assertNotIn("decide", skill)

@@ -40,6 +40,11 @@ class AntiLazyContractTest(unittest.TestCase):
         self.assertIn("哪些检查实际运行过，结果是什么？", SKILL)
         self.assertIn("外在表达保持简洁", SKILL)
 
+    def test_escalation_boundaries_are_explicit(self) -> None:
+        self.assertIn("`trouble-grill`", SKILL)
+        self.assertIn("`taskrail`", SKILL)
+        self.assertIn("`session-wrap`", SKILL)
+
 
 if __name__ == "__main__":
     unittest.main()

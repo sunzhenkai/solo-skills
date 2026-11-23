@@ -49,6 +49,7 @@ class SkillEntryTest(unittest.TestCase):
         self.assertIn("工程化检查", SKILL)
         self.assertIn("references/engineering.md", SKILL)
         self.assertIn("脚手架先 project-init", SKILL)
+        self.assertIn("优先交 `visualize`", SKILL)
         self.assertIn("报遮挡、缺线、看不清的转 refine", SKILL)
 
     def test_direction_decided_not_asked(self) -> None:

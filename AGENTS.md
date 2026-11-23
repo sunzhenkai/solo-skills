@@ -23,8 +23,9 @@ python3 -m unittest discover -s skills/<id>/tests -p 'test_*.py'
 
 make check-names    # 扫描具体项目名（.project-denylist；命中非零退出）
 make check-style    # 输出风格检查（SKILL.md >8KB、description 过长或含反向表述、引用链超一层、禁令词偏多为告警；意图复述模板与 user-report 结构缺失为错误）
-make check-deps     # 检查外部依赖 skill 是否就绪（缺项非零退出）
-make install-deps   # 安装外部依赖（openspec-* + grilling / grill-with-docs / domain-modeling），结尾跑 check-deps
+make check-deps     # 检查必选外部依赖 skill（openspec-*）是否就绪（缺项非零退出）
+make install-deps   # 安装必选外部依赖（openspec-*），结尾跑 check-deps
+make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
 ```
 
@@ -34,8 +35,8 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 
 每个 skill 自包含，目录相对各自根：
 
-- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description` / `version`）。description 是常驻上下文的触发指针，只写正向的 WHAT + WHEN：关键词前置，每个真分支一个触发词，不写「何时不用」；与相邻 skill 的边界放正文一句。`version` 为 semver（起 `1.0.0`）：行为或契约变化 bump minor，纯文字修正 bump patch；消费方（如应用 skill 接口）可按声明版本判断是否要求升级。
-- 主要靠用户点名触发、且没有别的 skill 自动调用的，frontmatter 设 `disable-model-invocation: true`，description 改成给人读的一行摘要。
+- `SKILL.md`：正文，YAML frontmatter（`id` / `name` / `description`，可选 `version`）。description 是常驻上下文的触发指针，只写正向的 WHAT + WHEN：关键词前置，每个真分支一个触发词，不写「何时不用」；与相邻 skill 的边界放正文一句。`version`（semver，起 `1.0.0`）为按需字段：存在外部消费方按版本校验契约时声明（如 `project-design-patterns`），行为或契约变化 bump minor，纯文字修正 bump patch。
+- 仅高误触代价且用户习惯显式点名、没有其他 skill 自动调用的，frontmatter 设 `disable-model-invocation: true`，description 改成给人读的一行摘要；依赖自然语言自动发现的 skill（如 `session-wrap`、`project-init`、`skills-store`）不设该标志。
 - SKILL.md 只从正文一层直链 `references/` 等文件，不经中间文件再跳。
 - `references/`：按需加载的细则。`scripts/`：**只依赖 Python 3 标准库**，不引第三方包。
 - `agents/`：部分 skill 携带的第三方 agent 配置（如 `openai.yaml`），可选。
@@ -54,13 +55,12 @@ make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动�
 
 skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 README「外部依赖」）：
 
-| 依赖 | 来源 | 被谁依赖 |
-| --- | --- | --- |
-| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
-| `grilling` | `mattpocock/skills` | `grill-with-docs` 的下游（agent-roster flow 模式） |
-| `grill-with-docs` / `domain-modeling` | `mattpocock/skills` | agent-roster（flow 模式）；无台账一次性拷问 |
-| `acpx`（二进制，非 skill） | https://acpx.sh | agent-roster 的委派执行 |
-| `playwright` + `axe-core`（运行时，非 skill） | pip / npm | taskrail 的 Web UI 证据检查（`taskrail/scripts/ui_evidence_check.py`） |
+| 依赖 | 级别 | 来源 | 被谁依赖 |
+| --- | --- | --- | --- |
+| `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | 必选（OpenSpec 路径） | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
+| `acpx`（二进制，非 skill） | 必选（委派执行） | https://acpx.sh | agent-roster 的委派执行 |
+| `playwright` + `axe-core`（运行时，非 skill） | 可选（Web UI 证据门） | pip / npm | taskrail 的 Web UI 证据检查（`taskrail/scripts/ui_evidence_check.py`） |
+| `grilling` / `grill-with-docs` / `domain-modeling` | 可选 | `mattpocock/skills` | agent-roster（flow 模式可选增强）；无台账一次性拷问 |
 
 - 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference，由本仓自问自答（方法见 `taskrail/references/grill.md`），不委托外部 skill。外部的 `grilling` / `grill-with-docs` 方向相反——拷问用户，只在 agent-roster flow 模式与无台账一次性拷问中使用。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。

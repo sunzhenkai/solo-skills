@@ -28,7 +28,7 @@ disable-model-invocation: true
 示例：
 
 - `{{slash:role-chat}} roles=architect 这个服务要不要拆`
-- `{{slash:role-chat}} roles=product,finance 这个功能值不值得现在做`
+- `{{slash:role-chat}} roles=product-manager,finance 这个功能值不值得现在做`
 - `{{slash:role-chat}} roles=english-tutor level=CET-6 机场值机`
 
 ## 角色注册表

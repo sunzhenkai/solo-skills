@@ -65,10 +65,11 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` �
 | [design.md](references/design.md) | 契约、架构、兼容性与迁移 |
 | [approve.md](references/approve.md) | 必要的人或模型批准 |
 | [decompose.md](references/decompose.md) | 自动规划切片、`subtasks/` 与集成项 |
+| [review.md](references/review.md) | 按需独立评审分流与 findings 处置 |
 | [verify.md](references/verify.md) | 判据、回归、集成与证据 |
 | [close.md](references/close.md) | SUMMARY、知识提升与归档；归档 / 重开见 [archive-reopen.md](references/archive-reopen.md) |
 
-`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按需走角色化只读评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
+`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按 [review.md](references/review.md) 分流独立评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
 
 ## 固定不变量
 

@@ -17,7 +17,7 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定�
 2. 推荐与被放弃方案各写取舍；独立难逆决定写 ADR 并按 [user-report.md](user-report.md) 告知，术语写 glossary。
 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
-5. Web UI 按需读 ui-delivery；对比表按需读 design-detail。
+5. 涉及跨项目通用接入或已沉淀模式时，可先查 `project-design-patterns`（未安装则跳过）；Web UI 按需读 ui-delivery；对比表按需读 design-detail。
 
 ## 产出
 `design/README.md` 索引、`design/<topic>.md`、按需 ADR / contract / glossary；decisions 写决定。

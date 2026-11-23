@@ -8,7 +8,7 @@
    - 引用链超一层：SKILL.md 直链的文件再链到 SKILL.md 未直链的同 skill 文件；
    - 禁令词密度高：「不要 / 禁止 / 不得 …」≥8 处且每 KB ≥2.5 处（应改正向表述，硬闸配正向句）。
 2. taskrail references/intent.md：
-   - `wizard/intent.md` 模板的「覆盖清单」缺字段 → ERROR（落盘文件的结构约束）；
+   - `intent.md` 模板的「覆盖清单」缺字段 → ERROR（落盘文件的结构约束）；
    - 「给用户的复述」示例出现标题 / 加粗标签 / 字段名开头 → 告警（应为自然口语）；
    - 示例出现问号或「要不要 / 你看行吗 / 对吗」→ 告警（应说决定，不提问）。
 3. taskrail references/user-report.md（对用户说话唯一出处）必须有「前后对比」节且含 ≥3 组 → 缺失为 ERROR。

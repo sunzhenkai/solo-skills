@@ -1,0 +1,29 @@
+diff --git a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+index 5574f8e..22c93dc 100644
+--- a/skills/role-based-reviewer/SKILL.md
++++ b/skills/role-based-reviewer/SKILL.md
+@@ -11,7 +11,7 @@ description: "角色化只读评审（engineer、algo、data、sre、ops、biz
+ - `mode=ask`：按岗位回答问题，标明证据与下游建议。
+ - `mode=review`：多视角审查，输出分级发现；默认目标为当前工作区变更。
+ 
+-只读：不改代码、不落盘；调用方需要评审文件时，由调用方按 protocol「输出骨架」落盘。用户要求修复时再动手。
++只读：不改代码、不落盘；调用方需要评审文件时，由调用方按 protocol「输出骨架」落盘。用户要求修复时再动手。纯 Git diff / MR / PR 自动化审查交给 `solo-code-review`；不绑代码证据的多视角对话陪练交给 `role-chat`。
+ 
+ ## 三道门
+ 
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index 5de49c6..f2d682d 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -45,6 +45,11 @@ class RbrContractTest(unittest.TestCase):
+         self.assertIn("模板路线沿用 ui-template 契约", text)
+         self.assertTrue((roles / "../../../ui-kit/SKILL.md").resolve().is_file())
+ 
++    def test_adjacent_skill_boundaries(self) -> None:
++        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        self.assertIn("solo-code-review", text)
++        self.assertIn("role-chat", text)
++
+     def test_no_silent_downgrade(self) -> None:
+         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("不静默改成同源自审", text)

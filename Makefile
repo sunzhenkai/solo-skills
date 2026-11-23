@@ -17,20 +17,20 @@ SKILLS_DIR ?= $(DEFAULT_SKILLS_DIR)
 MATT_SKILLS   := grilling grill-with-docs domain-modeling
 OPENSPEC_SKILLS := openspec-explore openspec-propose openspec-apply-change openspec-archive-change
 
-EXTERNAL := $(MATT_SKILLS) $(OPENSPEC_SKILLS)
+EXTERNAL := $(OPENSPEC_SKILLS)
 
 .PHONY: help install-deps install-matt install-openspec install-acpx check-deps check-names check-style
 
 help:
-	@echo "make install-deps          安装全部外部依赖（openspec-* + grilling / grill-with-docs / domain-modeling）并跑 check"
-	@echo "make install-matt          只装 grilling / grill-with-docs / domain-modeling"
+	@echo "make install-deps          安装必选外部依赖（openspec-*）并跑 check"
+	@echo "make install-matt          可选：安装 grilling / grill-with-docs / domain-modeling"
 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
-	@echo "make check-deps            检查外部依赖是否就绪（缺项非零退出）"
+	@echo "make check-deps            检查必选外部依赖（openspec-*）是否就绪（缺项非零退出）"
 	@echo "make check-style           输出风格检查：意图复述字段齐全（错误）；SKILL.md >8KB、description >300 字符或含反向表述、引用链超一层、禁令词偏多、复述过长（告警）"
 	@echo "make check-names           扫描 skills/docs/根文档里的具体项目名（.project-denylist；命中非零退出）"
 
-install-deps: install-matt install-openspec
+install-deps: install-openspec
 	@$(MAKE) --no-print-directory check-deps
 
 install-matt:

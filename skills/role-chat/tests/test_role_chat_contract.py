@@ -67,6 +67,11 @@ class ContractTest(unittest.TestCase):
         on_disk = {path.stem for path in ROLES_DIR.glob("*.md")}
         self.assertEqual(on_disk, set(ROLE_RE.findall(_skill())))
 
+    def test_example_roles_match_registry(self) -> None:
+        for group in re.findall(r"roles=([a-z0-9,-]+)", _skill()):
+            for role_id in group.split(","):
+                self.assertIn(role_id, EXPECTED_ROLES, f"示例含未注册角色：{role_id}")
+
     def test_role_files_share_entry_and_exit_sections(self) -> None:
         for path in sorted(ROLES_DIR.glob("*.md")):
             text = path.read_text(encoding="utf-8")

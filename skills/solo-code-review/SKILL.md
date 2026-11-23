@@ -9,7 +9,7 @@ license: MIT
 
 用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎用 `ocr`：LLM 已配置时跑 `ocr review`；未配置时走 delegate 模式（见「前置」），由 OCR 做文件筛选与规则解析、当前 agent 执行审查。
 
-不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
+架构评审、岗位视角评审、需求/规格符合性评审交给 `role-based-reviewer`。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
 
 ## 调用
 
@@ -34,12 +34,7 @@ ocr llm test
 
 未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
 
-`ocr llm test` 只验证**默认配置**（无 `--provider/--model` 参数）。用户指定 provider/model 时：先用 `ocr llm providers` 核对名称；凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 `ocr review` 报错即停下请用户配置，禁止编造 API key。
-
-`ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
-
-1. 配置 LLM（环境变量或 `ocr config`）后重跑。
-2. delegate 模式：读取并按 [references/delegate-mode.md](references/delegate-mode.md) 执行，审查由当前 agent 的 LLM 完成，产物与确认门同主流程。
+`ocr llm test` 只验证**默认配置**。单次覆盖 provider/model 时先用 `ocr llm providers` 核对名称，凭据须已配好（报错即停请用户配置，禁止编造 API key）。`ocr llm test` 失败时停下，让用户在两条路里选一条：1）配置 LLM 后重跑；2）delegate 模式，按 [references/delegate-mode.md](references/delegate-mode.md) 由当前 agent 的 LLM 执行（产物与确认门同主流程）。
 
 GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope），调 `glab` 映射为 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；token 不写入命令行参数、日志或审查产物；未设置且目标需要认证时停止并请用户配置，禁止编造或输出 token。
 
@@ -103,11 +98,7 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
 
 ### 5. MR/PR 评论确认门
 
-仅在 **MR/PR 模式** 且 `review.md` 已成功落盘后，询问用户：
-
-> 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
-
-在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口；确认时再次核对目标 URL/IID 与待发布文件。用户拒绝或未确认 → 只保留本地报告。确认后以 `review.md` 完整内容发布一条评论并报告成败。仓库模式不询问，也不发布评论。
+仅在 **MR/PR 模式** 且 `review.md` 已落盘后，询问用户是否将该完整报告发布为 `<MR/PR URL>` 的评论并说明这是远程写操作。在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或等效远程写接口；未确认只保留本地报告，确认后核对目标并以 `review.md` 完整内容发布一条评论。仓库模式不询问，也不发布评论。
 
 ### 6. 对用户只打印总结
 
@@ -115,11 +106,10 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
 
 ## 边界
 
-- 默认不改业务代码、不 commit、不 push；MR/PR 远程评论以第 5 节确认门为准。用户明确要求「顺手修」才可改代码。
-- 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
-- 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
-- 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
+- 默认不改代码、不 commit/push；用户明确要求「顺手修」才可改代码；MR/PR 评论以第 5 节确认门为准。
+- 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 `refs/code-review/*`；完整结果只写 `--root` 的 `docs/reviews/`。
+- 架构、岗位视角与规格符合性评审交给 `role-based-reviewer`。
 
 ## 自进化
 
-执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
+交付前可对照 `evals/cases.yaml` 验证；经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。

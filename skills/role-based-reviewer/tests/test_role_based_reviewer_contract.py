@@ -32,18 +32,25 @@ class RbrContractTest(unittest.TestCase):
     def test_design_visual_rule_ids(self) -> None:
         roles = ROOT / "references" / "roles"
         text = (roles / "design.md").read_text(encoding="utf-8")
-        self.assertIn("](../../../pretty-ui/references/rules.md)", text)
+        self.assertIn("`pretty-ui/references/rules.md`", text)
+        self.assertNotIn("../../../pretty-ui/", text)
         self.assertIn("级别仍按本清单", text)
         self.assertIn("X 组（X1–X12）", text)
-        self.assertTrue((roles / "../../../pretty-ui/references/rules.md").resolve().is_file())
+        self.assertTrue((ROOT.parent / "pretty-ui/references/rules.md").is_file())
 
     def test_design_visual_rework_returns_to_ui_kit(self) -> None:
         roles = ROOT / "references" / "roles"
         text = (roles / "design.md").read_text(encoding="utf-8")
-        self.assertIn("[ui-kit](../../../ui-kit/SKILL.md)", text)
+        self.assertIn("`ui-kit/SKILL.md`", text)
+        self.assertNotIn("../../../ui-kit/", text)
         self.assertIn("通用路线由 pretty-ui 承接", text)
         self.assertIn("模板路线沿用 ui-template 契约", text)
-        self.assertTrue((roles / "../../../ui-kit/SKILL.md").resolve().is_file())
+        self.assertTrue((ROOT.parent / "ui-kit/SKILL.md").is_file())
+
+    def test_adjacent_skill_boundaries(self) -> None:
+        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("solo-code-review", text)
+        self.assertIn("role-chat", text)
 
     def test_no_silent_downgrade(self) -> None:
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")

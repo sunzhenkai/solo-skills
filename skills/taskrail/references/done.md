@@ -14,9 +14,9 @@
 
 ## 观感验收
 
-- 动手前按 [pretty-ui](../../pretty-ui/SKILL.md) 的「轻量方向卡」写视觉方向，整体改版用完整方向卡；规则见 [direction.md](../../pretty-ui/references/direction.md)，记录于 PLAN 质量属性。
-- 用接近真实的演示数据，按 [evidence.md](../../pretty-ui/references/evidence.md) 在同路由同视口留改前 / 改后证据；代码变更后旧证据失效。
-- 按 [critique.md](../../pretty-ui/references/critique.md) 派另一个模型审，问题带规则号，P0 / P1 即观感 Blocker / Major；迭代与停止以该文件「迭代与停止」为准。
+- 动手前按 `pretty-ui/SKILL.md` 的「轻量方向卡」写视觉方向，整体改版用完整方向卡；规则见 `pretty-ui/references/direction.md`，记录于 PLAN 质量属性。
+- 用接近真实的演示数据，按 `pretty-ui/references/evidence.md` 在同路由同视口留改前 / 改后证据；代码变更后旧证据失效。
+- 按 `pretty-ui/references/critique.md` 派另一个模型审，问题带规则号，P0 / P1 即观感 Blocker / Major；迭代与停止以该文件「迭代与停止」为准（未安装 `pretty-ui` 时直接按本节的改前 / 改后截图与异源模型审执行，最多两轮）。
 - **goal：不停下问人**，按证据自迭代；**human：**评审过后由用户看截图，用户说可以才算完成。每轮结论与证据路径写验证记录。
 
 命中才读 [ui-delivery.md](ui-delivery.md)、[quality-appendix.md](quality-appendix.md) 和上述 pretty-ui 细则。

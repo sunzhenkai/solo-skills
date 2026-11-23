@@ -34,6 +34,10 @@ class WikiDataHandoffContract(unittest.TestCase):
         self.assertIn("旧根因在本次验证前按 `guess` 上板", SKILL)
         self.assertIn("未命中就说明已查过", SKILL)
 
+    def test_detour_handoff_to_session_wrap(self) -> None:
+        self.assertIn("session-wrap", SKILL)
+        self.assertIn("弯路复盘", SKILL)
+
     def test_description_states_positive_trigger(self) -> None:
         head = SKILL.split("---", 2)[1]
         self.assertIn("多轮或易发散的排查", head)

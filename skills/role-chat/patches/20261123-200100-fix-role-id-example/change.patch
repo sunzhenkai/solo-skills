@@ -1,0 +1,29 @@
+diff --git a/skills/role-chat/SKILL.md b/skills/role-chat/SKILL.md
+index c65fb43..351b1a1 100644
+--- a/skills/role-chat/SKILL.md
++++ b/skills/role-chat/SKILL.md
+@@ -28,7 +28,7 @@ disable-model-invocation: true
+ 示例：
+ 
+ - `{{slash:role-chat}} roles=architect 这个服务要不要拆`
+-- `{{slash:role-chat}} roles=product,finance 这个功能值不值得现在做`
++- `{{slash:role-chat}} roles=product-manager,finance 这个功能值不值得现在做`
+ - `{{slash:role-chat}} roles=english-tutor level=CET-6 机场值机`
+ 
+ ## 角色注册表
+diff --git a/skills/role-chat/tests/test_role_chat_contract.py b/skills/role-chat/tests/test_role_chat_contract.py
+index cd28bfc..2fdd570 100644
+--- a/skills/role-chat/tests/test_role_chat_contract.py
++++ b/skills/role-chat/tests/test_role_chat_contract.py
+@@ -67,6 +67,11 @@ class ContractTest(unittest.TestCase):
+         on_disk = {path.stem for path in ROLES_DIR.glob("*.md")}
+         self.assertEqual(on_disk, set(ROLE_RE.findall(_skill())))
+ 
++    def test_example_roles_match_registry(self) -> None:
++        for group in re.findall(r"roles=([a-z0-9,-]+)", _skill()):
++            for role_id in group.split(","):
++                self.assertIn(role_id, EXPECTED_ROLES, f"示例含未注册角色：{role_id}")
++
+     def test_role_files_share_entry_and_exit_sections(self) -> None:
+         for path in sorted(ROLES_DIR.glob("*.md")):
+             text = path.read_text(encoding="utf-8")

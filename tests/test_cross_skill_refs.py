@@ -21,6 +21,8 @@ FENCE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE = re.compile(r"`[^`\n]*`")
 LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
 DOLLAR_REF = re.compile(r"`\$([a-z][a-z0-9-]*)`")
+SLASH_REF = re.compile(r"\{\{slash:([a-z][a-z0-9-]*)\}\}")
+OPTIONAL_FILE_REF = re.compile(r"`([a-z][a-z0-9-]+/(?:SKILL\.md|references/[A-Za-z0-9_./-]+\.md))`")
 BACKTICKED = re.compile(r"`([^`]+)`")
 
 
@@ -141,6 +143,35 @@ class DollarRefTest(unittest.TestCase):
                         if name not in known:
                             unknown.append(f"{path.relative_to(ROOT)}:{no}: ${name}")
         self.assertEqual(unknown, [], "`$name` 须是本仓 skill 或 README「外部依赖」登记的 skill")
+
+    def test_slash_placeholders_name_known_skills(self) -> None:
+        old = renamed_and_retired()
+        known = set(skill_ids()) | external_skills()
+        unknown = []
+        for skill in skill_ids():
+            for path in runtime_files(skill):
+                for no, line in prose_lines(path):
+                    for name in SLASH_REF.findall(line):
+                        if name in known:
+                            continue
+                        if name in old and old[name] == skill:
+                            continue
+                        unknown.append(f"{path.relative_to(ROOT)}:{no}: {{{{slash:{name}}}}}")
+        self.assertEqual(unknown, [], "`{{slash:name}}` 须是本仓 skill、外部依赖或当前 skill 登记的旧名")
+
+    def test_optional_cross_skill_file_anchors_exist(self) -> None:
+        ids = set(skill_ids())
+        missing = []
+        for skill in skill_ids():
+            for path in runtime_files(skill):
+                for no, line in prose_lines(path):
+                    for rel in OPTIONAL_FILE_REF.findall(line):
+                        target_skill = rel.split("/", 1)[0]
+                        if target_skill not in ids:
+                            continue
+                        if not (SKILLS / rel).is_file():
+                            missing.append(f"{path.relative_to(ROOT)}:{no}: `{rel}`")
+        self.assertEqual(missing, [], "可选跨 skill 文件锚点在源仓必须真实存在")
 
 
 class LinkTest(unittest.TestCase):

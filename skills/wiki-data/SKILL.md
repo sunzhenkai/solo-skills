@@ -14,14 +14,10 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
 
 ## 非目标
 
-- 不安装、运行或包装 llmwiki 二进制 / Web / MCP。
-- 不写软件项目 spec 镜像（原 `project-spec-mirror` 已下线；项目现行说明交给 `project-atlas`）。
-- 不用 wiki 重建当前项目的架构、业务流程或规则现行说明；这些代码映射文档交给 `project-atlas`，wiki 保存决策背景、经验、台账和其他可累积知识。
-- 不探索或修改业务源码（交给 `project-explore`）。
-- 不做根因排查；用户明确要求查证原因时交给 `trouble-grill`，本 skill 只维护知识记录。
-- 不编辑 `raw/` 中的源材料。
-- 不自动 commit / push / sync 安装。
-- 工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
+- 不安装/包装 llmwiki 二进制、Web 或 MCP；工作区只含纯 Markdown 目录（`raw/`、`wiki/` 等），不建 `.llmwiki/`、`.obsidian/` 等应用私有目录。
+- 不写软件项目 spec 镜像（原 `project-spec-mirror` 已下线）或重建当前项目架构/业务代码映射（交给 `project-atlas`）；wiki 只保存决策背景、经验、台账等可累积知识。
+- 不探索/修改源码（交给 `project-explore`）；不做根因排查（用户明确要求查证原因时交给 `trouble-grill`）。
+- 不编辑 `raw/` 源材料；不自动 commit / push / sync 安装。
 
 ## 阶段
 
@@ -89,28 +85,12 @@ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}" --write-index
 
 ## `guide`
 
-只读了解工作区。进入后读 [references/layout.md](references/layout.md) 的 `guide` 节。
+只读，按 [references/layout.md](references/layout.md) `guide` 节执行。
 
 ## `init`
 
-没有 `wiki/` 时 **必须先获得确认** 再创建。未确认则停止。确认 `{WIKI_ROOT}` 与研究/知识范围一句话。进入后读 [references/layout.md](references/layout.md)，按其中脚手架创建，再转 `ingest`。
-
-## `ingest`
-
-进入后读 [references/ingest.md](references/ingest.md)。写页时再读 [references/page-types.md](references/page-types.md)。
-
-## `query`
-
-进入后读 [references/query.md](references/query.md)。默认只读；用户要求归档时，先说明将写入 `wiki/queries/`，确认后再写。
-
-## `archive` / `reopen`
-
-进入后读 [references/archive-reopen.md](references/archive-reopen.md)。归档先给计划，确认后原地标记；重开前重新核实当前主张。改完跑 lint。
+没有 `wiki/` 时 **必须先获得确认** 再创建；未确认则停止。确认 `{WIKI_ROOT}` 与知识范围后按 [references/layout.md](references/layout.md) 创建骨架，再转 `ingest`。
 
 ## `organize`
 
-先给方案，确认前不改。进入后读 [references/organize.md](references/organize.md)；写页时再读 [references/page-types.md](references/page-types.md)。改完跑 lint。
-
-## `lint`
-
-进入后读 [references/lint.md](references/lint.md)。先修 error，warning 说明后处理或有意推迟。
+先给方案，确认前不改；按 [references/organize.md](references/organize.md) 执行并在改完跑 lint。其余阶段（`ingest` / `query` / `archive` / `reopen` / `lint`）均按上方阶段表与加载表直达对应 reference。
