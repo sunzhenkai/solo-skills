@@ -6,6 +6,7 @@
 改动：中文说明与修法提示。
 
 门槛：正文至少 4.5:1；18px 以上或 14px 粗体以上的大字至少 3:1。
+支持 #rgb / #rgba / #rrggbb / #rrggbbaa、rgb(...) / rgba(...) 与 rgb(r g b / a)（前景色含透明度时按背景合成后计算）。
 --brightness 报告感知亮度（解释为什么同样的 HSL 明度下黄色比蓝色显得亮）。
 
 只依赖 Python 3 标准库。
@@ -31,12 +32,71 @@ AA_NORMAL, AA_LARGE = 4.5, 3.0
 
 
 def hex_to_rgb(s: str) -> tuple[int, int, int]:
-    s = s.strip().lstrip("#")
-    if len(s) == 3:
-        s = "".join(c * 2 for c in s)
-    if len(s) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", s):
-        raise ValueError(f"不是十六进制颜色：{s}")
-    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+    r, g, b, _ = parse_rgba(s)
+    return r, g, b
+
+
+def parse_rgba(s: str) -> tuple[int, int, int, float]:
+    """解析 #rgb/#rgba/#rrggbb/#rrggbbaa、rgb()/rgba() 与 rgb(r g b / a)。"""
+    raw = s.strip()
+    if raw.startswith("#") or re.fullmatch(r"[0-9a-fA-F]{3,8}", raw):
+        h = raw.lstrip("#")
+        if len(h) in (3, 4) and re.fullmatch(r"[0-9a-fA-F]{3,4}", h):
+            h = "".join(c * 2 for c in h)
+        if len(h) == 6 and re.fullmatch(r"[0-9a-fA-F]{6}", h):
+            r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+            return r, g, b, 1.0
+        if len(h) == 8 and re.fullmatch(r"[0-9a-fA-F]{8}", h):
+            r, g, b, a = (int(h[i:i + 2], 16) for i in (0, 2, 4, 6))
+            return r, g, b, a / 255.0
+        raise ValueError(f"不是十六进制颜色：{raw}")
+
+    m = re.fullmatch(r"rgba?\(\s*(.+?)\s*\)", raw, re.I)
+    if not m:
+        raise ValueError(f"不支持的颜色格式：{raw}")
+    inner = m.group(1)
+    if "," in inner:
+        parts = [p.strip() for p in inner.split(",")]
+        if len(parts) not in (3, 4):
+            raise ValueError(f"颜色参数数量有误：{raw}")
+        rgb_parts, alpha_str = parts[:3], (parts[3] if len(parts) == 4 else None)
+    else:
+        if "/" in inner:
+            left, alpha_str = [p.strip() for p in inner.split("/", 1)]
+        else:
+            left, alpha_str = inner, None
+        rgb_parts = left.split()
+        if len(rgb_parts) != 3:
+            raise ValueError(f"颜色参数数量有误：{raw}")
+
+    rgb: list[int] = []
+    for p in rgb_parts:
+        val = float(p)
+        if not (0.0 <= val <= 255.0):
+            raise ValueError(f"RGB 超出 0–255 范围：{raw}")
+        rgb.append(round(val))
+
+    if alpha_str is None:
+        alpha = 1.0
+    elif alpha_str.endswith("%"):
+        alpha = float(alpha_str[:-1]) / 100.0
+    else:
+        alpha = float(alpha_str)
+    if not (0.0 <= alpha <= 1.0):
+        raise ValueError(f"透明度超出 0–1 范围：{raw}")
+    return rgb[0], rgb[1], rgb[2], alpha
+
+
+def composite_over(fg: tuple[int, int, int, float], bg: tuple[int, int, int]) -> tuple[int, int, int]:
+    """将带透明度的前景色合成到不透明背景色上。"""
+    r, g, b, a = fg
+    if a >= 1.0:
+        return r, g, b
+    return (
+        round(a * r + (1.0 - a) * bg[0]),
+        round(a * g + (1.0 - a) * bg[1]),
+        round(a * b + (1.0 - a) * bg[2]),
+    )
 
 
 def relative_luminance(rgb: tuple[int, int, int]) -> float:
@@ -51,7 +111,12 @@ def relative_luminance(rgb: tuple[int, int, int]) -> float:
 
 
 def contrast_ratio(a: str, b: str) -> float:
-    la, lb = relative_luminance(hex_to_rgb(a)), relative_luminance(hex_to_rgb(b))
+    fg = parse_rgba(a)
+    bg = parse_rgba(b)
+    if bg[3] < 1.0:
+        raise ValueError("背景色需为不透明颜色")
+    fg_rgb = composite_over(fg, bg[:3])
+    la, lb = relative_luminance(fg_rgb), relative_luminance(bg[:3])
     hi, lo = max(la, lb), min(la, lb)
     return (hi + 0.05) / (lo + 0.05)
 

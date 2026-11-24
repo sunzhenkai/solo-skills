@@ -36,6 +36,12 @@ EMOJI_RE = re.compile(
 CSS_URL_RE = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", re.I)
 CSS_IMPORT_RE = re.compile(r"@import\s+['\"]([^'\"]+)['\"]", re.I)
 CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
+CSS_PROPERTY_RE = re.compile(r"@property\s+--[\w-]+\s*\{[^{}]*\}", re.S)
+CSS_HOVER_RULE_RE = re.compile(r"([^{}]*:hover[^{}]*)\{([^{}]*)\}", re.I | re.S)
+MONO_ALPHA_SHADOW_RE = re.compile(
+    r"rgba?\(\s*(?:0(?:\s*,\s*|\s+)0(?:\s*,\s*|\s+)0|255(?:\s*,\s*|\s+)255(?:\s*,\s*|\s+)255)\s*(?:,\s*[\d.]+|/\s*[\d.]+%?)\s*\)",
+    re.I,
+)
 JS_REMOTE_IMPORT_RE = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]((?:https?:)?//[^'"]+)['"]""")
 COLOR_LITERAL_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(")
 FONT_SIZE_RE = re.compile(r"font-size\s*:\s*([\d.]+)(px|rem)\b", re.I)
@@ -50,7 +56,9 @@ class PageParser(HTMLParser):
         self.title_parts: list[str] = []
         self.has_title_tag = False
         self.refs: list[tuple[str, str, bool]] = []  # (url, 来源描述, 是否属于页面资源)
+        self.stylesheets: list[str] = []
         self.css: list[str] = []
+        self.inline_css: list[str] = []
         self.scripts: list[str] = []
         self.emoji_hits: list[str] = []
         self._raw: str | None = None  # 正在读取的 style / script / title
@@ -70,11 +78,14 @@ class PageParser(HTMLParser):
             self._ctx[tag] = self._ctx.get(tag, 0) + 1
         if "style" in attrs:
             self.css.append(attrs["style"])
+            self.inline_css.append(attrs["style"])
 
         if tag == "link":
             rels = set(attrs.get("rel", "").lower().split())
             if attrs.get("href"):
                 self.refs.append((attrs["href"], "<link href>", bool(rels & RESOURCE_LINK_RELS)))
+                if "stylesheet" in rels:
+                    self.stylesheets.append(attrs["href"])
         elif tag == "a" or tag == "area":
             if attrs.get("href"):
                 self.refs.append((attrs["href"], f"<{tag} href>", False))
@@ -152,8 +163,30 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
     p.feed(text)
     p.close()
     base = os.path.dirname(os.path.abspath(path))
-    css = CSS_COMMENT_RE.sub("", "\n".join(p.css))
-    blocks = css_blocks(p.css)
+    css_fragments = list(p.css)
+    ext_refs: list[tuple[str, str, bool, str]] = []
+    seen_css: set[str] = set()
+    for href in p.stylesheets:
+        if classify(href) != "local":
+            continue
+        rel = unquote(re.split(r"[?#]", href, maxsplit=1)[0])
+        if not rel:
+            continue
+        css_path = os.path.normpath(os.path.join(base, rel))
+        if css_path in seen_css or not os.path.isfile(css_path):
+            continue
+        seen_css.add(css_path)
+        with open(css_path, encoding="utf-8", errors="replace") as cfh:
+            ext_text = cfh.read()
+        css_fragments.append(ext_text)
+        ext_clean = CSS_COMMENT_RE.sub("", ext_text)
+        css_dir = os.path.dirname(css_path)
+        ext_refs += [(m.group(2), f"{href} url()", True, css_dir) for m in CSS_URL_RE.finditer(ext_clean)]
+        ext_refs += [(m.group(1), f"{href} @import", True, css_dir) for m in CSS_IMPORT_RE.finditer(ext_clean)]
+
+    css = CSS_COMMENT_RE.sub("", "\n".join(css_fragments))
+    blocks = css_blocks(css_fragments)
+    blocks_for_c1 = css_blocks([CSS_PROPERTY_RE.sub("", frag) for frag in css_fragments])
     scripts = "\n".join(p.scripts)
 
     if not p.lang:
@@ -163,19 +196,21 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
     if not p.has_title_tag or not "".join(p.title_parts).strip():
         errors.append("缺 <title> 或标题为空")
 
-    refs = list(p.refs)
-    refs += [(m.group(2), "CSS url()", True) for m in CSS_URL_RE.finditer(css)]
-    refs += [(m.group(1), "CSS @import", True) for m in CSS_IMPORT_RE.finditer(css)]
-    refs += [(m.group(1), "<script> import", True) for m in JS_REMOTE_IMPORT_RE.finditer(scripts)]
+    refs: list[tuple[str, str, bool, str]] = [(u, w, r, base) for u, w, r in p.refs]
+    inline_css_clean = CSS_COMMENT_RE.sub("", "\n".join(p.css))
+    refs += [(m.group(2), "CSS url()", True, base) for m in CSS_URL_RE.finditer(inline_css_clean)]
+    refs += [(m.group(1), "CSS @import", True, base) for m in CSS_IMPORT_RE.finditer(inline_css_clean)]
+    refs += [(m.group(1), "<script> import", True, base) for m in JS_REMOTE_IMPORT_RE.finditer(scripts)]
+    refs += ext_refs
 
     remote: list[str] = []
     dir_links: list[str] = []
     outside: list[str] = []
-    seen: set[tuple[str, str]] = set()
-    for url, where, resource in refs:
-        if (url, where) in seen:
+    seen: set[tuple[str, str, str]] = set()
+    for url, where, resource, ref_base in refs:
+        if (url, where, ref_base) in seen:
             continue
-        seen.add((url, where))
+        seen.add((url, where, ref_base))
         kind = classify(url)
         if kind == "skip":
             continue
@@ -195,9 +230,9 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
         rel = unquote(re.split(r"[?#]", url, maxsplit=1)[0])
         if not rel:
             continue
-        target = os.path.normpath(os.path.join(base, rel))
+        target = os.path.normpath(os.path.join(ref_base, rel))
         if not os.path.exists(target):
-            errors.append(f"本地链接目标不存在：{url}（{where}，从 {os.path.relpath(base)} 解析）")
+            errors.append(f"本地链接目标不存在：{url}（{where}，从 {os.path.relpath(ref_base)} 解析）")
             continue
         if os.path.isdir(target):
             dir_links.append(url)
@@ -229,11 +264,25 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
     if small:
         hints.append(f"[T4] 小于 12px 的字号 {len(small)} 处：" + "、".join(sorted(set(small))[:5]))
     literals = []
-    for prop, value in css_declarations(blocks):
-        if not prop.startswith("--") and COLOR_LITERAL_RE.search(value):
+    for prop, value in css_declarations(blocks_for_c1):
+        if prop.startswith("--"):
+            continue
+        cleaned = MONO_ALPHA_SHADOW_RE.sub("", value) if prop in ("box-shadow", "text-shadow") else value
+        if COLOR_LITERAL_RE.search(cleaned):
             literals.append(f"{prop}: {value[:32]}")
     if literals:
         hints.append(f"[C1] 没走 CSS 变量的颜色 {len(literals)} 处：" + "；".join(literals[:3]))
+    if re.search(r"overflow(?:-[xy])?\s*:\s*overlay\b", css, re.I):
+        hints.append("[G-L5] 使用了已废弃的 overflow: overlay，改用 scrollbar-gutter: stable 配合细滚动条")
+    if "scrollbar-gutter" not in css.lower():
+        hover_overflow = sum(
+            1 for _, body in CSS_HOVER_RULE_RE.findall(css)
+            if re.search(r"overflow(?:-[xy])?\s*:\s*(?:auto|scroll)\b", body, re.I)
+        )
+        if hover_overflow:
+            hints.append("[G-L5] 检测到 :hover 切换 overflow 且未设 scrollbar-gutter，易导致滚动条显隐挤压布局")
+    if re.search(r"prefers-color-scheme\s*:\s*dark|data-theme\s*=\s*['\"]?dark", css + "\n" + text, re.I) and not re.search(r"(?<![a-z-])color-scheme\s*:", css, re.I):
+        hints.append("[C9] 定义了暗色模式，建议声明 color-scheme 使原生滚动条与表单控件同步暗色")
     if (p.lang or "").lower().startswith("zh"):
         upper = len(re.findall(r"text-transform\s*:\s*uppercase", css, re.I))
         if upper:

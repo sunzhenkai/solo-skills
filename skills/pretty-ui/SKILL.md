@@ -19,9 +19,9 @@ description: 通用 UI 设计、实现与评审引擎：定设计方向、建设
 | 请求 | 模式 | 做法 |
 | --- | --- | --- |
 | 点名改色、调间距、改文案、删元素 | 小改 | 直接改；动布局/浮层/状态先对 [guardrails.md](references/guardrails.md) 自查，动样式看目标视口改动处与相邻元素；报遮挡、缺线、看不清的转 refine |
-| 单组件打磨、小范围改版 | build 轻量 | 写轻量方向卡，跳过主流程第 3 步；基础档看图，按 critique.md 自查 |
+| 单组件打磨、小范围改版 | build 轻量 | 写轻量方向卡，跳过主流程第 3 步；对照 guardrails.md 防错，基础档看图，按 critique.md 自查 |
 | 新界面、整体改版、照参考图还原 | build | 走主流程；照图还原以参考图为方向，同视口并排比到位 |
-| 已有界面不好看、要优化 | refine | 截图诊断带规则号的问题，按序修复，沿用既有体系，交付前后对比 |
+| 已有界面不好看、要优化 | refine | 截图诊断带规则号的问题，按序修复并对照 guardrails.md 自查，沿用既有体系，交付前后对比 |
 | 只要评审 | review | 只读，不改文件；按 [critique.md](references/critique.md) 出问题清单 |
 | 设计系统、工程化检查、token / 组件统一、UI 架构优化 | system | token 按 [system.md](references/system.md)；工程化按 [engineering.md](references/engineering.md) |
 | 文件、报告、方案做成浏览器阅读页 | page | 按 [page.md](references/page.md) 从模板落盘，写轻量方向卡 |

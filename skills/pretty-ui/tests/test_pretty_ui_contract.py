@@ -155,6 +155,8 @@ class SystemTest(unittest.TestCase):
         self.assertIn("## 2. 缺项自定", self.TEXT)
         self.assertIn("用陈述句写下决定与理由", self.TEXT)
         self.assertIn("assets/reading-page.html", self.TEXT)
+        for token in ("--z-sticky", "--scrollbar-thumb", "color-scheme"):
+            self.assertIn(token, self.TEXT)
 
 
 class EngineeringTest(unittest.TestCase):
@@ -204,6 +206,8 @@ class RulesTest(unittest.TestCase):
         self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
         self.assertIn("被祖先 `overflow` 裁掉也算裁切", self.TEXT)
         self.assertIn("可滚动容器里滚得到的那一侧", self.TEXT)
+        for phrase in ("24×24px", "滚动条", "color-scheme", "28–36px"):
+            self.assertIn(phrase, self.TEXT)
 
 
 class CritiqueTest(unittest.TestCase):
@@ -255,7 +259,7 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
         self.assertIn("复用本地服务和浏览器会话", self.TEXT)
         self.assertIn("横向溢出", self.TEXT)
-        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2", "裂图", "极小热区"):
+        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2", "裂图", "极小热区", "溢出元凶", "移动端偏小热区", "缺锚点留白"):
             self.assertIn(word, self.TEXT)
 
 
@@ -263,9 +267,9 @@ class GuardrailsTest(unittest.TestCase):
     TEXT = ref("guardrails.md")
 
     def test_four_groups_present(self) -> None:
-        for gid in ("G-L1", "G-L2", "G-L3", "G-L4", "G-O1", "G-O2", "G-O3", "G-S1", "G-S2", "G-S3", "G-S4", "G-A1", "G-A2", "G-A3"):
+        for gid in ("G-L1", "G-L2", "G-L3", "G-L4", "G-L5", "G-L6", "G-O1", "G-O2", "G-O3", "G-S1", "G-S2", "G-S3", "G-S4", "G-A1", "G-A2", "G-A3"):
             self.assertIn(f"**{gid}", self.TEXT)
-        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py"):
+        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py", "scrollbar-gutter: stable", "@property", "100dvh", "safe-area-inset-bottom"):
             self.assertIn(phrase, self.TEXT)
 
 

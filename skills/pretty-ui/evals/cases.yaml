@@ -456,3 +456,52 @@ cases:
         - python3 -m pytest skills/pretty-ui/tests -q 全部通过
       must_not:
         - 为了让测试通过而删掉断言
+
+  - id: scrollbar-thin-auto-hide-no-shift
+    kind: core
+    judge: llm
+    description: 滚动条细化、平时隐藏、滚动时显示且不挤压布局
+    given: 做一个带可滚动侧栏与宽表格的工作台页面，支持亮暗模式
+    expect:
+      must:
+        - 滚动条细化（约 6px）并使用语义 token 与 color-scheme 同步亮暗模式
+        - 平时隐藏、滚动时通过 @property 与 .is-scrolling 平滑淡入淡出
+        - 使用 scrollbar-gutter: stable（或已有覆盖式原语）保持轨道不挤压已有元素
+      must_not:
+        - 用 :hover 切换 overflow: hidden 与 auto，或使用已废弃的 overflow: overlay
+
+  - id: guardrails-before-code
+    kind: core
+    judge: llm
+    description: build 与 refine 实现前对齐 guardrails.md 防错护栏
+    given: 实现包含长文本列表、sticky 顶栏、弹出抽屉与异步提交的页面
+    expect:
+      must:
+        - Flex/Grid 子项加 min-w-0，sticky 顶栏配 scroll-margin-top，浮层设 overscroll-behavior: contain
+        - 满屏与吸底布局优先 100dvh 与安全区留白，异步提交有防重复状态
+      must_not:
+        - 裸写 outline: none 而不补 :focus-visible
+
+  - id: target-size-desktop-vs-mobile
+    kind: boundary
+    judge: llm
+    description: 桌面紧凑工具按钮与移动端触控目标区分底线与推荐
+    given: 评审一个桌面工具栏（含 32x32 图标按钮）与手机端表单页
+    expect:
+      must:
+        - 桌面 32x32 按钮满足 24x24px 底线，不误报为 P0
+        - 移动端按钮建议 >=40x40px，低于 24x24px 报 P0
+      must_not:
+        - 把桌面 32x32 图标按钮按 40x40px 报 P0
+
+  - id: check-page-external-css
+    kind: regression
+    judge: deterministic
+    description: check_page.py 能扫描多页内容包引用的本地外部 CSS
+    given: 一个多页阅读包通过 <link rel="stylesheet" href="./assets/site.css"> 引入样式
+    expect:
+      must:
+        - check_page.py --offline 读入本地外部 CSS 并检查其中的提示项与 url() 引用
+        - 黑白半透明 box-shadow 与 @property 块不误报 [C1]
+      must_not:
+        - 只扫内联 <style> 而放过外链样式表里的硬编码问题

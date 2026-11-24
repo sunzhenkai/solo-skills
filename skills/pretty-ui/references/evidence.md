@@ -38,14 +38,39 @@
     }
     return m;
   };
-  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 裂图: [], 极小热区: [], 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
+  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 溢出元凶: [], 裂图: [], 极小热区: [], 移动端偏小热区: [], 缺锚点留白: 0, 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
+  const name = (x) => x.tagName.toLowerCase() + (x.getAttribute("class") ? "." + x.getAttribute("class").trim().split(/\s+/)[0] : "");
+  if (document.documentElement.scrollWidth > innerWidth + 1) {
+    for (const el of document.querySelectorAll("body *")) {
+      if (!el.offsetWidth) continue;
+      const b = el.getBoundingClientRect();
+      if (b.right > innerWidth + 1 || b.left < -1) {
+        r.溢出元凶.push(name(el));
+        if (r.溢出元凶.length >= 3) break;
+      }
+    }
+  }
   for (const img of document.querySelectorAll("img")) {
     if (img.offsetWidth && img.complete && img.naturalWidth === 0) r.裂图.push(img.getAttribute("src") || "<img>");
   }
-  for (const el of document.querySelectorAll('button, [role="button"], input:not([type="hidden"]), select, textarea')) {
+  for (const el of document.querySelectorAll('button, [role="button"], input:not([type="hidden"]), select, textarea, a[href]')) {
     if (!el.offsetWidth || el.disabled) continue;
+    if (el.tagName === "A" && el.closest("p, li, dd, blockquote, td") && getComputedStyle(el).display === "inline") continue;
+    const b = el.getBoundingClientRect(), minSide = Math.min(b.width, b.height);
+    const desc = el.tagName.toLowerCase() + " (" + Math.round(b.width) + "x" + Math.round(b.height) + ")";
+    if (minSide < 24) r.极小热区.push(desc);
+    else if (innerWidth <= 480 && minSide < 40) r.移动端偏小热区.push(desc);
+  }
+  const hasTopBar = [...document.querySelectorAll("*")].some((el) => {
+    const s = getComputedStyle(el);
+    if (s.position !== "sticky" && s.position !== "fixed") return false;
     const b = el.getBoundingClientRect();
-    if (Math.min(b.width, b.height) < 24) r.极小热区.push(el.tagName.toLowerCase() + " (" + Math.round(b.width) + "x" + Math.round(b.height) + ")");
+    return b.top <= 16 && b.height >= 32;
+  });
+  if (hasTopBar) {
+    for (const el of document.querySelectorAll("[id], h2, h3")) {
+      if (el.offsetWidth && parseFloat(getComputedStyle(el).scrollMarginTop) <= 0) r.缺锚点留白++;
+    }
   }
   for (const el of document.querySelectorAll("p, li, dd, blockquote, td")) {
     const t = el.textContent.trim(), s = getComputedStyle(el), size = parseFloat(s.fontSize);
@@ -73,7 +98,6 @@
     if (e.right + d > b.right - px(s.borderRightWidth) + 0.5 && !sx) edge.push("右");
     if (e.top - d < b.top + px(s.borderTopWidth) - 0.5 && !sy) edge.push("上");
     if (e.bottom + d > b.bottom - px(s.borderBottomWidth) + 0.5 && !sy) edge.push("下");
-    const name = (x) => x.tagName.toLowerCase() + (x.getAttribute("class") ? "." + x.getAttribute("class").split(" ")[0] : "");
     if (edge.length) r.环被裁.push(name(el) + " 被裁" + edge.join("") + "，裁它：" + name(a));
   }
   return r;

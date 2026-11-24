@@ -8,6 +8,13 @@
 - **G-L2 外扩细线不被祖先裁切**：用 `box-shadow: 0 0 0 1px …` 或 `outline` 画细线时，带 `overflow: hidden/clip` 的祖先必须预留 ≥1px 内边距；改不了祖先容器时改用 `inset` 阴影或真 `border`。
 - **G-L3 嵌套布局按容器算阈值**：正文 + 右栏/目录这类嵌套分栏，显隐与折叠阈值按「当前容器可用宽度（页面宽 − 已占列宽）」判断，不拿视口宽度直接套在内层分栏上。
 - **G-L4 媒体防抖与分界**：图片、视频、画布显式声明宽高或固定比例容器防布局抖动（CLS）；用户上传或浅底图片与浅色背景之间有清晰边界；页面不留失效图片（`naturalWidth === 0`）。
+- **G-L5 滚动条细化、滚动显隐与零挤压**：
+  - 滚动条变细（约 6px、圆角滑块、透明轨道），配色走语义 token 并声明 `color-scheme` 同步亮暗模式；
+  - 默认平时完全隐藏、滚动时平滑淡入、停滚后淡出：用 `@property` 注册透明度自定义属性（初始 `0`），由轻量 passive `scroll` 监听（`capture: true`）在滚动期间给目标容器加 `.is-scrolling` 类驱动过渡，不直接对 `::-webkit-scrollbar-thumb` 写无效的 `transition`；
+  - **零布局挤压**：可滚动容器与动态高度页面设 `scrollbar-gutter: stable`（居中对称布局按需 `stable both-edges`），轨道保持固定透明宽度、仅变化滑块透明度；避免用 `:hover` 切换 `overflow: hidden ↔ auto`、不使用已废弃的 `overflow: overlay`、模态框锁滚不裸改 `body { overflow: hidden }` 挤动页面；
+  - 高密度多栏界面确需 0px 槽位占用时，优先复用项目已有的覆盖式原语（如 Radix ScrollArea / OverlayScrollbars），不为此盲目新增依赖；
+  - 触屏设备（`@media (hover: none), (pointer: coarse)`）交给系统原生 overlay 滚动条；`@media (prefers-reduced-motion: reduce)` 关闭淡入淡出过渡。
+- **G-L6 动态视口高度与截断补全**：满屏与吸底布局优先用 `100dvh` / `min-h-dvh`（避免移动端 `100vh` 被地址栏裁切），吸底操作栏预留 `env(safe-area-inset-bottom)`；被 `truncate` / `line-clamp` 截断的关键信息提供查看全貌途径（如 `title`、tooltip 或展开）；表格数字与时间列加 `white-space: nowrap` 与 `tabular-nums` 防止误折行。
 
 ## 2. 浮层与覆盖件
 

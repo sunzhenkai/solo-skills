@@ -93,6 +93,17 @@ class ContrastTest(unittest.TestCase):
             self.assertEqual(r.returncode, 1)
             self.assertIn("1/2 通过", r.stdout)
 
+    def test_rgba_and_8digit_hex_compositing(self) -> None:
+        r_rgba = self.con.contrast_ratio("rgba(0, 0, 0, 0.5)", "#ffffff")
+        self.assertAlmostEqual(r_rgba, self.con.contrast_ratio("rgb(0 0 0 / 50%)", "#ffffff"), places=2)
+        self.assertGreater(r_rgba, 3.5)
+        self.assertLess(r_rgba, 4.5)
+        r_hex8 = self.con.contrast_ratio("#00000080", "#ffffff")
+        self.assertAlmostEqual(r_hex8, self.con.contrast_ratio("rgba(0, 0, 0, 0.502)", "#ffffff"), places=1)
+        self.assertEqual(run("contrast.py", "--pair", "rgba(0,0,0,0.5)", "#ffffff", "--size", "large").returncode, 0)
+        self.assertEqual(run("contrast.py", "--pair", "#000000", "rgba(255,255,255,0.5)").returncode, 2)
+        self.assertEqual(run("contrast.py", "--pair", "rgb(300, 0, 0)", "#ffffff").returncode, 2)
+
 
 class CheckPageTest(unittest.TestCase):
     def site(self, d: str, index: str = GOOD_PAGE, sub: str = SUB_PAGE) -> Path:
@@ -150,6 +161,28 @@ class CheckPageTest(unittest.TestCase):
             for tag in ("[X2]", "[X5]", "[F7]", "[M4]", "[T4]", "[C1]"):
                 self.assertIn(tag, r.stdout)
 
+    def test_external_css_and_scrollbar_dark_hints(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = self.site(d)
+            (root / "assets").mkdir()
+            (root / "assets" / "site.css").write_text(
+                "@property --sb { syntax: '<number>'; inherits: true; initial-value: 0; }\n"
+                ":root { --bg: #ffffff; --text: #111827; }\n"
+                ".card { box-shadow: 0 2px 6px rgb(0 0 0 / .2); color: #334155; }\n"
+                ".pane { overflow: overlay; }\n"
+                ".pane:hover { overflow-y: auto; }\n"
+                "@media (prefers-color-scheme: dark) { :root { --bg: #111111; } }\n",
+                encoding="utf-8",
+            )
+            html = GOOD_PAGE.replace("</head>", '<link rel="stylesheet" href="./assets/site.css"></head>')
+            (root / "index.html").write_text(html, encoding="utf-8")
+            r = run("check_page.py", "--offline", str(root))
+            self.assertEqual(r.returncode, 0, r.stdout)
+            self.assertIn("[C1] 没走 CSS 变量的颜色 1 处", r.stdout)
+            self.assertIn("[G-L5] 使用了已废弃的 overflow: overlay", r.stdout)
+            self.assertIn("[G-L5] 检测到 :hover 切换 overflow", r.stdout)
+            self.assertIn("[C9] 定义了暗色模式", r.stdout)
+
 
 class TemplateTest(unittest.TestCase):
     def test_reading_page_template_is_clean_offline(self) -> None:
@@ -161,7 +194,10 @@ class TemplateTest(unittest.TestCase):
         html = (ROOT / "assets" / "reading-page.html").read_text(encoding="utf-8")
         for token in ("--font-sans", "--measure: 684px", "position: sticky", "text-wrap: balance",
                       "text-wrap: pretty", "font-variant-ligatures: none", ":focus-visible",
-                      "prefers-reduced-motion", "tabular-nums", "轻量方向卡"):
+                      "prefers-reduced-motion", "tabular-nums", "轻量方向卡",
+                      "color-scheme: light dark", "scrollbar-gutter: stable",
+                      "@property --sb-alpha", "is-scrolling", "scroll-margin-top",
+                      "overflow-wrap: break-word"):
             self.assertIn(token, html)
 
 
