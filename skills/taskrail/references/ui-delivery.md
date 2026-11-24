@@ -6,8 +6,8 @@
 
 | 情况 | 做法 |
 |------|------|
-| 普通 UI 改动（功能为主，用户没提观感） | 沿用交付仓已有组件库 / 样式体系（adopt-only）；实现者自检 quality floor：破坏性操作有确认、键盘可达、focus 可见；结果写进验证记录。`ui_evidence_check` 可选 |
-| 观感交付（用户原话要好看 / 设计感 / 体验） | 先过 [done.md](done.md)「观感验收」；页面面多或要统一视觉时，再用下面的 Active Instance 与证据门 |
+| 普通 UI 改动（功能为主，用户没提观感） | 沿用交付仓已有组件库 / 样式体系（adopt-only）；先按实现防错护栏避坑，改完默认跑 **L1 快检**（`ui_evidence_check.py --quick --base-url <url> --routes <路径>`）兜住运行时报错、裂图、横向溢出、外扩环裁切与焦点可见/遮挡，并自检破坏性操作确认；环境缺 playwright 时降级记录未验证项 |
+| 观感交付（用户原话要好看 / 设计感 / 体验） | 先过 [done.md](done.md)「观感验收」；页面面多或要统一视觉时，再用下面的 Active Instance 与 **L2 完整证据门** |
 
 ## Active Instance（通用路线统一视觉时用）
 
@@ -23,10 +23,11 @@
 
 ## 机械门
 
-- 运行态证据：[`../scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py) 对关键路由出 `report.json` + 截图（≥2 视口、axe WCAG 2.2 AA、焦点走查、manifest 声明的四态），exit 0 才算。代码变了旧 report 作废。
-- design 评审文件：评审者 ≠ 实现者，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report:`；`ui_evidence_check.py --validate-review <file>` exit 0。
-- Gallery（组件 / 页面展示页）只证明设计系统没漂，不替代上面两项。
-- 工具缺失（playwright / axe-core）：脚本 exit 2；写进「已做决定」说明哪项没验证。
+- **L1 快检**（普通改动默认）：[`../scripts/ui_evidence_check.py`](../scripts/ui_evidence_check.py) `--quick --base-url <url> --routes /a,/b`，免写 manifest，自动拦截 `pageerror` / `console.error` / 资源 4xx-5xx、裂图、横向溢出、外扩环被裁、热区 `<24px`、焦点不可见或被 sticky/fixed 遮挡（找到 `axe-core` 时顺跑 WCAG AA，缺失则标 `skipped`）。
+- **L2 完整证据门**（观感交付 / 主流程改动）：同一脚本传 manifest，对关键路由出 `report.json` + DPR=2 截图（L1 全部 + 强制 axe WCAG 2.2 AA + ≥2 视口 + 数据四态 + 可选交互浮层 `overlays` 的内边距/溢出/焦点进出检查），exit 0 才算。代码变了旧 report 作废。
+- **L3 design 评审文件**：L1/L2 通过后再进评审；评审者 ≠ 实现者，frontmatter 含 `roles: design`、`reviewer`、`implementer`、`report:`；`ui_evidence_check.py --validate-review <file>` exit 0。
+- Gallery（组件 / 页面展示页）只证明设计系统没漂，不替代上面三项。
+- 工具缺失（playwright / L2 缺 axe-core）：脚本 exit 2；写进「已做决定」说明哪项没验证。
 
 ## 交接行
 

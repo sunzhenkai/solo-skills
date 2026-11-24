@@ -1,0 +1,47 @@
+diff --git a/skills/ui-kit/references/language.md b/skills/ui-kit/references/language.md
+index 0af141a..59f15c4 100644
+--- a/skills/ui-kit/references/language.md
++++ b/skills/ui-kit/references/language.md
+@@ -13,7 +13,7 @@
+ 7. **状态完备**：每个交互组件都有默认、悬停、按下、聚焦、禁用；每个数据区域都有加载、空、出错。
+ 8. **键盘可达**：所有操作可用键盘完成，焦点可见；命令面板是全局入口。
+ 
+-画面层面的通用规则（层级、分组、行长、对比度）沿用 pretty-ui 的十条铁律与规则号。
++画面层面的通用规则（层级、分组、行长、对比度）沿用 pretty-ui 的十条铁律与规则号；布局防爆、浮层内边距/防双线、切页连续性与无障碍底线等通用实现防错，与 `pretty-ui/references/guardrails.md` 对齐。
+ 
+ ## 2. 分层与所有权
+ 
+diff --git a/skills/ui-kit/references/verify.md b/skills/ui-kit/references/verify.md
+index 3e75990..1b56ad2 100644
+--- a/skills/ui-kit/references/verify.md
++++ b/skills/ui-kit/references/verify.md
+@@ -52,7 +52,7 @@ npm run build
+ - 危险操作 → 确认对话框（Dialog/AlertDialog）
+ - 新建/编辑 → 表单弹窗
+ - 页头搜索 → 命令面板；筛选 → 下拉/Tooltip
+-- 每一类都检查：内边距（内容是否贴容器边框）、边框是否与容器线相邻成双线、滚动区域边界。
++- 每一类都检查：内边距（内容是否贴容器边框）、边框是否与容器线相邻成双线、滚动区域边界、焦点进入与 `Esc` 归还。接入 taskrail 运行态机械门时，可把上述交互浮层写进 manifest 的 `overlays` 自动核对。
+ 
+ ## 连续性、嵌套布局与持久化
+ 
+diff --git a/skills/ui-kit/tests/test_ui_kit_contract.py b/skills/ui-kit/tests/test_ui_kit_contract.py
+index 29d4d47..5dffe9f 100644
+--- a/skills/ui-kit/tests/test_ui_kit_contract.py
++++ b/skills/ui-kit/tests/test_ui_kit_contract.py
+@@ -125,6 +125,8 @@ class FlowTest(unittest.TestCase):
+         self.assertIn("零像素容差", text)
+         self.assertIn("白名单内的定制不会失败", text)
+         self.assertIn("不要用保真通过代替产品页目检", text)
++        self.assertIn("overlays", text)
++        self.assertIn("`Esc` 归还", text)
+         self.assertNotIn("可忽略", text)
+         self.assertIn("每个声明过的状态都是 reviewed", SKILL)
+ 
+@@ -159,6 +161,7 @@ class LanguageTest(unittest.TestCase):
+         self.assertIn("**除自定义外视觉一致**", self.text)
+         self.assertIn("逐像素一致", self.text)
+         self.assertIn("**跨模型稳定**", self.text)
++        self.assertIn("pretty-ui/references/guardrails.md", self.text)
+ 
+ 
+ class TokensTest(unittest.TestCase):

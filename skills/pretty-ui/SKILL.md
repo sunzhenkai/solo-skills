@@ -18,7 +18,7 @@ description: 通用 UI 设计、实现与评审引擎：定设计方向、建设
 
 | 请求 | 模式 | 做法 |
 | --- | --- | --- |
-| 点名改色、调间距、改文案、删元素 | 小改 | 直接改；动了样式就看目标视口的改动处与相邻元素；报遮挡、缺线、看不清的转 refine |
+| 点名改色、调间距、改文案、删元素 | 小改 | 直接改；动布局/浮层/状态先对 [guardrails.md](references/guardrails.md) 自查，动样式看目标视口改动处与相邻元素；报遮挡、缺线、看不清的转 refine |
 | 单组件打磨、小范围改版 | build 轻量 | 写轻量方向卡，跳过主流程第 3 步；基础档看图，按 critique.md 自查 |
 | 新界面、整体改版、照参考图还原 | build | 走主流程；照图还原以参考图为方向，同视口并排比到位 |
 | 已有界面不好看、要优化 | refine | 截图诊断带规则号的问题，按序修复，沿用既有体系，交付前后对比 |
@@ -36,7 +36,7 @@ description: 通用 UI 设计、实现与评审引擎：定设计方向、建设
 2. **简报**：用户、主任务、真实内容、设备；内容分主 / 次 / 辅，动作分一个主操作、几个次要、若干辅助。完成：主任务和主操作各一句，目标视口按 evidence.md 选定并记录。
 3. **方向**（未定才做）：按 [direction.md](references/direction.md) 自选一个方向，写方向卡和理由，直接说决定、接着做。已有品牌、参考图或明确风格时只补方向卡缺栏；用户点名要多个方案时才出三个候选。完成：方向卡各栏具体，过了两遍法。
 4. **体系**：按 system.md 取值；新色阶用 `scripts/palette.py`，真实文字 / 背景配对用 `scripts/contrast.py` 校验。完成：配对都达标。
-5. **构建**：先做一次写出代表页或关键流程，再按“灰度层级 → 间距分组 → 行长节奏 → 色彩 → 深度 → 收尾”自查；空、加载、出错状态和真实感数据随功能完成。完成：代表页能在目标视口打开。
+5. **构建**：先按 [guardrails.md](references/guardrails.md) 避开布局、浮层、状态与交互硬伤，写出代表页或关键流程，再按“灰度层级 → 间距分组 → 行长节奏 → 色彩 → 深度 → 收尾”自查；空、加载、出错状态和真实感数据随功能完成。完成：代表页能在目标视口打开。
 6. **看图**：按 [evidence.md](references/evidence.md) 截基础档并量测，修掉重叠、裁切、溢出和孤字。完成：量测无越界，`check_page.py` 无报错。
 7. **批评**：新界面和整体改版派隔离评审，制作者只做减法、眯眼看和处理检查结果；否则按 rules.md 完整扫查。怎么改、何时停按 critique.md「迭代与停止」，那一节是唯一标准。
 
@@ -77,6 +77,7 @@ page、build 轻量和上游计划的“视觉方向”用它：北极星、字�
 | --- | --- |
 | [references/direction.md](references/direction.md) | 完整方向卡、多个方案 |
 | [references/system.md](references/system.md) / [engineering.md](references/engineering.md) | 体系、补 token、工程化 |
+| [references/guardrails.md](references/guardrails.md) | 写代码前与改完布局、浮层、交互后的防错自查 |
 | [references/evidence.md](references/evidence.md) | 截图档位、打开方式、量测 |
 | [references/rules.md](references/rules.md) | refine、review、完整自查 |
 | [references/critique.md](references/critique.md) | 自查、隔离评审、问题清单、迭代停止 |

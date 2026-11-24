@@ -98,7 +98,7 @@ class SkillEntryTest(unittest.TestCase):
         self.assertTrue(links)
         for link in links:
             self.assertTrue((ROOT / link).exists(), link)
-        for name in ("direction.md", "system.md", "engineering.md", "evidence.md", "rules.md", "critique.md", "page.md"):
+        for name in ("direction.md", "system.md", "engineering.md", "guardrails.md", "evidence.md", "rules.md", "critique.md", "page.md"):
             self.assertIn(f"references/{name}", SKILL)
         self.assertIn("assets/reading-page.html", SKILL)
 
@@ -255,8 +255,18 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("http.server --bind 127.0.0.1", self.TEXT)
         self.assertIn("复用本地服务和浏览器会话", self.TEXT)
         self.assertIn("横向溢出", self.TEXT)
-        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2"):
+        for word in ("环被裁", "非 inset 阴影的 spread", "deviceScaleFactor: 2", "裂图", "极小热区"):
             self.assertIn(word, self.TEXT)
+
+
+class GuardrailsTest(unittest.TestCase):
+    TEXT = ref("guardrails.md")
+
+    def test_four_groups_present(self) -> None:
+        for gid in ("G-L1", "G-L2", "G-L3", "G-L4", "G-O1", "G-O2", "G-O3", "G-S1", "G-S2", "G-S3", "G-S4", "G-A1", "G-A2", "G-A3"):
+            self.assertIn(f"**{gid}", self.TEXT)
+        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py"):
+            self.assertIn(phrase, self.TEXT)
 
 
 class PageTest(unittest.TestCase):

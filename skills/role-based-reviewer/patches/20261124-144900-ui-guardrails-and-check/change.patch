@@ -1,0 +1,30 @@
+diff --git a/skills/role-based-reviewer/references/roles/design.md b/skills/role-based-reviewer/references/roles/design.md
+index bb70891..2cc8a0d 100644
+--- a/skills/role-based-reviewer/references/roles/design.md
++++ b/skills/role-based-reviewer/references/roles/design.md
+@@ -14,6 +14,8 @@ UI 源码/样式、设计规范、可访问性相关实现、组件库与 design
+ 
+ 判定方式：`[代码]` 读 diff/源码可判；`[运行态]` 必须渲染后确认。纯 diff 评审中 `[运行态]` 条目降级为「⚠ 需运行态验证」提示，不做判定、不装能判；不为此启动服务或截图。Blocker 门槛 = quality floor：键盘可达、focus 可见、破坏性操作有确认或 undo、空态不崩、表单错误有反馈、尊重 reduced-motion。
+ 
++**与运行态机械门分工**：调用方已提供 `ui_evidence_check` 的 `report.json` 时，运行时报错、裂图、横向溢出、外扩环裁切、极小热区、焦点可见/sticky 遮挡、浮层内边距/焦点进出与 axe WCAG 2.2 AA 直接以报告为准，不再重复人肉扫查；本角色集中评审交互逻辑、信息架构、视觉层级、文案与参照差距。
++
+ ## 调用范围与速度
+ 
+ - **何时全量扫**：观感交付或调用方要求完整审时，按下方清单完整审（`[运行态]` 仍按「纯 diff 不装能判」）。
+diff --git a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+index 35e5483..4e225d8 100644
+--- a/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
++++ b/skills/role-based-reviewer/tests/test_role_based_reviewer_contract.py
+@@ -47,6 +47,12 @@ class RbrContractTest(unittest.TestCase):
+         self.assertIn("模板路线沿用 ui-template 契约", text)
+         self.assertTrue((ROOT.parent / "ui-kit/SKILL.md").is_file())
+ 
++    def test_design_splits_work_with_mechanical_gate(self) -> None:
++        text = (ROOT / "references" / "roles" / "design.md").read_text(encoding="utf-8")
++        self.assertIn("与运行态机械门分工", text)
++        self.assertIn("report.json", text)
++        self.assertIn("不再重复人肉扫查", text)
++
+     def test_adjacent_skill_boundaries(self) -> None:
+         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         self.assertIn("solo-code-review", text)

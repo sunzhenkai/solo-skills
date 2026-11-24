@@ -125,6 +125,8 @@ class FlowTest(unittest.TestCase):
         self.assertIn("零像素容差", text)
         self.assertIn("白名单内的定制不会失败", text)
         self.assertIn("不要用保真通过代替产品页目检", text)
+        self.assertIn("overlays", text)
+        self.assertIn("`Esc` 归还", text)
         self.assertNotIn("可忽略", text)
         self.assertIn("每个声明过的状态都是 reviewed", SKILL)
 
@@ -159,6 +161,7 @@ class LanguageTest(unittest.TestCase):
         self.assertIn("**除自定义外视觉一致**", self.text)
         self.assertIn("逐像素一致", self.text)
         self.assertIn("**跨模型稳定**", self.text)
+        self.assertIn("pretty-ui/references/guardrails.md", self.text)
 
 
 class TokensTest(unittest.TestCase):

@@ -47,6 +47,12 @@ class RbrContractTest(unittest.TestCase):
         self.assertIn("模板路线沿用 ui-template 契约", text)
         self.assertTrue((ROOT.parent / "ui-kit/SKILL.md").is_file())
 
+    def test_design_splits_work_with_mechanical_gate(self) -> None:
+        text = (ROOT / "references" / "roles" / "design.md").read_text(encoding="utf-8")
+        self.assertIn("与运行态机械门分工", text)
+        self.assertIn("report.json", text)
+        self.assertIn("不再重复人肉扫查", text)
+
     def test_adjacent_skill_boundaries(self) -> None:
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("solo-code-review", text)

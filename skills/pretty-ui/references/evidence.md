@@ -38,7 +38,15 @@
     }
     return m;
   };
-  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
+  const r = { 横向溢出: document.documentElement.scrollWidth > innerWidth, 裂图: [], 极小热区: [], 行太长: [], 字太小: [], 行高过紧: [], 环被裁: [] };
+  for (const img of document.querySelectorAll("img")) {
+    if (img.offsetWidth && img.complete && img.naturalWidth === 0) r.裂图.push(img.getAttribute("src") || "<img>");
+  }
+  for (const el of document.querySelectorAll('button, [role="button"], input:not([type="hidden"]), select, textarea')) {
+    if (!el.offsetWidth || el.disabled) continue;
+    const b = el.getBoundingClientRect();
+    if (Math.min(b.width, b.height) < 24) r.极小热区.push(el.tagName.toLowerCase() + " (" + Math.round(b.width) + "x" + Math.round(b.height) + ")");
+  }
   for (const el of document.querySelectorAll("p, li, dd, blockquote, td")) {
     const t = el.textContent.trim(), s = getComputedStyle(el), size = parseFloat(s.fontSize);
     if (t.length < 30 || !el.offsetWidth) continue;
