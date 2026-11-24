@@ -1,0 +1,24 @@
+diff --git a/skills/skill-upgrader/SKILL.md b/skills/skill-upgrader/SKILL.md
+index 9cae92d..32e4d22 100644
+--- a/skills/skill-upgrader/SKILL.md
++++ b/skills/skill-upgrader/SKILL.md
+@@ -105,14 +105,8 @@ update / self-upgrade 共用 7 步（模式门禁与定位 → 提案 → 风险
+ 
+ ## 交付
+ 
+-```text
+-skill: <name>
+-path: <skill-dir>
+-mode: update | self-upgrade
+-patch: <patch-id>
+-risk: low | medium | high
+-status: proposed | applied | failed | already-upgraded | aborted
+-change: <一句话>
+-validation: <通过项或失败原因>
+-next: <需要确认、sync 提醒、转 evolve 模式，或无>
+-```
++用 2–3 行白话汇报结果，不输出机器字段表：
++
++- 说明改了哪个 Skill、模式（`update` / `self-upgrade` / `evolve`）、风险级别与 `patches/<patch-id>/`（或 `evolutions/`）路径；
++- 说明本次改动要点与验证结果（通过项或失败原因）；
++- 如有后续动作（等待确认、同步到 agent 目录、或转 `evolve`）附一句下一步，无则省略。

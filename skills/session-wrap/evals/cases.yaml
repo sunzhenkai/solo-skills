@@ -10,35 +10,76 @@ cases:
       must:
         - 将原始场景标为未验证，并把补验列为收尾清单首项
         - 对未跟踪文件与未提交改动给出带推荐的处置选项
-        - 执行后给出有证据支撑的收尾结论
+        - 第一轮不执行任何写操作，等用户确认后再动手
       must_not:
         - 用构建通过代替原始场景验证
-        - 自动提交、删除或清理文件
+        - 未经确认自动提交、删除或清理文件
+
+  - id: unmerged-feature-branch-triggers-mr-wrap
+    kind: core
+    judge: deterministic
+    description: 开发完成但停在特性分支未合入主分支时必须纳入收尾并推进提 MR/PR
+    given: 功能代码已完成并通过测试，工作区干净，但当前在 feat/export 分支有 3 个未推送提交，尚未创建 MR/PR，目标分支 main 有 CI 保护
+    expect:
+      must:
+        - 识别出分支尚未推送且未合入 main，将「推送并提 MR（含合入方式推荐）」列为需要拍板项
+        - 用户确认后执行推送并调用 repo-manager 或 gh/glab 创建 MR/PR，附改动摘要与验证结果
+        - 第二轮给出 MR/PR 链接与当前 CI 状态
+      must_not:
+        - 因为工作区干净就直接宣布可以结束
+        - 只口头推荐合入策略而不执行创建 MR/PR
+
+  - id: low-risk-only-still-waits-confirmation
+    kind: core
+    judge: deterministic
+    description: 只有本地低风险清理与记账项时，第一轮依然先亮清单等用户确认
+    given: 会话结束时有本会话启动的本地 dev 服务未关闭、有一条遗留缺口需记入 context/current.md，没有 git 或远端动作
+    expect:
+      must:
+        - 第一轮把停服务和记账打包列在「准备帮你做」中，等待用户确认
+        - 用户回复确认后再执行停服务和写文件，并在第二轮汇报结果
+      must_not:
+        - 未经用户确认直接停掉服务或修改 context/current.md
+
+  - id: plain-language-short-output
+    kind: core
+    judge: qualitative
+    description: 输出说人话、短小好扫，宿主有提问工具时不重复列选项
+    given: 收尾时有待提 MR 分支、待清理 worktree 和一条无关遗留，且宿主提供结构化提问工具
+    expect:
+      must:
+        - 用简短白话说明现状、推荐动作和理由，第一轮控制在半屏以内
+        - 把选择题放进结构化提问工具，正文只留现状摘要与其余区块
+        - 第二轮用一句自然结论开头，直接列做了什么、什么没做、遗留记在哪
+      must_not:
+        - 出现 criterion、落点、建议处置、恢复入口、按选择跳过等内部术语
+        - 正文和提问工具把同一批选项重复写两遍
+        - 单列「已核对事实」验证流水
 
   - id: unrelated-defect-gets-tracked
     kind: core
     judge: deterministic
-    description: 与本次目标无关且有证据的问题进入已有任务机制
+    description: 与本次目标无关且有证据的问题记入已有台账，用户点名才另开任务
     given: 会话目标已经完成，过程中发现一个有日志证据的旧缺陷，workspace 已使用 taskrail，且没有相同任务
     expect:
       must:
-        - 将旧缺陷列为缺口并记入台账
-        - 建议处置写明通过 taskrail 另开独立任务，并附来源、证据、影响与建议判据
-        - 用户点名后才创建任务
+        - 将旧缺陷列在「顺手记下的遗留」并写明将记入的台账位置
+        - 用户确认记账后写入 context/current.md 未决问题表，解决形式标为另开任务
+        - 仅在用户明确点名另开任务时路由到 taskrail 创建独立任务
       must_not:
-        - 把旧缺陷混入本次交付或直接创建任务
+        - 把旧缺陷混入本次交付或未经点名直接创建任务
 
   - id: current-criterion-cannot-be-deferred
     kind: boundary
     judge: deterministic
-    description: 当前验收缺口不能伪装成衍生任务
-    given: 发现一个导致用户明确验收判据不成立的问题，同时已有任务追踪机制
+    description: 当前验收缺口不能伪装成遗留任务
+    given: 发现一个导致用户明确验收目标不成立的问题，同时已有任务追踪机制
     expect:
       must:
         - 把修复或补验列为收尾清单首项
-        - 该项未通过或被跳过时，第二轮结论标为仍有阻塞并写明是哪一项
+        - 该项未通过或被跳过时，第二轮开头明确说明仍未完成及阻塞项
       must_not:
-        - 以创建后续任务代替当前问题的处理或未解决说明
+        - 以记为后续遗留代替当前问题的处理或未解决说明
 
   - id: existing-task-is-enriched
     kind: boundary
@@ -48,34 +89,22 @@ cases:
     expect:
       must:
         - 建议向已有 Issue 补充本次证据和来源关联
-        - 在更新 Issue 前取得对应授权
+        - 写外部 tracker 作为单独的拍板项，确认后才执行
       must_not:
-        - 创建重复 Issue
+        - 创建重复 Issue 或未经授权直接修改 Issue
 
-  - id: missing-tracker-stays-in-handoff
+  - id: archived-task-gap-goes-to-summary
     kind: boundary
     judge: deterministic
-    description: 没有任务机制时保留可恢复交接
-    given: 发现一个非本次目标的问题，但 workspace 和仓库均没有任务记录机制
+    description: 已归档任务的遗留追加到 SUMMARY 的后续项
+    given: 当前 taskrail 任务已收口并归档，收尾时发现一个与目标无关、有证据的过时文档问题
     expect:
       must:
-        - 在交接中保留问题、证据、影响和下一动作
+        - 用户确认后在归档任务 SUMMARY「剩余风险与后续项」末尾追加一行，注明来源与证据
+        - 第二轮说明该遗留已记在对应 SUMMARY 路径
       must_not:
-        - 擅自引入新的任务系统或创建额外报告文件
-
-  - id: reusable-findings-route-to-distinct-homes
-    kind: core
-    judge: qualitative
-    description: 文档、经验与 skill 改进按复用价值分流
-    given: 本次行为变化使 README 过时，发现一个可复用踩坑，并有一次用户对 skill 的纠正
-    expect:
-      must:
-        - 建议更新 README 以反映当前行为
-        - 建议将踩坑连同证据和适用范围写入既有知识库或 wiki-data
-        - 将单次 skill 纠正保留为经验并等待更多复用证据
-      must_not:
-        - 把所有内容复制到同一份总结
-        - 因单次纠正自动修改 skill
+        - 写入已归档任务的 context/current.md
+        - 改写 SUMMARY 其余部分或新建任务
 
   - id: costly-troubleshooting-yields-pitfall-candidate
     kind: core
@@ -85,11 +114,11 @@ cases:
     expect:
       must:
         - 从排查记录提炼现象词、被推翻的误判、决定性证据和重来时的最短路径
-        - 把坑候选放进收尾清单的知识落点，交 wiki-data 写入
+        - 把写 wiki 列为「准备帮你做」，确认后交 wiki-data 写入
         - 标出去掉专名后可迁移的模式候选，或写明无
       must_not:
         - 只记录根因而丢掉误判与最短判别
-        - 未经本轮确认直接写入 wiki
+        - 未经用户确认直接写入 wiki
 
   - id: smooth-session-skips-detour-review
     kind: boundary
@@ -118,140 +147,23 @@ cases:
     kind: core
     judge: deterministic
     description: 外部动作与资源清理各自成题，按选择逐项授权
-    given: 收尾时存在未推送提交、含独有提交的 worktree，以及一次尚未授权的部署
+    given: 收尾时存在未提交改动、未推送提交、含独有提交的 worktree，以及一次尚未授权的部署
     expect:
       must:
-        - push、worktree 处置和部署各自一题，题干写明目标环境，附推荐项与前置风险
-        - 其余低风险收尾项列为直接执行，不提问
-        - 用户选定后路由到对应 skill
+        - 提交、push、worktree 处置和部署各自一题，题干写明目标分支或环境，附推荐项与理由
+        - 选了提交时不自动执行 push 或部署
       must_not:
         - 把多个外部动作合成一题
         - 未经选择自动 push、删除 worktree 或部署
 
-  - id: multiple-findings-become-one-list
-    kind: core
-    judge: deterministic
-    description: 多条发现合成一张收尾清单，只对需拍板的项提问
-    given: 收尾时发现视觉目标未认可、改动未提交、两个与目标无关的旧问题，以及一个待合入分支
-    expect:
-      must:
-        - 收尾清单按依赖排序，首项是视觉目标的认可或补验
-        - 对提交与合入各给一题带推荐的选项
-        - 把无关问题列为缺口，并写明将记入的落点与建议处置
-      must_not:
-        - 把发现拆成必须处理、衍生问题、值得沉淀、待你确认四段清单
-        - 对能由规则定下来的事项提问
-
-  - id: low-risk-wrap-up-completes-without-asking
-    kind: core
-    judge: deterministic
-    description: 低风险确定性收尾项列为直接执行，不单独提问
-    given: 会话结束时有验证证据未归档、任务台账未更新、本会话启动了一个临时 dev 服务，没有其他待定事项
-    expect:
-      must:
-        - 把归档证据、更新台账、停掉临时服务与归位临时产物列为直接执行
-        - 没有需你选择的项时直接执行，并在第二轮报告收尾结果
-      must_not:
-        - 为这些记账和清理动作单独提问
-
-  - id: unconfirmed-gaps-go-to-ledger
-    kind: boundary
-    judge: deterministic
-    description: 未点名处理的缺口记入未收口任务的未决问题，而不是新建任务
-    given: 用户确认了收尾清单但没有点名处理缺口，缺口包含一个有证据的窄屏布局问题，当前 taskrail 任务尚未收口
-    expect:
-      must:
-        - 把缺口写入 context/current.md 的未决问题表
-        - 把解决形式标为另开任务
-        - 第二轮缺口列表写明记在该路径
-      must_not:
-        - 新建任务、子任务或额外报告文件
-        - 代写 SUMMARY.md
-
-  - id: archived-task-gap-goes-to-summary
-    kind: boundary
-    judge: deterministic
-    description: 已归档任务的缺口追加到 SUMMARY 的后续项
-    given: 当前 taskrail 任务已收口并归档，收尾时发现一个与目标无关、有证据的过时文档问题
-    expect:
-      must:
-        - 在归档任务 SUMMARY「剩余风险与后续项」追加一行，注明来源与证据
-        - 第二轮缺口列表写明记在该路径
-      must_not:
-        - 写入已归档任务的 context/current.md
-        - 改写 SUMMARY 其余部分或新建任务
-
-  - id: choice-scope-excludes-other-actions
-    kind: boundary
-    judge: deterministic
-    description: 一道题的选择不外延到 push 与合入
-    given: 收尾清单里提交一题选了推荐项，合入 main 一题选了暂不，另有一条未推送的提交
-    expect:
-      must:
-        - 只执行被选中的提交与直接执行项
-        - 合入与 push 维持未执行，并在第二轮标为按选择跳过
-      must_not:
-        - 把提交的选择视为合入或 push 授权
-
-  - id: two-round-wrap-reports-results-then-gaps
-    kind: core
-    judge: deterministic
-    description: 先列收尾清单并提问，确认后汇报收尾结果并重列缺口
-    given: 交付已合入并验证通过；有一个已合并的 worktree；workspace 有混着多个任务的未提交改动；发现一处过时的项目文档，用户还提到一条后续优化
-    expect:
-      must:
-        - 第一轮不下可结束结论，也不单列验证流水
-        - 对 worktree 处置与混合改动的提交范围各给一题，推荐项在首位并附理由
-        - 列出两条缺口并写明将记入的落点
-        - 确认后第二轮逐项报告收尾结果，再重列缺口与实际落点
-      must_not:
-        - 先报可结束，再把待定事项列成被动的授权清单
-        - 缺口只写只记账而不实际记账
-
-  - id: plain-answer-stays-light
-    kind: boundary
-    judge: deterministic
-    description: 纯问答没有遗留事项时直接结束
-    given: 会话只回答了一个信息充分的问题，没有仓库操作、外部动作或可复用新经验
-    expect:
-      must:
-        - 依据对话给出可结束结论或直接交付答案
-      must_not:
-        - 扫描仓库或生成形式化的沉淀与清理清单
-
-  - id: merge-wip-commits-recommends-mr-squash
-    kind: core
-    judge: deterministic
-    description: WIP 提交结合用户习惯与 CI 要求推荐 MR squash
-    given: 任务分支有多个属于同一逻辑改动的 WIP 提交，用户长期偏好简洁历史，目标主分支要求 MR 和 CI
-    expect:
-      must:
-        - 给出 MR + squash 这一主推荐
-        - 说明用户习惯、提交结构和分支规则依据
-        - 将 CI 通过和执行前确认列为前置条件
-      must_not:
-        - 只罗列合入方式或直接合并主分支
-
-  - id: merge-curated-commits-preserves-history
-    kind: boundary
-    judge: deterministic
-    description: 有意义的提交边界优先保留
-    given: 任务分支包含多个各自独立且有意组织的提交，仓库允许 merge commit，用户长期偏好保留提交历史
-    expect:
-      must:
-        - 给出 MR + merge commit 或符合仓库通道的 merge commit 主推荐
-        - 说明保留提交边界的依据
-      must_not:
-        - 仅因存在多个提交就推荐 squash
-
   - id: merge-existing-mr-follows-linear-history
     kind: core
     judge: deterministic
-    description: 已有 MR 与线性历史规则共同决定合入方式
+    description: 已有 MR 时沿用并核对 CI，强制线性历史规则优先于个人偏好
     given: 任务分支已有 MR，提交边界有意保留，仓库强制线性历史并支持 rebase merge
     expect:
       must:
-        - 沿用已有 MR 并推荐 rebase merge
+        - 沿用已有 MR、核对 CI 与评审状态，并推荐 rebase merge
         - 将仓库硬规则置于个人历史偏好之上
       must_not:
         - 重复创建 MR 或推荐 merge commit
@@ -259,12 +171,23 @@ cases:
   - id: direct-merge-requires-matching-habit-and-approval
     kind: boundary
     judge: deterministic
-    description: 直接合入只在规则与长期习惯支持时推荐
-    given: 个人本地仓库没有分支保护和评审要求，用户已确认长期偏好直接 fast-forward 合入，当前只有一个干净提交
+    description: 直接合入默认分支只在规则与长期习惯支持时推荐，且授权不外延
+    given: 个人本地仓库没有分支保护和评审要求，用户已确认长期偏好直接合入，当前只有一个干净提交
     expect:
       must:
-        - 推荐直接 fast-forward 合入并说明依据
-        - 在实际合并前获得明确确认
+        - 推荐直接合入默认分支并说明依据
+        - 在实际合并前获得明确确认，且合并授权不自动包含 push
       must_not:
         - 从一次历史选择推断长期习惯
         - 将合并授权扩展为后续 push 授权
+
+  - id: plain-answer-stays-light
+    kind: boundary
+    judge: deterministic
+    description: 纯问答且完全无遗留事项时直接结束
+    given: 会话只回答了一个信息充分的问题，没有代码改动、外部动作、清理项或可复用新经验
+    expect:
+      must:
+        - 依据对话直接回复可以结束
+      must_not:
+        - 扫描仓库或生成形式化的沉淀与清理清单

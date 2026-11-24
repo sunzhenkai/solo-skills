@@ -125,7 +125,7 @@ grepom version                   # 已安装版本
 
 - **token 来源**：YAML 里一律 `${ENV_VAR}` 占位；密钥经 1Password CLI / direnv / vault 导出，禁止明文。
 - **先 commit 再 MR**：`grepom mr` 读 HEAD 消息，先写好 Conventional Commit 主题。
-- **未经用户确认，禁止 `--force` push**。
+- **未经用户确认，禁止 `--force` push、`grepom prune --apply`（删除本地目录）与 `grepom pull --force`（覆盖本地改动）**。
 - **过期配置**：`sync` 只追加；上游仓改名/删除时手动改配置，或用 `grepom init` + `grepom add group` 重建。
 - **verbose**：命令异常时加 `-v` 看调试输出。
 - **台账**：遵守 `.repo-manager.md` 创建门禁——禁止自动创建；仅文件已存在时自动更新（见「台账」节）。

@@ -77,3 +77,16 @@ cases:
         - 区分事实、推断和未知并说明评审盲区
       must_not:
         - 只给“提高清晰度”或“精简内容”这类无法验收的评价
+
+  - id: review-catches-unconfirmed-actions-and-jargon
+    kind: core
+    judge: deterministic
+    description: 只读评审检出未确认执行绕过口、交付闭环缺口与面向用户的官腔模板
+    given: 用户要求评审一个包含“无选择题时直接执行写盘”、只查到工作区干净却忽略未合入主分支、且强制只读命令输出英文 key-value 表单的 Skill
+    expect:
+      must:
+        - 指出副作用动作缺少先确认门禁及绕过口风险
+        - 指出目标闭环未覆盖未推送或未合入主分支的收尾
+        - 指出面向用户的输出模板堆砌内部术语或硬凑空字段，并给出可验收改法
+      must_not:
+        - 只检查触发词和目录结构而放过交互与闭环缺陷

@@ -1,0 +1,72 @@
+diff --git a/skills/agent-docs-writer/evals/cases.yaml b/skills/agent-docs-writer/evals/cases.yaml
+index 57cf67d..58d9371 100644
+--- a/skills/agent-docs-writer/evals/cases.yaml
++++ b/skills/agent-docs-writer/evals/cases.yaml
+@@ -77,3 +77,16 @@ cases:
+         - 区分事实、推断和未知并说明评审盲区
+       must_not:
+         - 只给“提高清晰度”或“精简内容”这类无法验收的评价
++
++  - id: review-catches-unconfirmed-actions-and-jargon
++    kind: core
++    judge: deterministic
++    description: 只读评审检出未确认执行绕过口、交付闭环缺口与面向用户的官腔模板
++    given: 用户要求评审一个包含“无选择题时直接执行写盘”、只查到工作区干净却忽略未合入主分支、且强制只读命令输出英文 key-value 表单的 Skill
++    expect:
++      must:
++        - 指出副作用动作缺少先确认门禁及绕过口风险
++        - 指出目标闭环未覆盖未推送或未合入主分支的收尾
++        - 指出面向用户的输出模板堆砌内部术语或硬凑空字段，并给出可验收改法
++      must_not:
++        - 只检查触发词和目录结构而放过交互与闭环缺陷
+diff --git a/skills/agent-docs-writer/references/review.md b/skills/agent-docs-writer/references/review.md
+index 2cb197a..ad82331 100644
+--- a/skills/agent-docs-writer/references/review.md
++++ b/skills/agent-docs-writer/references/review.md
+@@ -26,6 +26,12 @@
+ - 条件是否可观察，默认方案是否明确，输出形状是否可直接遵循。
+ - 验证是否覆盖用户场景，完成标准是否要求必要而充分的检查。
+ 
++### 副作用、闭环与表达
++
++- **副作用与确认门禁**：凡涉及写文件、改 git、删资源、启停服务或外部调用，是否明确先确认后执行；是否存在「直接执行」「无选择题跳过确认」等绕过口；多项外部或不可逆动作的授权是否相互隔离。
++- **用户目标闭环**：从用户最终期望状态反推，流程与完成标准是否走到真正闭环（例如代码交付或收尾类 Skill 是否覆盖未推送、未提 MR/PR、未合入主分支，而不只停在工作区干净或本地提交）。
++- **面向用户的表达质量**：输出模板是否去内部术语（状态字段、契约名词、英文 `key: value` 表单）；空区块与只读操作是否省略而非硬凑固定字段；篇幅是否可控；宿主有结构化提问工具时，正文与提问框是否避免重复列选项。
++
+ ### 信息与维护
+ 
+ - 每次运行都需要的内容是否在主文件，分支细节是否按需披露。
+diff --git a/skills/agent-docs-writer/references/skill-authoring.md b/skills/agent-docs-writer/references/skill-authoring.md
+index 9b719bc..663885d 100644
+--- a/skills/agent-docs-writer/references/skill-authoring.md
++++ b/skills/agent-docs-writer/references/skill-authoring.md
+@@ -41,8 +41,9 @@ Frontmatter 遵循目标环境规范；名称与目录保持一致。description
+ 1. 说明能力契约和路径选择。
+ 2. 写出共用步骤，每步以可观察结果收尾。
+ 3. 在分支入口直接链接对应 reference，并写明何时读取。
+-4. 需要固定输出形状时给出模板；需要稳定判断时给出条件、默认方案和例子。
+-5. 写明验证方式与最终交付内容。
++4. 区分只读排查与有副作用动作：写文件、改 git、删资源、启停服务或外部调用明确确认边界与授权范围，不留「直接执行」绕过口。
++5. 面向用户的输出用白话短句、省略空区块、不倒内部术语，有结构化提问工具时正文与提问框不重复；需要稳定判断时给出条件、默认方案和例子。
++6. 写明验证方式与最终交付内容，并核对流程是否覆盖用户最终目标的端到端闭环。
+ 
+ 解释约束存在的原因，让 agent 能在合理变体中作出判断。脆弱操作使用精确步骤，开放任务保留选择空间。
+ 
+diff --git a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+index b6b2c92..36f773b 100644
+--- a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
++++ b/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+@@ -113,6 +113,13 @@ class ReviewContract(unittest.TestCase):
+         self.assertIn("三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报", REVIEW)
+         self.assertIn("交给它的 `roles=skill`", REVIEW)
+ 
++    def test_review_and_authoring_check_confirmation_closure_and_plain_language(self) -> None:
++        self.assertIn("### 副作用、闭环与表达", REVIEW)
++        for needle in ("副作用与确认门禁", "用户目标闭环", "面向用户的表达质量", "结构化提问工具"):
++            self.assertIn(needle, REVIEW)
++        for needle in ("区分只读排查与有副作用动作", "白话短句", "端到端闭环"):
++            self.assertIn(needle, SKILL_AUTHORING)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

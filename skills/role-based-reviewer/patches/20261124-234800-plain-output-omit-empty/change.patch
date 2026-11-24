@@ -1,0 +1,10 @@
+diff --git a/skills/role-based-reviewer/SKILL.md b/skills/role-based-reviewer/SKILL.md
+index 22c93dc..c6f0471 100644
+--- a/skills/role-based-reviewer/SKILL.md
++++ b/skills/role-based-reviewer/SKILL.md
+@@ -42,4 +42,4 @@ description: "角色化只读评审（engineer、algo、data、sre、ops、biz
+ 
+ ## 输出
+ 
+-骨架见 protocol「输出骨架」。review 至少有：依据状态（产物状态 + 边界缺项）、生效角色及依据、各角色 findings 与证据、共享风险的主责、未覆盖项、下一步与置信度。报告只对所标产物状态有效；findings 的处置（`fixed` / `accepted-recorded`）由调用方记录，本 skill 不代判收敛。
++骨架见 protocol「输出骨架」。review 至少交代依据状态（产物状态；有边界缺项时一并写明）、生效角色、各角色 findings 与证据、未覆盖项与下一步；面向用户时用白话短句，无边界缺项或无跨角色共享风险时直接省略对应空区块。报告只对所标产物状态有效；findings 的处置状态留给上游台账记录，不直接倒内部状态词给用户，本 skill 不代判收敛。

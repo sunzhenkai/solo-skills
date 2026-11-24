@@ -113,6 +113,13 @@ class ReviewContract(unittest.TestCase):
         self.assertIn("三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报", REVIEW)
         self.assertIn("交给它的 `roles=skill`", REVIEW)
 
+    def test_review_and_authoring_check_confirmation_closure_and_plain_language(self) -> None:
+        self.assertIn("### 副作用、闭环与表达", REVIEW)
+        for needle in ("副作用与确认门禁", "用户目标闭环", "面向用户的表达质量", "结构化提问工具"):
+            self.assertIn(needle, REVIEW)
+        for needle in ("区分只读排查与有副作用动作", "白话短句", "端到端闭环"):
+            self.assertIn(needle, SKILL_AUTHORING)
+
 
 if __name__ == "__main__":
     unittest.main()

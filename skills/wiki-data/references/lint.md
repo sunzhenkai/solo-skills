@@ -1,6 +1,6 @@
 # Lint
 
-确定性检查由 `scripts/lint_wiki.py` 执行。LLM 负责解释、排序和修复，不要只看一遍报告就算完成。
+确定性检查由 `scripts/lint_wiki.py` 执行。默认只读出报告并给出修复清单；经用户确认或明确要求修复后，再按下方顺序改盘，不未经确认直接写文件。
 
 ```bash
 python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}"

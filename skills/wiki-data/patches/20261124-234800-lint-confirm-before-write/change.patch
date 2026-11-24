@@ -1,0 +1,25 @@
+diff --git a/skills/wiki-data/SKILL.md b/skills/wiki-data/SKILL.md
+index e7c0099..66b46f3 100644
+--- a/skills/wiki-data/SKILL.md
++++ b/skills/wiki-data/SKILL.md
+@@ -32,7 +32,7 @@ description: 在本地 Markdown 工作区维护可累积、带置信度与时效
+ | `archive` | 整页被替代或不再适用 | 先给计划，确认后原地标记 | 历史与链接保留、索引归入已归档、lint 无 error、log 已追加 |
+ | `reopen` | 恢复已归档页面 | 核实后解除归档标记 | 当前主张已核实或降级、历史保留、索引与 log 已更新 |
+ | `organize` | 合并重复、搬页、补交叉引用 | 先给方案，确认后改 | 确认的方案全部落地、lint 无 error、log 已追加 |
+-| `lint` | 健康检查；可顺带修 error | 修 error 可直接做；warning 需说明 | 脚本 error 为 0（或剩余项已逐条说明） |
++| `lint` | 健康检查；按需修复 error | 默认只读；确认修复清单或用户明确要求修复后再改盘 | 报告清晰；执行修复后脚本 error 为 0（或剩余项已逐条说明） |
+ 
+ ## 绑定 `WIKI_ROOT`
+ 
+diff --git a/skills/wiki-data/references/lint.md b/skills/wiki-data/references/lint.md
+index 231bdc7..7c118ca 100644
+--- a/skills/wiki-data/references/lint.md
++++ b/skills/wiki-data/references/lint.md
+@@ -1,6 +1,6 @@
+ # Lint
+ 
+-确定性检查由 `scripts/lint_wiki.py` 执行。LLM 负责解释、排序和修复，不要只看一遍报告就算完成。
++确定性检查由 `scripts/lint_wiki.py` 执行。默认只读出报告并给出修复清单；经用户确认或明确要求修复后，再按下方顺序改盘，不未经确认直接写文件。
+ 
+ ```bash
+ python3 <this-skill>/scripts/lint_wiki.py "{WIKI_ROOT}"
