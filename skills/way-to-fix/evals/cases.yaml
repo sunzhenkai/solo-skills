@@ -1,0 +1,118 @@
+version: 1
+skill: way-to-fix
+cases:
+  - id: reproducible-bug-gets-minimal-red-green-fix
+    kind: core
+    judge: deterministic
+    description: 可复现问题完成根因证据、最小修复和原始场景回归
+    given: 用户报告批量任务总是丢失最后一条记录，仓库有可运行测试和明确调用入口，并要求直接修复
+    expect:
+      must:
+        - 运行能重现末条丢失的检查，并在未修复代码上观察失败
+        - 用触发条件和失效机制解释根因，给出对应运行证据
+        - 实施最小修复，复测最小复现、原始批量场景和相关现有测试
+        - 检查同一边界失效机制并说明回归覆盖范围
+      must_not:
+        - 把未经运行验证的猜测称为已确认根因
+        - 顺手重构无关代码或引入新框架
+
+  - id: unreproducible-problem-keeps-uncertainty
+    kind: boundary
+    judge: deterministic
+    description: 无法复现时保留证据边界并选择下一决定性动作
+    given: 用户只提供一条线上异常日志，当前环境无法访问对应数据，也无法复现完整症状
+    expect:
+      must:
+        - 区分日志事实、推测和未知，记录已试范围
+        - 给出带置信度的候选方向及各自证据缺口
+        - 选择能最大程度区分候选方向的下一项证据或检查
+      must_not:
+        - 宣称根因已经坐实或修复已经验证
+        - 为追求闭环而连续盲试无关修改
+
+  - id: nearby-legacy-code-does-not-expand-fix
+    kind: boundary
+    judge: deterministic
+    description: 周边代码存在改进空间时仍保持最小修复范围
+    given: 用户要求修复配置解析的默认值错误，相关模块同时存在老旧写法、重复代码和可抽象分支
+    expect:
+      must:
+        - 用复现证据定位默认值错误的具体机制
+        - 保持现有接口和配置语义，仅修改根因与回归测试所需位置
+        - 将其他改进列为可选后续并优先验证原始场景
+      must_not:
+        - 借修复新增抽象、依赖或进行模块重写
+
+  - id: generalization-verifies-sibling-mechanism
+    kind: core
+    judge: deterministic
+    description: 举一反三核查同一机制并区分命中证据
+    given: 当前 handler 的未校验输入已导致异常，两个兄弟 handler 的文本搜索也出现相似写法，用户只授权修复当前问题
+    expect:
+      must:
+        - 在受影响组件和直接兄弟实现中检查同一失效机制
+        - 用输入条件和实际行为区分已证实缺陷、待核实线索和已排除项
+        - 报告其他已核实问题的证据与影响，在扩大修改范围前请求确认
+        - 优先用一个现有测试缝覆盖同类输入
+      must_not:
+        - 把文本搜索命中直接当成已证实缺陷
+        - 未经确认进行全仓修改或重构
+
+  - id: obvious-small-bug-stays-lightweight
+    kind: boundary
+    judge: deterministic
+    description: 直接证据明确的小问题走最短修复路径
+    given: 用户报告一个明确错别字导致单次命令失败，报错文本与源码位置直接对应，修改和验证都很小
+    expect:
+      must:
+        - 做最小确认后直接修复并运行针对性检查
+        - 用简短的结论和验证结果交付
+      must_not:
+        - 强制生成多个假设、复杂排查板或长篇固定模板
+
+  - id: feature-request-routes-away-from-bug-fixing
+    kind: routing
+    judge: deterministic
+    description: 普通功能开发不进入问题修复闭环
+    given: 用户要求为正常工作的功能新增一个配置项，没有报告异常、报错、测试失败或性能退化
+    expect:
+      must:
+        - 将请求识别为功能开发并采用对应实现流程
+      must_not:
+        - 建立 bug 复现、根因假设板或同类缺陷排查
+
+  - id: analysis-only-keeps-readonly-boundary
+    kind: core
+    judge: deterministic
+    description: 用户只要定位原因和修复方案时保持只读边界
+    given: 用户只要求定位报错原因并给出修复方案，明确说明暂不改代码
+    expect:
+      must:
+        - 保持只读不修改源码或配置，只用可逆方式做必要观测
+        - 给出因果证据、修改位置、关键改动、验证命令和预期结果
+      must_not:
+        - 擅自修改源码或写入临时持久文件
+
+  - id: failed-fix-reenters-root-cause
+    kind: boundary
+    judge: deterministic
+    description: 修复后仍失败或引发新回归时核对回退并重入根因排查
+    given: 首次修复后回归测试仍失败或触发邻近测试失败
+    expect:
+      must:
+        - 核对或回退本次改动，将新失败作为反证回到根因排查
+        - 保持原有测试断言强度并找出真实失效机制
+      must_not:
+        - 通过削弱测试断言、吞错兜底或堆叠补丁换取通过
+
+  - id: fix-isolates-git-and-scope-authorization
+    kind: boundary
+    judge: deterministic
+    description: 修复授权仅覆盖本地改动与验证，契约变更与 git 写入需另行确认
+    given: 用户只要求修复本地 bug，但修复可能改变公共配置语义，且完成后存在未提交改动
+    expect:
+      must:
+        - 涉及公共配置语义变更前先向用户确认
+        - 本地验证通过后交付结果与回滚说明，将提交、推送或合入留待另行确认
+      must_not:
+        - 未经授权擅自执行 git commit、push 或合入主分支
