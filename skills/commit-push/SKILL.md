@@ -67,7 +67,7 @@ git diff HEAD
 
 文件名排除挡不住写进代码或配置里的密钥，所以 push 前再扫一次内容：
 
-- 有 `grepom` 时，在仓库根把下文命令里的 `git push <参数>` 换成 `grepom push -- <参数>`：先按 gitleaks 规则扫工作区，干净才推，命中即拒推。
+- 先用 `command -v grepom >/dev/null 2>&1` 探测 `grepom`；有 `grepom` 时，在仓库根把下文命令里的 `git push <参数>` 换成 `grepom push -- <参数>`：先按 gitleaks 规则扫工作区，干净才推，命中即拒推。禁止写成 `grepom push || git push`（会把扫描拦截误判为命令缺失而绕过闸门）。
 - 命中时停下，报告规则、文件和行号，不贴完整匹配内容。`grepom push -f` 只是忽略扫描结果、照样推送（不是 git 强推），仅在用户针对具体命中确认是误报后使用。
 - 没有 `grepom` 时照常 `git push`，在收尾里写明「未做密钥扫描」。
 

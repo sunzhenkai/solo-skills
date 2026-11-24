@@ -119,6 +119,8 @@ class PushGateContract(unittest.TestCase):
         self.assertIn("仅在用户针对具体命中确认是误报后使用", self.text)
         self.assertIn("在收尾里写明「未做密钥扫描」", self.text)
         self.assertIn("是否做过密钥扫描", self.text)
+        self.assertIn("command -v grepom", self.text)
+        self.assertIn("禁止写成 `grepom push || git push`", self.text)
 
 
 
