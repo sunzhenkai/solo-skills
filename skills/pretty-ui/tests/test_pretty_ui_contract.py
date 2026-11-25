@@ -269,7 +269,7 @@ class GuardrailsTest(unittest.TestCase):
     def test_four_groups_present(self) -> None:
         for gid in ("G-L1", "G-L2", "G-L3", "G-L4", "G-L5", "G-L6", "G-O1", "G-O2", "G-O3", "G-S1", "G-S2", "G-S3", "G-S4", "G-A1", "G-A2", "G-A3"):
             self.assertIn(f"**{gid}", self.TEXT)
-        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py", "scrollbar-gutter: stable", "@property", "100dvh", "safe-area-inset-bottom"):
+        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py", "覆盖式", "0px", "独立滚动", "100dvh", "safe-area-inset-bottom"):
             self.assertIn(phrase, self.TEXT)
 
 

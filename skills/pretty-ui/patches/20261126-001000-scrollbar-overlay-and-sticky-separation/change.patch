@@ -1,0 +1,242 @@
+diff --git a/skills/pretty-ui/assets/reading-page.html b/skills/pretty-ui/assets/reading-page.html
+index 6c0ee2a..f5dda0f 100644
+--- a/skills/pretty-ui/assets/reading-page.html
++++ b/skills/pretty-ui/assets/reading-page.html
+@@ -7,7 +7,7 @@
+ <!--
+   pretty-ui 阅读页起手模板：复制到 <output-root>/ 下，改 title、导航链接、下面的方向卡和 :root 色值，正文换成真实内容。
+   已内置：系统字体栈与中文回退、px 写的正文列宽、sticky 导航、scroll-margin-top、长内容防撑爆、text-wrap、代码关连字、等宽数字、
+-  宽表格与代码块各自横向滚动、细滚动条与滚动显隐零挤压、:focus-visible、prefers-reduced-motion、color-scheme 与暗色模式映射。
++  宽表格与代码块各自横向滚动、整页原生滚动与内部细滚动条、:focus-visible、prefers-reduced-motion、color-scheme 与暗色模式映射。
+   轻量方向卡（栏目见 SKILL.md「轻量方向卡」）：
+     北极星：
+     字体：
+@@ -17,11 +17,6 @@
+     放弃：
+ -->
+ <style>
+-@property --sb-alpha {
+-  syntax: "<number>";
+-  inherits: true;
+-  initial-value: 0;
+-}
+ :root {
+   color-scheme: light dark;
+   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+@@ -41,8 +36,7 @@
+   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+   --z-sticky: 10;
+-  --scrollbar-thumb: color-mix(in srgb, var(--text) calc(var(--sb-alpha) * 100%), transparent);
+-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 48%, transparent);
++  --scrollbar-thumb: color-mix(in srgb, var(--text) 28%, transparent);
+ }
+ @media (prefers-color-scheme: dark) {
+   :root {
+@@ -51,13 +45,8 @@
+   }
+ }
+ *, *::before, *::after { box-sizing: border-box; }
+-html { background: var(--surface); color: var(--text); scrollbar-gutter: stable; }
+-html, .wide, pre { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; transition: --sb-alpha 200ms ease; }
+-.is-scrolling { --sb-alpha: 0.34; }
+-html::-webkit-scrollbar, .wide::-webkit-scrollbar, pre::-webkit-scrollbar { width: 6px; height: 6px; }
+-html::-webkit-scrollbar-track, .wide::-webkit-scrollbar-track, pre::-webkit-scrollbar-track { background: transparent; }
+-html::-webkit-scrollbar-thumb, .wide::-webkit-scrollbar-thumb, pre::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 1px solid transparent; background-clip: content-box; }
+-html::-webkit-scrollbar-thumb:hover, .wide::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); border: 1px solid transparent; background-clip: content-box; }
++html { background: var(--surface); color: var(--text); }
++.wide, pre { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+ body { margin: 0; font: 18px/1.7 var(--font-sans); }
+ a { color: var(--action); text-underline-offset: 0.2em; }
+ a:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 2px; }
+@@ -90,7 +79,7 @@ pre { margin: var(--space-5) 0; padding: var(--space-4); overflow-x: auto; backg
+   h1 { font-size: 30px; }
+ }
+ @media (hover: none), (pointer: coarse) {
+-  html, .wide, pre { scrollbar-width: auto; scrollbar-color: auto; }
++  .wide, pre { scrollbar-width: auto; scrollbar-color: auto; }
+ }
+ @media (prefers-reduced-motion: reduce) {
+   html { scroll-behavior: auto; }
+@@ -127,17 +116,5 @@ pre { margin: var(--space-5) 0; padding: var(--space-4); overflow-x: auto; backg
+     <pre><code>命令或代码原样放这里</code></pre>
+   </article>
+ </main>
+-<script>
+-(() => {
+-  const timers = new WeakMap();
+-  document.addEventListener("scroll", (e) => {
+-    const el = (e.target === document || e.target === document.body) ? document.documentElement : e.target;
+-    if (!(el instanceof Element)) return;
+-    el.classList.add("is-scrolling");
+-    clearTimeout(timers.get(el));
+-    timers.set(el, setTimeout(() => el.classList.remove("is-scrolling"), 800));
+-  }, { capture: true, passive: true });
+-})();
+-</script>
+ </body>
+ </html>
+diff --git a/skills/pretty-ui/evals/cases.yaml b/skills/pretty-ui/evals/cases.yaml
+index 57aa3cb..d66e254 100644
+--- a/skills/pretty-ui/evals/cases.yaml
++++ b/skills/pretty-ui/evals/cases.yaml
+@@ -460,14 +460,16 @@ cases:
+   - id: scrollbar-thin-auto-hide-no-shift
+     kind: core
+     judge: llm
+-    description: 滚动条细化、平时隐藏、滚动时显示且不挤压布局
+-    given: 做一个带可滚动侧栏与宽表格的工作台页面，支持亮暗模式
++    description: 覆盖式 0px 滚动条、平时隐藏/滚动显示且不截断横线或顶穿固定头
++    given: 做一个带可滚动侧栏与固定面板头的工作台页面，支持亮暗模式
+     expect:
+       must:
+-        - 滚动条细化（约 6px）并使用语义 token 与 color-scheme 同步亮暗模式
+-        - 平时隐藏、滚动时通过 @property 与 .is-scrolling 平滑淡入淡出
+-        - 使用 scrollbar-gutter: stable（或已有覆盖式原语）保持轨道不挤压已有元素
++        - 使用 0px 占位的覆盖式滚动条（如 ScrollArea 或悬浮滑块），不挤压已有元素且不截断贴边横线
++        - 固定面板头或顶栏独立于滚动容器之外（外层 flex-col overflow-hidden，滚动条起点对齐头部下沿）
++        - 声明 color-scheme 或语义 token 同步亮暗模式，遵循 prefers-reduced-motion
+       must_not:
++        - 混写非 none 的 scrollbar-width 与 ::-webkit-scrollbar，或对 ::-webkit-scrollbar-thumb 直接写 transition
++        - 把固定面板头用 position: sticky; top: 0 塞进滚动容器内部
+         - 用 :hover 切换 overflow: hidden 与 auto，或使用已废弃的 overflow: overlay
+ 
+   - id: guardrails-before-code
+diff --git a/skills/pretty-ui/references/evidence.md b/skills/pretty-ui/references/evidence.md
+index 8c002df..55a0292 100644
+--- a/skills/pretty-ui/references/evidence.md
++++ b/skills/pretty-ui/references/evidence.md
+@@ -104,7 +104,7 @@
+ })()
+ ```
+ 
+-表格单元格里的短行不算行太长；它只是线索，结论以截图为准。「环被裁」指用 `0 0 0 1px` 这类外扩阴影或 outline 画的细线，被祖先的 `overflow` 裁掉——内容没被裁，`横向溢出` 抓不到它。可滚动容器里滚得到的那一侧不算；判 1px 级细线时用 `deviceScaleFactor: 2` 截图并按像素取样，1x 下环只有 1 个物理像素，落在小数坐标上会被抗锯齿摊薄。
++表格单元格里的短行不算行太长；它只是线索，结论以截图为准。「环被裁」指用 `0 0 0 1px` 这类外扩阴影或 outline 画的细线，被祖先的 `overflow` 裁掉——内容没被裁，`横向溢出` 抓不到它。可滚动容器里滚得到的那一侧不算；判 1px 级细线时用 `deviceScaleFactor: 2` 截图并按像素取样，1x 下环只有 1 个物理像素，落在小数坐标上会被抗锯齿摊薄。另注意 Playwright Headless 默认使用 overlay 滚动条（gutter 0），单看 headless 截图容易漏掉桌面浏览器中占位滚动条造成的右侧横线空隙；涉及固定头与滚动区时需核查头部是否独立于滚动容器之外、滚动条起点是否对齐头部下沿且不占布局宽度。
+ 
+ ## 4. 证据路径
+ 
+diff --git a/skills/pretty-ui/references/guardrails.md b/skills/pretty-ui/references/guardrails.md
+index d4c362b..f262270 100644
+--- a/skills/pretty-ui/references/guardrails.md
++++ b/skills/pretty-ui/references/guardrails.md
+@@ -8,11 +8,12 @@
+ - **G-L2 外扩细线不被祖先裁切**：用 `box-shadow: 0 0 0 1px …` 或 `outline` 画细线时，带 `overflow: hidden/clip` 的祖先必须预留 ≥1px 内边距；改不了祖先容器时改用 `inset` 阴影或真 `border`。
+ - **G-L3 嵌套布局按容器算阈值**：正文 + 右栏/目录这类嵌套分栏，显隐与折叠阈值按「当前容器可用宽度（页面宽 − 已占列宽）」判断，不拿视口宽度直接套在内层分栏上。
+ - **G-L4 媒体防抖与分界**：图片、视频、画布显式声明宽高或固定比例容器防布局抖动（CLS）；用户上传或浅底图片与浅色背景之间有清晰边界；页面不留失效图片（`naturalWidth === 0`）。
+-- **G-L5 滚动条细化、滚动显隐与零挤压**：
+-  - 滚动条变细（约 6px、圆角滑块、透明轨道），配色走语义 token 并声明 `color-scheme` 同步亮暗模式；
+-  - 默认平时完全隐藏、滚动时平滑淡入、停滚后淡出：用 `@property` 注册透明度自定义属性（初始 `0`），由轻量 passive `scroll` 监听（`capture: true`）在滚动期间给目标容器加 `.is-scrolling` 类驱动过渡，不直接对 `::-webkit-scrollbar-thumb` 写无效的 `transition`；
+-  - **零布局挤压**：可滚动容器与动态高度页面设 `scrollbar-gutter: stable`（居中对称布局按需 `stable both-edges`），轨道保持固定透明宽度、仅变化滑块透明度；避免用 `:hover` 切换 `overflow: hidden ↔ auto`、不使用已废弃的 `overflow: overlay`、模态框锁滚不裸改 `body { overflow: hidden }` 挤动页面；
+-  - 高密度多栏界面确需 0px 槽位占用时，优先复用项目已有的覆盖式原语（如 Radix ScrollArea / OverlayScrollbars），不为此盲目新增依赖；
++- **G-L5 滚动条 0px 覆盖式、固定头分离与零挤压**：
++  - **按场景分流滚动条**：
++    - **应用壳 / 多栏 / 带通栏分隔线容器（首选）**：使用 **0px 占位的覆盖式（overlay）滚动条**（优先复用已有覆盖式原语如 Radix `ScrollArea` 或绝对定位悬浮滑块组件，隐藏原生滚动条 `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`，以绝对定位滑块叠在内容右边缘，平时隐藏、滚动或悬停轨道时平滑淡入、停滚后淡出），确保横线贴满边缘、零布局挤压、跨 OS 一致；
++    - **整页文档流（`html` 滚动）**：不给 `html` 强加占位式 `::-webkit-scrollbar` 或 `scrollbar-gutter: stable`（会截断通栏顶栏底线，且会把 macOS 原生悬浮滚动条降级为占位模式），仅声明 `color-scheme` 同步亮暗模式；
++  - **CSS 反模式**：不混写 `scrollbar-width`（非 `none`）与 `::-webkit-scrollbar`（Chromium 121+ 标准属性会屏蔽 webkit 规则）；不对 `::-webkit-scrollbar-thumb` 直接写无效的 `transition`；不用 `:hover` 切换 `overflow: hidden ↔ auto`、不使用已废弃的 `overflow: overlay`、模态框锁滚不裸改 `body { overflow: hidden }` 挤动页面；
++  - **固定头与滚动容器物理分离**：当顶栏或面板头需要固定且要求底线贴满右边缘、滚动条起于头部下沿时，采用外层 `flex-col overflow-hidden` + 头部 `shrink-0`（在滚动容器外）+ 下方内容区 `min-h-0 flex-1` 独立滚动，不把固定头用 `position: sticky; top: 0` 塞进滚动容器内部（滚动条永远覆盖滚动容器全高，会与 `sticky` 顶部平齐）；`position: sticky` 仅用于内容区内部随滚定位的元素（如长表格表头）；
+   - 触屏设备（`@media (hover: none), (pointer: coarse)`）交给系统原生 overlay 滚动条；`@media (prefers-reduced-motion: reduce)` 关闭淡入淡出过渡。
+ - **G-L6 动态视口高度与截断补全**：满屏与吸底布局优先用 `100dvh` / `min-h-dvh`（避免移动端 `100vh` 被地址栏裁切），吸底操作栏预留 `env(safe-area-inset-bottom)`；被 `truncate` / `line-clamp` 截断的关键信息提供查看全貌途径（如 `title`、tooltip 或展开）；表格数字与时间列加 `white-space: nowrap` 与 `tabular-nums` 防止误折行。
+ 
+diff --git a/skills/pretty-ui/references/rules.md b/skills/pretty-ui/references/rules.md
+index 7d42990..4bdc26d 100644
+--- a/skills/pretty-ui/references/rules.md
++++ b/skills/pretty-ui/references/rules.md
+@@ -100,11 +100,11 @@ P0 清单（即使用户只问了别的，也要报）：
+ 
+ ### F 收尾与状态
+ 
+-- **F1** 列表符号、引号、链接、表单控件与滚动条不停在浏览器默认样子；滚动条细化、适配亮暗模式，平时隐藏并在滚动时平滑显示。
++- **F1** 列表符号、引号、链接、表单控件与滚动条不停在浏览器默认样子；滚动条细化、适配亮暗模式，平时隐藏并在滚动时平滑显示，不截断通栏横线、不顶穿固定顶栏。
+ - **F2** 长页面有底色变化或分区节奏，而不是从头到尾一种背景。
+ - **F3** 组件库的默认样子被调整进了方向：按钮、输入、选中、标签共用一套控件语法。
+ - **F4** 每个依赖内容的视图都有设计过的空状态，空状态里只显示有用的入口，用不了的功能先隐藏。
+-- **F5** 加载、出错、禁用、处理中各有自己的样子；状态变化与滚动条显隐时点击区域不变大变小，也不挤动旁边的布局。
++- **F5** 加载、出错、禁用、处理中各有自己的样子；状态变化与滚动条显隐时点击区域不变大变小，也不挤动旁边的布局或截断贴边线条。
+ - **F6** 文案像真的：按钮写清动作（“保存草稿”而不是“提交”），错误信息说明原因和下一步，数字带单位和格式。
+ - **F7** 键盘可达：每个可交互元素有清楚的 `:focus-visible` 样式，只在悬停时出现的入口也有键盘和触屏的到达方式。
+ - **F8** 减法做过：填缝的小字、写在界面上的设计说明、“示例”“仅供示意”之类的字样删掉；删完主角更突出，而不是画面只是变空。
+diff --git a/skills/pretty-ui/references/system.md b/skills/pretty-ui/references/system.md
+index 0cbc4c4..84964dc 100644
+--- a/skills/pretty-ui/references/system.md
++++ b/skills/pretty-ui/references/system.md
+@@ -93,7 +93,7 @@ python3 scripts/contrast.py --matrix pairs.json   # {"pairs": [{"name": "正文"
+   阴影表达离用户多近：按钮 1 级、下拉菜单 3 级、模态框 5 级，按层级选而不是按好看选。光源来自上方，阴影只向下偏移、不横向偏移。需要更细腻时用两段阴影，一段紧贴的接触阴影、一段大而柔的环境阴影，层级越高接触阴影越淡。凸起元素的上沿用手挑的浅一级颜色，而不是叠半透明白。暗色模式里深度靠表面明度区分（越高的层越亮），阴影退居其次。
+ - **边框**：1px 和 2px 两档。分隔优先用间距和底色差，边框留给输入框和需要明确边界的地方。用外扩阴影（`0 0 0 1px`）代替 border 时，容器内要留 1px 余量或不用 `overflow`，否则细线会被裁；改不了容器就用 inset 阴影或真 border。
+ - **层叠顺序**：用少量命名刻度管理 `z-index`（`--z-base: 0`、`--z-sticky: 10`、`--z-dropdown: 20`、`--z-modal: 40`、`--z-toast: 50`），避免随意写大数值造成遮挡冲突。
+-- **滚动条**：细化（约 6px）、透明轨道配 `scrollbar-gutter: stable` 防挤压，滑块色引用语义 token 并由 `@property` 驱动平时隐藏、滚动显示（细则见 `guardrails.md` `G-L5`）。
++- **滚动条**：应用壳与多栏容器首选 0px 占位的覆盖式滚动条（隐藏原生槽位、悬浮滑块按语义 token 着色），整页文档流交还系统原生滚动并声明 `color-scheme` 同步亮暗（细则见 `guardrails.md` `G-L5`）。
+ 
+ ## 6. 两层 token
+ 
+diff --git a/skills/pretty-ui/scripts/check_page.py b/skills/pretty-ui/scripts/check_page.py
+index e400671..d018677 100644
+--- a/skills/pretty-ui/scripts/check_page.py
++++ b/skills/pretty-ui/scripts/check_page.py
+@@ -273,7 +273,15 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
+     if literals:
+         hints.append(f"[C1] 没走 CSS 变量的颜色 {len(literals)} 处：" + "；".join(literals[:3]))
+     if re.search(r"overflow(?:-[xy])?\s*:\s*overlay\b", css, re.I):
+-        hints.append("[G-L5] 使用了已废弃的 overflow: overlay，改用 scrollbar-gutter: stable 配合细滚动条")
++        hints.append("[G-L5] 使用了已废弃的 overflow: overlay，改用 0px 覆盖式滚动条原语或系统原生滚动")
++    if re.search(r"scrollbar-width\s*:\s*(?!none\b)[a-z-]+", css, re.I) and "::-webkit-scrollbar" in css:
++        hints.append("[G-L5] 同时声明了 scrollbar-width 与 ::-webkit-scrollbar，Chromium 121+ 会忽略 webkit 规则")
++    if any(
++        re.search(r"\btransition\s*:", body, re.I)
++        for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css, re.S)
++        if "::-webkit-scrollbar-thumb" in sel
++    ):
++        hints.append("[G-L5] 对 ::-webkit-scrollbar-thumb 直接写 transition 在 Chromium/WebKit 中不生效")
+     if "scrollbar-gutter" not in css.lower():
+         hover_overflow = sum(
+             1 for _, body in CSS_HOVER_RULE_RE.findall(css)
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+index 2e92165..fab9d3f 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -269,7 +269,7 @@ class GuardrailsTest(unittest.TestCase):
+     def test_four_groups_present(self) -> None:
+         for gid in ("G-L1", "G-L2", "G-L3", "G-L4", "G-L5", "G-L6", "G-O1", "G-O2", "G-O3", "G-S1", "G-S2", "G-S3", "G-S4", "G-A1", "G-A2", "G-A3"):
+             self.assertIn(f"**{gid}", self.TEXT)
+-        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py", "scrollbar-gutter: stable", "@property", "100dvh", "safe-area-inset-bottom"):
++        for phrase in ("min-w-0", "overscroll-behavior: contain", "keepPreviousData", ":focus-visible", "ui_evidence_check.py", "覆盖式", "0px", "独立滚动", "100dvh", "safe-area-inset-bottom"):
+             self.assertIn(phrase, self.TEXT)
+ 
+ 
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_scripts.py b/skills/pretty-ui/tests/test_pretty_ui_scripts.py
+index b0bdf9e..492c4eb 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_scripts.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_scripts.py
+@@ -169,7 +169,9 @@ class CheckPageTest(unittest.TestCase):
+                 "@property --sb { syntax: '<number>'; inherits: true; initial-value: 0; }\n"
+                 ":root { --bg: #ffffff; --text: #111827; }\n"
+                 ".card { box-shadow: 0 2px 6px rgb(0 0 0 / .2); color: #334155; }\n"
+-                ".pane { overflow: overlay; }\n"
++                ".pane { overflow: overlay; scrollbar-width: thin; }\n"
++                ".pane::-webkit-scrollbar { width: 8px; }\n"
++                ".pane::-webkit-scrollbar-thumb { transition: background-color .2s; }\n"
+                 ".pane:hover { overflow-y: auto; }\n"
+                 "@media (prefers-color-scheme: dark) { :root { --bg: #111111; } }\n",
+                 encoding="utf-8",
+@@ -180,6 +182,8 @@ class CheckPageTest(unittest.TestCase):
+             self.assertEqual(r.returncode, 0, r.stdout)
+             self.assertIn("[C1] 没走 CSS 变量的颜色 1 处", r.stdout)
+             self.assertIn("[G-L5] 使用了已废弃的 overflow: overlay", r.stdout)
++            self.assertIn("[G-L5] 同时声明了 scrollbar-width 与 ::-webkit-scrollbar", r.stdout)
++            self.assertIn("[G-L5] 对 ::-webkit-scrollbar-thumb 直接写 transition", r.stdout)
+             self.assertIn("[G-L5] 检测到 :hover 切换 overflow", r.stdout)
+             self.assertIn("[C9] 定义了暗色模式", r.stdout)
+ 
+@@ -195,10 +199,11 @@ class TemplateTest(unittest.TestCase):
+         for token in ("--font-sans", "--measure: 684px", "position: sticky", "text-wrap: balance",
+                       "text-wrap: pretty", "font-variant-ligatures: none", ":focus-visible",
+                       "prefers-reduced-motion", "tabular-nums", "轻量方向卡",
+-                      "color-scheme: light dark", "scrollbar-gutter: stable",
+-                      "@property --sb-alpha", "is-scrolling", "scroll-margin-top",
++                      "color-scheme: light dark", "scroll-margin-top",
+                       "overflow-wrap: break-word"):
+             self.assertIn(token, html)
++        self.assertNotIn("scrollbar-gutter", html)
++        self.assertNotIn("html::-webkit-scrollbar", html)
+ 
+ 
+ if __name__ == "__main__":
