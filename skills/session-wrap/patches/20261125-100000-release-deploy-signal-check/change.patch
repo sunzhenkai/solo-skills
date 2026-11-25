@@ -1,0 +1,203 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index c8e6e2f..6d1fbe1 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ id: session-wrap
+ name: session-wrap
+-description: 会话收尾：在准备结束会话或要求复盘时，核对交付闭环（含未合入主分支的推送与提 MR/PR）、现场清理和遗留缺口，用人话给简明清单并等用户确认后执行，最后简报结果。
++description: 会话收尾：在准备结束会话或要求复盘时，核对交付闭环（含推送、提 MR/PR、合入主分支及命中项目信号时的打 tag/发布/部署）、现场清理和遗留缺口，用人话给简明清单并等用户确认后执行，最后简报结果。
+ ---
+ 
+ # Session Wrap
+@@ -21,15 +21,16 @@ description: 会话收尾：在准备结束会话或要求复盘时，核对交
+   1. 未验证 → 先补验。
+   2. 有未提交改动或未跟踪文件 → 安排提交（执行时走 `commit-push`）。
+   3. 在非默认分支且有未推送或未合入主分支的提交 → **必查收尾项**：已有 MR/PR 时核对 CI 与评审状态，不重复创建；尚无 MR/PR 时按 [references/branch-merge.md](references/branch-merge.md) 推荐「推送并提 MR/PR」或按仓库习惯合入主分支。
+-  4. 已合入或已提 MR/PR → 再评估清理 worktree 和临时分支（清理前先核对无未提交改动、无独有未推提交，未知文件保留）。
++  4. 命中发布或部署信号 → **按信号必查**：仓库有版本 tag 惯例、发布/部署流水线或脚本、或本次改动涉及可部署服务/制品/版本时，按 [references/release-deploy.md](references/release-deploy.md) 只读核对版本、目标环境与合入前提，纳入拍板清单（未命中信号则跳过）。
++  5. 已合入或已提 MR/PR → 再评估清理 worktree 和临时分支（清理前先核对无未提交改动、无独有未推提交，未知文件保留）。
+ - **现场与任务状态**：核对本会话启动的临时服务、调试配置、后台任务和任务台账；`taskrail` 任务尚未收口时路由到 `taskrail` `close`。
+ - **遗留缺口与沉淀**：与本次目标无关但有证据的旧 bug、技术债、过时文档或环境隐患归为遗留缺口；跨任务有复用价值的内容按 [references/plan-synthesis.md](references/plan-synthesis.md) 路由到对应落点。排查绕过明显弯路（有死路、方向被纠正、根因出乎预料或明显超时）时，按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选。
+ 
+ ## 2. 汇总简明清单，等用户确认
+ 
+-把所有发现合成一张短清单，每个发现只出现一次，按依赖排序：**补验当前缺口 → 提交 → 推送与提 MR/PR 或合入主分支 → 任务收口与现场清理 → 缺口记账与知识沉淀 → 衍生处理**。
++把所有发现合成一张短清单，每个发现只出现一次，按依赖排序：**补验当前缺口 → 提交 → 推送与提 MR/PR 或合入主分支 → 打 tag / 发布 / 部署（命中项目信号时） → 任务收口与现场清理 → 缺口记账与知识沉淀 → 衍生处理**。
+ 
+-- **需要你拍板**：有两种以上合理做法，或涉及 git 写入、远端/共享分支、提 MR/PR、合入主分支、删除/清理 worktree、部署、写外部 tracker。每项一题，2–3 个选项，推荐项放首位并附一句理由；外部或不可逆动作一项一题，写明目标分支或环境。
++- **需要你拍板**：有两种以上合理做法，或涉及 git 写入、远端/共享分支、提 MR/PR、合入主分支、打 tag / 发版、部署、删除/清理 worktree、写外部 tracker。每项一题，2–3 个选项，推荐项放首位并附一句理由；外部或不可逆动作一项一题，写明目标分支、版本或环境。
+ - **准备帮你做**：本机、可逆、结论唯一的低风险动作（如把遗留缺口记入台账、停掉本会话启动的本地临时服务、归位临时文件、写入落点唯一的坑候选）。打包列出来，等用户确认后一起执行。
+ - **顺手记下的遗留（这次不做）**：超出本次目标的缺口，写明会记到哪里；本次只记账，用户点名才另开任务或处理。
+ 
+@@ -38,8 +39,8 @@ description: 会话收尾：在准备结束会话或要求复盘时，核对交
+ ## 3. 确认与执行
+ 
+ - **先确认后动手**：第一轮只做只读排查与列清单，所有写文件、改 git、停服务、外部调用一律等用户回复后再执行。即使清单里只有「准备帮你做」而没有选择题，也先亮出来等用户点头；只有完全无事可做时才直接结束。
+-- **授权隔离**：每项选择只授权该项，提交不等于授权 push，push 不等于授权合入主分支，合入不等于授权部署。执行中新发现加项或风险升级时，停下来再问一轮。
+-- **路由执行**：提交/推送走 `commit-push`，提 MR/PR 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)），任务收口走 `taskrail` `close`，知识沉淀走 `wiki-data` 或 `skill-upgrader`。
++- **授权隔离**：每项选择只授权该项，提交不等于授权 push，push 不等于授权合入主分支，合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，测试环境部署不等于授权生产部署。执行中新发现加项或风险升级时，停下来再问一轮。
++- **路由执行**：提交/推送走 `commit-push`，提 MR/PR 或打 release tag 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)、[references/release-deploy.md](references/release-deploy.md)），发版与部署按项目既有脚本、CI 或已装的对应发布/部署 skill 执行，任务收口走 `taskrail` `close`，知识沉淀走 `wiki-data` 或 `skill-upgrader`。
+ 
+ ## 4. 面向用户的输出（说人话、短、好扫）
+ 
+diff --git a/skills/session-wrap/evals/cases.yaml b/skills/session-wrap/evals/cases.yaml
+index 5d9b86f..45f0694 100644
+--- a/skills/session-wrap/evals/cases.yaml
++++ b/skills/session-wrap/evals/cases.yaml
+@@ -191,3 +191,28 @@ cases:
+         - 依据对话直接回复可以结束
+       must_not:
+         - 扫描仓库或生成形式化的沉淀与清理清单
++
++  - id: release-signal-triggers-tag-and-deploy-check
++    kind: core
++    judge: deterministic
++    description: 命中发布或部署信号时按信号必查打 tag、发版与部署并分题拍板
++    given: 代码改动已合入默认分支，仓库存在 semver tag 历史与发布/部署流水线，且有已接入的部署目标环境
++    expect:
++      must:
++        - 识别发布与部署信号，只读核对最近 tag、发布渠道、目标环境与生效/回滚指向
++        - 将「打 tag / 发版」与「部署到具体环境」分题放进「需要你拍板」，写明版本、渠道或目标环境并给出主推荐
++        - 确认后再复用项目既有脚本、CI 或对应发布/部署 skill 落地，并在第二轮汇报实际结果
++      must_not:
++        - 把打 tag / 发版与部署合成一题，或把测试环境部署授权外延到生产环境
++        - 未经用户确认自动打 tag、发版或部署
++
++  - id: no-release-signal-skips-release-deploy-question
++    kind: boundary
++    judge: deterministic
++    description: 未命中发布或部署信号时跳过打 tag 与部署追问
++    given: 仓库无版本 tag 历史和发布/部署流水线，本次仅修改文档或本地草稿且对话未提发布部署
++    expect:
++      must:
++        - 只读确认未命中发布或部署信号后跳过该检查项
++      must_not:
++        - 向无发布机制的仓库强行追问打 tag、发版或部署
+diff --git a/skills/session-wrap/references/plan-synthesis.md b/skills/session-wrap/references/plan-synthesis.md
+index 89baac1..1029baa 100644
+--- a/skills/session-wrap/references/plan-synthesis.md
++++ b/skills/session-wrap/references/plan-synthesis.md
+@@ -8,7 +8,7 @@
+ 
+ | 区块 | 适用范围 | 典型事项 |
+ | --- | --- | --- |
+-| 需要你拍板 | 有两种以上合理做法，或涉及 git 写入、远端、不可逆、跨机或外部系统 | 补验方式、提交范围、push、提 MR/PR、合入主分支、任务收口、删 worktree、部署、写外部 tracker |
++| 需要你拍板 | 有两种以上合理做法，或涉及 git 写入、远端、不可逆、跨机或外部系统 | 补验方式、提交范围、push、提 MR/PR、合入主分支、打 tag / 发版、部署、任务收口、删 worktree、写外部 tracker |
+ | 准备帮你做 | 本机、可逆、结论唯一的低风险动作（打包确认） | 遗留缺口记入台账、证据落盘、停掉本会话启动的本地临时服务、临时产物归位、落点唯一的坑候选写入 wiki |
+ | 顺手记下的遗留（这次不做） | 超出本次目标，或需要审美、产品、范围判断 | 旧 bug、技术债、过时文档、环境隐患、后续优化想法 |
+ 
+@@ -21,15 +21,16 @@
+ 1. 补验或修复当前目标的缺口（未通过或跳过时，第二轮必须如实说明仍未完成）。
+ 2. 提交本地改动。
+ 3. 推送分支并提 MR/PR，或按仓库规则合入主分支。
+-4. 任务收口（如 `taskrail` `close`）与现场清理（临时服务、worktree）。
+-5. 缺口记账与知识沉淀。
+-6. 衍生任务与外部动作。
++4. 命中项目发布或部署信号时确认是否打 tag、发版或部署（分题写清版本、渠道与目标环境）。
++5. 任务收口（如 `taskrail` `close`）与现场清理（临时服务、worktree）。
++6. 缺口记账与知识沉淀。
++7. 衍生任务与外部动作。
+ 
+ 提问规则：
+ 
+ - 每项一题，给 2–3 个选项；推荐项放首位，标「推荐」并附一句白话理由。
+ - 题干脱离上下文也能看懂，写清对象、范围和目标分支/环境。
+-- 同类低风险项可合成一题；外部或不可逆动作一项一题，授权互不外延（选了提交不等于授权 push，选了合入不等于授权部署）。
++- 同类低风险项可合成一题；外部或不可逆动作一项一题，授权互不外延（选了提交不等于授权 push，选了合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署）。
+ - 宿主有结构化提问工具时，把「需要你拍板」直接放进提问工具，正文只留现状摘要与其余区块，不重复列选项。
+ 
+ ## 3. 遗留缺口记账落点
+@@ -97,3 +98,4 @@
+ - 正文列一遍长选项，结构化提问工具里又原样再问一遍。
+ - 单列一段「已核对事实」复述验证流水，或为凑格式生成额外报告文件。
+ - 把多个外部动作合成一题，或用提交的选择顶替 push / 合入授权。
++- 项目命中发布/部署信号却漏查是否打 tag、发版或部署，或把发版与部署、不同目标环境合成一题。
+diff --git a/b/skills/session-wrap/references/release-deploy.md b/skills/session-wrap/references/release-deploy.md
+new file mode 100644
+index 0000000..5cc71ca
+--- /dev/null
++++ b/skills/session-wrap/references/release-deploy.md
+@@ -0,0 +1,37 @@
++# 发布与部署检查细则（按项目信号触发）
++
++本次会话有代码、配置或产物改动时，先只读检查是否命中发布或部署信号；命中至少一项信号时，必须把「打 tag / 发布 / 部署」纳入收尾检查，未命中则跳过，不向无发布机制的仓库多问无关问题。
++
++## 1. 只读信号识别
++
++- **会话与变更信号**：本次目标或对话提到发版、打 tag、升级、部署、上线；或改动直接影响可运行服务、构建产物、包版本（如版本号文件、容器镜像配置、部署清单、发布脚本）。
++- **项目发布信号**：仓库存在版本 tag 历史（如 `git tag` 有 semver 或测试线/稳定线前缀惯例）、CI/CD 发布或部署流水线（如 release/deploy workflow 或 stage）、Makefile / package.json 的 release / publish / deploy 目标，或仓库 `README.md` / `AGENTS.md` 规定的发布部署流程。
++- **环境与现状信号**：已接入制品库、包仓库或部署目标环境，或改动已合入/即将合入默认分支且领先最近 tag。
++- **未命中则跳过**：纯问答或方案讨论、仓库无发布/部署/tag 机制、或改动仅为不影响产物的文档或本地草稿且对话未提发布部署。
++
++## 2. 只读核对
++
++给出推荐前，能查到的现场事实先查清，不拿去问用户：
++
++- **合入与验证前提**：改动是否已提交、已推送、已合入默认分支及 CI/验证状态（仍在特性分支待合入时，说明与合入的先后关系）；
++- **版本与 tag 现状**：最近一个 tag、相对最近 tag 的提交摘要、仓库既定的 tag 命名与版本递增规则；
++- **渠道与目标环境**：具体发布渠道（Release、包仓库、制品库）和部署目标环境（测试 / 预发 / 生产），以及项目既有的发布脚本、CI 触发条件或宿主已装的对应发布/部署 skill；
++- **生效验证与回滚指向**：发布/部署后如何验证生效、异常时如何回滚（如切回上一 tag 或版本）。
++
++## 3. 推荐与逐项拍板
++
++将命中项归入「需要你拍板」，给出 **1 个主推荐**（2–3 个选项，推荐项放首位并附一句白话理由）：
++
++- **仍在特性分支未合入默认分支、且项目无预发布或测试线常规动作**：推荐「先等 MR/PR 合入过 CI，暂不打 tag/部署」（附后续入口）；若项目常规走测试线 tag 或预发验证，则标清前缀与环境供选择。
++- **已合入默认分支（或本轮目标明确要上线）且命中信号**：推荐按项目既有流程推进，写明具体版本号或 tag 规则、发布渠道或目标环境。
++
++拆分与授权隔离：
++
++- 「打 tag / 发版」与「部署到具体环境」分题确认；多个环境（如测试、预发、生产）各自一题，题干写明版本、渠道或目标环境。
++- 合入主分支不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，测试环境部署不等于授权生产部署。
++
++## 4. 确认后落地与汇报
++
++- **复用既有渠道**：优先复用项目既有发布/部署命令、CI 触发方式或宿主已装的对应 skill（如 `repo-manager` 打 release tag、或适配的发布/部署 skill），避免另起手工步骤。
++- **执行前核对**：核对工作区干净、目标 commit 与 CI 状态，遵守目标环境与接收 skill 的确认门禁。
++- **第二轮汇报**：写明实际 tag 名、Release/制品链接、目标环境、生效验证结果与回滚指向；若用户选择暂不发布或部署，如实写明「本次暂未打 tag / 未部署」及后续触发方式。
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index dec56c9..086b878 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
+ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+ PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
+ MERGE = (ROOT / "references" / "branch-merge.md").read_text(encoding="utf-8")
++RELEASE = (ROOT / "references" / "release-deploy.md").read_text(encoding="utf-8")
+ DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
+ 
+ 
+@@ -106,6 +107,31 @@ class SessionWrapContractTest(unittest.TestCase):
+         self.assertIn("`taskrail` 的 `close` 负责任务 SUMMARY、状态和归档", SKILL)
+         self.assertIn("不重复造轮子", SKILL)
+ 
++    def test_code_delivery_loop_checks_release_and_deploy_on_project_signals(self) -> None:
++        for expected in (
++            "references/release-deploy.md",
++            "命中发布或部署信号",
++            "打 tag / 发布 / 部署",
++            "打 tag / 发版",
++            "合入不等于授权打 tag / 发版或部署",
++            "打 tag / 发版不等于授权部署",
++        ):
++            self.assertIn(expected, SKILL)
++        self.assertIn("打 tag / 发版", PLAN)
++        self.assertIn("命中项目发布或部署信号时确认是否打 tag、发版或部署", PLAN)
++
++    def test_release_deploy_reference_covers_signals_isolation_and_execution(self) -> None:
++        for expected in (
++            "未命中则跳过",
++            "版本与 tag 现状",
++            "渠道与目标环境",
++            "生效验证与回滚指向",
++            "分题确认",
++            "测试环境部署不等于授权生产部署",
++            "repo-manager",
++        ):
++            self.assertIn(expected, RELEASE)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
 PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
 MERGE = (ROOT / "references" / "branch-merge.md").read_text(encoding="utf-8")
+RELEASE = (ROOT / "references" / "release-deploy.md").read_text(encoding="utf-8")
 DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
 
 
@@ -105,6 +106,31 @@ class SessionWrapContractTest(unittest.TestCase):
         self.assertIn("`anti-lazy` 负责交付前查意图差距", SKILL)
         self.assertIn("`taskrail` 的 `close` 负责任务 SUMMARY、状态和归档", SKILL)
         self.assertIn("不重复造轮子", SKILL)
+
+    def test_code_delivery_loop_checks_release_and_deploy_on_project_signals(self) -> None:
+        for expected in (
+            "references/release-deploy.md",
+            "命中发布或部署信号",
+            "打 tag / 发布 / 部署",
+            "打 tag / 发版",
+            "合入不等于授权打 tag / 发版或部署",
+            "打 tag / 发版不等于授权部署",
+        ):
+            self.assertIn(expected, SKILL)
+        self.assertIn("打 tag / 发版", PLAN)
+        self.assertIn("命中项目发布或部署信号时确认是否打 tag、发版或部署", PLAN)
+
+    def test_release_deploy_reference_covers_signals_isolation_and_execution(self) -> None:
+        for expected in (
+            "未命中则跳过",
+            "版本与 tag 现状",
+            "渠道与目标环境",
+            "生效验证与回滚指向",
+            "分题确认",
+            "测试环境部署不等于授权生产部署",
+            "repo-manager",
+        ):
+            self.assertIn(expected, RELEASE)
 
 
 if __name__ == "__main__":

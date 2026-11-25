@@ -191,3 +191,28 @@ cases:
         - 依据对话直接回复可以结束
       must_not:
         - 扫描仓库或生成形式化的沉淀与清理清单
+
+  - id: release-signal-triggers-tag-and-deploy-check
+    kind: core
+    judge: deterministic
+    description: 命中发布或部署信号时按信号必查打 tag、发版与部署并分题拍板
+    given: 代码改动已合入默认分支，仓库存在 semver tag 历史与发布/部署流水线，且有已接入的部署目标环境
+    expect:
+      must:
+        - 识别发布与部署信号，只读核对最近 tag、发布渠道、目标环境与生效/回滚指向
+        - 将「打 tag / 发版」与「部署到具体环境」分题放进「需要你拍板」，写明版本、渠道或目标环境并给出主推荐
+        - 确认后再复用项目既有脚本、CI 或对应发布/部署 skill 落地，并在第二轮汇报实际结果
+      must_not:
+        - 把打 tag / 发版与部署合成一题，或把测试环境部署授权外延到生产环境
+        - 未经用户确认自动打 tag、发版或部署
+
+  - id: no-release-signal-skips-release-deploy-question
+    kind: boundary
+    judge: deterministic
+    description: 未命中发布或部署信号时跳过打 tag 与部署追问
+    given: 仓库无版本 tag 历史和发布/部署流水线，本次仅修改文档或本地草稿且对话未提发布部署
+    expect:
+      must:
+        - 只读确认未命中发布或部署信号后跳过该检查项
+      must_not:
+        - 向无发布机制的仓库强行追问打 tag、发版或部署

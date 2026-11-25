@@ -13,7 +13,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
 | `anti-lazy` | 意图对齐与差距检查：用提示引导模型核实现场、选择关键下一步并按证据收口 |
 | `way-to-fix` | 问题修复闭环：以复现和因果证据确认根因，给出或实施最小修复，验证原始场景并检查同类风险 |
-| `session-wrap` | 会话收尾：核对交付闭环（含未合入主分支的推送与提 MR/PR）、现场清理和遗留缺口，用人话给简明清单并等用户确认后执行 |
+| `session-wrap` | 会话收尾：核对交付闭环（含推送、提 MR/PR、合入主分支及命中项目信号时的打 tag/发布/部署）、现场清理和遗留缺口，用人话给简明清单并等用户确认后执行 |
 
 ### 跨 agent 委派
 
