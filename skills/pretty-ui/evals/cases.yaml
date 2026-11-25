@@ -460,14 +460,16 @@ cases:
   - id: scrollbar-thin-auto-hide-no-shift
     kind: core
     judge: llm
-    description: 滚动条细化、平时隐藏、滚动时显示且不挤压布局
-    given: 做一个带可滚动侧栏与宽表格的工作台页面，支持亮暗模式
+    description: 覆盖式 0px 滚动条、平时隐藏/滚动显示且不截断横线或顶穿固定头
+    given: 做一个带可滚动侧栏与固定面板头的工作台页面，支持亮暗模式
     expect:
       must:
-        - 滚动条细化（约 6px）并使用语义 token 与 color-scheme 同步亮暗模式
-        - 平时隐藏、滚动时通过 @property 与 .is-scrolling 平滑淡入淡出
-        - 使用 scrollbar-gutter: stable（或已有覆盖式原语）保持轨道不挤压已有元素
+        - 使用 0px 占位的覆盖式滚动条（如 ScrollArea 或悬浮滑块），不挤压已有元素且不截断贴边横线
+        - 固定面板头或顶栏独立于滚动容器之外（外层 flex-col overflow-hidden，滚动条起点对齐头部下沿）
+        - 声明 color-scheme 或语义 token 同步亮暗模式，遵循 prefers-reduced-motion
       must_not:
+        - 混写非 none 的 scrollbar-width 与 ::-webkit-scrollbar，或对 ::-webkit-scrollbar-thumb 直接写 transition
+        - 把固定面板头用 position: sticky; top: 0 塞进滚动容器内部
         - 用 :hover 切换 overflow: hidden 与 auto，或使用已废弃的 overflow: overlay
 
   - id: guardrails-before-code

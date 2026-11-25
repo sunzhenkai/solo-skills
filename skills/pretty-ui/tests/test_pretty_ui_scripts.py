@@ -169,7 +169,9 @@ class CheckPageTest(unittest.TestCase):
                 "@property --sb { syntax: '<number>'; inherits: true; initial-value: 0; }\n"
                 ":root { --bg: #ffffff; --text: #111827; }\n"
                 ".card { box-shadow: 0 2px 6px rgb(0 0 0 / .2); color: #334155; }\n"
-                ".pane { overflow: overlay; }\n"
+                ".pane { overflow: overlay; scrollbar-width: thin; }\n"
+                ".pane::-webkit-scrollbar { width: 8px; }\n"
+                ".pane::-webkit-scrollbar-thumb { transition: background-color .2s; }\n"
                 ".pane:hover { overflow-y: auto; }\n"
                 "@media (prefers-color-scheme: dark) { :root { --bg: #111111; } }\n",
                 encoding="utf-8",
@@ -180,6 +182,8 @@ class CheckPageTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout)
             self.assertIn("[C1] 没走 CSS 变量的颜色 1 处", r.stdout)
             self.assertIn("[G-L5] 使用了已废弃的 overflow: overlay", r.stdout)
+            self.assertIn("[G-L5] 同时声明了 scrollbar-width 与 ::-webkit-scrollbar", r.stdout)
+            self.assertIn("[G-L5] 对 ::-webkit-scrollbar-thumb 直接写 transition", r.stdout)
             self.assertIn("[G-L5] 检测到 :hover 切换 overflow", r.stdout)
             self.assertIn("[C9] 定义了暗色模式", r.stdout)
 
@@ -195,10 +199,11 @@ class TemplateTest(unittest.TestCase):
         for token in ("--font-sans", "--measure: 684px", "position: sticky", "text-wrap: balance",
                       "text-wrap: pretty", "font-variant-ligatures: none", ":focus-visible",
                       "prefers-reduced-motion", "tabular-nums", "轻量方向卡",
-                      "color-scheme: light dark", "scrollbar-gutter: stable",
-                      "@property --sb-alpha", "is-scrolling", "scroll-margin-top",
+                      "color-scheme: light dark", "scroll-margin-top",
                       "overflow-wrap: break-word"):
             self.assertIn(token, html)
+        self.assertNotIn("scrollbar-gutter", html)
+        self.assertNotIn("html::-webkit-scrollbar", html)
 
 
 if __name__ == "__main__":

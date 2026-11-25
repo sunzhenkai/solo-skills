@@ -7,7 +7,7 @@
 <!--
   pretty-ui 阅读页起手模板：复制到 <output-root>/ 下，改 title、导航链接、下面的方向卡和 :root 色值，正文换成真实内容。
   已内置：系统字体栈与中文回退、px 写的正文列宽、sticky 导航、scroll-margin-top、长内容防撑爆、text-wrap、代码关连字、等宽数字、
-  宽表格与代码块各自横向滚动、细滚动条与滚动显隐零挤压、:focus-visible、prefers-reduced-motion、color-scheme 与暗色模式映射。
+  宽表格与代码块各自横向滚动、整页原生滚动与内部细滚动条、:focus-visible、prefers-reduced-motion、color-scheme 与暗色模式映射。
   轻量方向卡（栏目见 SKILL.md「轻量方向卡」）：
     北极星：
     字体：
@@ -17,11 +17,6 @@
     放弃：
 -->
 <style>
-@property --sb-alpha {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
-}
 :root {
   color-scheme: light dark;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -41,8 +36,7 @@
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
   --z-sticky: 10;
-  --scrollbar-thumb: color-mix(in srgb, var(--text) calc(var(--sb-alpha) * 100%), transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--text) 48%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--text) 28%, transparent);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -51,13 +45,8 @@
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { background: var(--surface); color: var(--text); scrollbar-gutter: stable; }
-html, .wide, pre { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; transition: --sb-alpha 200ms ease; }
-.is-scrolling { --sb-alpha: 0.34; }
-html::-webkit-scrollbar, .wide::-webkit-scrollbar, pre::-webkit-scrollbar { width: 6px; height: 6px; }
-html::-webkit-scrollbar-track, .wide::-webkit-scrollbar-track, pre::-webkit-scrollbar-track { background: transparent; }
-html::-webkit-scrollbar-thumb, .wide::-webkit-scrollbar-thumb, pre::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 1px solid transparent; background-clip: content-box; }
-html::-webkit-scrollbar-thumb:hover, .wide::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); border: 1px solid transparent; background-clip: content-box; }
+html { background: var(--surface); color: var(--text); }
+.wide, pre { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
 body { margin: 0; font: 18px/1.7 var(--font-sans); }
 a { color: var(--action); text-underline-offset: 0.2em; }
 a:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 2px; }
@@ -90,7 +79,7 @@ pre { margin: var(--space-5) 0; padding: var(--space-4); overflow-x: auto; backg
   h1 { font-size: 30px; }
 }
 @media (hover: none), (pointer: coarse) {
-  html, .wide, pre { scrollbar-width: auto; scrollbar-color: auto; }
+  .wide, pre { scrollbar-width: auto; scrollbar-color: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -127,17 +116,5 @@ pre { margin: var(--space-5) 0; padding: var(--space-4); overflow-x: auto; backg
     <pre><code>命令或代码原样放这里</code></pre>
   </article>
 </main>
-<script>
-(() => {
-  const timers = new WeakMap();
-  document.addEventListener("scroll", (e) => {
-    const el = (e.target === document || e.target === document.body) ? document.documentElement : e.target;
-    if (!(el instanceof Element)) return;
-    el.classList.add("is-scrolling");
-    clearTimeout(timers.get(el));
-    timers.set(el, setTimeout(() => el.classList.remove("is-scrolling"), 800));
-  }, { capture: true, passive: true });
-})();
-</script>
 </body>
 </html>

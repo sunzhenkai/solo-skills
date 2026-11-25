@@ -273,7 +273,15 @@ def check_file(path: str, root: str | None, offline: bool) -> tuple[list[str], l
     if literals:
         hints.append(f"[C1] 没走 CSS 变量的颜色 {len(literals)} 处：" + "；".join(literals[:3]))
     if re.search(r"overflow(?:-[xy])?\s*:\s*overlay\b", css, re.I):
-        hints.append("[G-L5] 使用了已废弃的 overflow: overlay，改用 scrollbar-gutter: stable 配合细滚动条")
+        hints.append("[G-L5] 使用了已废弃的 overflow: overlay，改用 0px 覆盖式滚动条原语或系统原生滚动")
+    if re.search(r"scrollbar-width\s*:\s*(?!none\b)[a-z-]+", css, re.I) and "::-webkit-scrollbar" in css:
+        hints.append("[G-L5] 同时声明了 scrollbar-width 与 ::-webkit-scrollbar，Chromium 121+ 会忽略 webkit 规则")
+    if any(
+        re.search(r"\btransition\s*:", body, re.I)
+        for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css, re.S)
+        if "::-webkit-scrollbar-thumb" in sel
+    ):
+        hints.append("[G-L5] 对 ::-webkit-scrollbar-thumb 直接写 transition 在 Chromium/WebKit 中不生效")
     if "scrollbar-gutter" not in css.lower():
         hover_overflow = sum(
             1 for _, body in CSS_HOVER_RULE_RE.findall(css)
