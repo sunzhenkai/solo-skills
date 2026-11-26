@@ -1,0 +1,510 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index 6d1fbe1..2d0df08 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -1,54 +1,65 @@
+ ---
+ id: session-wrap
+ name: session-wrap
+-description: 会话收尾：在准备结束会话或要求复盘时，核对交付闭环（含推送、提 MR/PR、合入主分支及命中项目信号时的打 tag/发布/部署）、现场清理和遗留缺口，用人话给简明清单并等用户确认后执行，最后简报结果。
++description: 会话收尾：在准备结束会话或确认是否中止时，先判定主线是否完成；未完成时先确认继续做完、暂停挂起还是彻底放弃；已完成时核对交付闭环（含推送、提 MR/PR、合入及命中项目信号时的打 tag/发布/部署）、现场清空与遗留落宿，经确认后执行并给出明确放手结论。
+ ---
+ 
+ # Session Wrap
+ 
+-收尾只盯三件事：**本次交付闭环了吗、现场收干净了吗、这次不做的事留痕了吗**。
++收尾的目的是**让已完成的事彻底放手、不再挂念任何遗漏；主线未完成时，先确认继续做完还是中止**。
+ 
+-默认分两轮：**第一轮只读自查，给简明清单等用户确认；第二轮按确认范围执行，用大白话报结果**。只要涉及写文件、改 git、停服务或外部操作，一律先确认再动手；完全无事可做时，直接告知可以结束。
++默认分两轮：**第一轮只读自查，给简明清单等用户确认；第二轮按确认范围执行，用大白话给出明确放手结论**。只要涉及写文件、改 git、停服务、删资源或外部操作，一律先确认再动手；已完成且完全无事可做时，直接告知可以彻底放手。
+ 
+ `anti-lazy` 负责交付前查意图差距；`taskrail` 的 `close` 负责任务 SUMMARY、状态和归档。本 skill 面向整个会话兜底收尾，复用它们的产物，不重复造轮子。
+ 
+-## 1. 核对闭环与现场（只读）
++## 1. 先判完成度，再查闭环与现场（只读）
+ 
+ 只查和本次工作有关的真实现场，区分事实、推测和未知；纯问答或方案讨论只依据对话收尾，不扫描仓库。
+ 
+-- **目标与验证**：重读最初目标和最新要求，让每项明确要求对应到产物、回答或证据，区分已验证、未验证、未解决。原始场景和每项「必须」都要有结论；核心验收缺口留在本次处理，编译或静态检查不能替代原始场景验证。
+-- **代码交付闭环**（有代码改动时按序查到闭环）：
+-  1. 未验证 → 先补验。
+-  2. 有未提交改动或未跟踪文件 → 安排提交（执行时走 `commit-push`）。
+-  3. 在非默认分支且有未推送或未合入主分支的提交 → **必查收尾项**：已有 MR/PR 时核对 CI 与评审状态，不重复创建；尚无 MR/PR 时按 [references/branch-merge.md](references/branch-merge.md) 推荐「推送并提 MR/PR」或按仓库习惯合入主分支。
+-  4. 命中发布或部署信号 → **按信号必查**：仓库有版本 tag 惯例、发布/部署流水线或脚本、或本次改动涉及可部署服务/制品/版本时，按 [references/release-deploy.md](references/release-deploy.md) 只读核对版本、目标环境与合入前提，纳入拍板清单（未命中信号则跳过）。
+-  5. 已合入或已提 MR/PR → 再评估清理 worktree 和临时分支（清理前先核对无未提交改动、无独有未推提交，未知文件保留）。
+-- **现场与任务状态**：核对本会话启动的临时服务、调试配置、后台任务和任务台账；`taskrail` 任务尚未收口时路由到 `taskrail` `close`。
+-- **遗留缺口与沉淀**：与本次目标无关但有证据的旧 bug、技术债、过时文档或环境隐患归为遗留缺口；跨任务有复用价值的内容按 [references/plan-synthesis.md](references/plan-synthesis.md) 路由到对应落点。排查绕过明显弯路（有死路、方向被纠正、根因出乎预料或明显超时）时，按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选。
++- **完成度裁决（第 0 步）**：重读最初目标和最新要求，让每项明确要求对应到产物、回答或证据，区分已验证、未验证、未解决。原始场景和每项「必须」都要有结论；核心验收缺口留在本次处理，编译或静态检查不能替代原始场景验证。
++  - **判为未完成**（任一明确要求未达成、原始场景未验证或失败、存在未解决阻塞，或用户半途喊停）→ 进入未完成门禁，按 [references/incomplete-abort.md](references/incomplete-abort.md) 只列现状差距并请用户三选一（继续做完 / 暂停挂起 / 彻底放弃），跳过合入主分支、打 tag、发版或部署等完成态检查。
++  - **判为已完成** → 按序核对交付闭环、现场清空与遗留落宿：
++- **交付闭环**：
++  - **代码交付闭环**（涉及多个仓库或 worktree 时逐仓核对）：
++    1. 有未提交改动或未跟踪文件 → 安排提交（执行时走 `commit-push`）。
++    2. 在非默认分支（或本地默认分支领先远端）且有未推送或未合入主分支的提交 → 已有 MR/PR 时核对 CI 与评审状态；尚无 MR/PR 时按 [references/branch-merge.md](references/branch-merge.md) 推荐「推送并提 MR/PR」或按仓库习惯合入主分支。
++    3. 命中发布或部署信号 → 仓库有版本 tag 惯例、发布/部署流水线或脚本、或改动涉及可部署服务/制品/版本时，按 [references/release-deploy.md](references/release-deploy.md) 只读核对版本、目标环境与合入前提，纳入拍板清单（未命中则跳过）。
++    4. 已合入或已提 MR/PR → 再评估清理 worktree 和临时分支（清理前先核对无未提交改动、无独有未推提交，未知文件保留）。
++  - **非代码交付**：文档、配置、脚本、调研/方案或外部回复，核对最终产物已放到目标位置或发给目标对象，且未留半成品草稿。
++- **现场清空与任务状态**：核对本会话启动的临时服务、后台任务、容器/端口、临时文件与 `git stash`，以及调试日志、mock、跳过校验开关或临时配置是否已还原；`taskrail` 任务尚未收口时，完成态路由到 `taskrail` `close`（`done` 并归档），暂停或放弃态按 [references/incomplete-abort.md](references/incomplete-abort.md) 处理。
++- **遗留落宿与按信号附带沉淀**：与本次目标无关但有证据的旧 bug、技术债、过时文档或环境隐患归为遗留，须给出离开本会话后仍可见的落点，或请用户确认不跟踪；跨任务有复用价值的内容按 [references/plan-synthesis.md](references/plan-synthesis.md) 路由。排查绕过明显弯路（有死路、方向被纠正、根因出乎预料或明显超时）时按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选——沉淀与复盘仅命中明确信号时附带，未命中跳过。
+ 
+ ## 2. 汇总简明清单，等用户确认
+ 
+-把所有发现合成一张短清单，每个发现只出现一次，按依赖排序：**补验当前缺口 → 提交 → 推送与提 MR/PR 或合入主分支 → 打 tag / 发布 / 部署（命中项目信号时） → 任务收口与现场清理 → 缺口记账与知识沉淀 → 衍生处理**。
++- **未完成路径**：先用 2–3 行说清已做到哪、还差什么，抛出「继续做完 / 暂停挂起 / 彻底放弃」三选一及对应现场处理；选「继续做完」则退出收尾回到主线；选「暂停挂起」或「彻底放弃」按确认清单执行。
++- **完成态路径**：把所有发现合成一张短清单，每个发现只出现一次，按依赖排序：**补验当前缺口 → 提交 → 推送与提 MR/PR 或合入主分支 → 打 tag / 发布 / 部署（命中项目信号时） → 任务收口与现场清空 → 遗留落宿 → 按信号附带的弯路复盘与知识沉淀 → 衍生处理**。
+ 
+-- **需要你拍板**：有两种以上合理做法，或涉及 git 写入、远端/共享分支、提 MR/PR、合入主分支、打 tag / 发版、部署、删除/清理 worktree、写外部 tracker。每项一题，2–3 个选项，推荐项放首位并附一句理由；外部或不可逆动作一项一题，写明目标分支、版本或环境。
+-- **准备帮你做**：本机、可逆、结论唯一的低风险动作（如把遗留缺口记入台账、停掉本会话启动的本地临时服务、归位临时文件、写入落点唯一的坑候选）。打包列出来，等用户确认后一起执行。
+-- **顺手记下的遗留（这次不做）**：超出本次目标的缺口，写明会记到哪里；本次只记账，用户点名才另开任务或处理。
++按动作风险分成三块：
+ 
+-动作分级、提问规则、缺口落点与知识分流表见 [references/plan-synthesis.md](references/plan-synthesis.md)。
++- **需要你拍板**：有两种以上合理做法，或涉及未完成方向选择（继续/暂停/放弃）、git 写入、远端/共享分支、提 MR/PR、合入主分支、打 tag / 发版、部署、丢弃改动/关草稿 MR/删 worktree、写外部 tracker、无持久台账时遗留的去向或放弃确认。每项一题，2–3 个选项，推荐项放首位并附一句理由；外部或不可逆动作一项一题，写明目标分支、版本或环境。
++- **准备帮你做**：本机、可逆、结论唯一的低风险动作（如遗留记入已有台账、停掉本地临时服务或容器、还原调试开关、归位临时文件、更新暂停断点、写入落点唯一的坑候选）。打包列出来，等用户确认后一起执行。
++- **顺手记下的遗留（这次不做）**：超出本次目标的缺口，写明将记到哪里（无台账时由用户在拍板区定去向或确认放弃）；用户点名才另开任务。
++
++动作分级、提问规则、遗留落宿与知识分流见 [references/plan-synthesis.md](references/plan-synthesis.md)。
+ 
+ ## 3. 确认与执行
+ 
+-- **先确认后动手**：第一轮只做只读排查与列清单，所有写文件、改 git、停服务、外部调用一律等用户回复后再执行。即使清单里只有「准备帮你做」而没有选择题，也先亮出来等用户点头；只有完全无事可做时才直接结束。
+-- **授权隔离**：每项选择只授权该项，提交不等于授权 push，push 不等于授权合入主分支，合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，测试环境部署不等于授权生产部署。执行中新发现加项或风险升级时，停下来再问一轮。
+-- **路由执行**：提交/推送走 `commit-push`，提 MR/PR 或打 release tag 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)、[references/release-deploy.md](references/release-deploy.md)），发版与部署按项目既有脚本、CI 或已装的对应发布/部署 skill 执行，任务收口走 `taskrail` `close`，知识沉淀走 `wiki-data` 或 `skill-upgrader`。
++- **先确认后动手**：第一轮只做只读排查与列清单，所有写文件、改 git、停服务、删资源或外部调用一律等用户回复后再执行。即使清单里只有「准备帮你做」而没有选择题，也先亮出来等用户点头；只有完全无事可做时才直接结束。
++- **授权隔离**：每项选择只授权该项，提交不等于授权 push，push 不等于授权合入主分支，合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，测试环境部署不等于授权生产部署；暂停挂起不授权合入或删分支/worktree，放弃撤场涉及的丢弃改动、关 MR/PR 或删分支须逐项确认。执行中新发现加项或风险升级时，停下来再问一轮。
++- **路由执行**：提交/推送走 `commit-push`，提 MR/PR 或打 release tag 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)、[references/release-deploy.md](references/release-deploy.md)），发版与部署按项目既有脚本、CI 或对应发布/部署 skill 执行，任务收口走 `taskrail` `close`（完成为 `done`，放弃为 `archived`；暂停保持 `active` 并更新断点），知识沉淀走 `wiki-data` 或 `skill-upgrader`。
+ 
+-## 4. 面向用户的输出（说人话、短、好扫）
++## 4. 面向用户的输出（说人话、短、给放手结论）
+ 
+ - **说人话**：用白话短句说清“差什么、建议怎么做”，把内部词（`criterion`、`落点`、`建议处置`、`恢复入口`、`合入通道`、`按选择跳过` 等）留在后台，直接转译成影响和动作。
+ - **控长度**：每条一行短句，空区块省略；路径和命令只在方便核对或恢复时顺带附上，不单列验证流水。第一轮尽量控制在半屏以内。
+ - **不重复**：宿主有结构化提问工具时，「需要你拍板」直接放进提问工具，正文只留 2–3 行现状与其余区块摘要，两边不重复列选项。
+-- **自然结论**：第一轮不下结束结论；第二轮开头用一句大白话交代现状（例如“可以收工了，MR !42 已提好等 CI”或“还不能结束，原始场景还没验证”），接着列出做了什么、什么没做、遗留记在哪。完全无遗留时只回一句可以结束，不生成额外报告文件。
++- **明确放手结论**：第一轮不下结束结论；第二轮开头用一句大白话交代现状并点明四种终态之一，再列做了什么、什么没做、遗留或断点在哪：
++  1. **彻底收工**：明确可以彻底放手、不用再管；
++  2. **本地收尾、剩外部等待**：点清唯一还需回看的外部异步项（如 MR 链接、等 CI/评审、是否已开自动合并），其余已全清；
++  3. **已暂停挂起**：写明改动/分支/worktree 保存在哪、已停哪些临时服务、下次直接从哪接手；
++  4. **已确认中止**：写明丢弃/关闭了哪些半成品、任务已按未完成归档、顺手保留的有效经验（如有）。
++  已完成且完全无遗留时只回一句可以彻底放手，不生成额外报告文件。
+ 
+ 正反示例见 [references/plan-synthesis.md](references/plan-synthesis.md)。
+ 
+-本 skill 由 agent 在准备交付或用户要求复盘时进入；客户端退出事件需要宿主 hook，不能由 skill 自身保证捕获。
++本 skill 由 agent 在准备交付、收尾或用户确认中止时进入；客户端退出事件需要宿主 hook，不能由 skill 自身保证捕获。
+diff --git a/tmp/session-wrap-patch/b/skills/session-wrap/references/incomplete-abort.md b/skills/session-wrap/references/incomplete-abort.md
+new file mode 100644
+index 0000000..957cb96
+--- /dev/null
++++ b/skills/session-wrap/references/incomplete-abort.md
+@@ -0,0 +1,46 @@
++# 未完成判定、暂停挂起与彻底中止细则
++
++当主线尚未达到完成标准时，收尾的首要动作是确认「继续做完、暂停挂起，还是彻底放弃」，而不是按已完成路径推进提 MR/PR、合入主分支、打 tag 或删分支。
++
++## 1. 何时进入未完成门禁
++
++命中以下任一情况即判为未完成，立即进入本细则：
++
++- 用户明确要求中的任意一项尚无对应产物、答案或结论；
++- 原始场景尚未运行验证，或核心验收失败且尚未修通；
++- 存在阻塞后续交付的未解决问题（外部依赖未就绪、权限/环境缺失、关键决策未定）；
++- 用户在任务中途主动要求停下来、暂停或结束会话。
++
++进入未完成门禁时，跳过完成态的代码合入主分支、打 tag、发版与部署检查。
++
++## 2. 第一轮三选一门禁
++
++第一轮先用 2–3 行大白话写清两件事：**已经做到哪**、**还差什么或卡在哪**，随后把方向选择作为首位拍板题（2–3 个选项，推荐项放首位并附一句理由）：
++
++1. **继续做完（退出收尾）**：缺口较小或可当场补齐时优先推荐。选择后退出收尾流程，不执行清理或归档，直接回到主线补齐缺失项，完成后再收尾。
++2. **暂停挂起（保现场、留断点）**：后续还要继续推进（如等外部依赖、改天再做）。重点是安全固化现场并写清恢复入口。
++3. **彻底放弃（安全撤场）**：确认不再推进（方案被推翻、需求取消）。重点是逐项确认清理半成品、关闭任务、消除遗留影响。
++
++## 3. 暂停挂起清单（保现场 + 留断点）
++
++用户选择「暂停挂起」时，按以下原则准备动作并逐项确认：
++
++- **保住代码现场**：保留当前分支与 worktree，不推进合入默认分支、打 tag 或发版。未提交改动由用户选择保全方式（保留在工作区 / 做本地 WIP 提交 / 推送到个人备份分支），各动作授权互不外延。
++- **清理运行态与共享影响**：确认后停掉本会话启动的本地服务、后台任务和容器/端口占用；若修改过会影响他人或后续日常开发的共享临时开关/配置，确认后还原。
++- **固化恢复入口**：
++  - 使用 `taskrail` 时：保持任务为 `active`（不调用 `close` 归档），将已完成进度、当前阻塞点和下一步操作写回台账（如 `context/current.md`）。
++  - 无 `taskrail` 时：询问是否把断点记入项目已有工作记录；不新建额外报告文件，第二轮直接写清所在仓库、分支、worktree 路径及下次接续第一步。
++
++## 4. 彻底放弃清单（安全撤场）
++
++用户选择「彻底放弃」时，逐项确认撤场动作，避免留下半成品或误删有用资产：
++
++- **半成品代码与 PR/MR**：逐项确认是否丢弃未提交改动、关闭草稿 MR/PR、删除临时分支与临时 worktree；清理前先核对无无关未提交改动或独有重要提交，未知文件保留。
++- **运行态与临时痕迹**：停掉临时服务、容器/端口与后台任务，还原调试日志、mock、跳过校验开关或临时配置。
++- **任务归档**：使用 `taskrail` 时，路由到 `taskrail` `close` 按未完成关闭（状态为 `archived`，而非 `done`），写明放弃原因与已验证/未验证边界，不伪写成功总结。
++- **按信号附带经验**：若放弃前曾绕过明显弯路或踩出通用坑，可附带询问是否将坑候选写入 `wiki-data` 或既有知识库；未命中信号则跳过。
++
++## 5. 第二轮汇报口径
++
++- **已暂停挂起**：开头明确「已按确认暂停，现场和断点已保好」，列出分支/worktree/改动留在哪、停掉了哪些临时服务、下次从哪一步直接接手。
++- **已确认中止**：开头明确「已确认中止并完成撤场，没有遗留影响」，列出丢弃或关闭了哪些半成品、任务已按未完成归档（或确认不留）、顺手保留的有效经验（如有）。
+diff --git a/skills/session-wrap/references/plan-synthesis.md b/skills/session-wrap/references/plan-synthesis.md
+index 1029baa..3e35e2c 100644
+--- a/skills/session-wrap/references/plan-synthesis.md
++++ b/skills/session-wrap/references/plan-synthesis.md
+@@ -1,6 +1,6 @@
+ # 收尾清单、分流与说人话示例
+ 
+-本文件规定收尾清单的归属判据、提问规则、缺口记账落点、知识沉淀分流与面向用户的输出示例。
++本文件规定收尾清单的归属判据、提问规则、遗留缺口落点、知识沉淀分流与面向用户的输出示例。
+ 
+ ## 1. 动作分级（确认后才执行）
+ 
+@@ -8,43 +8,43 @@
+ 
+ | 区块 | 适用范围 | 典型事项 |
+ | --- | --- | --- |
+-| 需要你拍板 | 有两种以上合理做法，或涉及 git 写入、远端、不可逆、跨机或外部系统 | 补验方式、提交范围、push、提 MR/PR、合入主分支、打 tag / 发版、部署、任务收口、删 worktree、写外部 tracker |
+-| 准备帮你做 | 本机、可逆、结论唯一的低风险动作（打包确认） | 遗留缺口记入台账、证据落盘、停掉本会话启动的本地临时服务、临时产物归位、落点唯一的坑候选写入 wiki |
++| 需要你拍板 | 有两种以上合理做法，或涉及未完成方向选择、git 写入、远端、不可逆、跨机或外部系统 | 未完成去向（继续/暂停/放弃）、提交范围、push、提 MR/PR、合入主分支、打 tag / 发版、部署、撤场清理（丢改动/关草稿 MR/删 worktree）、写外部 tracker、无持久台账时遗留的去向或放弃确认 |
++| 准备帮你做 | 本机、可逆、结论唯一的低风险动作（打包确认） | 遗留缺口记入已有台账、停掉本地临时服务或容器、还原调试开关/临时配置、临时产物归位、更新暂停断点、落点唯一的坑候选写入 wiki |
+ | 顺手记下的遗留（这次不做） | 超出本次目标，或需要审美、产品、范围判断 | 旧 bug、技术债、过时文档、环境隐患、后续优化想法 |
+ 
+-提交属于用户点名才做的动作，始终归入「需要你拍板」；范围清楚时把推荐提交范围放首位。只有完全没有任何收尾动作和遗留时，才直接告知可以结束。
++提交属于用户点名才做的动作，始终归入「需要你拍板」；范围清楚时把推荐提交范围放首位。只有完全没有任何收尾动作和遗留时，才直接告知可以彻底放手。
+ 
+ ## 2. 排序与提问规则
+ 
+-按依赖排序，同一发现只出现一次：
+-
+-1. 补验或修复当前目标的缺口（未通过或跳过时，第二轮必须如实说明仍未完成）。
+-2. 提交本地改动。
+-3. 推送分支并提 MR/PR，或按仓库规则合入主分支。
+-4. 命中项目发布或部署信号时确认是否打 tag、发版或部署（分题写清版本、渠道与目标环境）。
+-5. 任务收口（如 `taskrail` `close`）与现场清理（临时服务、worktree）。
+-6. 缺口记账与知识沉淀。
+-7. 衍生任务与外部动作。
++- **未完成路径**：先将「继续做完 / 暂停挂起 / 彻底放弃」放在拍板首位；若用户选「继续做完」，直接退出收尾回到主线；若选「暂停挂起」或「彻底放弃」，按 `incomplete-abort.md` 的对应清单执行。
++- **完成态路径**：按依赖排序，同一发现只出现一次：
++  1. 补验或修复当前目标的缺口（未通过或跳过时，按未完成门禁处理）。
++  2. 提交本地改动。
++  3. 推送分支并提 MR/PR，或按仓库规则合入主分支（多仓时逐仓核对）。
++  4. 命中项目发布或部署信号时确认是否打 tag、发版或部署（分题写清版本、渠道与目标环境）。
++  5. 任务收口（如 `taskrail` `close`）与现场清空（临时服务、容器/端口、调试开关、worktree）。
++  6. 遗留落宿（记入持久位置或确认放弃）。
++  7. 按信号附带的弯路复盘、知识沉淀与衍生动作。
+ 
+ 提问规则：
+ 
+ - 每项一题，给 2–3 个选项；推荐项放首位，标「推荐」并附一句白话理由。
+ - 题干脱离上下文也能看懂，写清对象、范围和目标分支/环境。
+-- 同类低风险项可合成一题；外部或不可逆动作一项一题，授权互不外延（选了提交不等于授权 push，选了合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署）。
++- 同类低风险项可合成一题；外部或不可逆动作一项一题，授权互不外延（选了提交不等于授权 push，选了合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，暂停不授权合入或删分支）。
+ - 宿主有结构化提问工具时，把「需要你拍板」直接放进提问工具，正文只留现状摘要与其余区块，不重复列选项。
+ 
+ ## 3. 遗留缺口记账落点
+ 
+-缺口记账归入「准备帮你做」，确认后按执行时的任务状态取第一个可用落点（本轮先收口的任务按已收口处理）：
++收尾时不允许让遗留事项静默沉进聊天记录。确认后按执行时的任务状态取第一个可用落点（本轮先收口的任务按已收口处理）：
+ 
+ 1. 任务未收口：写入 `context/current.md` 的「未决问题」表，`解决形式` 写「另开任务」或「不纳入」。
+ 2. 任务已收口或已归档：在 SUMMARY「剩余风险与后续项」末尾追加一行，注明来源与证据；只追加，不动原文其余部分。
+ 3. 已有 Issue 等 tracker：写入属外部动作，归入「需要你拍板」单独一题；先检索查重，已有则补充证据与来源。
+-4. 都没有：留在第二轮汇报里，不新建额外文件。
++4. 都没有：不默认静默留在聊天里；把该遗留放入「需要你拍板」，请用户在「写入项目已有待办/记录位置」与「明确确认不跟踪、直接放弃」之间二选一；仅当用户明确拍板「不用另记，知道就行」时，才只在第二轮汇报中带过、不新建额外文件。
+ 
+ 缺口记账不新建任务或子任务；只有用户点名「另开任务」时，才路由到 `taskrail` 或已有 tracker，并附问题、来源、证据、影响、复现方式（如有）、建议判据与相关路径（证据不足标为待查证）。
+ 
+-## 4. 知识沉淀分流
++## 4. 知识沉淀分流（按信号附带）
+ 
+ 只沉淀跨任务仍有价值、现有文档尚未表达的内容；先找既有落点并去重，没有新经验就不硬写复盘：
+ 
+@@ -61,7 +61,7 @@
+ 
+ ## 5. 说人话示例与反例
+ 
+-### 第一轮示例（确认前，半屏内看完）
++### 第一轮示例 A：完成态（确认前，半屏内看完）
+ 
+ ```text
+ 改动已跑过测试，还差最后两步收尾：
+@@ -80,20 +80,44 @@
+ 回复「按推荐做」或挑着改，我就开始执行。
+ ```
+ 
+-### 第二轮示例（执行后）
++### 第一轮示例 B：未完成三选一
+ 
+ ```text
+-可以收工了。
++导出接口重构只做完字段映射，原始导出场景还没跑通（卡在测试库权限），先确认接下来怎么收：
++
++需要你拍板
++1. 本次任务还没完成，怎么处理：推荐「暂停挂起（保现场留断点）」，等权限就绪再接着跑；还是「继续做完」，或者「彻底放弃并撤场」？
+ 
+-- 已推送 feat/export 并提好 MR（!42），等 CI 通过即可合并。
+-- 已停掉本地 dev 服务，删掉了临时 worktree。
++回复你的选择，我就按对应方式处理现场。
++```
++
++### 第二轮示例 A：彻底收工（零遗留）
++
++```text
++可以彻底放手，不用再管这件事了。
++
++- 改动已合入 main 并删除临时分支与 worktree。
++- 本地 dev 服务已停，调试日志已还原。
+ - 遗留的旧接口空值校验已记入 context/current.md。
+ ```
+ 
++### 第二轮示例 B：本地收尾、剩外部等待
++
++```text
++本地已收尾，只剩下面这 1 项外部等待需要留意：
++
++- feat/export 已推送并提好 MR（!42），未开自动合并，等 CI 与评审通过后点一下合入即可；其余分支暂留，待合入后再删。
++- 本地 dev 服务已停掉，遗留问题已记入 context/current.md。
++```
++
+ ### 反例
+ 
++- 主线未完成（或验收未过）却直接列提 MR、发版或删 worktree 清单，未先问「继续 / 暂停 / 放弃」。
++- 未区分暂停与放弃，一上来就删临时分支或丢弃未提交改动。
+ - 未等用户确认就直接改文件、写 wiki、停服务或删 worktree。
+ - 代码开发完停在特性分支，工作区干净就直接说“可以结束了”，漏掉推送与提 MR/PR。
++- 已提 MR 但未合入且未开自动合并，却笼统说“彻底不用再管”。
++- 无台账也无外部 tracker 时，不问去向也不让用户确认放弃，直接把遗留静默留在聊天记录里。
+ - 满屏内部词（`criterion`、`落点`、`建议处置`、`恢复入口`、`按选择跳过`）或用长箭头把五六项信息硬拼成一行。
+ - 正文列一遍长选项，结构化提问工具里又原样再问一遍。
+ - 单列一段「已核对事实」复述验证流水，或为凑格式生成额外报告文件。
+diff --git a/skills/session-wrap/references/branch-merge.md b/skills/session-wrap/references/branch-merge.md
+index 539e66a..23f624c 100644
+--- a/skills/session-wrap/references/branch-merge.md
++++ b/skills/session-wrap/references/branch-merge.md
+@@ -6,6 +6,7 @@
+ 
+ 给出推荐前，先查清以下现场事实（能查到的不拿去问）：
+ 
++- 若本次涉及多个仓库或 worktree，逐仓核对以下各项，避免只收了当前仓而漏掉关联仓；
+ - 当前分支（source）、目标默认分支（target）与远端 tracking 状态；
+ - 是否有未推送提交、相对 target 的提交数与提交结构（多个 WIP 还是有边界的独立提交）；
+ - 是否已有指向 target 的 MR / PR，以及它的 CI 与评审状态；
+@@ -39,4 +40,4 @@
+    - 明确指定目标默认分支（`--base` / `--target-branch`）；
+    - 标题简明概括本次改动，正文附改动摘要与本次实际验证结果；
+    - 若仓库要求或用户选定 squash，顺手开启 squash 选项（如支持）。
+-3. **汇报状态**：第二轮给出 MR / PR 链接、当前 CI 状态及是否已就绪；若用户选择暂不合入或跳过推送，如实写明「代码留在本地/特性分支，尚未合入主分支」，并保留对应 worktree，不急于清理。
++3. **汇报状态**：若 MR / PR 已创建但尚未合入，在第二轮将其归为外部等待项，写清链接、CI 与评审状态、是否开启自动合并以及是否需要用户回来点击合入；若用户选择暂不合入或跳过推送，如实写明「代码留在本地/特性分支，尚未合入主分支」，并保留对应 worktree，不急于清理。
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 086b878..c06642a 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -1,4 +1,4 @@
+-"""session-wrap 文本契约测试：锁定先确认后执行、代码合入闭环、说人话输出、缺口记账与逐项授权。"""
++"""session-wrap 文本契约测试：锁定完成度门禁、未完成三选一、先确认后执行、代码合入闭环、说人话输出、零遗留放手结论与逐项授权。"""
+ from __future__ import annotations
+ 
+ import unittest
+@@ -6,6 +6,7 @@ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++INCOMPLETE = (ROOT / "references" / "incomplete-abort.md").read_text(encoding="utf-8")
+ PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
+ MERGE = (ROOT / "references" / "branch-merge.md").read_text(encoding="utf-8")
+ RELEASE = (ROOT / "references" / "release-deploy.md").read_text(encoding="utf-8")
+@@ -13,22 +14,40 @@ DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
+ 
+ 
+ class SessionWrapContractTest(unittest.TestCase):
+-    def test_model_invocation_covers_session_wrap_and_review(self) -> None:
++    def test_model_invocation_covers_session_wrap_and_abort_gate(self) -> None:
+         self.assertIn("description: 会话收尾", SKILL)
+-        self.assertIn("准备结束会话或要求复盘时", SKILL)
++        self.assertIn("准备结束会话或确认是否中止时", SKILL)
+         self.assertNotIn("disable-model-invocation: true", SKILL)
+ 
+     def test_no_action_without_confirmation(self) -> None:
+-        self.assertIn("只要涉及写文件、改 git、停服务或外部操作，一律先确认再动手", SKILL)
++        self.assertIn("只要涉及写文件、改 git、停服务、删资源或外部操作，一律先确认再动手", SKILL)
+         self.assertIn("第一轮只做只读排查与列清单", SKILL)
+         self.assertIn("即使清单里只有「准备帮你做」而没有选择题，也先亮出来等用户点头", SKILL)
+         self.assertIn("只有完全无事可做时才直接结束", SKILL)
+         self.assertNotIn("直接执行", SKILL)
+         self.assertNotIn("没有需你选择的项时直接执行", SKILL)
+ 
++    def test_completion_gate_and_incomplete_three_way_abort(self) -> None:
++        self.assertIn("完成度裁决（第 0 步）", SKILL)
++        self.assertIn("references/incomplete-abort.md", SKILL)
++        self.assertIn("跳过合入主分支、打 tag、发版或部署等完成态检查", SKILL)
++        for choice in ("继续做完", "暂停挂起", "彻底放弃"):
++            self.assertIn(choice, SKILL)
++            self.assertIn(choice, INCOMPLETE)
++        self.assertIn("退出收尾", INCOMPLETE)
++        self.assertIn("跳过完成态的代码合入主分支、打 tag、发版与部署检查", INCOMPLETE)
++
++    def test_pause_preserves_context_and_abort_cleans_up_with_archived(self) -> None:
++        self.assertIn("保留当前分支与 worktree", INCOMPLETE)
++        self.assertIn("保持任务为 `active`", INCOMPLETE)
++        self.assertIn("丢弃未提交改动、关闭草稿 MR/PR、删除临时分支与临时 worktree", INCOMPLETE)
++        self.assertIn("状态为 `archived`，而非 `done`", INCOMPLETE)
++        self.assertIn("暂停挂起不授权合入或删分支/worktree", SKILL)
++        self.assertIn("放弃撤场涉及的丢弃改动、关 MR/PR 或删分支须逐项确认", SKILL)
++
+     def test_code_delivery_loop_requires_merge_or_mr_check(self) -> None:
+         self.assertIn("代码交付闭环", SKILL)
+-        self.assertIn("在非默认分支且有未推送或未合入主分支的提交", SKILL)
++        self.assertIn("在非默认分支（或本地默认分支领先远端）且有未推送或未合入主分支的提交", SKILL)
+         self.assertIn("references/branch-merge.md", SKILL)
+         self.assertIn("推送并提 MR/PR", SKILL)
+         self.assertIn("补验当前缺口 → 提交 → 推送与提 MR/PR 或合入主分支", SKILL)
+@@ -37,6 +56,7 @@ class SessionWrapContractTest(unittest.TestCase):
+ 
+     def test_branch_merge_reference_covers_rules_and_execution(self) -> None:
+         self.assertIn("不因工作区干净而跳过", MERGE)
++        self.assertIn("逐仓核对", MERGE)
+         self.assertIn("仓库硬规则与分支保护 > 用户本次明确选择 > 已确认的长期习惯", MERGE)
+         for strategy in ("squash", "merge commit", "rebase merge", "直接合入默认分支"):
+             self.assertIn(strategy, MERGE)
+@@ -44,17 +64,22 @@ class SessionWrapContractTest(unittest.TestCase):
+         self.assertIn("gh pr create", MERGE)
+         self.assertIn("glab mr create", MERGE)
+         self.assertIn("合并授权不自动包含 push", MERGE)
++        self.assertIn("归为外部等待项", MERGE)
+ 
+-    def test_plain_language_and_concise_output(self) -> None:
++    def test_plain_language_and_zero_tail_closure_verdicts(self) -> None:
+         self.assertIn("说人话", SKILL)
+         self.assertIn("每条一行短句，空区块省略", SKILL)
+         self.assertIn("第一轮尽量控制在半屏以内", SKILL)
+         self.assertIn("两边不重复列选项", SKILL)
+         self.assertIn("第一轮不下结束结论", SKILL)
+-        self.assertIn("用一句大白话交代现状", SKILL)
++        self.assertIn("用一句大白话交代现状并点明四种终态之一", SKILL)
++        for verdict in ("**彻底收工**", "**本地收尾、剩外部等待**", "**已暂停挂起**", "**已确认中止**"):
++            self.assertIn(verdict, SKILL)
+         self.assertIn("不生成额外报告文件", SKILL)
+-        self.assertIn("第一轮示例", PLAN)
+-        self.assertIn("第二轮示例", PLAN)
++        self.assertIn("第一轮示例 A", PLAN)
++        self.assertIn("第一轮示例 B", PLAN)
++        self.assertIn("第二轮示例 A", PLAN)
++        self.assertIn("第二轮示例 B", PLAN)
+ 
+     def test_original_requirements_and_real_evidence(self) -> None:
+         self.assertIn("重读最初目标和最新要求", SKILL)
+@@ -64,6 +89,8 @@ class SessionWrapContractTest(unittest.TestCase):
+         self.assertIn("编译或静态检查不能替代原始场景验证", SKILL)
+         self.assertIn("区分事实、推测和未知", SKILL)
+         self.assertIn("纯问答或方案讨论只依据对话收尾", SKILL)
++        self.assertIn("非代码交付", SKILL)
++        self.assertIn("调试日志、mock、跳过校验开关或临时配置", SKILL)
+ 
+     def test_findings_classify_and_scope_authorization(self) -> None:
+         for group in ("**需要你拍板**", "**准备帮你做**", "**顺手记下的遗留（这次不做）**"):
+@@ -77,12 +104,13 @@ class SessionWrapContractTest(unittest.TestCase):
+         self.assertIn("题干脱离上下文也能看懂", PLAN)
+         self.assertIn("提交属于用户点名才做的动作", PLAN)
+ 
+-    def test_gaps_and_knowledge_routing(self) -> None:
++    def test_gaps_and_knowledge_routing_with_no_silent_chat_drop(self) -> None:
+         self.assertIn("任务未收口：写入 `context/current.md` 的「未决问题」表", PLAN)
+         self.assertIn("`解决形式` 写「另开任务」或「不纳入」", PLAN)
+         self.assertIn("任务已收口或已归档：在 SUMMARY「剩余风险与后续项」末尾追加一行", PLAN)
+         self.assertIn("只追加，不动原文其余部分", PLAN)
+-        self.assertIn("都没有：留在第二轮汇报里，不新建额外文件", PLAN)
++        self.assertIn("不默认静默留在聊天里", PLAN)
++        self.assertIn("明确确认不跟踪、直接放弃", PLAN)
+         self.assertIn("缺口记账不新建任务或子任务", PLAN)
+         for route in ("project-atlas", "wiki-data", "skill-upgrader", "当前任务 SUMMARY"):
+             self.assertIn(route, PLAN)
+diff --git a/skills/session-wrap/evals/cases.yaml b/skills/session-wrap/evals/cases.yaml
+index 45f0694..256ad9a 100644
+--- a/skills/session-wrap/evals/cases.yaml
++++ b/skills/session-wrap/evals/cases.yaml
+@@ -72,14 +72,15 @@ cases:
+   - id: current-criterion-cannot-be-deferred
+     kind: boundary
+     judge: deterministic
+-    description: 当前验收缺口不能伪装成遗留任务
++    description: 当前验收缺口不能伪装成遗留任务，未完成时先过中止门禁
+     given: 发现一个导致用户明确验收目标不成立的问题，同时已有任务追踪机制
+     expect:
+       must:
+-        - 把修复或补验列为收尾清单首项
+-        - 该项未通过或被跳过时，第二轮开头明确说明仍未完成及阻塞项
++        - 判为主线未完成，先通过三选一门禁确认是继续做完、暂停挂起还是彻底放弃
++        - 该项未通过或被跳过时，第二轮开头明确说明仍未完成（已暂停或已中止）及阻塞项
+       must_not:
+         - 以记为后续遗留代替当前问题的处理或未解决说明
++        - 在未完成时直接推进合入主分支或发版
+ 
+   - id: existing-task-is-enriched
+     kind: boundary
+@@ -216,3 +217,69 @@ cases:
+         - 只读确认未命中发布或部署信号后跳过该检查项
+       must_not:
+         - 向无发布机制的仓库强行追问打 tag、发版或部署
++
++  - id: incomplete-work-triggers-abort-gate
++    kind: core
++    judge: deterministic
++    description: 主线未完成时先触发三选一中止门禁并跳过完成态合入发版检查
++    given: 用户要求重构导出接口并跑通原始导出场景，目前只改完字段映射且原始场景未跑通，用户此时要求收尾
++    expect:
++      must:
++        - 在完成度裁决中判为未完成，说清已做到哪与还差什么
++        - 第一轮抛出「继续做完 / 暂停挂起 / 彻底放弃」三选一作为首位拍板题
++        - 跳过合入主分支、打 tag、发版与部署等完成态检查
++      must_not:
++        - 把未完成的代码推进提 MR/PR、合入主分支或发版
++        - 未经用户选择自动清理分支或退出
++
++  - id: paused-session-preserves-workspace-and-checkpoint
++    kind: core
++    judge: deterministic
++    description: 用户确认暂停挂起时保住分支与 worktree 并固化恢复断点
++    given: 主线未完成且使用 taskrail，分支 feat/export-refactor 有未提交改动与本地 dev 服务，用户在第一轮选择「暂停挂起」
++    expect:
++      must:
++        - 保留分支与 worktree，不合入默认分支也不删分支
++        - 保持 taskrail 状态为 active（不归档），更新断点信息并停掉确认后的本地服务
++        - 第二轮开头点明已暂停挂起，写清现场位置与下次接手入口
++      must_not:
++        - 暂停时删除 worktree 或将任务关闭为 done/archived
++        - 未经确认丢弃未提交改动
++
++  - id: aborted-session-cleans-up-and-archives-uncompleted
++    kind: core
++    judge: deterministic
++    description: 用户确认彻底放弃时逐项确认撤场并将 taskrail 归档为 archived
++    given: 方案被证明不可行且使用 taskrail，存在草稿 MR、临时 worktree 与未提交改动，用户在第一轮选择「彻底放弃」
++    expect:
++      must:
++        - 逐项确认丢弃未提交改动、关闭草稿 MR 与清理临时分支/worktree
++        - 路由到 taskrail close 按未完成归档（archived 而非 done），注明放弃原因
++        - 第二轮开头点明已确认中止并完成撤场
++      must_not:
++        - 将未完成放弃的任务标为 done 或伪写成功总结
++        - 未经逐项确认直接删除分支或关闭 MR
++
++  - id: external-wait-distinguished-from-zero-tail-closure
++    kind: core
++    judge: deterministic
++    description: 已提 MR 但未合入且未开自动合并时，第二轮归为外部等待项而非彻底收工
++    given: 代码已完成验证、推送并创建 MR !42，但目标分支需要 CI 与人工评审且未开自动合并
++    expect:
++      must:
++        - 第二轮开头明确「本地已收尾、剩外部等待」，写清 MR 链接、未开自动合并及需回看点合入
++        - 说明其余本地服务、临时痕迹已清空
++      must_not:
++        - 笼统宣称可以彻底放手不用再管
++
++  - id: gap-without-tracker-needs-explicit-destination-or-drop
++    kind: boundary
++    judge: deterministic
++    description: 无台账也无外部 tracker 时，遗留不能静默沉进聊天，须由用户选去向或确认放弃
++    given: 主线已完成，过程中顺手发现一个无关的技术债，项目未使用 taskrail 也没有外部 Issue tracker
++    expect:
++      must:
++        - 第一轮将该遗留放入拍板清单，让用户选择写入项目已有待办位置或明确确认不跟踪、直接放弃
++        - 按用户确认执行落宿，或在用户明确确认不跟踪后在第二轮说明已确认放弃跟踪
++      must_not:
++        - 不经确认就把遗留静默留在聊天记录里

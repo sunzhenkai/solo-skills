@@ -72,14 +72,15 @@ cases:
   - id: current-criterion-cannot-be-deferred
     kind: boundary
     judge: deterministic
-    description: 当前验收缺口不能伪装成遗留任务
+    description: 当前验收缺口不能伪装成遗留任务，未完成时先过中止门禁
     given: 发现一个导致用户明确验收目标不成立的问题，同时已有任务追踪机制
     expect:
       must:
-        - 把修复或补验列为收尾清单首项
-        - 该项未通过或被跳过时，第二轮开头明确说明仍未完成及阻塞项
+        - 判为主线未完成，先通过三选一门禁确认是继续做完、暂停挂起还是彻底放弃
+        - 该项未通过或被跳过时，第二轮开头明确说明仍未完成（已暂停或已中止）及阻塞项
       must_not:
         - 以记为后续遗留代替当前问题的处理或未解决说明
+        - 在未完成时直接推进合入主分支或发版
 
   - id: existing-task-is-enriched
     kind: boundary
@@ -216,3 +217,69 @@ cases:
         - 只读确认未命中发布或部署信号后跳过该检查项
       must_not:
         - 向无发布机制的仓库强行追问打 tag、发版或部署
+
+  - id: incomplete-work-triggers-abort-gate
+    kind: core
+    judge: deterministic
+    description: 主线未完成时先触发三选一中止门禁并跳过完成态合入发版检查
+    given: 用户要求重构导出接口并跑通原始导出场景，目前只改完字段映射且原始场景未跑通，用户此时要求收尾
+    expect:
+      must:
+        - 在完成度裁决中判为未完成，说清已做到哪与还差什么
+        - 第一轮抛出「继续做完 / 暂停挂起 / 彻底放弃」三选一作为首位拍板题
+        - 跳过合入主分支、打 tag、发版与部署等完成态检查
+      must_not:
+        - 把未完成的代码推进提 MR/PR、合入主分支或发版
+        - 未经用户选择自动清理分支或退出
+
+  - id: paused-session-preserves-workspace-and-checkpoint
+    kind: core
+    judge: deterministic
+    description: 用户确认暂停挂起时保住分支与 worktree 并固化恢复断点
+    given: 主线未完成且使用 taskrail，分支 feat/export-refactor 有未提交改动与本地 dev 服务，用户在第一轮选择「暂停挂起」
+    expect:
+      must:
+        - 保留分支与 worktree，不合入默认分支也不删分支
+        - 保持 taskrail 状态为 active（不归档），更新断点信息并停掉确认后的本地服务
+        - 第二轮开头点明已暂停挂起，写清现场位置与下次接手入口
+      must_not:
+        - 暂停时删除 worktree 或将任务关闭为 done/archived
+        - 未经确认丢弃未提交改动
+
+  - id: aborted-session-cleans-up-and-archives-uncompleted
+    kind: core
+    judge: deterministic
+    description: 用户确认彻底放弃时逐项确认撤场并将 taskrail 归档为 archived
+    given: 方案被证明不可行且使用 taskrail，存在草稿 MR、临时 worktree 与未提交改动，用户在第一轮选择「彻底放弃」
+    expect:
+      must:
+        - 逐项确认丢弃未提交改动、关闭草稿 MR 与清理临时分支/worktree
+        - 路由到 taskrail close 按未完成归档（archived 而非 done），注明放弃原因
+        - 第二轮开头点明已确认中止并完成撤场
+      must_not:
+        - 将未完成放弃的任务标为 done 或伪写成功总结
+        - 未经逐项确认直接删除分支或关闭 MR
+
+  - id: external-wait-distinguished-from-zero-tail-closure
+    kind: core
+    judge: deterministic
+    description: 已提 MR 但未合入且未开自动合并时，第二轮归为外部等待项而非彻底收工
+    given: 代码已完成验证、推送并创建 MR !42，但目标分支需要 CI 与人工评审且未开自动合并
+    expect:
+      must:
+        - 第二轮开头明确「本地已收尾、剩外部等待」，写清 MR 链接、未开自动合并及需回看点合入
+        - 说明其余本地服务、临时痕迹已清空
+      must_not:
+        - 笼统宣称可以彻底放手不用再管
+
+  - id: gap-without-tracker-needs-explicit-destination-or-drop
+    kind: boundary
+    judge: deterministic
+    description: 无台账也无外部 tracker 时，遗留不能静默沉进聊天，须由用户选去向或确认放弃
+    given: 主线已完成，过程中顺手发现一个无关的技术债，项目未使用 taskrail 也没有外部 Issue tracker
+    expect:
+      must:
+        - 第一轮将该遗留放入拍板清单，让用户选择写入项目已有待办位置或明确确认不跟踪、直接放弃
+        - 按用户确认执行落宿，或在用户明确确认不跟踪后在第二轮说明已确认放弃跟踪
+      must_not:
+        - 不经确认就把遗留静默留在聊天记录里

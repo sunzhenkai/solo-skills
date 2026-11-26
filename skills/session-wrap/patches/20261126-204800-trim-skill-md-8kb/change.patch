@@ -1,0 +1,12 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index 62dedb6..3f8f3b8 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -58,6 +58,4 @@ description: 会话收尾：在准备结束会话或确认是否中止时，先
+   4. **已确认中止**：写明丢弃/关闭了哪些半成品、任务已按未完成归档、保留的有效经验（如有）。
+   已完成且完全无遗留时只回一句可以彻底放手，不生成额外报告文件。
+ 
+-正反示例见 [references/plan-synthesis.md](references/plan-synthesis.md)。
+-
+-本 skill 由 agent 在准备交付、收尾或用户确认中止时进入；客户端退出事件需要宿主 hook，不能由 skill 自身保证捕获。
++正反示例见 [references/plan-synthesis.md](references/plan-synthesis.md)。退出事件需宿主 hook，不能由 skill 自身保证捕获。
