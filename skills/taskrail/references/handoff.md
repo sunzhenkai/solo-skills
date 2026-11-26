@@ -31,7 +31,7 @@
    ```
 
    子任务 task-path 为 `<parent>/subtasks/<child>`；exit 非 0 先补齐，不绕过。
-4. 按 taskflow 脚手架在 workspace 建 driver，`.openspec.yaml` 写 `skip_specs: true`，proposal 含 Driver 协议；tasks.md 留给 propose。
+4. 按 taskflow 脚手架在 workspace 建 driver，`.openspec.yaml` 写 `skip_specs: true`，proposal 含 Driver 协议；tasks.md 留给 propose。进入 OpenSpec 后详细设计与切片清单归 `openspec/changes/`，`tasks/ongoing/<id>/PLAN.md` 仅留指向 driver 的一行指针。
 5. 建不成时保持 active，current_ref 回 plan / approve，driver 置 null，记录缺失依赖；不改成 done，不影响其他就绪子任务。
 
 用户原话明确要求绕过 taskrail 时仍可按 taskflow 的 gate_bypass 规则；理由只能照录原话。

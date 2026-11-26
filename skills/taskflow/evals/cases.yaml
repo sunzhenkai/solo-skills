@@ -296,3 +296,28 @@ cases:
       must_not:
         - 编造等价 openspec 命令继续
         - 静默改走 direct 或把任务标完成
+
+  - id: parent-integration-worktree-merge-and-conflict-abort
+    kind: core
+    judge: deterministic
+    description: 父级同仓集成在隔离 worktree 合并多子任务分支，冲突自动中止并上报
+    given: 同一仓库的两个子任务已在各自子任务分支提交代码，父任务需要集成验收
+    expect:
+      must:
+        - 使用 prepare_worktree.py 的 parent/integration 与 --integrate 合并各子任务分支到隔离分支
+        - 合并冲突时自动 merge --abort 保持现场干净并返回冲突分支与冲突文件列表
+      must_not:
+        - 把子任务分支直接合并进源仓默认分支进行集成测试
+        - 在冲突后留下未清理的半合并状态
+
+  - id: seam-one-test-at-a-time-tdd
+    kind: core
+    judge: llm
+    description: 业务实现与缺陷修复在公开接缝采用单测试垂直 TDD 节奏
+    given: 设计已约定模块公开接缝，需要在 worktree 实现新业务规则并重构浅层旧模块
+    expect:
+      must:
+        - 一次只写一个测公开接缝外部行为的失败测试（Red），再写最小实现通过（Green），循环推进
+        - 模块深化重构后用新接口测试替换旧浅层碎测试（replace, don't layer）
+      must_not:
+        - 一口气批量生成绑定内部私有结构的测试文件或叠层保留已失效的浅层碎测试

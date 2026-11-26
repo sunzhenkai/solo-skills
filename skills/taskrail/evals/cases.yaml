@@ -185,7 +185,7 @@ cases:
     given: human 或 goal 新任务初始化时已填写可检查 criterion，但尚未经过 intent
     expect:
       must:
-        - current_ref 从 intake 开始，context/current 的意图确认为 pending
+        - current_ref 从 intent 开始，context/current 的意图确认为 pending
         - human 明确确认后记 confirmed，goal 简要复述后记 not-required，再进入 plan
       must_not:
         - 因 criterion 非空直接从 plan 或 execute 继续
@@ -625,3 +625,80 @@ cases:
       must_not:
         - 对架构级或契约级取舍由 agent 自问自答直接拍板闭环
         - 把局部可逆实现细节也抛给用户逐项询问
+
+  - id: small-clear-change-combined-confirmation
+    kind: core
+    judge: llm
+    description: 单一明确小改首轮合并意图与最小计划确认，使用紧凑总结
+    given: human 用户在单仓内发起明确小改，无 design 或 decompose 需求，读目标处后改点与验证命令完全清晰
+    expect:
+      must:
+        - 首轮同时给出意图复述与最小实施计划和验证方式，用户一次确认后同时落定意图与 PLAN 实施确认
+        - init 只建热三件不预建空 decisions 或 history，收口允许使用三段紧凑版 SUMMARY
+      must_not:
+        - 对单一明确小改强行拆分两次往返人工停点
+        - 把大型改动或含 design 的任务也走首轮合一确认
+
+  - id: per-child-hitl-afk-mode-override
+    kind: core
+    judge: deterministic
+    description: 子任务默认继承父确认模式并支持按 ROADMAP 覆写 HITL 与 AFK
+    given: human 父任务拆出两个子任务，契约清晰的常规子任务在 ROADMAP 标为 goal，高危子任务保持 human
+    expect:
+      must:
+        - 未指定确认模式的子任务自动继承父 confirm_mode
+        - ROADMAP 显式指定模式的子任务通过 init --confirm-mode 覆写，并按各自模式执行 PLAN 确认
+      must_not:
+        - 强制所有子任务锁死同一 confirm_mode 无法混合 HITL 与 AFK
+        - 因 goal 子任务放宽真阻塞或危险动作门禁
+
+  - id: parent-same-repo-integration-worktree
+    kind: core
+    judge: deterministic
+    description: 同仓多子任务完成后父任务在隔离集成 worktree 合并验证总判据
+    given: 同一仓库的两个子任务已在各自子任务分支完成并 done，父任务进入 verify
+    expect:
+      must:
+        - 使用 prepare_worktree.py 的 parent/integration 与 --integrate 合并两个子任务分支到隔离集成工作树后跑端到端验证
+        - 合并冲突时自动中止并回对应子任务或 design，绝不触碰源仓与默认分支
+      must_not:
+        - 直接把子任务分支合入源仓默认分支进行验收
+        - 未合并验证仅凭各自单测通过就标父任务 done
+
+  - id: vertical-slice-tracer-bullet-decompose
+    kind: core
+    judge: llm
+    description: 拆解多模块功能优先垂直切片并控制单窗口闭环粒度
+    given: 一个包含数据存储、接口与界面的中型功能需要拆分为多个切片或子任务
+    expect:
+      must:
+        - 优先按端到端可验证的垂直切片（tracer bullet）划分，而不是按技术层水平硬切
+        - 每片或子任务粒度控制在单个 fresh context window 可独立闭环
+      must_not:
+        - 先建全套表结构再写全套接口最后写界面导致前期无法端到端验证
+
+  - id: design-seam-depth-and-design-it-twice
+    kind: core
+    judge: llm
+    description: 架构设计明确深模块接缝与测试面，复杂接口采用两次设计
+    given: 任务需重构跨模块核心接口且存在多种可行接口形态
+    expect:
+      must:
+        - 在 design 中写清模块接缝（seam）、依赖分类与公开接口测试面，避免单一实现假想接缝
+        - 仅在满足难逆、无上下文困惑与真权衡三条件时写极简 ADR，并同步维护项目 GLOSSARY.md
+        - 接口分歧实质存在时可选用 Design It Twice 并行对比 depth、locality 与 seam
+      must_not:
+        - 只画粗略分层图而忽略公开测试接缝或为凑数编造稻草人方案
+
+  - id: diagnose-red-feedback-loop-before-hypothesis
+    kind: core
+    judge: llm
+    description: 排障先建红灯反馈回路并最小化，再列排序假说与清理探针
+    given: 用户报告一个偶现接口错误或性能退化，原因不明
+    expect:
+      must:
+        - 先构造已实跑的 tight & red-capable 复现命令，未见红灯不读代码盲猜
+        - 最小化复现（Minimise）后列出 3 至 5 个可证伪排序假说逐一验证
+        - 临时日志打 [DEBUG-xxxx] 前缀并在收尾清净，修复后重跑未缩小原始场景
+      must_not:
+        - 未复现直接凭直觉改代码，或收尾遗留未清理调试日志

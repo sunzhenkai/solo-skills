@@ -1,0 +1,50 @@
+diff --git a/skills/taskflow/references/execution-discipline.md b/skills/taskflow/references/execution-discipline.md
+index 48a5bd6..977e94e 100644
+--- a/skills/taskflow/references/execution-discipline.md
++++ b/skills/taskflow/references/execution-discipline.md
+@@ -11,7 +11,7 @@ worktree 唯一真源是 [worktree.md](worktree.md)；OpenSpec 固定 Driver 协
+ 
+ ## 实施中
+ 
+-- 一次完成一个连贯增量，先 focused tests，再提交；同任务同仓写操作串行。
++- 一次完成一个连贯增量，先 focused tests，再提交；同任务同仓写操作串行。业务逻辑与 bug 修复默认在设计约定的公开接缝（seam）上采用单测试垂直 TDD 节奏：一次只写一个验证外部行为的失败测试（Red）→ 写最小实现使其变绿（Green）→ 按需重构，不批量预写绑定内部结构的脆弱测试；模块深化重构后用新接口测试替换旧浅层碎测试（replace, don't layer）。
+ - 单项做不了保持未勾并写原因，继续其他就绪项；工具故障与代码根因分开，真阻塞只停依赖项。
+ - 测试失败且原因明确继续 execute，原因不明回 diagnose；契约 / 方案不足回 design / grill；独立交付边界回 decompose。
+ - 不缩小 criterion；确需缩小时回 intent / approve。
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 8756630..4f3d071 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -309,3 +309,15 @@ cases:
+       must_not:
+         - 把子任务分支直接合并进源仓默认分支进行集成测试
+         - 在冲突后留下未清理的半合并状态
++
++  - id: seam-one-test-at-a-time-tdd
++    kind: core
++    judge: llm
++    description: 业务实现与缺陷修复在公开接缝采用单测试垂直 TDD 节奏
++    given: 设计已约定模块公开接缝，需要在 worktree 实现新业务规则并重构浅层旧模块
++    expect:
++      must:
++        - 一次只写一个测公开接缝外部行为的失败测试（Red），再写最小实现通过（Green），循环推进
++        - 模块深化重构后用新接口测试替换旧浅层碎测试（replace, don't layer）
++      must_not:
++        - 一口气批量生成绑定内部私有结构的测试文件或叠层保留已失效的浅层碎测试
+diff --git a/skills/taskflow/tests/test_execution_spine_contract.py b/skills/taskflow/tests/test_execution_spine_contract.py
+index 6414062..bd91975 100644
+--- a/skills/taskflow/tests/test_execution_spine_contract.py
++++ b/skills/taskflow/tests/test_execution_spine_contract.py
+@@ -19,6 +19,12 @@ class ExecutionSpineTest(unittest.TestCase):
+         self.assertIn("串行", DISC)
+         self.assertIn("全勾", DISC)
+ 
++    def test_seam_tdd_rhythm_in_execution_discipline(self) -> None:
++        self.assertIn("seam", DISC)
++        self.assertIn("Red", DISC)
++        self.assertIn("Green", DISC)
++        self.assertIn("replace, don't layer", DISC)
++
+     def test_multi_worker_appendix(self) -> None:
+         mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
+         self.assertIn("样板先行", mw)

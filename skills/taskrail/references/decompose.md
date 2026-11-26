@@ -13,17 +13,17 @@
 criterion、当前 plan、涉及仓库、已知契约与依赖。
 
 ## 执行方法
-1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
-2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界。子判据合计覆盖总判据，依赖无环。
-3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点，但若整体命中大型项目、重大改动或架构调整，仍须先完成整体方案的人话对齐与放行再开工。所需确认未完成前不创建或激活子任务。
+1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。优先按**垂直切片（tracer bullet）**切分——每片或每个子任务贯通一条端到端可验证路径，避免按技术层水平硬切（先建全套表、再写全套 API、最后写 UI），粒度以单个 fresh context window 能独立闭环为上限。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
+2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界、可选确认模式（`human` HITL / `goal` AFK，留空继承父任务）。子判据合计覆盖总判据，依赖无环。
+3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，按 [confirm-protocol.md](confirm-protocol.md) 确认 ROADMAP；同任务内部切片不新增停点（重大整体方案仍以 `approve` 放行为前提）。所需确认未完成前不创建或激活子任务。
 4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
 
    ```bash
-   python3 <taskrail>/scripts/task_state.py init <workspace> <child-id> --title "<目标>" --criterion "<子判据>" --parent <parent-id>
+   python3 <taskrail>/scripts/task_state.py init <workspace> <child-id> --title "<目标>" --criterion "<子判据>" --parent <parent-id> [--confirm-mode human|goal]
    ```
 
    已存在则核对是否同一项，不覆盖、不复制。子任务只拆一层，其内部再拆为切片。
-5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
+5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec，并可按 ROADMAP 覆写 `confirm_mode`（核心高危走 `human` HITL，边界清晰且接缝锁定走 `goal` AFK）。同仓子任务若依赖前序未合入子任务代码，通过 `prepare_worktree.py ... --base task/<parent>--<dep-child>` 串联基线。
 6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空的子任务；正在做的优先，其次按 ROADMAP 顺序，用户点名则照办。
 7. 多 worker 派发前，主会话先在锁内认领；成功才派发，已被他人认领则取下一 frontier 项：
 
@@ -41,16 +41,16 @@ ROADMAP.md、`subtasks/<child>/TASK.md` 及热文档、父 TASK 的下一动作�
 所有项有子判据与交付边界，依赖无环，目录与 roadmap 一致，下一就绪项明确；没有可执行项且无阻塞时才回 plan 修正。
 
 ## 退出与重入
-父任务选就绪子任务；全部子任务 done 后父任务进 verify 做集成与总判据验证。resume 先核对 roadmap 与部分创建的目录，再幂等补齐。
+父任务选就绪子任务；全部子任务 done 后父任务进 verify 做集成与总判据验证。若同一仓库存在多个已完成子任务分支，使用 `prepare_worktree.py <workspace> <parent>/integration <repo-id> <source-repo> --integrate task/<parent>--<c1> --integrate task/<parent>--<c2>` 在隔离集成 worktree 合并验证（冲突自动中止并回受影响子任务或 design），不碰源仓与默认分支。resume 先核对 roadmap 与部分创建的目录，再幂等补齐。
 
 ## ROADMAP 模板
 
 ```markdown
-| 项 | 类型 | 目标 | 子判据 | 涉及仓库 | 依赖 | 交付边界 |
-|---|---|---|---|---|---|---|
-| api | 子任务 | 提供异步导出 API | 可创建并查询任务 | backend | contract | 独立 API 分支 |
-| web | 子任务 | 接入异步导出 | 可下载完成文件 | web | api | 独立 Web 分支 |
-| integration | 集成项 | 验证跨仓主流程 | 大数据端到端通过 | backend, web | api, web | 父任务验收 |
+| 项 | 类型 | 目标 | 子判据 | 涉及仓库 | 依赖 | 交付边界 | 模式 |
+|---|---|---|---|---|---|---|---|
+| api | 子任务 | 提供异步导出 API | 可创建并查询任务 | backend | contract | 独立 API 分支 | goal |
+| web | 子任务 | 接入异步导出 | 可下载完成文件 | web | api | 独立 Web 分支 | human |
+| integration | 集成项 | 验证跨仓主流程 | 大数据端到端通过 | backend, web | api, web | 父任务验收 | 继承 |
 ```
 
 `contract` 可为设计准备项，不一定是代码子任务；集成项由父任务执行，不另建子任务。

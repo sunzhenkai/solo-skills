@@ -20,9 +20,9 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
 
 固定不变的是：目标与 criterion → 当前最小计划 → 动态 references → verify → close。中间不设固定顺序和 skip/full 档位。
 
-新根任务从 intake 进入 intent，`context/current.md` 的意图确认状态属于热状态；criterion 已填写不代表确认完成。意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度同步按用户认知增量触发，不改变路由，也不要求用户回复。
+新根任务从 intent 开始（兼容旧值 intake），`context/current.md` 的意图确认状态属于热状态；criterion 已填写不代表确认完成。意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度同步按用户认知增量触发，不改变路由，也不要求用户回复。
 
-每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”；统一结构见 [ref-contract.md](ref-contract.md)。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
+每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”（维护规范见文末「Reference 统一契约」）。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
 
 ## 3. TASK.md 状态
 
@@ -32,14 +32,14 @@ parent: null | <parent-task-id>
 status: pending | active | blocked | done | archived
 claimed_by: null | "<worker-id>"  # 仅子任务
 claimed_at: null | "<ISO 8601 timestamp>"  # 仅子任务
-current_ref: intake | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
+current_ref: intent | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
 confirm_mode: human | goal
 execution: direct | openspec | null
 criterion: "<一条可检查的话>"
 driver: null | "<task-id>-driver"
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-# 旧字段与 gate_bypass 等按需兼容保留；archived / reopened 在动作发生时写
+# 旧字段与 intake / gate_bypass 等按需兼容保留；archived / reopened 在动作发生时写
 ```
 
 - `pending`：子任务已规划但未就绪；`active`：可推进；`blocked`：只表示需要外部输入或环境解锁。
@@ -47,7 +47,7 @@ updated: YYYY-MM-DD
 - 主会话在派发前用 `task_state.py claim` 锁内认领，同一 owner 重入幂等；回收用 `release`，确认原 worker 已停止后才用 `release --force`。`reconcile` 报告并保留认领，不按时间自动清理。
 - `current_ref` 只是当前动作，不是完成百分比。direct 任务的实施进度看 PLAN checkbox；OpenSpec 任务看 change checkbox；父子结构看 ROADMAP 与子 TASK。
 - `execution` 和 `driver` 不决定任务生命周期。driver 归档后若未验收，`current_ref: close` 或 `verify`，绝不能直接推导 done。
-- `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 存在、所有直接子任务 done。`task_state.py update --status done` 机械检查这些条件。
+- `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 非空且含实质内容、所有直接子任务 done；`task_state.py` 机械检查 done 条件，以及切到 `plan` / `execute` 时的意图确认、非空 criterion、PLAN.md 实施确认与 design 批准。
 - 状态写入与 INDEX 重建使用 `scripts/task_state.py`；INDEX 是派生物，不是第二状态源。
 
 ## 4. 任务目录
@@ -71,7 +71,7 @@ tasks/
 └── archive/<yyyy-mm-dd>/<parent>/
 ```
 
-子任务内部再拆只能是切片。父任务若有子任务则不直接写业务代码、不持实施 driver，只维护共享契约、依赖和集成验收；每个子任务独立选择 direct 或 OpenSpec。
+子任务内部再拆只能是切片。`init` 仅懒创建热三件（`TASK.md`、`PLAN.md`、`context/current.md`），`decisions.md` 与 `history.md` 首次写入时再建。父任务若有子任务则不直接写业务代码、不持实施 driver，只维护共享契约、依赖和集成验收；每个子任务独立选择 direct 或 OpenSpec，且默认继承父 `confirm_mode`、可按 ROADMAP 覆写为 `human`（HITL）或 `goal`（AFK）。
 
 ## 5. decompose 与交付原子性
 
@@ -81,13 +81,13 @@ tasks/
 - **子任务**：可独立实施和验证，通过明确契约集成，可有独立分支与交付节奏；位于父任务 `subtasks/`。
 - 是否有“代码依赖”不是唯一判据；必须原子落地的是切片，能按契约独立交付的可作有依赖子任务。
 - decompose 一次创建所有子任务的轻量 pending TASK，细节按就绪顺序展开。一个子任务 blocked 只停其依赖链。
-- 全部子任务 done 后父任务进入 verify，执行集成项和总判据；不能按子任务数量直接 done。
+- 全部子任务 done 后父任务进入 verify，执行集成项和总判据；同仓多子任务通过 `prepare_worktree.py ... <parent>/integration --integrate` 在隔离集成 worktree 合并验证，不能按子任务数量直接 done。
 
 ## 6. 执行与 handoff
 
 所有 git 代码任务默认调用 `<taskflow>/scripts/prepare_worktree.py`，direct 与 OpenSpec 共用 [../taskflow/references/worktree.md](../../taskflow/references/worktree.md)。
 
-OpenSpec 只在用户要求、长期 spec、多会话 / 多 worker 编排或正式 change 产物有需要时使用。只有 OpenSpec 路径走 [handoff.md](handoff.md) 与 `check_handoff.py`；approve 可按 router 跳过，此时交接节记录 `批准：not-required: <理由>`。direct 路径不建 driver、不跑 handoff 门。
+OpenSpec 只在用户要求、长期 spec、多会话 / 多 worker 编排或正式 change 产物有需要时使用；选定后详细设计与切片清单归 `openspec/changes/`，`PLAN.md` 仅留指向 driver 的指针。只有 OpenSpec 路径走 [handoff.md](handoff.md) 与 `check_handoff.py`；approve 可按 router 跳过，此时交接节记录 `批准：not-required: <理由>`。direct 路径不建 driver、不跑 handoff 门。
 
 ## 7. 意图与认知变更
 
@@ -133,3 +133,11 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
 | 子任务 | 父任务下可独立实施验证、按契约集成的任务 |
 | handoff | direct/OpenSpec 选择后，仅 OpenSpec 进入 driver 前的载荷核对动作 |
 | 热状态 | resume 默认读取的最小 TASK / 当前事实 / 当前计划 |
+
+## 11. Reference 统一契约（维护规范，非运行时必读）
+
+每个路由型 reference 按统一八节编写：`目的` / `进入条件` / `跳过条件` / `所需输入` / `执行方法` / `产出` / `完成门` / `退出与重入`。
+
+- 进入条件写可观察信号，跳过条件写已有证据，不用“复杂 / 简单”代替；所需输入是文件、判据或事实，不是“先走某阶段”。
+- 完成门必须可由文件、命令、测试或评审结论检查；重入只修订受影响产物，无新证据不重复完整动作。
+- reference 只声明自身动作，路由统一归 [router.md](router.md)，状态与目录统一归本文件；UI、质量、多 worker 等支撑策略按需在环节内加载，不另占 `current_ref`。

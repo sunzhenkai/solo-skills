@@ -21,7 +21,7 @@ class BehaviorTest(unittest.TestCase):
         self.assertNotIn("委托 `grilling`", grill)
 
     def test_done_archives_same_round(self) -> None:
-        archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
+        archive = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
         self.assertIn("完成归档", archive)
         self.assertIn("同轮把父任务整树移到", archive)
         self.assertIn("未完成关闭", archive)

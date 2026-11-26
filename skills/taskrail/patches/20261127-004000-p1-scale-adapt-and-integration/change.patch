@@ -1,0 +1,349 @@
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 13956f0..2d7f188 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -1,28 +1,28 @@
+ # 确认协议（薄）
+ 
+-确认方式与路由、执行方式正交。**继续规则**：只有已确认的意图、实施方案、交付边界和风险都未变化才继续；任一变化，human 回对应 reference 重新明确确认，goal 按本表审阅。闸口只回答放行 / 改后放行 / 停；说话方式与非停点同步见 [user-report.md](user-report.md)。
++确认方式与路由、执行方式正交。**继续规则**：已确认的意图、实施方案、交付边界和风险均未变化才继续；任一变化，human 回对应 reference 重新明确确认，goal 按下表审阅。说话方式与非停点同步见 [user-report.md](user-report.md)。
+ 
+ ## 停点
+ 
+ | 时机 | human | goal |
+ |---|---|---|
+-| 新意图形成，或意图 / criterion 变更 | 复述后停，等用户明确确认或纠偏；已确认且未失效的 resume 不重停 | 简要复述；需审阅时异源模型审，收敛继续；危险动作本身不放行 |
+-| 首次 execute 前或实施方案实质变更 | 呈现改动范围、步骤、验证与必要回滚，停等明确确认；checkbox 进度不重停 | 简要复述当前方案并继续；router 选中 approve 时仍按下行审 |
+-| 实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或使用未提交改动 | 视为方案或风险变化，更新 PLAN 并停等明确确认 | 简要复述变化并继续；命中 approve / 真阻塞时仍审或停 |
+-| decompose 将同次交付改为独立分支 / 发布 / 子任务，或改变交付顺序 | 呈现 ROADMAP、交付边界和依赖，停等明确确认；同任务内部切片不停 | 简要复述 ROADMAP 并继续 |
+-| 接受未修复的 Blocker / Major，或验证不足 / 缩小交付 | 说明未修复项、缺失证据和剩余风险，停等明确接受；修复后重验不停 | Blocker / Major 不放行；其他按真阻塞与判据变更规则处理 |
+-| 大型项目 / 重大改动 / 架构调整，或 router 选中 approve | 按 user-report 人话呈现整体方案、取舍与回退，停等明确确认；不因分支内可逆或内部切片跳过 | 重大方案首次落定 / 实质变更先停等用户人话确认（本会话原话豁免改异源审）；其余异源模型审，收敛继续 |
+-| 子任务未超父 ROADMAP 范围和子判据 | 意图、approve 不重复停；PLAN 按上述实施确认规则 | 同左 |
++| 新意图形成，或意图 / criterion 变更 | 复述后停等明确确认；有效 resume 不重停 | 简要复述；需审阅时异源审，收敛继续 |
++| 首次 execute 前或实施方案实质变更 | 呈现范围、步骤、验证与回退，停等明确确认；checkbox 进度不重停 | 简要复述后继续；命中 approve 按下行审 |
++| 实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或用未提交改动 | 更新 PLAN 并停等明确确认 | 复述变化继续；命中 approve / 真阻塞仍审或停 |
++| decompose 拆为独立分支 / 发布 / 子任务，或改交付顺序 | 呈现 ROADMAP 与依赖，停等明确确认；同任务内部切片不停 | 简要复述 ROADMAP 继续 |
++| 接受未修复的 Blocker / Major，或验证不足 / 缩小交付 | 说明未修复项、缺失证据与风险，停等明确接受；修后重验不停 | Blocker / Major 不放行；其余按真阻塞与改判据处理 |
++| 大型项目 / 重大改动 / 架构调整，或 router 选中 approve | 按 user-report 人话呈现方案、取舍与回退，停等明确确认；不因分支内可逆或内部切片跳过 | 重大方案首次落定 / 实质变更先停等用户人话确认（原话豁免改异源审）；其余异源审收敛继续 |
++| 子任务未超父 ROADMAP 范围和子判据 | 意图、approve 不重复停；PLAN 按子任务自身 confirm_mode（默认继承父，可由 ROADMAP 覆写为 human/goal） | 同左 |
+ | 用户原话有观感目标 | 评审后给用户看改前 / 改后，认可才完成 | 异源模型审截图并迭代 |
+ | 普通 reference 切换、片间检查点、就绪子任务之间 | 仅同步用户需要知道的新增信息；纯内部迁移不单独汇报，继续且不等回复 | 同左 |
+ | 真阻塞 / 危险动作 | 停并说明需要什么 | 同左 |
+ 
+-意图确认与实施方案确认是两个独立停点。用户没回话不算确认；非停点同步不需要回复，也不能记为确认。单独“继续”不授权删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）等真阻塞动作。任何审阅都不放行真阻塞。stock OpenSpec 自带的普通停顿由编排者按 taskflow 规则处理，不算额外停点。
++默认意图确认与实施方案确认是两个独立停点；仅单一明确小改（单仓、无 `design`/`decompose`、改点与验证一步读清）可在首轮合并呈现意图复述与最小计划，用户一次确认即同时生效。未回话不算确认；非停点同步不需要回复、不记确认。单独“继续”不授权删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改 criterion 等真阻塞；任何审阅都不放行真阻塞。stock OpenSpec 普通停顿由编排者处理，不算额外停点。
+ 
+ ## 闸口前自查
+ 
+-criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界；ROADMAP 子判据覆盖总判据、依赖无环；重大方案与交付前按 `anti-lazy` 核对用户决策边界与目标差距。未过先回对应 reference，不拿审批代替事实。
++criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界；ROADMAP 子判据覆盖总判据、依赖无环；重大方案与交付前按 `anti-lazy` 核对决策边界与目标差距。未过先回对应 reference。
+ 
+ ## 异源模型审
+ 
+-使用另一个模型，且与执行者不同、最好更强；随附 criterion、不做、相关 plan / design 和必要证据。意图审附用户原话与纠偏，方案审看可检查性、可行性、范围和回滚。P0 / P1 挡路，P2 不挡；同一问题两轮未解按 user-report 停。跨机器或跨模型 Endpoint 委派可经 `agent-roster` 执行（未安装时使用宿主异源 subagent）；派不出时明确记录原因和降级自审，不静默宣称异源通过。观感迭代的轮次与停止以 `pretty-ui/references/critique.md`「迭代与停止」为准（未安装 `pretty-ui` 时最多迭代两轮，未解按真阻塞停）。
++使用另一个模型（与执行者不同、最好更强），附 criterion、不做、相关 plan / design 与证据。P0 / P1 挡路，P2 不挡；同问题两轮未解按 user-report 停。跨机器 / 跨模型委派可经 `agent-roster`（未装则用宿主异源 subagent）；派不出记录降级自审，不静默宣称通过。观感迭代停止以 `pretty-ui/references/critique.md`「迭代与停止」为准（未装 `pretty-ui` 时最多两轮）。
+diff --git a/skills/taskrail/references/intent.md b/skills/taskrail/references/intent.md
+index e349e40..82d40af 100644
+--- a/skills/taskrail/references/intent.md
++++ b/skills/taskrail/references/intent.md
+@@ -4,7 +4,7 @@
+ 
+ ## 先定做多少
+ 
+-- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。
++- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。若为单一明确小改（单仓、无 `design`/`decompose`、改点与验证一步读清），可在首轮同步给出最小计划，用户一次确认即同时落定意图与 PLAN 实施确认。
+ - resume 已有 confirmed 意图且未失效：沿用，不重做；assumed 在 human 下补确认，goal 按确认协议处理。criterion 或意图变化使旧确认失效。
+ - 子任务继承父意图与 ROADMAP 自己那一行，不重新确认；超出子判据才回 intent。
+ - 纯问答直接回答，不建任务。
+diff --git a/skills/taskrail/references/plan.md b/skills/taskrail/references/plan.md
+index 0d1afd9..eecf5be 100644
+--- a/skills/taskrail/references/plan.md
++++ b/skills/taskrail/references/plan.md
+@@ -14,10 +14,10 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物
+ 
+ ## 执行方法
+ 1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
+-2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
++2. direct 任务用 PLAN checkbox 跟踪实施；选定 `execution: openspec` 后，详细设计与切片清单归 OpenSpec changes，`PLAN.md` 仅保留指向 driver 的一行指针、验证与实施确认，不两头重复维护。
+ 3. 只读 explore / diagnose 可沿当前最小计划继续。若本任务存在 `design/` 或命中大型项目 / 重大改动 / 架构调整，进入 execute 前须先按 `anti-lazy` 核对「哪件事只有用户能定」与目标差距，并确保整体方案已按 [confirm-protocol.md](confirm-protocol.md) 与 [approve.md](approve.md) 完成人话对齐并落 `reviews/APPROVED.md`（不以最小步骤清单替代整体方案对齐）。首次 execute 前或实施方案实质变化后，human 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
+-4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
+-5. 每个实际执行的子任务首次 execute 前确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
++4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed（单一明确小改已在首轮合并确认意图与最小计划时，同轮记 confirmed 并写明合并确认依据），goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
++5. 每个实际执行的子任务首次 execute 前按自身 `confirm_mode`（默认继承父任务，可在 ROADMAP 覆写为 `human` HITL 或 `goal` AFK）确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
+ 6. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
+ 7. 出现交付边界时转 decompose，不在 PLAN 再抄一份父子状态。
+ 
+diff --git a/skills/taskrail/references/decompose.md b/skills/taskrail/references/decompose.md
+index b98dd39..903b8ba 100644
+--- a/skills/taskrail/references/decompose.md
++++ b/skills/taskrail/references/decompose.md
+@@ -14,16 +14,16 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
+ 
+ ## 执行方法
+ 1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
+-2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界。子判据合计覆盖总判据，依赖无环。
++2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界、可选确认模式（`human` HITL / `goal` AFK，留空继承父任务）。子判据合计覆盖总判据，依赖无环。
+ 3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点，但若整体命中大型项目、重大改动或架构调整，仍须先完成整体方案的人话对齐与放行再开工。所需确认未完成前不创建或激活子任务。
+ 4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
+ 
+    ```bash
+-   python3 <taskrail>/scripts/task_state.py init <workspace> <child-id> --title "<目标>" --criterion "<子判据>" --parent <parent-id>
++   python3 <taskrail>/scripts/task_state.py init <workspace> <child-id> --title "<目标>" --criterion "<子判据>" --parent <parent-id> [--confirm-mode human|goal]
+    ```
+ 
+    已存在则核对是否同一项，不覆盖、不复制。子任务只拆一层，其内部再拆为切片。
+-5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec。
++5. 父任务成为协调容器：不直接写业务代码、不持实施 driver。共享契约放父 design；每子任务独立选 direct / OpenSpec，并可按 ROADMAP 覆写 `confirm_mode`（核心高危走 `human` HITL，边界清晰且接缝锁定走 `goal` AFK）。同仓子任务若依赖前序未合入子任务代码，通过 `prepare_worktree.py ... --base task/<parent>--<dep-child>` 串联基线。
+ 6. 自动推进依赖已 done 的就绪项；将 pending 子任务置 active / plan。frontier 是 `active`、依赖全部 done 且 `claimed_by` 为空的子任务；正在做的优先，其次按 ROADMAP 顺序，用户点名则照办。
+ 7. 多 worker 派发前，主会话先在锁内认领；成功才派发，已被他人认领则取下一 frontier 项：
+ 
+@@ -41,16 +41,16 @@ ROADMAP.md、`subtasks/<child>/TASK.md` 及热文档、父 TASK 的下一动作
+ 所有项有子判据与交付边界，依赖无环，目录与 roadmap 一致，下一就绪项明确；没有可执行项且无阻塞时才回 plan 修正。
+ 
+ ## 退出与重入
+-父任务选就绪子任务；全部子任务 done 后父任务进 verify 做集成与总判据验证。resume 先核对 roadmap 与部分创建的目录，再幂等补齐。
++父任务选就绪子任务；全部子任务 done 后父任务进 verify 做集成与总判据验证。若同一仓库存在多个已完成子任务分支，使用 `prepare_worktree.py <workspace> <parent>/integration <repo-id> <source-repo> --integrate task/<parent>--<c1> --integrate task/<parent>--<c2>` 在隔离集成 worktree 合并验证（冲突自动中止并回受影响子任务或 design），不碰源仓与默认分支。resume 先核对 roadmap 与部分创建的目录，再幂等补齐。
+ 
+ ## ROADMAP 模板
+ 
+ ```markdown
+-| 项 | 类型 | 目标 | 子判据 | 涉及仓库 | 依赖 | 交付边界 |
+-|---|---|---|---|---|---|---|
+-| api | 子任务 | 提供异步导出 API | 可创建并查询任务 | backend | contract | 独立 API 分支 |
+-| web | 子任务 | 接入异步导出 | 可下载完成文件 | web | api | 独立 Web 分支 |
+-| integration | 集成项 | 验证跨仓主流程 | 大数据端到端通过 | backend, web | api, web | 父任务验收 |
++| 项 | 类型 | 目标 | 子判据 | 涉及仓库 | 依赖 | 交付边界 | 模式 |
++|---|---|---|---|---|---|---|---|
++| api | 子任务 | 提供异步导出 API | 可创建并查询任务 | backend | contract | 独立 API 分支 | goal |
++| web | 子任务 | 接入异步导出 | 可下载完成文件 | web | api | 独立 Web 分支 | human |
++| integration | 集成项 | 验证跨仓主流程 | 大数据端到端通过 | backend, web | api, web | 父任务验收 | 继承 |
+ ```
+ 
+ `contract` 可为设计准备项，不一定是代码子任务；集成项由父任务执行，不另建子任务。
+diff --git a/skills/taskrail/references/handoff.md b/skills/taskrail/references/handoff.md
+index 445d4d4..3eedad7 100644
+--- a/skills/taskrail/references/handoff.md
++++ b/skills/taskrail/references/handoff.md
+@@ -31,7 +31,7 @@
+    ```
+ 
+    子任务 task-path 为 `<parent>/subtasks/<child>`；exit 非 0 先补齐，不绕过。
+-4. 按 taskflow 脚手架在 workspace 建 driver，`.openspec.yaml` 写 `skip_specs: true`，proposal 含 Driver 协议；tasks.md 留给 propose。
++4. 按 taskflow 脚手架在 workspace 建 driver，`.openspec.yaml` 写 `skip_specs: true`，proposal 含 Driver 协议；tasks.md 留给 propose。进入 OpenSpec 后详细设计与切片清单归 `openspec/changes/`，`tasks/ongoing/<id>/PLAN.md` 仅留指向 driver 的一行指针。
+ 5. 建不成时保持 active，current_ref 回 plan / approve，driver 置 null，记录缺失依赖；不改成 done，不影响其他就绪子任务。
+ 
+ 用户原话明确要求绕过 taskrail 时仍可按 taskflow 的 gate_bypass 规则；理由只能照录原话。
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index cc5a868..83b42ff 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -13,7 +13,7 @@ verify 全过；或用户明确放弃 / 关闭未完成任务（此时 status 
+ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状态。
+ 
+ ## 执行方法
+-1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。
++1. 写 `SUMMARY.md`：交付与验证、最终有效机制 / 根因、被推翻假设、关键决定、可复用经验、剩余风险、后续项和长期文档链接；未阻塞交付的 `F-n` 写入剩余风险或后续项。单一明确小改可用 3 段紧凑版（结果与验证、分支与合入方式、剩余风险），不硬凑空节。
+ 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
+    - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
+    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index 23de9e2..8894983 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -95,7 +95,7 @@ human 进入 execute 前必须为 confirmed，goal 记 not-required。实施范
+ 
+ ## decisions.md / history.md
+ 
+-decisions 用 `D-n`、理由、来源和 `active / superseded`；被取代项写由哪个决定取代。history 追加日期、reference、enter / skip / exit / reopen、理由和产物路径；默认不加载。
++两文件均按需懒创建（`init` 只建热三件 `TASK.md`、`PLAN.md`、`context/current.md`，首次有决定或路由事件时再创建）。decisions 用 `D-n`、理由、来源和 `active / superseded`；被取代项写由哪个决定取代。history 追加日期、reference、enter / skip / exit / reopen、理由和产物路径；默认不加载。
+ 
+ ## SUMMARY.md
+ 
+@@ -111,6 +111,8 @@ decisions 用 `D-n`、理由、来源和 `active / superseded`；被取代项写
+ ## 分支、worktree 与合入方式
+ ```
+ 
++单一明确小改允许使用紧凑版 SUMMARY（仅留「结果与验证」「剩余风险」「分支、worktree 与合入方式」三节）。
++
+ ## design/<topic>.md
+ 
+ ```markdown
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index c9f5d13..a0a3157 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -71,7 +71,7 @@ tasks/
+ └── archive/<yyyy-mm-dd>/<parent>/
+ ```
+ 
+-子任务内部再拆只能是切片。父任务若有子任务则不直接写业务代码、不持实施 driver，只维护共享契约、依赖和集成验收；每个子任务独立选择 direct 或 OpenSpec。
++子任务内部再拆只能是切片。`init` 仅懒创建热三件（`TASK.md`、`PLAN.md`、`context/current.md`），`decisions.md` 与 `history.md` 首次写入时再建。父任务若有子任务则不直接写业务代码、不持实施 driver，只维护共享契约、依赖和集成验收；每个子任务独立选择 direct 或 OpenSpec，且默认继承父 `confirm_mode`、可按 ROADMAP 覆写为 `human`（HITL）或 `goal`（AFK）。
+ 
+ ## 5. decompose 与交付原子性
+ 
+@@ -81,13 +81,13 @@ tasks/
+ - **子任务**：可独立实施和验证，通过明确契约集成，可有独立分支与交付节奏；位于父任务 `subtasks/`。
+ - 是否有“代码依赖”不是唯一判据；必须原子落地的是切片，能按契约独立交付的可作有依赖子任务。
+ - decompose 一次创建所有子任务的轻量 pending TASK，细节按就绪顺序展开。一个子任务 blocked 只停其依赖链。
+-- 全部子任务 done 后父任务进入 verify，执行集成项和总判据；不能按子任务数量直接 done。
++- 全部子任务 done 后父任务进入 verify，执行集成项和总判据；同仓多子任务通过 `prepare_worktree.py ... <parent>/integration --integrate` 在隔离集成 worktree 合并验证，不能按子任务数量直接 done。
+ 
+ ## 6. 执行与 handoff
+ 
+ 所有 git 代码任务默认调用 `<taskflow>/scripts/prepare_worktree.py`，direct 与 OpenSpec 共用 [../taskflow/references/worktree.md](../../taskflow/references/worktree.md)。
+ 
+-OpenSpec 只在用户要求、长期 spec、多会话 / 多 worker 编排或正式 change 产物有需要时使用。只有 OpenSpec 路径走 [handoff.md](handoff.md) 与 `check_handoff.py`；approve 可按 router 跳过，此时交接节记录 `批准：not-required: <理由>`。direct 路径不建 driver、不跑 handoff 门。
++OpenSpec 只在用户要求、长期 spec、多会话 / 多 worker 编排或正式 change 产物有需要时使用；选定后详细设计与切片清单归 `openspec/changes/`，`PLAN.md` 仅留指向 driver 的指针。只有 OpenSpec 路径走 [handoff.md](handoff.md) 与 `check_handoff.py`；approve 可按 router 跳过，此时交接节记录 `批准：not-required: <理由>`。direct 路径不建 driver、不跑 handoff 门。
+ 
+ ## 7. 意图与认知变更
+ 
+diff --git a/skills/taskrail/scripts/task_state.py b/skills/taskrail/scripts/task_state.py
+index 1784bfc..9f9a422 100644
+--- a/skills/taskrail/scripts/task_state.py
++++ b/skills/taskrail/scripts/task_state.py
+@@ -154,8 +154,6 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+         inherited_mode = parse_task(parent_task)[0].get("confirm_mode", "human")
+         if inherited_mode not in CONFIRM_MODES:
+             raise StateError(f"parent has invalid confirm_mode: {inherited_mode}")
+-        if confirm_mode is not None and confirm_mode != inherited_mode:
+-            raise StateError("child confirm_mode must inherit its parent")
+     value = f"{parent}/subtasks/{task_id}" if parent else task_id
+     target = task_dir(workspace, value)
+     task_md = target / "TASK.md"
+@@ -167,7 +165,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+         "parent": parent or "null",
+         "status": "pending" if parent else "active",
+         "current_ref": "null" if parent else "intent",
+-        "confirm_mode": inherited_mode if parent else (confirm_mode or "human"),
++        "confirm_mode": (confirm_mode or inherited_mode) if parent else (confirm_mode or "human"),
+         "execution": "null",
+         "driver": "null",
+         "criterion": criterion,
+@@ -211,8 +209,6 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+             "- 范围：待明确\n"
+         )
+         atomic_write(target / "PLAN.md", plan_body)
+-        atomic_write(target / "decisions.md", "# 决定\n\n| # | 决定 | 理由 | 状态 | 来源 |\n|---|---|---|---|---|\n")
+-        atomic_write(target / "history.md", "# 历史\n\n")
+         (target / "context").mkdir(exist_ok=True)
+         atomic_write(target / "context" / "current.md", f"# 当前事实与假设\n\n## 意图\n- 确认状态：{intent_status}\n")
+         rebuild_index(workspace)
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 743c796..4bbcd08 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -625,3 +625,42 @@ cases:
+       must_not:
+         - 对架构级或契约级取舍由 agent 自问自答直接拍板闭环
+         - 把局部可逆实现细节也抛给用户逐项询问
++
++  - id: small-clear-change-combined-confirmation
++    kind: core
++    judge: llm
++    description: 单一明确小改首轮合并意图与最小计划确认，使用紧凑总结
++    given: human 用户在单仓内发起明确小改，无 design 或 decompose 需求，读目标处后改点与验证命令完全清晰
++    expect:
++      must:
++        - 首轮同时给出意图复述与最小实施计划和验证方式，用户一次确认后同时落定意图与 PLAN 实施确认
++        - init 只建热三件不预建空 decisions 或 history，收口允许使用三段紧凑版 SUMMARY
++      must_not:
++        - 对单一明确小改强行拆分两次往返人工停点
++        - 把大型改动或含 design 的任务也走首轮合一确认
++
++  - id: per-child-hitl-afk-mode-override
++    kind: core
++    judge: deterministic
++    description: 子任务默认继承父确认模式并支持按 ROADMAP 覆写 HITL 与 AFK
++    given: human 父任务拆出两个子任务，契约清晰的常规子任务在 ROADMAP 标为 goal，高危子任务保持 human
++    expect:
++      must:
++        - 未指定确认模式的子任务自动继承父 confirm_mode
++        - ROADMAP 显式指定模式的子任务通过 init --confirm-mode 覆写，并按各自模式执行 PLAN 确认
++      must_not:
++        - 强制所有子任务锁死同一 confirm_mode 无法混合 HITL 与 AFK
++        - 因 goal 子任务放宽真阻塞或危险动作门禁
++
++  - id: parent-same-repo-integration-worktree
++    kind: core
++    judge: deterministic
++    description: 同仓多子任务完成后父任务在隔离集成 worktree 合并验证总判据
++    given: 同一仓库的两个子任务已在各自子任务分支完成并 done，父任务进入 verify
++    expect:
++      must:
++        - 使用 prepare_worktree.py 的 parent/integration 与 --integrate 合并两个子任务分支到隔离集成工作树后跑端到端验证
++        - 合并冲突时自动中止并回对应子任务或 design，绝不触碰源仓与默认分支
++      must_not:
++        - 直接把子任务分支合入源仓默认分支进行验收
++        - 未合并验证仅凭各自单测通过就标父任务 done
+diff --git a/skills/taskrail/tests/test_task_state.py b/skills/taskrail/tests/test_task_state.py
+index 6ac6b4a..83f00fc 100644
+--- a/skills/taskrail/tests/test_task_state.py
++++ b/skills/taskrail/tests/test_task_state.py
+@@ -38,7 +38,9 @@ class TaskStateTest(unittest.TestCase):
+         index = (self.workspace / "tasks" / "INDEX.md").read_text(encoding="utf-8")
+         self.assertIn("ongoing/parent/subtasks/child", index)
+         self.assertTrue((child.parent / "PLAN.md").is_file())
+-        self.assertTrue((child.parent / "history.md").is_file())
++        self.assertTrue((child.parent / "context" / "current.md").is_file())
++        self.assertFalse((child.parent / "history.md").exists())
++        self.assertFalse((child.parent / "decisions.md").exists())
+ 
+     def test_root_starts_at_intent_with_pending_intent_and_plan_confirm(self) -> None:
+         for mode in ("human", "goal"):
+@@ -120,8 +122,10 @@ class TaskStateTest(unittest.TestCase):
+         child_path = "parent/subtasks/child"
+         child = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
+         self.assertIn("confirm_mode: goal", child.read_text(encoding="utf-8"))
+-        mismatch = self.run_state("init", str(self.workspace), "other", "--title", "other", "--parent", "parent", "--confirm-mode", "human")
+-        self.assertEqual(mismatch.returncode, 1)
++        override = self.run_state("init", str(self.workspace), "other", "--title", "other", "--parent", "parent", "--confirm-mode", "human")
++        self.assertEqual(override.returncode, 0, override.stdout)
++        other_md = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "other" / "TASK.md"
++        self.assertIn("confirm_mode: human", other_md.read_text(encoding="utf-8"))
+         updated = self.run_state("update", str(self.workspace), child_path, "--criterion", "new observable outcome")
+         self.assertEqual(updated.returncode, 0, updated.stdout)
+         text = child.read_text(encoding="utf-8")
+diff --git a/skills/taskrail/tests/test_confirm_contract.py b/skills/taskrail/tests/test_confirm_contract.py
+index 51b45b1..a11555d 100644
+--- a/skills/taskrail/tests/test_confirm_contract.py
++++ b/skills/taskrail/tests/test_confirm_contract.py
+@@ -79,6 +79,16 @@ class ConfirmContractTest(unittest.TestCase):
+         self.assertIn("不因改动在 git 分支内可逆或属于同任务内部切片而跳过", approve)
+         self.assertIn("大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过", router)
+ 
++    def test_small_clear_change_allows_combined_first_turn_confirmation(self) -> None:
++        intent = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
++        plan = (ROOT / "references" / "plan.md").read_text(encoding="utf-8")
++        close = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
++        self.assertIn("单一明确小改", self.text)
++        self.assertIn("一次确认", self.text)
++        self.assertIn("单一明确小改", intent)
++        self.assertIn("合并确认", plan)
++        self.assertIn("紧凑版", close)
++
+     def test_no_suspension_five_tuple(self) -> None:
+         self.assertFalse((ROOT / "references" / "suspension.md").exists())
+         self.assertNotIn("挂起五元组", self.text)
+diff --git a/skills/taskrail/tests/test_decompose_contract.py b/skills/taskrail/tests/test_decompose_contract.py
+index 371d805..532f638 100644
+--- a/skills/taskrail/tests/test_decompose_contract.py
++++ b/skills/taskrail/tests/test_decompose_contract.py
+@@ -80,6 +80,18 @@ class DecomposeContractTest(unittest.TestCase):
+         self.assertIn("父任务只读 ROADMAP、共享契约和就绪子 TASK", router)
+         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
+ 
++    def test_child_mode_override_integration_worktree_and_openspec_ownership(self) -> None:
++        decompose = read("decompose.md")
++        contract = read("contract.md")
++        plan = read("plan.md")
++        handoff = read("handoff.md")
++        self.assertIn("--confirm-mode human|goal", decompose)
++        self.assertIn("<parent>/integration", decompose)
++        self.assertIn("--integrate", decompose)
++        self.assertIn("HITL", contract)
++        self.assertIn("仅保留指向 driver 的一行指针", plan)
++        self.assertIn("仅留指向 driver 的一行指针", handoff)
++
+     def test_old_large_scope_pipeline_is_gone(self) -> None:
+         self.assertFalse((REF / "large-scope.md").exists())
+         self.assertFalse((REF / "phase-wizard.md").exists())

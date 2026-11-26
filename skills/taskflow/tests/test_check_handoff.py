@@ -155,6 +155,22 @@ class TestCheckHandoff(unittest.TestCase):
         self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/subtasks/api")
         self.assertEqual(self.run_gate("demo/subtasks/api").returncode, 0)
 
+    def test_child_task_inherits_parent_approval(self) -> None:
+        self.write(GOOD_META + HANDOFF_SVC, slug="demo", approved=True)
+        child_meta = GOOD_META.replace("slug: demo", "slug: api\nparent: demo").replace('driver: "demo-driver"', 'driver: "api-driver"')
+        self.write(child_meta + HANDOFF_SVC, slug="demo/subtasks/api", approved=False)
+        result = self.run_gate("demo/subtasks/api")
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_empty_approval_file_is_rejected(self) -> None:
+        self.write(GOOD_META + HANDOFF_SVC, approved=False)
+        reviews = self.root / "tasks" / "ongoing" / "demo" / "reviews"
+        reviews.mkdir(parents=True, exist_ok=True)
+        (reviews / "APPROVED.md").write_text("  \n", encoding="utf-8")
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("APPROVED.md", result.stdout)
+
     def test_missing_task(self) -> None:
         result = self.run_gate("nope")
         self.assertEqual(result.returncode, 1)

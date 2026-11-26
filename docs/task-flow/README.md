@@ -130,7 +130,8 @@ taskrail list                  # 查看任务索引
 python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--json]
 ```
 
-- 分支为 `task/<task-id>`，每个仓库各有一个同名但相互独立的任务分支。
+- 分支为 `task/<task-id>`，每个仓库各有一个同名但相互独立的任务分支；传入子任务路径 `<parent>/subtasks/<child>` 时映射为目录 `worktrees/<parent>--<child>/<repo-id>/` 与分支 `task/<parent>--<child>`，避免跨父任务同名子任务撞车与 git 分支前缀冲突；传入 `<parent>/integration` 与多个 `--integrate <branch>` 时，在 `worktrees/<parent>--integration/<repo-id>/` 隔离合并多子任务分支验收（冲突自动 `merge --abort` 并返回冲突文件）。
+- 新建 worktree 不包含源仓 gitignored 的 `.env`、`node_modules` / `.venv`；运行测试前检查缺口并按项目脚本初始化，不自动复制源仓未提交改动。
 - 默认基线是有效 `origin/HEAD`，否则 `HEAD`；不自动 fetch。
 - 注册表在 `worktrees/<task-id>/registry.json`，用于多仓登记和崩溃恢复。
 - 干净已有 worktree 可恢复；脏 worktree、source / branch 身份冲突、未登记同名分支会非零退出并保留现场。
@@ -144,7 +145,7 @@ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <
 
 ### direct
 
-按 TASK / PLAN 的当前步骤实施，不建 driver，不走 handoff 门。适合不需要正式 OpenSpec 产物的任务；仍需 worktree、验证和 close。human 进入实施前当前 PLAN 必须已确认，goal 需已简要复述。
+按 TASK / PLAN 的当前步骤实施，不建 driver，不走 handoff 门。适合不需要正式 OpenSpec 产物的任务；仍需 worktree、验证和 close，命中大型项目 / 重大改动 / 架构调整时同样须经 approve 放行（`task_state.py` 机械检查 `design/` 批准与 `PLAN.md` 实施确认）。human 进入实施前当前 PLAN 必须已确认，goal 需已简要复述。
 
 ### OpenSpec
 
@@ -160,11 +161,17 @@ driver 和子 changes 都在 workspace；子 change 按依赖滚动展开，全�
 
 ## 8. human、goal 与停点
 
-- human：新意图形成或变更后等明确确认；首次 execute 前或实施方案实质变化后再次等明确确认；router 选中 approve 时也等放行。有效且已确认的 resume 不重复停。
-- goal：意图与 PLAN 简要复述且不等用户；需审阅时及 router 选中 approve 时由另一个模型审阅收敛，派不出时记录降级自审，不能宣称异源通过。
-- 未命中停点的 reference 切换、片间检查点和就绪子任务切换，两种模式都用 1–2 句说明目前结果与下一动作，继续且不等回复；复述不算用户确认。
+- human：新意图形成或变更后等明确确认；首次 execute 前或实施方案实质变化后再次等明确确认；仅单一明确小改（单仓、无 design / decompose、改点与验证一步读清）可在首轮合并呈现意图复述与最小计划，用户一次确认即同时生效。router 选中 approve 时也等放行。有效且已确认的 resume 不重复停。
+- goal：意图与普通 PLAN 简要复述且不等用户；遇到大型项目 / 重大改动 / 架构调整时，首次方案落定或实质变更前仍先停等用户人话确认（仅本会话原话豁免时改为异源审），放行后后续切片与非重大 approve 由另一个模型审阅收敛，派不出时记录降级自审，不能宣称异源通过。
+- 未命中停点的 reference 切换、片间检查点和就绪子任务之间，两种模式都仅在用户认知有增量时同步并继续且不等回复；复述不算用户确认。
 - 两种模式都不会自动放行删除迁移数据、共享配置、线上 / 不可逆 / 对外发送、改 criterion、缺凭据等真阻塞。
-- 子任务在父 ROADMAP 和子判据范围内不重复停意图或 approve；human 子任务首次 execute 前仍确认自己的 PLAN，超范围才重入 intent / approve。
+- 子任务在父 ROADMAP 和子判据范围内不重复停意图或 approve；默认继承父 `confirm_mode`，也可在 ROADMAP 按子任务覆写为 `human`（HITL）或 `goal`（AFK），按各自模式完成首次 execute 前的 PLAN 确认，超范围才重入 intent / approve。
+
+### 工程纪律要点
+
+- **拆分**：优先按垂直切片（tracer bullet）切分端到端可验证路径，粒度以单个 fresh context window 可闭环为上限；选定 OpenSpec 后详细设计与切片清单归 `openspec/changes/`，`PLAN.md` 仅留 driver 指针。
+- **设计**：先钉死模块接缝（seam）、深模块接口与测试面，仅三条件全满足时写极简 ADR（1–3 句），实时维护项目 `GLOSSARY.md`；高风险多解接口可选并行 Design It Twice。
+- **排障与实施**：排障先建已实跑的 tight & red-capable 反馈回路并最小化（Minimise），列 3–5 排序假说，临时日志打 `[DEBUG-xxxx]` 前缀收尾全清；业务逻辑与 bug 修复默认在公开接缝走单测试垂直 TDD（Red → Green → Refactor，深化后替换旧浅层测试）。
 
 ## 9. 进度、知识与认知更正
 

@@ -82,6 +82,22 @@ class OutputStyleTest(unittest.TestCase):
             _, warns = chk.run(Path(tmp) / "skills")
         self.assertTrue(any("反向表述「不走」" in w for w in warns))
 
+    def test_plain_talk_warns_question_or_field_label_in_after_examples(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            ref = Path(tmp) / "skills" / "taskrail" / "references"
+            ref.mkdir(parents=True)
+            (ref / "user-report.md").write_text(
+                "## 前后对比\n\n"
+                "- 前：「甲」；后：「要干嘛：把导出改快」\n"
+                "- 前：「乙」；后：「改好了，你看行吗？」\n"
+                "- 前：「丙」；后：「先说结论和风险。」\n",
+                encoding="utf-8",
+            )
+            errs, warns = chk.run(Path(tmp) / "skills")
+        self.assertEqual(errs, [])
+        self.assertTrue(any("自然口语" in w for w in warns))
+        self.assertTrue(any("在提问" in w for w in warns))
+
 
 if __name__ == "__main__":
     unittest.main()

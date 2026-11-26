@@ -17,7 +17,7 @@ criterion、当前提交号或 worktree diff、审与不审范围、相关 desig
    - 多岗位、方案、契约、观感或 Skill 评审：调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。
    - 纯 Git diff / MR / PR 自动化代码审查：调用 `solo-code-review`。
    - 对应下游 skill 未安装时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。
-2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `F-n` 跟踪。
+2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `RF-n` 跟踪。
 3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
 
 ## 产出

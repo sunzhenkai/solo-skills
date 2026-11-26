@@ -10,8 +10,7 @@ class DesignAndHandoffTest(unittest.TestCase):
     def test_design_no_force_two_options(self) -> None:
         d = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
         self.assertIn("design/", d)
-        detail = (ROOT / "references" / "design-detail.md").read_text(encoding="utf-8")
-        self.assertIn("只有一条可行路线时不凑第二个方案", detail)
+        self.assertIn("只有一条可行路线时不凑第二个方案", d)
 
     def test_no_verbatim_profile_copy(self) -> None:
         for name in ("design.md", "handoff.md", "templates.md"):

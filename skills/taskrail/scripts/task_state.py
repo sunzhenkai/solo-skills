@@ -32,7 +32,9 @@ except ImportError:  # pragma: no cover
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
 DRIVER = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}-driver$")
 STATUSES = {"pending", "active", "blocked", "done", "archived"}
-REFS = {"intake", "plan", "explore", "diagnose", "grill", "design", "approve", "decompose", "execute", "review", "verify", "close"}
+REFS = {"intent", "plan", "explore", "diagnose", "grill", "design", "approve", "decompose", "execute", "review", "verify", "close"}
+REF_ALIASES = {"intake": "intent"}
+PLACEHOLDER_SUMMARIES = {"todo", "tbd", "待补充", "待填写", "待补"}
 EXECUTIONS = {"direct", "openspec"}
 CONFIRM_MODES = {"human", "goal"}
 
@@ -88,6 +90,21 @@ def task_dir(workspace: Path, value: str) -> Path:
     return workspace / "tasks" / "ongoing" / relative
 
 
+def unquote_scalar(raw: str) -> str:
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, str):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        return value[1:-1]
+    if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
+        return value[1:-1].replace("''", "'")
+    return value
+
+
 def parse_task(path: Path) -> tuple[dict[str, str], str]:
     text = path.read_text(encoding="utf-8")
     match = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
@@ -97,7 +114,7 @@ def parse_task(path: Path) -> tuple[dict[str, str], str]:
     for line in match.group(1).splitlines():
         item = re.match(r"^([a-z_-]+):\s*(.*)$", line)
         if item:
-            meta[item.group(1)] = item.group(2).strip().strip("\"'")
+            meta[item.group(1)] = unquote_scalar(item.group(2))
     return meta, text
 
 
@@ -137,8 +154,6 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         inherited_mode = parse_task(parent_task)[0].get("confirm_mode", "human")
         if inherited_mode not in CONFIRM_MODES:
             raise StateError(f"parent has invalid confirm_mode: {inherited_mode}")
-        if confirm_mode is not None and confirm_mode != inherited_mode:
-            raise StateError("child confirm_mode must inherit its parent")
     value = f"{parent}/subtasks/{task_id}" if parent else task_id
     target = task_dir(workspace, value)
     task_md = target / "TASK.md"
@@ -149,8 +164,8 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         "slug": task_id,
         "parent": parent or "null",
         "status": "pending" if parent else "active",
-        "current_ref": "null" if parent else "intake",
-        "confirm_mode": inherited_mode if parent else (confirm_mode or "human"),
+        "current_ref": "null" if parent else "intent",
+        "confirm_mode": (confirm_mode or inherited_mode) if parent else (confirm_mode or "human"),
         "execution": "null",
         "driver": "null",
         "criterion": criterion,
@@ -184,9 +199,16 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
         if task_md.exists():
             raise StateError(f"task already exists; resume it instead: {task_md}")
         atomic_write(task_md, render(meta, body))
-        atomic_write(target / "PLAN.md", f"# 计划：{title}\n\n## 当前步骤\n- [ ] 明确当前最小实施与验证步骤。\n")
-        atomic_write(target / "decisions.md", "# 决定\n\n| # | 决定 | 理由 | 状态 | 来源 |\n|---|---|---|---|---|\n")
-        atomic_write(target / "history.md", "# 历史\n\n")
+        plan_body = (
+            f"# 计划：{title}\n\n"
+            "## 当前步骤\n"
+            "- [ ] 明确当前最小实施与验证步骤。\n\n"
+            "## 实施确认\n"
+            "- 状态：pending\n"
+            "- 依据：待确认\n"
+            "- 范围：待明确\n"
+        )
+        atomic_write(target / "PLAN.md", plan_body)
         (target / "context").mkdir(exist_ok=True)
         atomic_write(target / "context" / "current.md", f"# 当前事实与假设\n\n## 意图\n- 确认状态：{intent_status}\n")
         rebuild_index(workspace)
@@ -199,11 +221,15 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
         raise StateError(f"task does not exist: {task_md}")
     with state_lock(workspace):
         meta, text = parse_task(task_md)
-        for key, item in changes.items():
+        normalized_changes = dict(changes)
+        for key, item in list(normalized_changes.items()):
             if key == "status" and item not in STATUSES:
                 raise StateError(f"invalid status: {item}")
-            if key == "current_ref" and item not in REFS | {"null"}:
-                raise StateError(f"invalid current_ref: {item}")
+            if key == "current_ref":
+                item = REF_ALIASES.get(item, item)
+                if item not in REFS | {"null"}:
+                    raise StateError(f"invalid current_ref: {item}")
+                normalized_changes[key] = item
             if key == "confirm_mode" and item not in CONFIRM_MODES:
                 raise StateError(f"invalid confirm_mode: {item}")
             if key == "execution" and item not in EXECUTIONS | {"null"}:
@@ -213,15 +239,25 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
                 if not DRIVER.fullmatch(item) or item != expected:
                     raise StateError(f"driver must be {expected!r} or null")
             meta[key] = item
-        if changes.get("current_ref") == "execute":
+        target_ref = normalized_changes.get("current_ref")
+        if target_ref in {"plan", "execute"}:
+            intent_state = intent_confirm_state(task_md.parent)
+            if intent_state not in {"confirmed", "not-required"}:
+                raise StateError(
+                    f"{target_ref} requires context/current.md 意图确认状态 to be confirmed or not-required, got {intent_state!r}"
+                )
+        if target_ref == "execute":
+            criterion_value = meta.get("criterion", "").strip()
+            if not criterion_value or criterion_value.lower() in {"null", "none"}:
+                raise StateError("execute requires a non-empty criterion")
             if has_design_docs(task_md.parent) and not has_approval(task_md.parent, workspace, meta.get("parent")):
-                raise StateError("execute requires reviews/APPROVED.md when design docs exist")
+                raise StateError("execute requires non-empty reviews/APPROVED.md when design docs exist")
             plan_state = plan_confirm_state(task_md.parent)
-            if plan_state is not None and plan_state not in {"confirmed", "not-required"}:
+            if plan_state not in {"confirmed", "not-required"}:
                 raise StateError(f"execute requires PLAN.md 实施确认 to be confirmed or not-required, got {plan_state!r}")
-        if changes.get("status") == "done":
-            if not (task_md.parent / "SUMMARY.md").is_file():
-                raise StateError("done requires SUMMARY.md with verification and knowledge closure")
+        if normalized_changes.get("status") == "done":
+            if not has_valid_summary(task_md.parent):
+                raise StateError("done requires non-empty SUMMARY.md with verification and knowledge closure")
             children = child_tasks(task_md)
             if any(parse_task(path)[0].get("status") != "done" for path in children):
                 raise StateError("done parent requires every child task to be done")
@@ -329,17 +365,42 @@ def has_approval(task_root: Path, workspace: Path, parent: str | None) -> bool:
     if parent and parent not in {"", "null", "None"}:
         parent_root = workspace / "tasks" / "ongoing" / parent
         candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
-    return any(path.is_file() for path in candidates)
+    return any(path.is_file() and bool(path.read_text(encoding="utf-8").strip()) for path in candidates)
 
 
-def plan_confirm_state(task_root: Path) -> str | None:
+def has_valid_summary(task_root: Path) -> bool:
+    summary_md = task_root / "SUMMARY.md"
+    if not summary_md.is_file():
+        return False
+    for raw in summary_md.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        cleaned = re.sub(r"^[-*>\s]+", "", line).strip()
+        if cleaned and cleaned.lower() not in PLACEHOLDER_SUMMARIES:
+            return True
+    return False
+
+
+def intent_confirm_state(task_root: Path) -> str:
+    current_md = task_root / "context" / "current.md"
+    if not current_md.is_file():
+        return "missing"
+    text = current_md.read_text(encoding="utf-8")
+    match = re.search(r"^##\s+意图\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
+    scope = match.group(1) if match else text
+    status = re.search(r"^\s*[-*]?\s*确认状态\s*[:：]\s*(\S+)", scope, re.M)
+    return status.group(1).strip() if status else "missing"
+
+
+def plan_confirm_state(task_root: Path) -> str:
     plan_md = task_root / "PLAN.md"
     if not plan_md.is_file():
-        return None
+        return "missing"
     text = plan_md.read_text(encoding="utf-8")
     match = re.search(r"^##\s+实施确认\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
     if not match:
-        return None
+        return "missing"
     status = re.search(r"^\s*[-*]?\s*状态\s*[:：]\s*(\S+)", match.group(1), re.M)
     return status.group(1).strip() if status else "pending"
 
@@ -359,7 +420,7 @@ def reconcile(workspace: Path, value: str, repair: bool) -> dict:
     if children and all(state == "done" for state in child_states.values()) and meta.get("status") not in {"done", "archived"}:
         recommendation = "verify"
     if meta.get("status") == "done":
-        if not (task_md.parent / "SUMMARY.md").is_file():
+        if not has_valid_summary(task_md.parent):
             errors.append("done requires SUMMARY.md")
         if any(state != "done" for state in child_states.values()):
             errors.append("done parent requires every child task to be done")

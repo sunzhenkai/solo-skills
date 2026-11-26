@@ -30,7 +30,8 @@ class TaskflowContractTest(unittest.TestCase):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         direct = skill.split("## direct", 1)[1].split("## OpenSpec", 1)[0]
         self.assertIn("不建 driver", skill)
-        self.assertIn("不需要 handoff / approve / driver", direct)
+        self.assertIn("不走 handoff、不建 driver", direct)
+        self.assertIn("重大方案仍按 taskrail `approve` 放行", direct)
         self.assertNotIn("check_handoff.py", direct)
 
     def test_openspec_has_entry_gate(self) -> None:

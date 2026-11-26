@@ -4,7 +4,7 @@
 
 ## 先定做多少
 
-- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。
+- 原话已说清改什么、怎么算完成：只读必要目标处，给 1–3 句复述并写 criterion；human 仍需明确确认，不因信息完整而省略。若为单一明确小改（单仓、无 `design`/`decompose`、改点与验证一步读清），可在首轮同步给出最小计划，用户一次确认即同时落定意图与 PLAN 实施确认。
 - resume 已有 confirmed 意图且未失效：沿用，不重做；assumed 在 human 下补确认，goal 按确认协议处理。criterion 或意图变化使旧确认失效。
 - 子任务继承父意图与 ROADMAP 自己那一行，不重新确认；超出子判据才回 intent。
 - 纯问答直接回答，不建任务。
@@ -17,8 +17,8 @@
 
 1. 按上述顺序读取，只取理解目标和判据所需内容。
 2. 形成当前最佳理解，用“把什么现状变成什么可观察结果”说清目标。原话存在多种合理解释、关键依据是低把握假设或结果仍无法具体描述时，只读一个最能区分不同理解的现状、已有产物或实例，再更新理解与证据；这里只消除意图歧义，技术摸底仍归 explore。
-3. 按 [user-report.md](user-report.md) 以理解目标和纠偏所需的最少信息复述，包含具体完成结果和一个边界反例（只交付什么也仍算偏）；边界反例只校准理解，用户新增的“不做”仍以原话为准。决定与假设写 decisions / context，不逐字段打印。需要用户纠偏时明确邀请纠正，但不把它当成每个普通步骤的固定尾问。
-4. 把结构化意图写 `context/current.md`，新根任务先记 `- 确认状态：pending`。human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后改记 confirmed 才进入后续 plan / execute；goal 简要复述后记 not-required，需审阅时异源审，不等待用户。子任务继承父意图记 not-required。用户没回话不算确认。
+3. 按 [user-report.md](user-report.md) 精简复述具体完成结果与一个边界反例（只校准理解，用户“不做”仍以原话为准）；决定与假设落盘、不逐字段打印。需纠偏时明确邀请纠正，不把它当成每个普通步骤的固定尾问。
+4. 将结构化意图写 `context/current.md`（新根任务先记 `- 确认状态：pending`）。human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后改记 confirmed 才进入后续 plan / execute；goal 复述后记 not-required 并按确认协议审阅；子任务继承父意图记 not-required。
 5. criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责；意图或 criterion 变化时先把确认状态改回 pending。
 
 ## 覆盖清单

@@ -11,7 +11,7 @@ worktree 唯一真源是 [worktree.md](worktree.md)；OpenSpec 固定 Driver 协
 
 ## 实施中
 
-- 一次完成一个连贯增量，先 focused tests，再提交；同任务同仓写操作串行。
+- 一次完成一个连贯增量，先 focused tests，再提交；同任务同仓写操作串行。业务逻辑与 bug 修复默认在设计约定的公开接缝（seam）上采用单测试垂直 TDD 节奏：一次只写一个验证外部行为的失败测试（Red）→ 写最小实现使其变绿（Green）→ 按需重构，不批量预写绑定内部结构的脆弱测试；模块深化重构后用新接口测试替换旧浅层碎测试（replace, don't layer）。
 - 单项做不了保持未勾并写原因，继续其他就绪项；工具故障与代码根因分开，真阻塞只停依赖项。
 - 测试失败且原因明确继续 execute，原因不明回 diagnose；契约 / 方案不足回 design / grill；独立交付边界回 decompose。
 - 不缩小 criterion；确需缩小时回 intent / approve。

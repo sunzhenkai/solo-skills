@@ -158,6 +158,23 @@ def tick_plan(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def confirm_task_gates(task_dir: Path, *, intent: bool = True, plan: bool = True) -> None:
+    if intent:
+        current_md = task_dir / "context" / "current.md"
+        if current_md.is_file():
+            current_md.write_text(
+                current_md.read_text(encoding="utf-8").replace("确认状态：pending", "确认状态：confirmed"),
+                encoding="utf-8",
+            )
+    if plan:
+        plan_md = task_dir / "PLAN.md"
+        if plan_md.is_file():
+            plan_md.write_text(
+                plan_md.read_text(encoding="utf-8").replace("状态：pending", "状态：confirmed"),
+                encoding="utf-8",
+            )
+
+
 def parse_test_count(output: str) -> int:
     match = re.search(r"Ran (\d+) tests?", output)
     if not match:
@@ -1194,6 +1211,7 @@ def run_direct(root: Path, rep: Reporter) -> None:
 
     run([sys.executable, str(TASK_STATE), "init", str(ws), task_id,
          "--title", "实现跨仓异步报表下载", "--criterion", DIRECT_CRITERION])
+    confirm_task_gates(ws / "tasks" / "ongoing" / task_id, intent=True, plan=False)
     rep.record(mode, "task_state init 父任务", True, f"基线 api={api_base} web={web_base}")
 
     run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
@@ -1208,6 +1226,7 @@ def run_direct(root: Path, rep: Reporter) -> None:
              "--title", title, "--criterion", criterion, "--parent", task_id])
     rep.record(mode, "decompose 两个子任务", True, "api-report / web-download")
 
+    confirm_task_gates(ws / "tasks" / "ongoing" / task_id, intent=False, plan=True)
     run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
          "--current-ref", "execute", "--next", "并行推进两个子任务的 worktree 实现"])
 
@@ -1235,9 +1254,10 @@ def run_direct(root: Path, rep: Reporter) -> None:
         child_commits[child] = commit
         if git(wt, "status", "--porcelain"):
             raise E2eError(f"worktree 提交后不干净：{wt}")
+        child_dir = ws / "tasks" / "ongoing" / task_id / "subtasks" / child
+        confirm_task_gates(child_dir, intent=False, plan=True)
         run([sys.executable, str(TASK_STATE), "update", str(ws), f"{task_id}/subtasks/{child}",
              "--status", "active", "--current-ref", "execute"])
-        child_dir = ws / "tasks" / "ongoing" / task_id / "subtasks" / child
         summary = child_dir / "SUMMARY.md"
         summary.write_text(
             f"# SUMMARY：{child}\n\n"
@@ -1328,6 +1348,7 @@ def run_openspec(root: Path, rep: Reporter, openspec_bin: str) -> None:
 
     run([sys.executable, str(TASK_STATE), "init", str(ws), task_id,
          "--title", "实现跨仓库存快照导出", "--criterion", OPENSPEC_CRITERION])
+    confirm_task_gates(ws / "tasks" / "ongoing" / task_id, intent=True, plan=True)
     run([sys.executable, str(TASK_STATE), "update", str(ws), task_id,
          "--execution", "openspec", "--driver", f"{task_id}-driver",
          "--current-ref", "execute", "--next", "通过 handoff 门后创建 OpenSpec driver"])
