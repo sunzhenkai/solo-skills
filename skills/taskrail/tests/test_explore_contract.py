@@ -55,15 +55,18 @@ class ReferenceContractTest(unittest.TestCase):
     def test_templates_track_hot_state_and_decisions(self) -> None:
         templates = read("references", "templates.md")
         self.assertIn("current_ref: plan", templates)
-        self.assertIn("新建根任务由脚本写 `current_ref: intake`", templates)
+        self.assertIn("新建根任务由脚本写 `current_ref: intent`", templates)
         self.assertIn("confirm_mode: human", templates)
         self.assertIn("decisions.md / history.md", templates)
         self.assertIn("superseded", templates)
         self.assertNotIn("tier:", templates)
 
-    def test_ledger_and_concurrency_are_separate(self) -> None:
-        self.assertTrue((REF / "ledger.md").is_file())
-        self.assertTrue((REF / "ledger-concurrency.md").is_file())
+    def test_merged_fragments_live_in_host_references(self) -> None:
+        self.assertIn("## 并发写入", read("references", "ledger.md"))
+        self.assertIn("## 外部参照", read("references", "explore.md"))
+        self.assertIn("## 归档与重开", read("references", "close.md"))
+        self.assertIn("## 方案细则", read("references", "design.md"))
+        self.assertIn("Reference 统一契约", read("references", "contract.md"))
         self.assertTrue((REF / "decompose.md").is_file())
 
 

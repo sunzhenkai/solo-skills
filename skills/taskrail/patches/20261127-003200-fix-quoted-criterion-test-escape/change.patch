@@ -1,0 +1,13 @@
+diff --git a/skills/taskrail/tests/test_task_state.py b/skills/taskrail/tests/test_task_state.py
+index df16240..6ac6b4a 100644
+--- a/skills/taskrail/tests/test_task_state.py
++++ b/skills/taskrail/tests/test_task_state.py
+@@ -358,7 +358,7 @@ class TaskStateTest(unittest.TestCase):
+             upd = self.run_state("update", str(self.workspace), "quoted", "--current-ref", "explore")
+             self.assertEqual(upd.returncode, 0, upd.stdout)
+         task_text = (self.workspace / "tasks" / "ongoing" / "quoted" / "TASK.md").read_text(encoding="utf-8")
+-        self.assertIn('criterion: "按钮文案由 \"提交\" 改为 \"保存\"，且单测全过"', task_text)
++        self.assertIn(f"criterion: {json.dumps(text, ensure_ascii=False)}", task_text)
+ 
+ 
+ if __name__ == "__main__":

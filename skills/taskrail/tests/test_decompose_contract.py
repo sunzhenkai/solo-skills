@@ -80,6 +80,18 @@ class DecomposeContractTest(unittest.TestCase):
         self.assertIn("父任务只读 ROADMAP、共享契约和就绪子 TASK", router)
         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
 
+    def test_child_mode_override_integration_worktree_and_openspec_ownership(self) -> None:
+        decompose = read("decompose.md")
+        contract = read("contract.md")
+        plan = read("plan.md")
+        handoff = read("handoff.md")
+        self.assertIn("--confirm-mode human|goal", decompose)
+        self.assertIn("<parent>/integration", decompose)
+        self.assertIn("--integrate", decompose)
+        self.assertIn("HITL", contract)
+        self.assertIn("仅保留指向 driver 的一行指针", plan)
+        self.assertIn("仅留指向 driver 的一行指针", handoff)
+
     def test_old_large_scope_pipeline_is_gone(self) -> None:
         self.assertFalse((REF / "large-scope.md").exists())
         self.assertFalse((REF / "phase-wizard.md").exists())

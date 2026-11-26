@@ -1,0 +1,551 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index f225568..26b5227 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -12,7 +12,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意
+ 
+ ## 入口分诊
+ 
+-先判定用户要的交付物，再决定是否进入任务轨道：
++先判定交付物，再决定是否进入任务轨道：
+ 
+ - 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
+ - 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
+@@ -31,53 +31,38 @@ taskrail explain [task-id]
+ taskrail list
+ ```
+ 
+-`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)；遇到**大型项目、重大改动或架构调整**且用户本会话未明确豁免时，无论 `human` 还是 `goal`，进入实施前均先用人话对齐整体方案并等用户明确放行（`goal` 放行后后续按自动模式推进）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
++`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点统一见 [references/confirm-protocol.md](references/confirm-protocol.md)（其中**大型项目、重大改动或架构调整**无论 `human` 还是 `goal`，动工前均先人话对齐方案并等明确放行）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
+ 
+ ## 绑定与恢复
+ 
+-按 [references/ledger.md](references/ledger.md) 确定 workspace、新建或恢复任务。台账热状态和 INDEX 更新使用：
++按 [references/ledger.md](references/ledger.md) 确定 workspace、新建或恢复任务。热状态与 INDEX 更新使用 `python3 <taskrail>/scripts/task_state.py <command> <workspace> ...`。
+ 
+-```bash
+-python3 <taskrail>/scripts/task_state.py <command> <workspace> ...
+-```
+-
+-resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 就绪行、`context/current.md` 和当前 reference；不默认读 history、全部子任务或全部 OpenSpec changes。driver 归档、目录位置或 checkbox 全勾都不能单独推出 done。
++resume 先跑 `reconcile`，只读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 就绪行、`context/current.md` 和当前 reference；不默认加载 history、兄弟子任务或全部 OpenSpec changes。driver 归档、目录位置或 checkbox 全勾都不能单独推出 done。
+ 
+ ## 动态主循环
+ 
+-每轮只做以下六步：
+-
+-1. 读 TASK 热状态，核对目标和 `criterion`。
+-2. 按 [references/router.md](references/router.md) 检查当前 reference 是否仍适用。
+-3. 只加载命中的 reference；其统一结构见 [references/ref-contract.md](references/ref-contract.md)。
+-4. 完成一个可检查动作，产生产物或证据。
+-5. 用热状态脚本更新 TASK / INDEX，把路由原因追加到 `history.md`，决定写入 `decisions.md`。
+-6. 重新路由；命中意图确认、重大方案人话对齐、实施确认或真阻塞停点时停下等明确回复，其余按认知增量同步并继续。
++每轮六步：1. 读热状态核对目标与 `criterion`；2. 按 [references/router.md](references/router.md) 判定当前 reference；3. 只加载命中的 reference；4. 完成一个可检查动作并留证据；5. 用 `task_state.py` 更新 TASK / INDEX，路由原因记 `history.md`、决定记 `decisions.md`；6. 重新路由，命中 [confirm-protocol.md](references/confirm-protocol.md) 停点时等待明确回复，其余按认知增量同步并继续。
+ 
+-路由型 references（从这里直接打开，命中才读）：
++路由型 references（命中才读）：
+ 
+ | reference | 用途 |
+ |---|---|
+ | [plan.md](references/plan.md) | 当前最小计划与验证策略 |
+-| [explore.md](references/explore.md) | 代码入口、依赖、约束与影响面 |
+-| [diagnose.md](references/diagnose.md) | 复现、基线与根因证据 |
+-| [grill.md](references/grill.md) | 关键取舍、冲突与未知 |
+-| [design.md](references/design.md) | 契约、架构、兼容性与迁移 |
+-| [approve.md](references/approve.md) | 必要的人或模型批准 |
+-| [decompose.md](references/decompose.md) | 自动规划切片、`subtasks/` 与集成项 |
++| [explore.md](references/explore.md) | 代码入口、依赖、外部参照与影响面 |
++| [diagnose.md](references/diagnose.md) | 红灯复现、基线与根因证据 |
++| [grill.md](references/grill.md) | 关键取舍、前沿拉齐与未知 |
++| [design.md](references/design.md) | 接缝、契约、架构、细则与回滚 |
++| [approve.md](references/approve.md) | 按需人话对齐与批准 |
++| [decompose.md](references/decompose.md) | 垂直切片、`subtasks/` 与集成项 |
+ | [review.md](references/review.md) | 按需独立评审分流与 findings 处置 |
+ | [verify.md](references/verify.md) | 判据、回归、集成与证据 |
+-| [close.md](references/close.md) | SUMMARY、知识提升与归档；归档 / 重开见 [archive-reopen.md](references/archive-reopen.md) |
++| [close.md](references/close.md) | SUMMARY、知识提升、归档与重开 |
+ 
+-`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按 [review.md](references/review.md) 分流独立评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
++`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 跑 `check_handoff.py`，direct 不走该门。Web UI 与质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
+ 
+ ## 固定不变量
+ 
+-- 代码任务默认由 taskflow 在 git worktree 实施；direct 与 OpenSpec 仅差执行编排，不差隔离。
+-- workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
+-- 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
+-- `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
+-- 多 worker 子任务由主会话在派发前原子 `claim`；frontier 只含 `active`、依赖 done 且未认领项，stale claim 确认原 worker 停止后才 `release`。
+-- `context/current.md` 区分可准确提问的 `U-n` 与尚不能准确提问的 `F-n`；每轮最多解决一个就绪 `U-n`，`F-n` 随新证据毕业，细则见 [references/contract.md](references/contract.md)。
+-- `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
+-- 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。
++- 代码修改默认由 `taskflow` 在 `<workspace>/worktrees/` 的真 git worktree 实施，只提交到任务分支，不 push、不合默认分支、不部署、不改线上数据。
++- `decompose` 自动建 pending 子任务并按依赖推进；多 worker 子任务派发前原子 `claim`，父任务必做集成与总判据验证。
++- `context/current.md` 区分可准确提问的 `U-n` 与模糊区 `F-n`，每轮最多解一个就绪 `U-n`（见 [references/contract.md](references/contract.md)）。
++- `status: done` 仅在 [references/done.md](references/done.md) 全过、`SUMMARY.md` 实质非空且所有直接子任务 done 后写入；危险动作按确认协议停，同仓同任务写操作串行。
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index a0a3157..d1592a9 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -22,7 +22,7 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
+ 
+ 新根任务从 intent 开始（兼容旧值 intake），`context/current.md` 的意图确认状态属于热状态；criterion 已填写不代表确认完成。意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度同步按用户认知增量触发，不改变路由，也不要求用户回复。
+ 
+-每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”；统一结构见 [ref-contract.md](ref-contract.md)。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
++每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”（维护规范见文末「Reference 统一契约」）。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
+ 
+ ## 3. TASK.md 状态
+ 
+@@ -133,3 +133,11 @@ TASK 约 6 KB、context/current 约 8 KB 是压缩软预算；超出时把冷历
+ | 子任务 | 父任务下可独立实施验证、按契约集成的任务 |
+ | handoff | direct/OpenSpec 选择后，仅 OpenSpec 进入 driver 前的载荷核对动作 |
+ | 热状态 | resume 默认读取的最小 TASK / 当前事实 / 当前计划 |
++
++## 11. Reference 统一契约（维护规范，非运行时必读）
++
++每个路由型 reference 按统一八节编写：`目的` / `进入条件` / `跳过条件` / `所需输入` / `执行方法` / `产出` / `完成门` / `退出与重入`。
++
++- 进入条件写可观察信号，跳过条件写已有证据，不用“复杂 / 简单”代替；所需输入是文件、判据或事实，不是“先走某阶段”。
++- 完成门必须可由文件、命令、测试或评审结论检查；重入只修订受影响产物，无新证据不重复完整动作。
++- reference 只声明自身动作，路由统一归 [router.md](router.md)，状态与目录统一归本文件；UI、质量、多 worker 等支撑策略按需在环节内加载，不另占 `current_ref`。
+diff --git a/skills/taskrail/references/ledger.md b/skills/taskrail/references/ledger.md
+index 1a23eb8..9038380 100644
+--- a/skills/taskrail/references/ledger.md
++++ b/skills/taskrail/references/ledger.md
+@@ -43,4 +43,14 @@ python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --force
+ 4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。`reconcile --repair` 保留认领，不自动释放。
+ 5. explain 只读报告当前动作与理由、跳过 / 重入、子任务状态、worktree / driver 和下一动作。
+ 
+-归档任务先报告路径；用户明确 reopen 才按 archive-reopen 搬回。
++归档任务先报告路径；用户明确 reopen 才按 [close.md](close.md) 搬回。
++
++## 并发写入
++
++多会话 / 多 agent 写同一 workspace 时遵循：
++
++1. TASK 状态、done 门与 INDEX 更新只经 `scripts/task_state.py`（持 workspace 锁并原子替换）。
++2. 父 TASK 与协调状态只由父编排者写；子 TASK 只由对应子编排者写；worker 只返摘要与证据，不并发改父文件。
++3. `decisions.md` / `history.md` 追加前重读尾部与最大编号，发现新内容先合并；冲突认知用带日期的 `superseded` 关联。
++4. 同任务同仓代码写操作串行，不同子任务或仓库才可并行；worktree 准备统一经 `prepare_worktree.py` 注册表与锁。
++5. 遇部分写入、路径冲突或身份不明先跑 `reconcile`，不删除、不 reset、不用旧快照覆盖新文件。
+diff --git a/skills/taskrail/references/explore.md b/skills/taskrail/references/explore.md
+index 8d81f72..e305589 100644
+--- a/skills/taskrail/references/explore.md
++++ b/skills/taskrail/references/explore.md
+@@ -26,3 +26,10 @@
+ 
+ ## 退出与重入
+ 原因不明转 diagnose，关键取舍转 grill，契约变化转 design，多交付转 decompose，否则 plan / execute。相关 commit 或范围改变才重入受影响部分。
++
++## 外部参照（按需）
++
++方案依赖选型、外部集成或协议对接且本仓查不到成熟做法时做一次，其余跳过：
++
++- 先检索再读**原文**（官方文档 / 标准 / 上游 Issue 或 PR / 成熟开源对应实现），最多两处，转述不算；来源冲突时官方与标准优先。
++- 只追最影响步骤的那个做法；对上原文写「事实」附出处，打不开或只有转述写「假设」并标缺口，两处原文相反则同记事实、采纳其一并在 `decisions.md` 写理由。
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 83b42ff..fa9bcc3 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -21,7 +21,7 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状
+    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
+ 3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘（本环节不 push、不自动清理 worktree）。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+-5. 按 [archive-reopen.md](archive-reopen.md) 同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
++5. 按下文「归档与重开」同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
+ 
+ ## 产出
+ SUMMARY.md、长期知识指针（按需）、done 状态和可读的完成通知。
+@@ -31,3 +31,11 @@ SUMMARY 存在、判据证据有效、子任务全 done、状态与 INDEX 一致
+ 
+ ## 退出与重入
+ 任务结束。reopen 后 status 回 active，并从受影响 reference 重入；旧 SUMMARY 不覆盖，追加新验证和更正。
++
++## 归档与重开
++
++原则：不覆盖、保留未结项、整树移动、INDEX 可重建。
++
++- **完成归档**：close 完成且 status done 后同轮把父任务整树移到 `tasks/archive/<yyyy-mm-dd>/<task-id>`（子任务留在 subtasks）；搬前核对未结子任务、未决、driver / worktree 现状与目标路径冲突（冲突则停）；写回热状态与 SUMMARY → 记 archived 日期 → 原子移动整树 → `task_state.py rebuild-index <workspace>` → 核对新路径可读、旧路径不存在 → 清绑定。driver 已在 workspace openspec 中归档不等于任务可归档。
++- **未完成关闭**：仅用户明确放弃 / 关闭时置 status archived，不伪写成 done 或成功 SUMMARY。
++- **reopen**：仅用户明确要求时执行。先报告归档任务、driver 与 worktree 现状（目标 ongoing 路径冲突则停），将整树搬回 ongoing，status 回 active，记 reopened 日期与原因，保留旧 SUMMARY / history / decisions，重建 INDEX 后按 `reconcile` 与 router 从受影响 reference 继续；旧 driver 不自动删除或复用。
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index 349d058..03f89f0 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -17,8 +17,8 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 2. 推荐与被放弃方案各写取舍；仅当决定同时满足「难逆 + 无上下文会困惑 + 存在真实权衡」三条件时写极简 ADR（1–3 句讲清背景、决定与理由即可）并按 [user-report.md](user-report.md) 告知；涉及领域术语变更时按 `domain-modeling` 实时维护项目 `GLOSSARY.md` 并当场澄清冲突命名。
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+ 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+-5. 涉及跨项目通用接入或已沉淀模式时，可先查 `project-design-patterns`（未安装则跳过）；Web UI 按需读 ui-delivery；对比表按需读 design-detail。
+-6. 落盘方案后、进入实施前，按 `anti-lazy` 核对「哪件事只有用户能定」「若用户说『不是这个』最可能指向哪里」，并按 [user-report.md](user-report.md) 整理人话方案对齐摘要，交 [approve.md](approve.md) 取得明确放行（不以落盘文档替代人话对齐）。
++5. 涉及跨项目通用接入或已沉淀模式先查 `project-design-patterns`（未装跳过）；Web UI 按需读 [ui-delivery.md](ui-delivery.md)；多方案对比 / 两次设计见下文「方案细则」。
++6. 落盘后、开工前按 `anti-lazy` 核对用户决策边界与目标差距，按 [user-report.md](user-report.md) 整理人话摘要并交 [approve.md](approve.md) / [confirm-protocol.md](confirm-protocol.md) 放行。
+ 
+ ## 产出
+ `design/README.md` 索引、`design/<topic>.md`、按需 ADR / contract / glossary；decisions 写决定。
+@@ -27,4 +27,11 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 接口与依赖明确，兼容 / 回滚可走，验证能覆盖 criterion；未决项显式且不会被当成已定；大型项目、重大改动或架构调整已具备面向用户的人话方案摘要。
+ 
+ ## 退出与重入
+-凡涉及大型项目、重大改动、架构调整或公共契约变更，均转 [approve.md](approve.md) 完成人话方案对齐并落 `reviews/APPROVED.md`，再进 decompose / plan / execute；其余按需要转 decompose / plan / execute。实现发现设计不足时带新证据重入，只修订受影响部分。
++命中 [approve.md](approve.md) 进入条件的方案转 approve 落 `reviews/APPROVED.md` 后再进 decompose / plan / execute；其余直接转 decompose / plan / execute。实现发现设计不足时带新证据重入，只修订受影响部分。
++
++## 方案细则（可选）
++
++- **对比表**（多条可行路线时用；只有一条可行路线时不凑第二个方案，写一句为何只有它）：列 `方案 | 成本 | 风险 | 可逆性 | 工期 | 复杂度`，并写推荐主因、接受的取舍与回退方式。
++- **设计依据**：`选择 → 模式 / 原则 → 为何适用 → 可检后果`（写成减少耦合面 / 接口面 / 重复 / 回归面或提升可测性，「更优雅」不算；既有代码已有同类做法优先对齐）。
++- **两次设计（Design It Twice，高风险 / 多解接口可选）**：并行派 2–3 个 fresh context subagent 按互斥约束设计（极简接口最大化 depth / leverage、最大扩展性、默认调用方零心智、跨网 Ports & Adapters），围绕 **depth**、**locality** 与 **seam** 对比推荐，避免凑稻草人方案。
++- **质量画像展开**（用户点名时）：按 [quality-appendix.md](quality-appendix.md) 把每条底线落到可验证页面 / 数据 / 验收方式，只细化不扩范围。
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index dd03495..7f1b1f3 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -19,13 +19,13 @@
+ | bug / 性能 / flaky 原因未证明 | diagnose | 原因已有一手证据，或只是明确文案 / 配置错误 |
+ | 多个方案带来实质外部取舍，约束冲突 | grill | 没有会改变方案的关键未知或取舍 |
+ | 大型项目、公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 架构 / 契约变化 |
+-| 大型项目 / 重大改动 / 架构调整 / 公共契约变更、用户要求审批、难逆高风险、判据或重要外部行为改变 | approve | 小范围沿用现有架构的可逆改动且用户未要求审批；大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过 |
++| 命中 [approve.md](approve.md) 条件（大型 / 重大 / 架构 / 公共契约变更、用户要求审批、难逆高风险或改判据） | approve | 小范围沿用既有架构的可逆改动且用户未要求审批（停点与豁免见 [confirm-protocol.md](confirm-protocol.md)） |
+ | 多交付、多项目、需要增量反馈或一次难回归 | decompose | 一个连贯改动即可实施并验证 |
+ | 高风险、公共契约、复杂 diff、安全 / 性能敏感 | review | 小且可逆改动由 execute 做 diff 自检，可不派独立 reviewer |
+ | 全部实现产物就绪 | verify | 无；代码任务不得跳过验证 |
+ | 验证全过 | close | 无；done 与归档必须经过 close |
+ 
+-任务类型只是信号，不是固定路线：跨模块不必然 OpenSpec；改动小但原因未知仍需 diagnose；纯机械批量改动可 decompose 而不另起复杂设计，但凡涉及大型项目、重大重构、架构或契约调整，默认进入 design 与 approve 做人话方案对齐。
++任务类型只是信号，不是固定路线：跨模块不必然 OpenSpec；改动小但原因未知仍需 diagnose；纯机械批量改动可 decompose 而不另起复杂设计，但涉及重大 / 架构 / 契约调整须按 [approve.md](approve.md) 走 design 与 approve。
+ 
+ ## 执行中重新路由
+ 
+diff --git a/skills/taskrail/references/plan.md b/skills/taskrail/references/plan.md
+index eecf5be..677b23a 100644
+--- a/skills/taskrail/references/plan.md
++++ b/skills/taskrail/references/plan.md
+@@ -15,7 +15,7 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物
+ ## 执行方法
+ 1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
+ 2. direct 任务用 PLAN checkbox 跟踪实施；选定 `execution: openspec` 后，详细设计与切片清单归 OpenSpec changes，`PLAN.md` 仅保留指向 driver 的一行指针、验证与实施确认，不两头重复维护。
+-3. 只读 explore / diagnose 可沿当前最小计划继续。若本任务存在 `design/` 或命中大型项目 / 重大改动 / 架构调整，进入 execute 前须先按 `anti-lazy` 核对「哪件事只有用户能定」与目标差距，并确保整体方案已按 [confirm-protocol.md](confirm-protocol.md) 与 [approve.md](approve.md) 完成人话对齐并落 `reviews/APPROVED.md`（不以最小步骤清单替代整体方案对齐）。首次 execute 前或实施方案实质变化后，human 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
++3. 只读 explore / diagnose 可沿当前最小计划继续。存在 `design/` 或命中重大方案时，先按 `anti-lazy` 核对决策边界与目标差距，并按 [approve.md](approve.md) / [confirm-protocol.md](confirm-protocol.md) 落 `reviews/APPROVED.md`。首次 execute 前或实施方案实质变化后，按确认协议完成实施确认（human 展示范围、步骤、验证与回退等明确确认，goal 复述增量继续）。
+ 4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed（单一明确小改已在首轮合并确认意图与最小计划时，同轮记 confirmed 并写明合并确认依据），goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
+ 5. 每个实际执行的子任务首次 execute 前按自身 `confirm_mode`（默认继承父任务，可在 ROADMAP 覆写为 `human` HITL 或 `goal` AFK）确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
+ 6. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
+diff --git a/skills/taskrail/references/decompose.md b/skills/taskrail/references/decompose.md
+index 2b7c6f6..559c40f 100644
+--- a/skills/taskrail/references/decompose.md
++++ b/skills/taskrail/references/decompose.md
+@@ -15,7 +15,7 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
+ ## 执行方法
+ 1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。优先按**垂直切片（tracer bullet）**切分——每片或每个子任务贯通一条端到端可验证路径，避免按技术层水平硬切（先建全套表、再写全套 API、最后写 UI），粒度以单个 fresh context window 能独立闭环为上限。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
+ 2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界、可选确认模式（`human` HITL / `goal` AFK，留空继承父任务）。子判据合计覆盖总判据，依赖无环。
+-3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点，但若整体命中大型项目、重大改动或架构调整，仍须先完成整体方案的人话对齐与放行再开工。所需确认未完成前不创建或激活子任务。
++3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，按 [confirm-protocol.md](confirm-protocol.md) 确认 ROADMAP；同任务内部切片不新增停点（重大整体方案仍以 `approve` 放行为前提）。所需确认未完成前不创建或激活子任务。
+ 4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
+ 
+    ```bash
+diff --git a/skills/taskrail/references/intent.md b/skills/taskrail/references/intent.md
+index 82d40af..4bf96db 100644
+--- a/skills/taskrail/references/intent.md
++++ b/skills/taskrail/references/intent.md
+@@ -17,8 +17,8 @@
+ 
+ 1. 按上述顺序读取，只取理解目标和判据所需内容。
+ 2. 形成当前最佳理解，用“把什么现状变成什么可观察结果”说清目标。原话存在多种合理解释、关键依据是低把握假设或结果仍无法具体描述时，只读一个最能区分不同理解的现状、已有产物或实例，再更新理解与证据；这里只消除意图歧义，技术摸底仍归 explore。
+-3. 按 [user-report.md](user-report.md) 以理解目标和纠偏所需的最少信息复述，包含具体完成结果和一个边界反例（只交付什么也仍算偏）；边界反例只校准理解，用户新增的“不做”仍以原话为准。决定与假设写 decisions / context，不逐字段打印。需要用户纠偏时明确邀请纠正，但不把它当成每个普通步骤的固定尾问。
+-4. 把结构化意图写 `context/current.md`，新根任务先记 `- 确认状态：pending`。human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后改记 confirmed 才进入后续 plan / execute；goal 简要复述后记 not-required，需审阅时异源审，不等待用户。子任务继承父意图记 not-required。用户没回话不算确认。
++3. 按 [user-report.md](user-report.md) 精简复述具体完成结果与一个边界反例（只校准理解，用户“不做”仍以原话为准）；决定与假设落盘、不逐字段打印。需纠偏时明确邀请纠正，不把它当成每个普通步骤的固定尾问。
++4. 将结构化意图写 `context/current.md`（新根任务先记 `- 确认状态：pending`）。human 对新意图或变更一律按 [confirm-protocol.md](confirm-protocol.md) 停，明确确认后改记 confirmed 才进入后续 plan / execute；goal 复述后记 not-required 并按确认协议审阅；子任务继承父意图记 not-required。
+ 5. criterion 原文写 TASK，当前最小步骤由 [plan.md](plan.md) 负责；意图或 criterion 变化时先把确认状态改回 pending。
+ 
+ ## 覆盖清单
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 6263a0b..ddf507d 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -4,15 +4,15 @@ taskrail / taskflow 面向用户的话按本文件；落盘产物可以保持结
+ 
+ ## 1. 以理解、决策和行动为边界
+ 
+-只展示帮助用户理解现状、判断风险、作出决定或采取行动的信息。第一句说当前最重要的结论、结果或影响，随后只给支撑判断所需的最少证据和下一动作；围绕用户当前要理解或决定的事组织内容，不按内部执行顺序复述过程。
++只展示帮助用户理解现状、判断风险、作出决定或采取行动的信息。首句说结论与影响，随后给支撑判断的最少证据和下一动作，不按内部执行顺序复述过程。
+ 
+-是否同步取决于用户的有效认知是否需要更新，而不是内部环节是否变化。没有新增结果、判断、范围 / 风险或决策需求时，纯路由、记账、INDEX 更新和内部状态迁移不单独汇报。已经表达的信息不重复，长任务只同步最新增量；非停点同步继续执行，不等回复、不构成用户确认。
++是否同步取决于有效认知是否需要更新：没有新增结果、范围 / 风险或决策需求时，纯路由、记账、INDEX 与内部状态迁移不单独汇报；长任务只同步最新增量，非停点同步不等回复、不构成用户确认。
+ 
+ ## 2. 默认摘要，按需展开
+ 
+-默认给结论性摘要；确认、排障、`explain` 或用户追问时，按当前理解和决策需要补充背景、取舍与证据。展开以足以支持本次判断为限，不用完整台账代替回答，也不为覆盖所有场景机械套用字段。
++默认结论性摘要；确认、排障、`explain` 或追问时按需展开，以足以支持本次判断为限，不用完整台账代替回答，也不为覆盖所有场景机械套用字段。
+ 
+-current_ref、status、driver、change id、checkbox 编号、criterion、slice、OpenSpec 等内部词不主动倒给用户；需要解释编排时先转译成影响和行动。文件:行、产物路径和原始输出作为可跳过的细节，只有有助于核实、恢复或落地时才展示。
++不主动向用户堆砌 current_ref、driver、change id、checkbox 编号等内部编排词；文件:行与产物路径仅在有助于核实、恢复或落地时展示。
+ 
+ ## 3. 先查资料，能查到的不问
+ 
+@@ -20,12 +20,11 @@ current_ref、status、driver、change id、checkbox 编号、criterion、slice
+ 
+ ## 4. 详略与风险匹配
+ 
+-1. 普通可逆取舍按推荐直接定，**说决定，不提问**：用陈述句带一句理由，不以“要不要 / 你看行吗”收尾。意图、实施方案、approve 等停点按 [confirm-protocol.md](confirm-protocol.md) 等明确回复。
+-2. 难回头决定单独说，说明决定及理由，详略以用户能判断影响为准；陈述决定不等于获得危险动作授权。已做决定写 decisions.md。
+-3. 执行中除确认协议停点外，真阻塞才停：删除或迁移数据、改共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）、缺凭据或只有用户知道的信息。停时突出影响、已完成部分和需要的外部输入。
+-4. 同一验证连败两次、同一 P0 / P1 两轮未解、写不出可检查 criterion、意图仍对不上时停止盲试；先按 router 换动作，只有缺外部输入才 blocked。
+-5. 确认展示以用户足以作出本次决定为限；风险、范围或验证策略变化时呈现新增信息，不重复未变化的背景。
+-6. 内部记账与调度直接做，不转化为用户问题；没有认知增量时不独立汇报。
++1. 普通可逆取舍按推荐直接定，**说决定，不提问**（不以“要不要 / 你看行吗”收尾）；停点统一见 [confirm-protocol.md](confirm-protocol.md)。
++2. 难回头决定单独说并带理由（陈述不等于危险动作授权）；已做决定写 decisions.md。
++3. 除停点外真阻塞才停：删除或迁移数据、改共享配置、线上 / 不可逆 / 对外发送、改完成判据（criterion）、缺凭据或仅用户掌握的信息；停时说明影响、已完成部分与所需输入。
++4. 同验证连败两次、同 P0/P1 两轮未解、写不出 criterion 或意图对不上时停盲试，先按 router 换动作，缺外部输入才 blocked。
++5. 内部记账与调度直接做，无认知增量不单独汇报；范围或风险变化时只呈增量。
+ 
+ ### 重大方案人话对齐
+ 
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index c7552d2..80a575c 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -41,15 +41,19 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_references_exist_and_old_pipeline_is_removed(self) -> None:
+         for name in (
+-            "contract.md", "router.md", "ref-contract.md", "plan.md", "explore.md",
++            "contract.md", "router.md", "plan.md", "explore.md",
+             "diagnose.md", "grill.md", "design.md", "approve.md", "decompose.md",
+             "review.md", "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
+-            "ledger.md", "templates.md", "archive-reopen.md", "user-report.md",
++            "ledger.md", "templates.md", "user-report.md",
+             "confirm-protocol.md", "ui-delivery.md", "quality-appendix.md",
+         ):
+             self.assertTrue((REF / name).is_file(), name)
+-        self.assertFalse((REF / "phase-wizard.md").exists())
+-        self.assertFalse((REF / "large-scope.md").exists())
++        for merged_or_removed in (
++            "phase-wizard.md", "large-scope.md", "ref-contract.md",
++            "ledger-concurrency.md", "external-precedent.md",
++            "archive-reopen.md", "design-detail.md",
++        ):
++            self.assertFalse((REF / merged_or_removed).exists(), merged_or_removed)
+ 
+     def test_dynamic_state_and_no_tier(self) -> None:
+         contract = read("references", "contract.md")
+diff --git a/skills/taskrail/tests/test_confirm_contract.py b/skills/taskrail/tests/test_confirm_contract.py
+index a11555d..cb0cfc9 100644
+--- a/skills/taskrail/tests/test_confirm_contract.py
++++ b/skills/taskrail/tests/test_confirm_contract.py
+@@ -67,6 +67,7 @@ class ConfirmContractTest(unittest.TestCase):
+         self.assertIn("非停点同步不需要回复", self.text)
+ 
+     def test_major_change_requires_plain_language_alignment_by_default(self) -> None:
++        # SSOT 在 confirm-protocol.md 与 approve.md，其余文件只守卫入口指针而非逐字复读
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         design = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
+         approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
+@@ -75,9 +76,11 @@ class ConfirmContractTest(unittest.TestCase):
+         self.assertIn("无论 `human` 还是 `goal`", skill)
+         self.assertIn("不因分支内可逆或内部切片跳过", self.text)
+         self.assertIn("重大方案首次落定 / 实质变更先停等用户人话确认", self.text)
+-        self.assertIn("不以落盘文档替代人话对齐", design)
+         self.assertIn("不因改动在 git 分支内可逆或属于同任务内部切片而跳过", approve)
+-        self.assertIn("大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过", router)
++        self.assertIn("[approve.md](approve.md)", design)
++        self.assertIn("[confirm-protocol.md](confirm-protocol.md)", design)
++        self.assertIn("[approve.md](approve.md)", router)
++        self.assertIn("[confirm-protocol.md](confirm-protocol.md)", router)
+ 
+     def test_small_clear_change_allows_combined_first_turn_confirmation(self) -> None:
+         intent = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
+diff --git a/skills/taskrail/tests/test_explore_contract.py b/skills/taskrail/tests/test_explore_contract.py
+index 4a950d7..16fedbd 100644
+--- a/skills/taskrail/tests/test_explore_contract.py
++++ b/skills/taskrail/tests/test_explore_contract.py
+@@ -61,9 +61,12 @@ class ReferenceContractTest(unittest.TestCase):
+         self.assertIn("superseded", templates)
+         self.assertNotIn("tier:", templates)
+ 
+-    def test_ledger_and_concurrency_are_separate(self) -> None:
+-        self.assertTrue((REF / "ledger.md").is_file())
+-        self.assertTrue((REF / "ledger-concurrency.md").is_file())
++    def test_merged_fragments_live_in_host_references(self) -> None:
++        self.assertIn("## 并发写入", read("references", "ledger.md"))
++        self.assertIn("## 外部参照", read("references", "explore.md"))
++        self.assertIn("## 归档与重开", read("references", "close.md"))
++        self.assertIn("## 方案细则", read("references", "design.md"))
++        self.assertIn("Reference 统一契约", read("references", "contract.md"))
+         self.assertTrue((REF / "decompose.md").is_file())
+ 
+ 
+diff --git a/skills/taskrail/tests/test_flow_closure_contract.py b/skills/taskrail/tests/test_flow_closure_contract.py
+index cbb2eac..b7ff07a 100644
+--- a/skills/taskrail/tests/test_flow_closure_contract.py
++++ b/skills/taskrail/tests/test_flow_closure_contract.py
+@@ -34,7 +34,7 @@ class TerminalTest(unittest.TestCase):
+         self.assertIn("未完成关闭不伪写成功总结", close)
+ 
+     def test_driver_and_task_archive_are_distinct(self) -> None:
+-        archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
++        archive = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
+         self.assertIn("driver 已在 workspace openspec 中归档不等于任务可归档", archive)
+         self.assertIn("status done", archive)
+         self.assertIn("status archived", archive)
+diff --git a/skills/taskrail/tests/test_explore_behavior.py b/skills/taskrail/tests/test_explore_behavior.py
+index d21562e..7c82d39 100644
+--- a/skills/taskrail/tests/test_explore_behavior.py
++++ b/skills/taskrail/tests/test_explore_behavior.py
+@@ -21,7 +21,7 @@ class BehaviorTest(unittest.TestCase):
+         self.assertNotIn("委托 `grilling`", grill)
+ 
+     def test_done_archives_same_round(self) -> None:
+-        archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
++        archive = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
+         self.assertIn("完成归档", archive)
+         self.assertIn("同轮把父任务整树移到", archive)
+         self.assertIn("未完成关闭", archive)
+diff --git a/skills/taskrail/tests/test_design_and_handoff_gate.py b/skills/taskrail/tests/test_design_and_handoff_gate.py
+index 07460b3..62688a1 100644
+--- a/skills/taskrail/tests/test_design_and_handoff_gate.py
++++ b/skills/taskrail/tests/test_design_and_handoff_gate.py
+@@ -10,8 +10,7 @@ class DesignAndHandoffTest(unittest.TestCase):
+     def test_design_no_force_two_options(self) -> None:
+         d = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
+         self.assertIn("design/", d)
+-        detail = (ROOT / "references" / "design-detail.md").read_text(encoding="utf-8")
+-        self.assertIn("只有一条可行路线时不凑第二个方案", detail)
++        self.assertIn("只有一条可行路线时不凑第二个方案", d)
+ 
+     def test_no_verbatim_profile_copy(self) -> None:
+         for name in ("design.md", "handoff.md", "templates.md"):
+diff --git a/skills/taskrail/tests/test_neighbor_skill_contract.py b/skills/taskrail/tests/test_neighbor_skill_contract.py
+index c475d3c..b8d28a3 100644
+--- a/skills/taskrail/tests/test_neighbor_skill_contract.py
++++ b/skills/taskrail/tests/test_neighbor_skill_contract.py
+@@ -42,7 +42,6 @@ class NeighborSkillContract(unittest.TestCase):
+         explore = read("explore.md")
+         grill = read("grill.md")
+         design = read("design.md")
+-        detail = read("design-detail.md")
+         diagnose = read("diagnose.md")
+         self.assertIn("tracer bullet", decompose)
+         self.assertIn("fresh context window", decompose)
+@@ -53,7 +52,7 @@ class NeighborSkillContract(unittest.TestCase):
+         self.assertIn("`domain-modeling`", design)
+         self.assertIn("seam", design)
+         self.assertIn("三条件", design)
+-        self.assertIn("Design It Twice", detail)
++        self.assertIn("Design It Twice", design)
+         self.assertIn("tight & red-capable", diagnose)
+         self.assertIn("Minimise", diagnose)
+         self.assertIn("[DEBUG-", diagnose)
+diff --git a/skills/taskrail/references/ledger-concurrency.md b/skills/taskrail/references/ledger-concurrency.md
+deleted file mode 100644
+index 9409eb0..0000000
+--- a/skills/taskrail/references/ledger-concurrency.md
++++ /dev/null
+@@ -1,9 +0,0 @@
+-# 台账并发写入
+-
+-多会话 / 多 agent 写同一 workspace 时读。
+-
+-1. TASK 状态、done 门与 INDEX 更新只用 `scripts/task_state.py`；脚本持 workspace 锁并原子替换，INDEX 随时可重建。
+-2. 父 TASK 和协调 checkbox 只由父编排者写；子 TASK 只由对应子任务编排者写；worker 返回结论与证据，不并发改父文件。
+-3. decisions / history 追加前重读最大编号和文件尾部；发现他人新内容先合并，不覆盖。相互矛盾的认知写带日期的更正与 superseded 关系。
+-4. 同任务同仓代码写操作串行；不同子任务或仓库才可并行。git worktree 准备使用 prepare_worktree.py 的注册表和锁。
+-5. 发现部分写入、路径冲突或身份不明时先 reconcile；不删除、不 reset、不用旧快照覆盖新文件。
+diff --git a/skills/taskrail/references/external-precedent.md b/skills/taskrail/references/external-precedent.md
+deleted file mode 100644
+index 9a5ae47..0000000
+--- a/skills/taskrail/references/external-precedent.md
++++ /dev/null
+@@ -1,8 +0,0 @@
+-# 外部参照（按需加载）
+-
+-方案依赖选型、外部集成或协议对接，且本仓查不到成熟做法时做一次；其余跳过。
+-
+-- 先检索，再读**原文**（官方文档 / 标准 / 上游 Issue 或 PR / 成熟开源实现的对应处），最多两处；转述不算。来源冲突时官方与标准优先。
+-- 只追最会影响步骤的那一个做法。
+-- 对上原文：写进「事实」并附出处；会改步骤就改步骤。打不开、没命中或只有转述：写进「假设」，写明缺什么，方案照常写完。
+-- 两处原文做法相反：都写进事实，步骤采纳一条并在「已做决定」写理由。
+diff --git a/skills/taskrail/references/archive-reopen.md b/skills/taskrail/references/archive-reopen.md
+deleted file mode 100644
+index a86a0de..0000000
+--- a/skills/taskrail/references/archive-reopen.md
++++ /dev/null
+@@ -1,17 +0,0 @@
+-# archive 与 reopen
+-
+-原则：不覆盖、保留未结项、整树移动、INDEX 可重建。
+-
+-## archive
+-
+-- 完成归档：close 已完成、status done 后同轮把父任务整树移到 `tasks/archive/<yyyy-mm-dd>/<task-id>`；子任务留在 subtasks。
+-- 未完成关闭：只有用户明确放弃 / 关闭才执行，status archived；不能写成 done 或伪造成成功 SUMMARY。
+-- 搬之前核对未结子任务、未决、driver / worktree 现状和目标路径冲突。目标已存在则停，不覆盖。
+-- 步骤：写回热状态与 SUMMARY → 记录 archived 日期 → 原子移动整树 → `task_state.py rebuild-index <workspace>` → 确认新路径可读、旧路径不存在 → 清绑定。
+-- driver 已在 workspace openspec 中归档不等于任务可归档；仍须 close。
+-
+-## reopen
+-
+-用户明确 reopen 才动。先报告归档任务、driver 和 worktree 现状；目标 ongoing 路径冲突则停。
+-
+-将整树搬回 ongoing，status 回 active，写 reopened 日期和原因，不删旧 SUMMARY / history / decisions；重建 INDEX，绑定后按 reconcile 和 router 从受影响 reference 继续。旧 driver 不自动删除或复用到新任务。
+diff --git a/skills/taskrail/references/design-detail.md b/skills/taskrail/references/design-detail.md
+deleted file mode 100644
+index 7b48190..0000000
+--- a/skills/taskrail/references/design-detail.md
++++ /dev/null
+@@ -1,28 +0,0 @@
+-# design 细则（可选）
+-
+-当前方案涉及多条可行路线、或用户点名要对比 / 设计依据时读。
+-
+-## 对比表
+-
+-```
+-| 方案 | 成本 | 风险 | 可逆性 | 工期 | 复杂度 |
+-|------|------|------|--------|------|--------|
+-| A    |      |      |        |      |        |
+-| B    |      |      |        |      |        |
+-
+-推荐：方案 X，因为 <主因>。接受的取舍：<…>。回退：<怎么撤>。
+-```
+-
+-只有一条可行路线时不凑第二个方案，写一句为什么只有它。
+-
+-## 设计依据
+-
+-一行一条：`选择 → 模式 / 原则 → 为何适用 → 可检后果`。可检后果写成少了什么（耦合面、接口面、重复、可替换点、可测性、回归面）；「更优雅」不算。拿不出可检后果就写「不引入」和当前做法为何够用。既有代码已有同类做法时优先对齐并链过去。
+-
+-## 两次设计（Design It Twice，高风险 / 多解接口可选）
+-
+-当核心模块接口存在实质分歧时，并行派 2–3 个 fresh context subagent 按互斥约束分别设计（如：极简接口最大化 depth / leverage、最大化扩展灵活性、默认调用方零心智、跨网依赖 Ports & Adapters），再围绕 **depth**（接口杠杆）、**locality**（变更局部性）与 **seam** 位置对比并给出明确推荐，避免单视角凑稻草人方案。
+-
+-## 质量画像展开（用户点名画像时）
+-
+-按 [quality-appendix.md](quality-appendix.md) 写，每条底线落到能验证的页面 / 数据 / 验收方式；只细化，不扩范围。
+diff --git a/skills/taskrail/references/ref-contract.md b/skills/taskrail/references/ref-contract.md
+deleted file mode 100644
+index 3c37d2c..0000000
+--- a/skills/taskrail/references/ref-contract.md
++++ /dev/null
+@@ -1,24 +0,0 @@
+-# Reference 统一契约
+-
+-每个路由型 reference 都按下列结构写。路由依赖产物与证据，不依赖固定线性阶段。
+-
+-```markdown
+-# <name>
+-## 目的
+-## 进入条件
+-## 跳过条件
+-## 所需输入
+-## 执行方法
+-## 产出
+-## 完成门
+-## 退出与重入
+-```
+-
+-要求：
+-
+-- 进入条件写可观察信号，跳过条件写已有证据；不能用“复杂 / 简单”代替。
+-- 所需输入是文件、判据或事实，不是“必须先走某阶段”。
+-- 完成门必须可由文件、命令、测试或评审结论检查。
+-- 重入只修订受影响产物；没有新证据不得重复完整执行。
+-- reference 只声明自己的动作。路由选择统一在 [router.md](router.md)，状态与目录统一在 [contract.md](contract.md)。
+-- 支撑策略（UI、外部参照、质量、多 worker）在环节内按需加载，不另占 current_ref。

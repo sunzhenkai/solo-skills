@@ -1,0 +1,433 @@
+diff --git a/skills/taskrail/references/review.md b/skills/taskrail/references/review.md
+index 1b54057..2f8b391 100644
+--- a/skills/taskrail/references/review.md
++++ b/skills/taskrail/references/review.md
+@@ -17,7 +17,7 @@ criterion、当前提交号或 worktree diff、审与不审范围、相关 desig
+    - 多岗位、方案、契约、观感或 Skill 评审：调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。
+    - 纯 Git diff / MR / PR 自动化代码审查：调用 `solo-code-review`。
+    - 对应下游 skill 未安装时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。
+-2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `F-n` 跟踪。
++2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `RF-n` 跟踪。
+ 3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
+ 
+ ## 产出
+diff --git a/skills/taskrail/references/contract.md b/skills/taskrail/references/contract.md
+index bb51306..c9f5d13 100644
+--- a/skills/taskrail/references/contract.md
++++ b/skills/taskrail/references/contract.md
+@@ -20,7 +20,7 @@ task 系列唯一真源。其他细则与本文冲突时以本文为准；用户
+ 
+ 固定不变的是：目标与 criterion → 当前最小计划 → 动态 references → verify → close。中间不设固定顺序和 skip/full 档位。
+ 
+-新根任务从 intake 进入 intent，`context/current.md` 的意图确认状态属于热状态；criterion 已填写不代表确认完成。意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度同步按用户认知增量触发，不改变路由，也不要求用户回复。
++新根任务从 intent 开始（兼容旧值 intake），`context/current.md` 的意图确认状态属于热状态；criterion 已填写不代表确认完成。意图与 PLAN 的确认属于对应 reference 的完成门，不新增固定阶段；未命中停点的进度同步按用户认知增量触发，不改变路由，也不要求用户回复。
+ 
+ 每轮按 [router.md](router.md) 重新判断 enter / continue / skip / reopen。reference 依赖产物和证据，不依赖“上一阶段”；统一结构见 [ref-contract.md](ref-contract.md)。相同输入下不得无理由重复进入同一环节；没有新证据时必须改变动作或报告真阻塞。
+ 
+@@ -32,14 +32,14 @@ parent: null | <parent-task-id>
+ status: pending | active | blocked | done | archived
+ claimed_by: null | "<worker-id>"  # 仅子任务
+ claimed_at: null | "<ISO 8601 timestamp>"  # 仅子任务
+-current_ref: intake | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
++current_ref: intent | plan | explore | diagnose | grill | design | approve | decompose | execute | review | verify | close | null
+ confirm_mode: human | goal
+ execution: direct | openspec | null
+ criterion: "<一条可检查的话>"
+ driver: null | "<task-id>-driver"
+ created: YYYY-MM-DD
+ updated: YYYY-MM-DD
+-# 旧字段与 gate_bypass 等按需兼容保留；archived / reopened 在动作发生时写
++# 旧字段与 intake / gate_bypass 等按需兼容保留；archived / reopened 在动作发生时写
+ ```
+ 
+ - `pending`：子任务已规划但未就绪；`active`：可推进；`blocked`：只表示需要外部输入或环境解锁。
+@@ -47,7 +47,7 @@ updated: YYYY-MM-DD
+ - 主会话在派发前用 `task_state.py claim` 锁内认领，同一 owner 重入幂等；回收用 `release`，确认原 worker 已停止后才用 `release --force`。`reconcile` 报告并保留认领，不按时间自动清理。
+ - `current_ref` 只是当前动作，不是完成百分比。direct 任务的实施进度看 PLAN checkbox；OpenSpec 任务看 change checkbox；父子结构看 ROADMAP 与子 TASK。
+ - `execution` 和 `driver` 不决定任务生命周期。driver 归档后若未验收，`current_ref: close` 或 `verify`，绝不能直接推导 done。
+-- `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 存在、所有直接子任务 done。`task_state.py update --status done` 机械检查这些条件。
++- `status: done` 必须同时满足：[done.md](done.md) 全过、SUMMARY.md 非空且含实质内容、所有直接子任务 done；`task_state.py` 机械检查 done 条件，以及切到 `plan` / `execute` 时的意图确认、非空 criterion、PLAN.md 实施确认与 design 批准。
+ - 状态写入与 INDEX 重建使用 `scripts/task_state.py`；INDEX 是派生物，不是第二状态源。
+ 
+ ## 4. 任务目录
+diff --git a/skills/taskrail/references/templates.md b/skills/taskrail/references/templates.md
+index 02d7543..23de9e2 100644
+--- a/skills/taskrail/references/templates.md
++++ b/skills/taskrail/references/templates.md
+@@ -2,7 +2,7 @@
+ 
+ 新建与状态更新优先使用 `scripts/task_state.py`，不要手工复制整套文件。字段以 [contract.md](contract.md) 为准。
+ 
+-以下是意图已确认后的 TASK 示例；新建根任务由脚本写 `current_ref: intake`，确认后才进入 plan。
++以下是意图已确认后的 TASK 示例；新建根任务由脚本写 `current_ref: intent`（兼容旧值 `intake`），确认后才进入 plan。
+ 
+ ## TASK.md（热状态）
+ 
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index be00136..743c796 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -185,7 +185,7 @@ cases:
+     given: human 或 goal 新任务初始化时已填写可检查 criterion，但尚未经过 intent
+     expect:
+       must:
+-        - current_ref 从 intake 开始，context/current 的意图确认为 pending
++        - current_ref 从 intent 开始，context/current 的意图确认为 pending
+         - human 明确确认后记 confirmed，goal 简要复述后记 not-required，再进入 plan
+       must_not:
+         - 因 criterion 非空直接从 plan 或 execute 继续
+diff --git a/skills/taskrail/scripts/task_state.py b/skills/taskrail/scripts/task_state.py
+index ec6ee9e..1784bfc 100644
+--- a/skills/taskrail/scripts/task_state.py
++++ b/skills/taskrail/scripts/task_state.py
+@@ -32,7 +32,9 @@ except ImportError:  # pragma: no cover
+ SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
+ DRIVER = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}-driver$")
+ STATUSES = {"pending", "active", "blocked", "done", "archived"}
+-REFS = {"intake", "plan", "explore", "diagnose", "grill", "design", "approve", "decompose", "execute", "review", "verify", "close"}
++REFS = {"intent", "plan", "explore", "diagnose", "grill", "design", "approve", "decompose", "execute", "review", "verify", "close"}
++REF_ALIASES = {"intake": "intent"}
++PLACEHOLDER_SUMMARIES = {"todo", "tbd", "待补充", "待填写", "待补"}
+ EXECUTIONS = {"direct", "openspec"}
+ CONFIRM_MODES = {"human", "goal"}
+ 
+@@ -88,6 +90,21 @@ def task_dir(workspace: Path, value: str) -> Path:
+     return workspace / "tasks" / "ongoing" / relative
+ 
+ 
++def unquote_scalar(raw: str) -> str:
++    value = raw.strip()
++    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
++        try:
++            parsed = json.loads(value)
++            if isinstance(parsed, str):
++                return parsed
++        except json.JSONDecodeError:
++            pass
++        return value[1:-1]
++    if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
++        return value[1:-1].replace("''", "'")
++    return value
++
++
+ def parse_task(path: Path) -> tuple[dict[str, str], str]:
+     text = path.read_text(encoding="utf-8")
+     match = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.S)
+@@ -97,7 +114,7 @@ def parse_task(path: Path) -> tuple[dict[str, str], str]:
+     for line in match.group(1).splitlines():
+         item = re.match(r"^([a-z_-]+):\s*(.*)$", line)
+         if item:
+-            meta[item.group(1)] = item.group(2).strip().strip("\"'")
++            meta[item.group(1)] = unquote_scalar(item.group(2))
+     return meta, text
+ 
+ 
+@@ -149,7 +166,7 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+         "slug": task_id,
+         "parent": parent or "null",
+         "status": "pending" if parent else "active",
+-        "current_ref": "null" if parent else "intake",
++        "current_ref": "null" if parent else "intent",
+         "confirm_mode": inherited_mode if parent else (confirm_mode or "human"),
+         "execution": "null",
+         "driver": "null",
+@@ -184,7 +201,16 @@ def init_task(workspace: Path, task_id: str, title: str, criterion: str, parent:
+         if task_md.exists():
+             raise StateError(f"task already exists; resume it instead: {task_md}")
+         atomic_write(task_md, render(meta, body))
+-        atomic_write(target / "PLAN.md", f"# 计划：{title}\n\n## 当前步骤\n- [ ] 明确当前最小实施与验证步骤。\n")
++        plan_body = (
++            f"# 计划：{title}\n\n"
++            "## 当前步骤\n"
++            "- [ ] 明确当前最小实施与验证步骤。\n\n"
++            "## 实施确认\n"
++            "- 状态：pending\n"
++            "- 依据：待确认\n"
++            "- 范围：待明确\n"
++        )
++        atomic_write(target / "PLAN.md", plan_body)
+         atomic_write(target / "decisions.md", "# 决定\n\n| # | 决定 | 理由 | 状态 | 来源 |\n|---|---|---|---|---|\n")
+         atomic_write(target / "history.md", "# 历史\n\n")
+         (target / "context").mkdir(exist_ok=True)
+@@ -199,11 +225,15 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
+         raise StateError(f"task does not exist: {task_md}")
+     with state_lock(workspace):
+         meta, text = parse_task(task_md)
+-        for key, item in changes.items():
++        normalized_changes = dict(changes)
++        for key, item in list(normalized_changes.items()):
+             if key == "status" and item not in STATUSES:
+                 raise StateError(f"invalid status: {item}")
+-            if key == "current_ref" and item not in REFS | {"null"}:
+-                raise StateError(f"invalid current_ref: {item}")
++            if key == "current_ref":
++                item = REF_ALIASES.get(item, item)
++                if item not in REFS | {"null"}:
++                    raise StateError(f"invalid current_ref: {item}")
++                normalized_changes[key] = item
+             if key == "confirm_mode" and item not in CONFIRM_MODES:
+                 raise StateError(f"invalid confirm_mode: {item}")
+             if key == "execution" and item not in EXECUTIONS | {"null"}:
+@@ -213,15 +243,25 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
+                 if not DRIVER.fullmatch(item) or item != expected:
+                     raise StateError(f"driver must be {expected!r} or null")
+             meta[key] = item
+-        if changes.get("current_ref") == "execute":
++        target_ref = normalized_changes.get("current_ref")
++        if target_ref in {"plan", "execute"}:
++            intent_state = intent_confirm_state(task_md.parent)
++            if intent_state not in {"confirmed", "not-required"}:
++                raise StateError(
++                    f"{target_ref} requires context/current.md 意图确认状态 to be confirmed or not-required, got {intent_state!r}"
++                )
++        if target_ref == "execute":
++            criterion_value = meta.get("criterion", "").strip()
++            if not criterion_value or criterion_value.lower() in {"null", "none"}:
++                raise StateError("execute requires a non-empty criterion")
+             if has_design_docs(task_md.parent) and not has_approval(task_md.parent, workspace, meta.get("parent")):
+-                raise StateError("execute requires reviews/APPROVED.md when design docs exist")
++                raise StateError("execute requires non-empty reviews/APPROVED.md when design docs exist")
+             plan_state = plan_confirm_state(task_md.parent)
+-            if plan_state is not None and plan_state not in {"confirmed", "not-required"}:
++            if plan_state not in {"confirmed", "not-required"}:
+                 raise StateError(f"execute requires PLAN.md 实施确认 to be confirmed or not-required, got {plan_state!r}")
+-        if changes.get("status") == "done":
+-            if not (task_md.parent / "SUMMARY.md").is_file():
+-                raise StateError("done requires SUMMARY.md with verification and knowledge closure")
++        if normalized_changes.get("status") == "done":
++            if not has_valid_summary(task_md.parent):
++                raise StateError("done requires non-empty SUMMARY.md with verification and knowledge closure")
+             children = child_tasks(task_md)
+             if any(parse_task(path)[0].get("status") != "done" for path in children):
+                 raise StateError("done parent requires every child task to be done")
+@@ -329,17 +369,42 @@ def has_approval(task_root: Path, workspace: Path, parent: str | None) -> bool:
+     if parent and parent not in {"", "null", "None"}:
+         parent_root = workspace / "tasks" / "ongoing" / parent
+         candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
+-    return any(path.is_file() for path in candidates)
+-
+-
+-def plan_confirm_state(task_root: Path) -> str | None:
++    return any(path.is_file() and bool(path.read_text(encoding="utf-8").strip()) for path in candidates)
++
++
++def has_valid_summary(task_root: Path) -> bool:
++    summary_md = task_root / "SUMMARY.md"
++    if not summary_md.is_file():
++        return False
++    for raw in summary_md.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        cleaned = re.sub(r"^[-*>\s]+", "", line).strip()
++        if cleaned and cleaned.lower() not in PLACEHOLDER_SUMMARIES:
++            return True
++    return False
++
++
++def intent_confirm_state(task_root: Path) -> str:
++    current_md = task_root / "context" / "current.md"
++    if not current_md.is_file():
++        return "missing"
++    text = current_md.read_text(encoding="utf-8")
++    match = re.search(r"^##\s+意图\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
++    scope = match.group(1) if match else text
++    status = re.search(r"^\s*[-*]?\s*确认状态\s*[:：]\s*(\S+)", scope, re.M)
++    return status.group(1).strip() if status else "missing"
++
++
++def plan_confirm_state(task_root: Path) -> str:
+     plan_md = task_root / "PLAN.md"
+     if not plan_md.is_file():
+-        return None
++        return "missing"
+     text = plan_md.read_text(encoding="utf-8")
+     match = re.search(r"^##\s+实施确认\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
+     if not match:
+-        return None
++        return "missing"
+     status = re.search(r"^\s*[-*]?\s*状态\s*[:：]\s*(\S+)", match.group(1), re.M)
+     return status.group(1).strip() if status else "pending"
+ 
+@@ -359,7 +424,7 @@ def reconcile(workspace: Path, value: str, repair: bool) -> dict:
+     if children and all(state == "done" for state in child_states.values()) and meta.get("status") not in {"done", "archived"}:
+         recommendation = "verify"
+     if meta.get("status") == "done":
+-        if not (task_md.parent / "SUMMARY.md").is_file():
++        if not has_valid_summary(task_md.parent):
+             errors.append("done requires SUMMARY.md")
+         if any(state != "done" for state in child_states.values()):
+             errors.append("done parent requires every child task to be done")
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index 5d6e41c..c7552d2 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -53,7 +53,7 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_dynamic_state_and_no_tier(self) -> None:
+         contract = read("references", "contract.md")
+-        self.assertIn("current_ref: intake | plan | explore | diagnose", contract)
++        self.assertIn("current_ref: intent | plan | explore | diagnose", contract)
+         self.assertIn("confirm_mode: human | goal", contract)
+         self.assertIn("execution: direct | openspec | null", contract)
+         self.assertIn("enter / continue / skip / reopen", contract)
+@@ -103,6 +103,11 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("每次只加载选中的 reference", router)
+         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
+ 
++    def test_review_findings_prefix_avoids_fog_collision(self) -> None:
++        review = read("references", "review.md")
++        self.assertIn("`RF-n`", review)
++        self.assertNotIn("`F-n`", review)
++
+     def test_hub_soft_links_in_on_demand_references(self) -> None:
+         review = read("references", "review.md")
+         self.assertIn("role-based-reviewer", review)
+diff --git a/skills/taskrail/tests/test_explore_contract.py b/skills/taskrail/tests/test_explore_contract.py
+index 98cb0df..4a950d7 100644
+--- a/skills/taskrail/tests/test_explore_contract.py
++++ b/skills/taskrail/tests/test_explore_contract.py
+@@ -55,7 +55,7 @@ class ReferenceContractTest(unittest.TestCase):
+     def test_templates_track_hot_state_and_decisions(self) -> None:
+         templates = read("references", "templates.md")
+         self.assertIn("current_ref: plan", templates)
+-        self.assertIn("新建根任务由脚本写 `current_ref: intake`", templates)
++        self.assertIn("新建根任务由脚本写 `current_ref: intent`", templates)
+         self.assertIn("confirm_mode: human", templates)
+         self.assertIn("decisions.md / history.md", templates)
+         self.assertIn("superseded", templates)
+diff --git a/skills/taskrail/tests/test_task_state.py b/skills/taskrail/tests/test_task_state.py
+index 629da72..df16240 100644
+--- a/skills/taskrail/tests/test_task_state.py
++++ b/skills/taskrail/tests/test_task_state.py
+@@ -40,7 +40,7 @@ class TaskStateTest(unittest.TestCase):
+         self.assertTrue((child.parent / "PLAN.md").is_file())
+         self.assertTrue((child.parent / "history.md").is_file())
+ 
+-    def test_root_starts_at_intake_with_pending_intent(self) -> None:
++    def test_root_starts_at_intent_with_pending_intent_and_plan_confirm(self) -> None:
+         for mode in ("human", "goal"):
+             with self.subTest(mode=mode):
+                 task = f"root-{mode}"
+@@ -50,8 +50,11 @@ class TaskStateTest(unittest.TestCase):
+                 )
+                 self.assertEqual(created.returncode, 0, created.stdout)
+                 root = self.workspace / "tasks" / "ongoing" / task
+-                self.assertIn("current_ref: intake", (root / "TASK.md").read_text(encoding="utf-8"))
++                self.assertIn("current_ref: intent", (root / "TASK.md").read_text(encoding="utf-8"))
+                 self.assertIn("确认状态：pending", (root / "context" / "current.md").read_text(encoding="utf-8"))
++                plan_text = (root / "PLAN.md").read_text(encoding="utf-8")
++                self.assertIn("## 实施确认", plan_text)
++                self.assertIn("状态：pending", plan_text)
+ 
+     def test_child_inherits_intent_without_independent_confirmation(self) -> None:
+         self.init("parent")
+@@ -254,21 +257,35 @@ class TaskStateTest(unittest.TestCase):
+         self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
+ 
+ 
++    def confirm_intent(self, task_root: Path, status: str = "confirmed") -> None:
++        (task_root / "context" / "current.md").write_text(
++            f"# 当前事实与假设\n\n## 意图\n- 确认状态：{status}\n", encoding="utf-8"
++        )
++
++    def confirm_plan(self, task_root: Path, status: str = "confirmed") -> None:
++        (task_root / "PLAN.md").write_text(
++            f"# plan\n\n## 实施确认\n- 状态：{status}\n", encoding="utf-8"
++        )
++
+     def test_execute_blocks_when_design_lacks_approval_or_plan_pending(self) -> None:
+         self.init("major")
+         root = self.workspace / "tasks" / "ongoing" / "major"
++        self.confirm_intent(root)
+         (root / "design").mkdir()
+         (root / "design" / "arch.md").write_text("# arch\n", encoding="utf-8")
+         blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+         self.assertEqual(blocked.returncode, 1)
+         self.assertIn("APPROVED.md", blocked.stdout)
+         (root / "reviews").mkdir()
++        (root / "reviews" / "APPROVED.md").write_text("   \n", encoding="utf-8")
++        empty_approval = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
++        self.assertEqual(empty_approval.returncode, 1)
++        self.assertIn("APPROVED.md", empty_approval.stdout)
+         (root / "reviews" / "APPROVED.md").write_text("# approved\n", encoding="utf-8")
+-        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：pending\n", encoding="utf-8")
+         plan_blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+         self.assertEqual(plan_blocked.returncode, 1)
+         self.assertIn("pending", plan_blocked.stdout)
+-        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：confirmed\n", encoding="utf-8")
++        self.confirm_plan(root)
+         allowed = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+         self.assertEqual(allowed.returncode, 0, allowed.stdout)
+ 
+@@ -277,6 +294,7 @@ class TaskStateTest(unittest.TestCase):
+         self.init("child", "parent")
+         parent = self.workspace / "tasks" / "ongoing" / "parent"
+         child = parent / "subtasks" / "child"
++        self.confirm_plan(child)
+         (child / "design").mkdir()
+         (child / "design" / "detail.md").write_text("# detail\n", encoding="utf-8")
+         blocked = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
+@@ -286,6 +304,62 @@ class TaskStateTest(unittest.TestCase):
+         allowed = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
+         self.assertEqual(allowed.returncode, 0, allowed.stdout)
+ 
++    def test_legacy_intake_alias_normalizes_to_intent(self) -> None:
++        self.init("legacy-ref")
++        updated = self.run_state("update", str(self.workspace), "legacy-ref", "--current-ref", "intake")
++        self.assertEqual(updated.returncode, 0, updated.stdout)
++        task = self.workspace / "tasks" / "ongoing" / "legacy-ref" / "TASK.md"
++        self.assertIn("current_ref: intent", task.read_text(encoding="utf-8"))
++
++    def test_plan_and_execute_block_on_pending_intent_missing_plan_confirm_or_empty_criterion(self) -> None:
++        created = self.run_state("init", str(self.workspace), "strict", "--title", "strict")
++        self.assertEqual(created.returncode, 0, created.stdout)
++        root = self.workspace / "tasks" / "ongoing" / "strict"
++        plan_blocked = self.run_state("update", str(self.workspace), "strict", "--current-ref", "plan")
++        self.assertEqual(plan_blocked.returncode, 1)
++        self.assertIn("意图确认状态", plan_blocked.stdout)
++        exec_blocked = self.run_state("update", str(self.workspace), "strict", "--current-ref", "execute")
++        self.assertEqual(exec_blocked.returncode, 1)
++        self.assertIn("意图确认状态", exec_blocked.stdout)
++        self.confirm_intent(root)
++        plan_ok = self.run_state("update", str(self.workspace), "strict", "--current-ref", "plan")
++        self.assertEqual(plan_ok.returncode, 0, plan_ok.stdout)
++        no_criterion = self.run_state("update", str(self.workspace), "strict", "--current-ref", "execute")
++        self.assertEqual(no_criterion.returncode, 1)
++        self.assertIn("criterion", no_criterion.stdout)
++        (root / "PLAN.md").write_text("# 计划：没有实施确认节\n", encoding="utf-8")
++        missing_confirm = self.run_state(
++            "update", str(self.workspace), "strict", "--criterion", "verified", "--current-ref", "execute"
++        )
++        self.assertEqual(missing_confirm.returncode, 1)
++        self.assertIn("missing", missing_confirm.stdout)
++        self.confirm_plan(root)
++        allowed = self.run_state(
++            "update", str(self.workspace), "strict", "--criterion", "verified", "--current-ref", "execute"
++        )
++        self.assertEqual(allowed.returncode, 0, allowed.stdout)
++
++    def test_done_blocks_on_empty_or_headings_only_summary(self) -> None:
++        self.init("sumcheck")
++        root = self.workspace / "tasks" / "ongoing" / "sumcheck"
++        for bad in ("", "   \n", "# 交付总结\n\n## 结果与验证\n", "# 交付总结\n- TODO\n"):
++            (root / "SUMMARY.md").write_text(bad, encoding="utf-8")
++            blocked = self.run_state("update", str(self.workspace), "sumcheck", "--status", "done")
++            self.assertEqual(blocked.returncode, 1, f"should block summary={bad!r}")
++        (root / "SUMMARY.md").write_text("# 交付总结\n\n## 结果与验证\n- 测试全过。\n", encoding="utf-8")
++        ok = self.run_state("update", str(self.workspace), "sumcheck", "--status", "done")
++        self.assertEqual(ok.returncode, 0, ok.stdout)
++
++    def test_criterion_with_quotes_round_trips_cleanly(self) -> None:
++        text = '按钮文案由 "提交" 改为 "保存"，且单测全过'
++        created = self.run_state("init", str(self.workspace), "quoted", "--title", "quoted", "--criterion", text)
++        self.assertEqual(created.returncode, 0, created.stdout)
++        for _ in range(2):
++            upd = self.run_state("update", str(self.workspace), "quoted", "--current-ref", "explore")
++            self.assertEqual(upd.returncode, 0, upd.stdout)
++        task_text = (self.workspace / "tasks" / "ongoing" / "quoted" / "TASK.md").read_text(encoding="utf-8")
++        self.assertIn('criterion: "按钮文案由 \"提交\" 改为 \"保存\"，且单测全过"', task_text)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

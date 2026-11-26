@@ -19,6 +19,12 @@ class ExecutionSpineTest(unittest.TestCase):
         self.assertIn("串行", DISC)
         self.assertIn("全勾", DISC)
 
+    def test_seam_tdd_rhythm_in_execution_discipline(self) -> None:
+        self.assertIn("seam", DISC)
+        self.assertIn("Red", DISC)
+        self.assertIn("Green", DISC)
+        self.assertIn("replace, don't layer", DISC)
+
     def test_multi_worker_appendix(self) -> None:
         mw = (ROOT / "references" / "multi-worker.md").read_text(encoding="utf-8")
         self.assertIn("样板先行", mw)

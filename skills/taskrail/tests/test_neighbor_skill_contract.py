@@ -37,6 +37,27 @@ class NeighborSkillContract(unittest.TestCase):
         self.assertIn("不自答闭环", grill)
         self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)
 
+    def test_matt_engineering_core_disciplines_are_wired(self) -> None:
+        decompose = read("decompose.md")
+        explore = read("explore.md")
+        grill = read("grill.md")
+        design = read("design.md")
+        diagnose = read("diagnose.md")
+        self.assertIn("tracer bullet", decompose)
+        self.assertIn("fresh context window", decompose)
+        self.assertIn("GLOSSARY.md", explore)
+        self.assertIn("`Q1` / `Q2`", grill)
+        self.assertIn("不阻塞其余前沿", grill)
+        self.assertIn("`codebase-design`", design)
+        self.assertIn("`domain-modeling`", design)
+        self.assertIn("seam", design)
+        self.assertIn("三条件", design)
+        self.assertIn("Design It Twice", design)
+        self.assertIn("tight & red-capable", diagnose)
+        self.assertIn("Minimise", diagnose)
+        self.assertIn("[DEBUG-", diagnose)
+        self.assertIn("`diagnosing-bugs`", diagnose)
+
     def test_examples_index_has_no_removed_wizard_path(self) -> None:
         index = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
         self.assertIn("旧 handoff 兼容回归样例", index)

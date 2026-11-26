@@ -43,4 +43,14 @@ python3 <taskrail>/scripts/task_state.py release <workspace> <task-path> --force
 4. `done` 缺 SUMMARY 或子任务未完成时，repair 回 active / close；子任务全 done 的父任务转 verify。`reconcile --repair` 保留认领，不自动释放。
 5. explain 只读报告当前动作与理由、跳过 / 重入、子任务状态、worktree / driver 和下一动作。
 
-归档任务先报告路径；用户明确 reopen 才按 archive-reopen 搬回。
+归档任务先报告路径；用户明确 reopen 才按 [close.md](close.md) 搬回。
+
+## 并发写入
+
+多会话 / 多 agent 写同一 workspace 时遵循：
+
+1. TASK 状态、done 门与 INDEX 更新只经 `scripts/task_state.py`（持 workspace 锁并原子替换）。
+2. 父 TASK 与协调状态只由父编排者写；子 TASK 只由对应子编排者写；worker 只返摘要与证据，不并发改父文件。
+3. `decisions.md` / `history.md` 追加前重读尾部与最大编号，发现新内容先合并；冲突认知用带日期的 `superseded` 关联。
+4. 同任务同仓代码写操作串行，不同子任务或仓库才可并行；worktree 准备统一经 `prepare_worktree.py` 注册表与锁。
+5. 遇部分写入、路径冲突或身份不明先跑 `reconcile`，不删除、不 reset、不用旧快照覆盖新文件。

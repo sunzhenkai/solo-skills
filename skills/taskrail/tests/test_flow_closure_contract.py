@@ -34,7 +34,7 @@ class TerminalTest(unittest.TestCase):
         self.assertIn("未完成关闭不伪写成功总结", close)
 
     def test_driver_and_task_archive_are_distinct(self) -> None:
-        archive = (ROOT / "references" / "archive-reopen.md").read_text(encoding="utf-8")
+        archive = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
         self.assertIn("driver 已在 workspace openspec 中归档不等于任务可归档", archive)
         self.assertIn("status done", archive)
         self.assertIn("status archived", archive)

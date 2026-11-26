@@ -41,19 +41,23 @@ class ContractTest(unittest.TestCase):
 
     def test_references_exist_and_old_pipeline_is_removed(self) -> None:
         for name in (
-            "contract.md", "router.md", "ref-contract.md", "plan.md", "explore.md",
+            "contract.md", "router.md", "plan.md", "explore.md",
             "diagnose.md", "grill.md", "design.md", "approve.md", "decompose.md",
             "review.md", "verify.md", "close.md", "done.md", "intent.md", "handoff.md",
-            "ledger.md", "templates.md", "archive-reopen.md", "user-report.md",
+            "ledger.md", "templates.md", "user-report.md",
             "confirm-protocol.md", "ui-delivery.md", "quality-appendix.md",
         ):
             self.assertTrue((REF / name).is_file(), name)
-        self.assertFalse((REF / "phase-wizard.md").exists())
-        self.assertFalse((REF / "large-scope.md").exists())
+        for merged_or_removed in (
+            "phase-wizard.md", "large-scope.md", "ref-contract.md",
+            "ledger-concurrency.md", "external-precedent.md",
+            "archive-reopen.md", "design-detail.md",
+        ):
+            self.assertFalse((REF / merged_or_removed).exists(), merged_or_removed)
 
     def test_dynamic_state_and_no_tier(self) -> None:
         contract = read("references", "contract.md")
-        self.assertIn("current_ref: intake | plan | explore | diagnose", contract)
+        self.assertIn("current_ref: intent | plan | explore | diagnose", contract)
         self.assertIn("confirm_mode: human | goal", contract)
         self.assertIn("execution: direct | openspec | null", contract)
         self.assertIn("enter / continue / skip / reopen", contract)
@@ -102,6 +106,11 @@ class ContractTest(unittest.TestCase):
         self.assertIn("不默认加载", contract)
         self.assertIn("每次只加载选中的 reference", router)
         self.assertIn("不把兄弟子任务、历史和原始日志带入", router)
+
+    def test_review_findings_prefix_avoids_fog_collision(self) -> None:
+        review = read("references", "review.md")
+        self.assertIn("`RF-n`", review)
+        self.assertNotIn("`F-n`", review)
 
     def test_hub_soft_links_in_on_demand_references(self) -> None:
         review = read("references", "review.md")

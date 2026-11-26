@@ -67,6 +67,7 @@ class ConfirmContractTest(unittest.TestCase):
         self.assertIn("非停点同步不需要回复", self.text)
 
     def test_major_change_requires_plain_language_alignment_by_default(self) -> None:
+        # SSOT 在 confirm-protocol.md 与 approve.md，其余文件只守卫入口指针而非逐字复读
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         design = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
         approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
@@ -75,9 +76,21 @@ class ConfirmContractTest(unittest.TestCase):
         self.assertIn("无论 `human` 还是 `goal`", skill)
         self.assertIn("不因分支内可逆或内部切片跳过", self.text)
         self.assertIn("重大方案首次落定 / 实质变更先停等用户人话确认", self.text)
-        self.assertIn("不以落盘文档替代人话对齐", design)
         self.assertIn("不因改动在 git 分支内可逆或属于同任务内部切片而跳过", approve)
-        self.assertIn("大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过", router)
+        self.assertIn("[approve.md](approve.md)", design)
+        self.assertIn("[confirm-protocol.md](confirm-protocol.md)", design)
+        self.assertIn("[approve.md](approve.md)", router)
+        self.assertIn("[confirm-protocol.md](confirm-protocol.md)", router)
+
+    def test_small_clear_change_allows_combined_first_turn_confirmation(self) -> None:
+        intent = (ROOT / "references" / "intent.md").read_text(encoding="utf-8")
+        plan = (ROOT / "references" / "plan.md").read_text(encoding="utf-8")
+        close = (ROOT / "references" / "close.md").read_text(encoding="utf-8")
+        self.assertIn("单一明确小改", self.text)
+        self.assertIn("一次确认", self.text)
+        self.assertIn("单一明确小改", intent)
+        self.assertIn("合并确认", plan)
+        self.assertIn("紧凑版", close)
 
     def test_no_suspension_five_tuple(self) -> None:
         self.assertFalse((ROOT / "references" / "suspension.md").exists())

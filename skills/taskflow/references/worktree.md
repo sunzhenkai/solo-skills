@@ -11,12 +11,12 @@ workspace/
 └── worktrees/<task-id>/<repo-id>/
 ```
 
-source checkout 可在 workspace 内外；workspace 本身也可以是项目仓库。分支统一为 `task/<task-id>`，每个修改仓一个 worktree。repo_id 只在一个任务内唯一，task_id 在历史任务间也要避免误撞。
+source checkout 可在 workspace 内外；workspace 本身也可以是项目仓库。分支统一为 `task/<task-id>`，每个修改仓一个 worktree；`<task-id>` 也接受子任务路径 `<parent>/subtasks/<child>`，映射为目录 `worktrees/<parent>--<child>/<repo-id>/` 与分支 `task/<parent>--<child>`，避免跨父任务同名子任务撞车与 git 分支前缀冲突。repo_id 只在一个任务内唯一，task_id 在历史任务间也要避免误撞。
 
 ## 唯一准备入口
 
 ```bash
-python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--json]
+python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--integrate <ref> ...] [--json]
 ```
 
 脚本行为：
@@ -37,3 +37,9 @@ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <
 - 编排者按连贯增量提交到 `task/<task-id>`；不 push、不合默认分支、不自动删除 worktree。
 - resume 重跑脚本；若脚本在 worktree 新建后、注册前中断，路径 + source + branch 可安全证明身份时恢复注册，否则停。
 - 非 git 目录或用户明确要求就地修改才可例外，写 decisions 和证据；不能据此把例外扩散到其他修改仓。
+
+## 依赖串联、父级集成与环境引导
+
+- **依赖子任务基线**：同仓子任务依赖前序未合入子任务代码时，显式传 `--base task/<parent>--<dep-child>` 创建工作树。
+- **父级多子任务同仓集成**：父任务进入 `verify` 时传入 `<parent>/integration` 与多个 `--integrate <branch>`，脚本在 `worktrees/<parent>--integration/<repo-id>/` 的独立分支 `task/<parent>--integration` 上按序 `--no-ff` 合并（已合入祖先自动跳过）；遇冲突立即 `git merge --abort` 并返回非 0 及冲突文件清单，绝不触碰源仓与默认分支。
+- **未跟踪环境与重依赖**：新建 worktree 不包含源仓 gitignored 的 `.env`、`node_modules`、`.venv` 或构建缓存。运行测试前先检查缺口，优先按项目标准脚本初始化，或在记录决定后只读引用共享配置；不自动复制源仓未提交改动，也不污染源仓。

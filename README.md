@@ -100,7 +100,7 @@ npx skills add sunzhenkai/solo-skills -s ui-kit -s pretty-ui             # UI �
 | `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | 必选（OpenSpec 路径） | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
 | `acpx`（二进制，非 skill） | 必选（委派执行） | https://acpx.sh | agent-roster 的委派执行 |
 | `playwright` + `axe-core`（运行时，非 skill） | 可选（Web UI 证据门） | `pip install playwright && playwright install chromium`；交付仓 `npm i -D axe-core` | taskrail 的 Web UI 证据检查（`skills/taskrail/scripts/ui_evidence_check.py`） |
-| `grilling` / `grill-with-docs` / `domain-modeling` | 可选 | `mattpocock/skills` | agent-roster（flow 模式 Simple/Medium 可选增强，未安装时本会话复述并自问自答）；无台账一次性拷问 |
+| `grilling` / `grill-with-docs` / `domain-modeling` / `codebase-design` / `diagnosing-bugs` | 可选 | `mattpocock/skills` | taskrail（重大取舍前沿拷问、术语与深模块接缝设计、高难排障可选增强）；agent-roster（flow 模式可选增强）；无台账一次性拷问 |
 | `archify` | 可选 | https://github.com/tt-a1i/archify | `project-atlas` 新建或更新交互图；`visualize` 结构图 |
 | `visual-explainer` | 可选 | https://github.com/nicobailon/visual-explainer | `visualize` 讲解页（缺项时降级到 `pretty-ui` 或 Mermaid） |
 
@@ -112,7 +112,7 @@ npx skills add sunzhenkai/solo-skills -s ui-kit -s pretty-ui             # UI �
 
 ```bash
 make install-deps   # 必选外部依赖（openspec-*）+ 结尾 check-deps
-make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling
+make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling / codebase-design / diagnosing-bugs
 make check-deps     # 检查必选外部依赖（~/.agents/skills），缺项非零退出
 make install-acpx   # acpx 缺失提示（需按上游方式手动装）
 ```

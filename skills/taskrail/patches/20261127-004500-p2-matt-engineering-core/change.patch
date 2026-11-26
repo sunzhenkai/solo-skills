@@ -1,0 +1,167 @@
+diff --git a/skills/taskrail/references/decompose.md b/skills/taskrail/references/decompose.md
+index 903b8ba..2b7c6f6 100644
+--- a/skills/taskrail/references/decompose.md
++++ b/skills/taskrail/references/decompose.md
+@@ -13,7 +13,7 @@
+ criterion、当前 plan、涉及仓库、已知契约与依赖。
+ 
+ ## 执行方法
+-1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
++1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。优先按**垂直切片（tracer bullet）**切分——每片或每个子任务贯通一条端到端可验证路径，避免按技术层水平硬切（先建全套表、再写全套 API、最后写 UI），粒度以单个 fresh context window 能独立闭环为上限。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
+ 2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界、可选确认模式（`human` HITL / `goal` AFK，留空继承父任务）。子判据合计覆盖总判据，依赖无环。
+ 3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点，但若整体命中大型项目、重大改动或架构调整，仍须先完成整体方案的人话对齐与放行再开工。所需确认未完成前不创建或激活子任务。
+ 4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
+diff --git a/skills/taskrail/references/explore.md b/skills/taskrail/references/explore.md
+index d8e0031..8d81f72 100644
+--- a/skills/taskrail/references/explore.md
++++ b/skills/taskrail/references/explore.md
+@@ -13,7 +13,7 @@
+ 目标、criterion、涉及仓库和已有 context/sources。
+ 
+ ## 执行方法
+-1. 先读用户原话、workspace / 项目说明；项目有 Atlas（默认 `docs/atlas/`）或知识 wiki（默认 `docs/wiki/`）时先读入口与相关页，再读目标模块与既有测试，扩大到直接依赖；不全仓扫描。证据层级与渐进加载可按 `project-explore` 执行，过期或冲突以当前源码为准。
++1. 先读用户原话、workspace / 项目说明；项目有 `GLOSSARY.md`（或 `GLOSSARY-MAP.md`）时先对齐领域词汇，项目有 Atlas（默认 `docs/atlas/`）或知识 wiki（默认 `docs/wiki/`）时先读入口与相关页，再读目标模块与既有测试，扩大到直接依赖；不全仓扫描。证据层级与渐进加载可按 `project-explore` 执行，过期或冲突以当前源码为准。
+ 2. 只读探索。面广可并行只读 worker，限定主题和范围。
+ 3. 结论标 confirmed / assumed，记录 source_repo、commit、文件:行或命令；原始输出落证据文件。
+ 4. 复用未失效结果，不因跨会话重读。
+diff --git a/skills/taskrail/references/grill.md b/skills/taskrail/references/grill.md
+index 134caeb..6171ca4 100644
+--- a/skills/taskrail/references/grill.md
++++ b/skills/taskrail/references/grill.md
+@@ -14,7 +14,7 @@ criterion、用户限制、explore / diagnose 证据和当前 plan。
+ 
+ ## 执行方法
+ 1. 把待定问题按依赖排成设计树：能准确写出问句和解决形式的记 `U-n`，只能描述模糊区域的记 `F-n` 并写重估触发。
+-2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；普通局部技术问题查不到时按推荐自问自答，每题由自己回答并写理由。凡涉及大型项目 / 重大改动 / 架构路线、公共契约、用户价值取向、产品优先级或外部风险的取舍，不自答闭环，按 [confirm-protocol.md](confirm-protocol.md) 与 [user-report.md](user-report.md) 把设计树前沿（frontier）的关键取舍整理成带推荐选项的人话问题停下与用户拉齐，不把假设当成用户决定（需要多轮深度拷问用户时，可按需启用可选外部 skill `grilling` 或 `grill-with-docs`，未安装时按本文件设计树前沿格式执行）；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
++2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；普通局部技术问题查不到时按推荐自问自答，每题由自己回答并写理由。凡涉及大型项目 / 重大改动 / 架构路线、公共契约、用户价值取向、产品优先级或外部风险的取舍，不自答闭环，按 [confirm-protocol.md](confirm-protocol.md) 与 [user-report.md](user-report.md) 按轮抛出设计树前沿（frontier）全部前提已定的独立取舍——编号 `Q1` / `Q2` 并附推荐答案，措辞让用户一句话即可批量采纳（不把假设当成用户决定）；若某分支需查环境事实则后台派只读探索，仅阻塞其下游问题、不阻塞其余前沿（需要多轮深度拷问用户时，可按需启用可选外部 skill `grilling` 或 `grill-with-docs`，未安装时按本文件设计树前沿格式执行）；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
+ 3. 解决后把事实写当前事实，已做决定写 decisions.md，长证据写 evidence / design，并把该项移出未决表；每个问题得到事实、决定或显式假设。
+ 4. 新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并从待明确区移除；`U-n` 失效时把原因写 `history.md`，影响已有决定时标 superseded。
+ 5. 不重问已确认目标与 criterion；冲突时回 intent。无未决关键问题就停止，不为形式追问。
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index d4272e1..349d058 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -13,8 +13,8 @@
+ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定。
+ 
+ ## 执行方法
+-1. 写清现状证据、目标契约、边界、兼容性、回滚和验证策略。
+-2. 推荐与被放弃方案各写取舍；独立难逆决定写 ADR 并按 [user-report.md](user-report.md) 告知，术语写 glossary。
++1. 写清现状证据、模块接缝（seam）与目标契约（优先深模块：小接口隐藏复杂实现，先钉死测试面——在公开接口测行为，不为单一实现造假想接缝；跨边界依赖按进程内 / 本地替身 / 自有远端 Ports & Adapters / 外部 Mock 分类，可选按 `codebase-design` 深化接口）、边界、兼容性、回滚和验证策略。
++2. 推荐与被放弃方案各写取舍；仅当决定同时满足「难逆 + 无上下文会困惑 + 存在真实权衡」三条件时写极简 ADR（1–3 句讲清背景、决定与理由即可）并按 [user-report.md](user-report.md) 告知；涉及领域术语变更时按 `domain-modeling` 实时维护项目 `GLOSSARY.md` 并当场澄清冲突命名。
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+ 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+ 5. 涉及跨项目通用接入或已沉淀模式时，可先查 `project-design-patterns`（未安装则跳过）；Web UI 按需读 ui-delivery；对比表按需读 design-detail。
+diff --git a/skills/taskrail/references/design-detail.md b/skills/taskrail/references/design-detail.md
+index 60896f7..7b48190 100644
+--- a/skills/taskrail/references/design-detail.md
++++ b/skills/taskrail/references/design-detail.md
+@@ -19,6 +19,10 @@
+ 
+ 一行一条：`选择 → 模式 / 原则 → 为何适用 → 可检后果`。可检后果写成少了什么（耦合面、接口面、重复、可替换点、可测性、回归面）；「更优雅」不算。拿不出可检后果就写「不引入」和当前做法为何够用。既有代码已有同类做法时优先对齐并链过去。
+ 
++## 两次设计（Design It Twice，高风险 / 多解接口可选）
++
++当核心模块接口存在实质分歧时，并行派 2–3 个 fresh context subagent 按互斥约束分别设计（如：极简接口最大化 depth / leverage、最大化扩展灵活性、默认调用方零心智、跨网依赖 Ports & Adapters），再围绕 **depth**（接口杠杆）、**locality**（变更局部性）与 **seam** 位置对比并给出明确推荐，避免单视角凑稻草人方案。
++
+ ## 质量画像展开（用户点名画像时）
+ 
+ 按 [quality-appendix.md](quality-appendix.md) 写，每条底线落到能验证的页面 / 数据 / 验收方式；只细化，不扩范围。
+diff --git a/skills/taskrail/references/diagnose.md b/skills/taskrail/references/diagnose.md
+index f2fc852..f77fb6d 100644
+--- a/skills/taskrail/references/diagnose.md
++++ b/skills/taskrail/references/diagnose.md
+@@ -13,10 +13,10 @@ bug、性能退化、 flaky test 或修复后失败的原因尚未证明。
+ 可观察症状、相关版本 / 环境和 explore 事实。
+ 
+ ## 执行方法
+-1. 固定版本、输入和环境，优先用现有测试或最小脚本复现；性能任务记录样本、指标和基线。
+-2. 每次只检验一个因果假设，保留命令、结果和反证；原始日志落 evidence。
+-3. 能加回归测试时先让测试在修复前失败；无法复现要写已试范围与剩余不确定性。
+-4. 同类失败没有新证据时停止盲试，补探索或 grill。
++1. **先建紧耦合红灯反馈回路（tight & red-capable）**：固定版本、输入和环境，构造一条已实跑、秒级确定、能精准断言用户症状并转红的命令（单测 / HTTP / CLI / 浏览器 / trace 回放 / `git bisect`）；性能任务记录样本、指标与基线。未建出可复现红灯命令前不读代码盲猜根因；确实建不出则停下说明已试范围并请求环境或脱敏样本。
++2. **最小化复现并列排序假说**：逐项剥离非承重输入将复现缩到最小（Minimise），再在动手验证前列出 3–5 个带可证伪预测的排序假说（防单假说锚定）；每次只改变一个变量验证，保留命令、结果和反证，原始日志落 evidence。
++3. **探针清理与接缝回归锁死**：临时调试日志统一打唯一前缀（如 `[DEBUG-a4f2]`），收尾按前缀 grep 清净；在正确测试接缝（seam）先写修复前失败的回归测试，修复后必须重跑未缩小的原始复现回路确认不再复现。若无合适接缝可锁死该类 bug，把“缺接缝”显式记为架构发现。
++4. 同类失败没有新证据时停止盲试，补探索或 grill（高难度排查也可按可选外部 skill `diagnosing-bugs` 的梯度回路清单执行）。
+ 5. 多轮或易发散的根因排查按 `trouble-grill` 的锚点、假设板与四道门执行，记录写本任务 `evidence/diagnose.md`；未安装时按本文件方法执行。
+ 
+ ## 产出
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 4bbcd08..9e15ae8 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -664,3 +664,41 @@ cases:
+       must_not:
+         - 直接把子任务分支合入源仓默认分支进行验收
+         - 未合并验证仅凭各自单测通过就标父任务 done
++
++  - id: vertical-slice-tracer-bullet-decompose
++    kind: core
++    judge: llm
++    description: 拆解多模块功能优先垂直切片并控制单窗口闭环粒度
++    given: 一个包含数据存储、接口与界面的中型功能需要拆分为多个切片或子任务
++    expect:
++      must:
++        - 优先按端到端可验证的垂直切片（tracer bullet）划分，而不是按技术层水平硬切
++        - 每片或子任务粒度控制在单个 fresh context window 可独立闭环
++      must_not:
++        - 先建全套表结构再写全套接口最后写界面导致前期无法端到端验证
++
++  - id: design-seam-depth-and-design-it-twice
++    kind: core
++    judge: llm
++    description: 架构设计明确深模块接缝与测试面，复杂接口采用两次设计
++    given: 任务需重构跨模块核心接口且存在多种可行接口形态
++    expect:
++      must:
++        - 在 design 中写清模块接缝（seam）、依赖分类与公开接口测试面，避免单一实现假想接缝
++        - 仅在满足难逆、无上下文困惑与真权衡三条件时写极简 ADR，并同步维护项目 GLOSSARY.md
++        - 接口分歧实质存在时可选用 Design It Twice 并行对比 depth、locality 与 seam
++      must_not:
++        - 只画粗略分层图而忽略公开测试接缝或为凑数编造稻草人方案
++
++  - id: diagnose-red-feedback-loop-before-hypothesis
++    kind: core
++    judge: llm
++    description: 排障先建红灯反馈回路并最小化，再列排序假说与清理探针
++    given: 用户报告一个偶现接口错误或性能退化，原因不明
++    expect:
++      must:
++        - 先构造已实跑的 tight & red-capable 复现命令，未见红灯不读代码盲猜
++        - 最小化复现（Minimise）后列出 3 至 5 个可证伪排序假说逐一验证
++        - 临时日志打 [DEBUG-xxxx] 前缀并在收尾清净，修复后重跑未缩小原始场景
++      must_not:
++        - 未复现直接凭直觉改代码，或收尾遗留未清理调试日志
+diff --git a/skills/taskrail/tests/test_neighbor_skill_contract.py b/skills/taskrail/tests/test_neighbor_skill_contract.py
+index d17cdd2..c475d3c 100644
+--- a/skills/taskrail/tests/test_neighbor_skill_contract.py
++++ b/skills/taskrail/tests/test_neighbor_skill_contract.py
+@@ -37,6 +37,28 @@ class NeighborSkillContract(unittest.TestCase):
+         self.assertIn("不自答闭环", grill)
+         self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)
+ 
++    def test_matt_engineering_core_disciplines_are_wired(self) -> None:
++        decompose = read("decompose.md")
++        explore = read("explore.md")
++        grill = read("grill.md")
++        design = read("design.md")
++        detail = read("design-detail.md")
++        diagnose = read("diagnose.md")
++        self.assertIn("tracer bullet", decompose)
++        self.assertIn("fresh context window", decompose)
++        self.assertIn("GLOSSARY.md", explore)
++        self.assertIn("`Q1` / `Q2`", grill)
++        self.assertIn("不阻塞其余前沿", grill)
++        self.assertIn("`codebase-design`", design)
++        self.assertIn("`domain-modeling`", design)
++        self.assertIn("seam", design)
++        self.assertIn("三条件", design)
++        self.assertIn("Design It Twice", detail)
++        self.assertIn("tight & red-capable", diagnose)
++        self.assertIn("Minimise", diagnose)
++        self.assertIn("[DEBUG-", diagnose)
++        self.assertIn("`diagnosing-bugs`", diagnose)
++
+     def test_examples_index_has_no_removed_wizard_path(self) -> None:
+         index = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
+         self.assertIn("旧 handoff 兼容回归样例", index)

@@ -29,7 +29,8 @@ LINK = re.compile(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)")
 FIELDS = ("要干嘛", "怎么干", "输出什么", "上下文", "不做", "我的假设", "我的决定")
 QUESTION = re.compile(r"[？?]|要不要|你看行吗|对吗")
 CHECKLIST = re.compile(r"## 覆盖清单\n(.*?)\n\n", re.S)
-PROSE = re.compile(r"## 3\. 给用户的复述[^\n]*\n(.*?)\n## ", re.S)
+PROSE = re.compile(r"## (?:\d+\.\s*)?(?:给用户的复述|复述示例)[^\n]*\n(.*?)\n## ", re.S)
+AFTER_EXAMPLE = re.compile(r"后：「([^」]+)」")
 
 
 def check_sizes(skills: Path) -> list[str]:
@@ -132,23 +133,29 @@ def check_intent(path: Path) -> tuple[list[str], list[str]]:
     return errs, warns
 
 
-def check_plain_talk(path: Path) -> list[str]:
+def check_plain_talk(path: Path) -> tuple[list[str], list[str]]:
     if not path.exists():
-        return []
+        return [], []
     text = path.read_text(encoding="utf-8")
     if "## 前后对比" not in text:
-        return [f"{path}: 缺「前后对比」节"]
+        return [f"{path}: 缺「前后对比」节"], []
     sec = text.split("## 前后对比", 1)[1].split("\n## ", 1)[0]
     if sec.count("前：「") < 3 or sec.count("后：「") < 3:
-        return [f"{path}: 「前后对比」少于 3 组"]
-    return []
+        return [f"{path}: 「前后对比」少于 3 组"], []
+    warns = []
+    for sample in AFTER_EXAMPLE.findall(sec):
+        if "**" in sample or re.match(r"(%s)[：:]" % "|".join(FIELDS), sample):
+            warns.append(f"{path}: 前后对比正例像字段打印，应为自然口语：{sample[:30]}")
+        if QUESTION.search(sample):
+            warns.append(f"{path}: 前后对比正例在提问，应把推荐说成决定：{sample[:30]}")
+    return [], warns
 
 
 def run(skills: Path) -> tuple[list[str], list[str]]:
     warns = check_sizes(skills) + check_skill_lint(skills)
     errs, w2 = check_intent(skills / "taskrail" / "references" / "intent.md")
-    errs += check_plain_talk(skills / "taskrail" / "references" / "user-report.md")
-    return errs, warns + w2
+    e3, w3 = check_plain_talk(skills / "taskrail" / "references" / "user-report.md")
+    return errs + e3, warns + w2 + w3
 
 
 def main() -> int:

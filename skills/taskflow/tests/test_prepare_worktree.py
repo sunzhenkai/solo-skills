@@ -132,6 +132,89 @@ class PrepareWorktreeTest(unittest.TestCase):
         self.assertEqual((self.source / "README.md").read_text(encoding="utf-8"), "source user work\n")
         self.assertEqual(git(self.source, "branch", "--show-current"), "main")
 
+    def test_subtask_path_isolates_worktree_and_branch_across_parents(self) -> None:
+        parent_a = self.run_prepare(task="parent-a")
+        self.assertEqual(parent_a.returncode, 0, parent_a.stdout + parent_a.stderr)
+        child_a = self.run_prepare(task="parent-a/subtasks/api")
+        self.assertEqual(child_a.returncode, 0, child_a.stdout + child_a.stderr)
+        child_b = self.run_prepare(task="parent-b/subtasks/api")
+        self.assertEqual(child_b.returncode, 0, child_b.stdout + child_b.stderr)
+        payload_a = json.loads(child_a.stdout)
+        payload_b = json.loads(child_b.stdout)
+        self.assertEqual(payload_a["branch"], "task/parent-a--api")
+        self.assertEqual(payload_b["branch"], "task/parent-b--api")
+        self.assertEqual(payload_a["task_id"], "parent-a--api")
+        self.assertEqual(payload_a["task_path"], "parent-a/subtasks/api")
+        self.assertTrue(payload_a["worktree"].endswith("worktrees/parent-a--api/app"))
+        self.assertTrue(payload_b["worktree"].endswith("worktrees/parent-b--api/app"))
+        self.assertEqual(git(Path(payload_a["worktree"]), "branch", "--show-current"), "task/parent-a--api")
+        self.assertEqual(git(Path(payload_b["worktree"]), "branch", "--show-current"), "task/parent-b--api")
+        resumed = self.run_prepare(task="parent-a/subtasks/api")
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+        self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
+
+    def test_parent_integration_worktree_merges_multiple_child_branches_idempotently(self) -> None:
+        child_a = json.loads(self.run_prepare(task="checkout/subtasks/pricing").stdout)
+        wt_a = Path(child_a["worktree"])
+        (wt_a / "pricing.txt").write_text("pricing ok\n", encoding="utf-8")
+        git(wt_a, "add", "pricing.txt")
+        git(wt_a, "commit", "-m", "add pricing")
+
+        child_b = json.loads(self.run_prepare(task="checkout/subtasks/coupon").stdout)
+        wt_b = Path(child_b["worktree"])
+        (wt_b / "coupon.txt").write_text("coupon ok\n", encoding="utf-8")
+        git(wt_b, "add", "coupon.txt")
+        git(wt_b, "commit", "-m", "add coupon")
+
+        cmd = [
+            sys.executable, str(SCRIPT), str(self.workspace), "checkout/integration", "app", str(self.source),
+            "--integrate", child_a["branch"], "--integrate", child_b["branch"], "--json",
+        ]
+        integrated = subprocess.run(cmd, text=True, capture_output=True)
+        self.assertEqual(integrated.returncode, 0, integrated.stdout + integrated.stderr)
+        payload = json.loads(integrated.stdout)
+        self.assertEqual(payload["action"], "integrated")
+        self.assertEqual(payload["branch"], "task/checkout--integration")
+        self.assertEqual(payload["integrated_branches"], [child_a["branch"], child_b["branch"]])
+        wt_int = Path(payload["worktree"])
+        self.assertTrue((wt_int / "pricing.txt").is_file())
+        self.assertTrue((wt_int / "coupon.txt").is_file())
+        self.assertEqual(git(self.source, "branch", "--show-current"), "main")
+        self.assertEqual(git(self.source, "status", "--porcelain"), "")
+        self.assertFalse((self.source / "pricing.txt").exists())
+
+        resumed = subprocess.run(cmd, text=True, capture_output=True)
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+        self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
+
+    def test_parent_integration_conflict_aborts_cleanly_and_reports_files(self) -> None:
+        child_a = json.loads(self.run_prepare(task="conflict/subtasks/one").stdout)
+        wt_a = Path(child_a["worktree"])
+        (wt_a / "README.md").write_text("from one\n", encoding="utf-8")
+        git(wt_a, "add", "README.md")
+        git(wt_a, "commit", "-m", "change readme in one")
+
+        child_b = json.loads(self.run_prepare(task="conflict/subtasks/two").stdout)
+        wt_b = Path(child_b["worktree"])
+        (wt_b / "README.md").write_text("from two\n", encoding="utf-8")
+        git(wt_b, "add", "README.md")
+        git(wt_b, "commit", "-m", "change readme in two")
+
+        proc = subprocess.run(
+            [
+                sys.executable, str(SCRIPT), str(self.workspace), "conflict/integration", "app", str(self.source),
+                "--integrate", child_a["branch"], "--integrate", child_b["branch"], "--json",
+            ],
+            text=True, capture_output=True,
+        )
+        self.assertEqual(proc.returncode, 5, proc.stdout + proc.stderr)
+        payload = json.loads(proc.stdout)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["conflict_branch"], child_b["branch"])
+        self.assertIn("README.md", payload["conflict_files"])
+        wt_int = self.workspace / "worktrees" / "conflict--integration" / "app"
+        self.assertEqual(git(wt_int, "status", "--porcelain"), "")
+
 
 if __name__ == "__main__":
     unittest.main()

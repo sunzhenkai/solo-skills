@@ -12,7 +12,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意�
 
 ## 入口分诊
 
-先判定用户要的交付物，再决定是否进入任务轨道：
+先判定交付物，再决定是否进入任务轨道：
 
 - 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
 - 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
@@ -31,53 +31,38 @@ taskrail explain [task-id]
 taskrail list
 ```
 
-`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)；遇到**大型项目、重大改动或架构调整**且用户本会话未明确豁免时，无论 `human` 还是 `goal`，进入实施前均先用人话对齐整体方案并等用户明确放行（`goal` 放行后后续按自动模式推进）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
+`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点统一见 [references/confirm-protocol.md](references/confirm-protocol.md)（其中**大型项目、重大改动或架构调整**无论 `human` 还是 `goal`，动工前均先人话对齐方案并等明确放行）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
 
 ## 绑定与恢复
 
-按 [references/ledger.md](references/ledger.md) 确定 workspace、新建或恢复任务。台账热状态和 INDEX 更新使用：
+按 [references/ledger.md](references/ledger.md) 确定 workspace、新建或恢复任务。热状态与 INDEX 更新使用 `python3 <taskrail>/scripts/task_state.py <command> <workspace> ...`。
 
-```bash
-python3 <taskrail>/scripts/task_state.py <command> <workspace> ...
-```
-
-resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 就绪行、`context/current.md` 和当前 reference；不默认读 history、全部子任务或全部 OpenSpec changes。driver 归档、目录位置或 checkbox 全勾都不能单独推出 done。
+resume 先跑 `reconcile`，只读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 就绪行、`context/current.md` 和当前 reference；不默认加载 history、兄弟子任务或全部 OpenSpec changes。driver 归档、目录位置或 checkbox 全勾都不能单独推出 done。
 
 ## 动态主循环
 
-每轮只做以下六步：
+每轮六步：1. 读热状态核对目标与 `criterion`；2. 按 [references/router.md](references/router.md) 判定当前 reference；3. 只加载命中的 reference；4. 完成一个可检查动作并留证据；5. 用 `task_state.py` 更新 TASK / INDEX，路由原因记 `history.md`、决定记 `decisions.md`；6. 重新路由，命中 [confirm-protocol.md](references/confirm-protocol.md) 停点时等待明确回复，其余按认知增量同步并继续。
 
-1. 读 TASK 热状态，核对目标和 `criterion`。
-2. 按 [references/router.md](references/router.md) 检查当前 reference 是否仍适用。
-3. 只加载命中的 reference；其统一结构见 [references/ref-contract.md](references/ref-contract.md)。
-4. 完成一个可检查动作，产生产物或证据。
-5. 用热状态脚本更新 TASK / INDEX，把路由原因追加到 `history.md`，决定写入 `decisions.md`。
-6. 重新路由；命中意图确认、重大方案人话对齐、实施确认或真阻塞停点时停下等明确回复，其余按认知增量同步并继续。
-
-路由型 references（从这里直接打开，命中才读）：
+路由型 references（命中才读）：
 
 | reference | 用途 |
 |---|---|
 | [plan.md](references/plan.md) | 当前最小计划与验证策略 |
-| [explore.md](references/explore.md) | 代码入口、依赖、约束与影响面 |
-| [diagnose.md](references/diagnose.md) | 复现、基线与根因证据 |
-| [grill.md](references/grill.md) | 关键取舍、冲突与未知 |
-| [design.md](references/design.md) | 契约、架构、兼容性与迁移 |
-| [approve.md](references/approve.md) | 必要的人或模型批准 |
-| [decompose.md](references/decompose.md) | 自动规划切片、`subtasks/` 与集成项 |
+| [explore.md](references/explore.md) | 代码入口、依赖、外部参照与影响面 |
+| [diagnose.md](references/diagnose.md) | 红灯复现、基线与根因证据 |
+| [grill.md](references/grill.md) | 关键取舍、前沿拉齐与未知 |
+| [design.md](references/design.md) | 接缝、契约、架构、细则与回滚 |
+| [approve.md](references/approve.md) | 按需人话对齐与批准 |
+| [decompose.md](references/decompose.md) | 垂直切片、`subtasks/` 与集成项 |
 | [review.md](references/review.md) | 按需独立评审分流与 findings 处置 |
 | [verify.md](references/verify.md) | 判据、回归、集成与证据 |
-| [close.md](references/close.md) | SUMMARY、知识提升与归档；归档 / 重开见 [archive-reopen.md](references/archive-reopen.md) |
+| [close.md](references/close.md) | SUMMARY、知识提升、归档与重开 |
 
-`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 运行 `check_handoff.py`，direct 不走该门。`review` 按 [review.md](references/review.md) 分流独立评审。Web UI、外部参照、质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[external-precedent.md](references/external-precedent.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
+`execute` 委托 `taskflow`；OpenSpec 先按 [handoff.md](references/handoff.md) 跑 `check_handoff.py`，direct 不走该门。Web UI 与质量包分别按 [ui-delivery.md](references/ui-delivery.md)、[quality-appendix.md](references/quality-appendix.md) 在环节内加载，不另占 `current_ref`。
 
 ## 固定不变量
 
-- 代码任务默认由 taskflow 在 git worktree 实施；direct 与 OpenSpec 仅差执行编排，不差隔离。
-- workspace 统一持 `tasks/`、`openspec/`、`worktrees/`；各修改仓可位于 workspace 内外。
-- 提交只落在任务 worktree 的任务分支；不 push、不合默认分支、不部署、不改线上数据。
-- `decompose` 自动建 pending 子任务并推进就绪项；父任务必须做集成与总判据验证。
-- 多 worker 子任务由主会话在派发前原子 `claim`；frontier 只含 `active`、依赖 done 且未认领项，stale claim 确认原 worker 停止后才 `release`。
-- `context/current.md` 区分可准确提问的 `U-n` 与尚不能准确提问的 `F-n`；每轮最多解决一个就绪 `U-n`，`F-n` 随新证据毕业，细则见 [references/contract.md](references/contract.md)。
-- `status: done` 只能由 [references/done.md](references/done.md) 全过且 `SUMMARY.md` 存在后写入；父任务的子任务必须全部 done。
-- 危险动作按确认协议停；同仓同任务写操作串行；无 worker 能力时主会话自做，不退出轨道。
+- 代码修改默认由 `taskflow` 在 `<workspace>/worktrees/` 的真 git worktree 实施，只提交到任务分支，不 push、不合默认分支、不部署、不改线上数据。
+- `decompose` 自动建 pending 子任务并按依赖推进；多 worker 子任务派发前原子 `claim`，父任务必做集成与总判据验证。
+- `context/current.md` 区分可准确提问的 `U-n` 与模糊区 `F-n`，每轮最多解一个就绪 `U-n`（见 [references/contract.md](references/contract.md)）。
+- `status: done` 仅在 [references/done.md](references/done.md) 全过、`SUMMARY.md` 实质非空且所有直接子任务 done 后写入；危险动作按确认协议停，同仓同任务写操作串行。

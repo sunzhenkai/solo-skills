@@ -25,7 +25,7 @@ make check-names    # 扫描具体项目名（.project-denylist；命中非零�
 make check-style    # 输出风格检查（SKILL.md >8KB、description 过长或含反向表述、引用链超一层、禁令词偏多为告警；意图复述模板与 user-report 结构缺失为错误）
 make check-deps     # 检查必选外部依赖 skill（openspec-*）是否就绪（缺项非零退出）
 make install-deps   # 安装必选外部依赖（openspec-*），结尾跑 check-deps
-make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling
+make install-matt   # 可选：安装 grilling / grill-with-docs / domain-modeling / codebase-design / diagnosing-bugs
 make install-acpx   # acpx 缺失提示（二进制，需按上游方式手动装）
 ```
 
@@ -60,16 +60,16 @@ skill 之间的互引已在仓内解决；仍依赖下列仓外内容（详见 R
 | `openspec-explore` / `openspec-propose` / `openspec-apply-change` / `openspec-archive-change` | 必选（OpenSpec 路径） | `@fission-ai/openspec` CLI 生成 | taskflow、taskrail、agent-roster（flow 模式） |
 | `acpx`（二进制，非 skill） | 必选（委派执行） | https://acpx.sh | agent-roster 的委派执行 |
 | `playwright` + `axe-core`（运行时，非 skill） | 可选（Web UI 证据门） | pip / npm | taskrail 的 Web UI 证据检查（`taskrail/scripts/ui_evidence_check.py`） |
-| `grilling` / `grill-with-docs` / `domain-modeling` | 可选 | `mattpocock/skills` | agent-roster（flow 模式可选增强）；无台账一次性拷问 |
+| `grilling` / `grill-with-docs` / `domain-modeling` / `codebase-design` / `diagnosing-bugs` | 可选 | `mattpocock/skills` | taskrail（前沿拷问、术语与接缝设计、高难排障可选增强）；agent-roster（flow 模式可选增强）；无台账一次性拷问 |
 
-- 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference，由本仓自问自答（方法见 `taskrail/references/grill.md`），不委托外部 skill。外部的 `grilling` / `grill-with-docs` 方向相反——拷问用户，只在 agent-roster flow 模式与无台账一次性拷问中使用。
+- 任务编排入口是 **`taskrail`**；确认协议是 `skills/taskrail/references/confirm-protocol.md`。grill 是按需进入的独立 reference（方法见 `taskrail/references/grill.md`）：普通局部技术未知由本仓自问自答，重大架构 / 契约 / 价值取舍停下用前沿问题与用户拉齐，需要多轮深度拷问用户时可按需启用可选外部 skill `grilling` / `grill-with-docs`（也在 agent-roster flow 模式与无台账一次性拷问中使用）。
 - 安装仓外 skill 前走 skills-store 的安全审计流程（先临时拉取 → audit-skill.sh → 再安装）。
 
 ### task* 要点
 
 - 主干：`目标与 criterion → 当前最小计划 → 动态 references → verify → close`。不再维护 wizard、skip / full 双流程；handoff 仅是 OpenSpec 执行前的核对动作。
-- 动态环节：explore、diagnose、grill、design、approve、decompose、review 等按当前证据 enter / continue / skip / reopen；执行中也可重入。路由见 `taskrail/references/router.md`，统一结构见 `ref-contract.md`。
-- 自动拆分：decompose 判断不拆 / 切片 / 子任务；独立交付拆分完成所需 ROADMAP 确认后，子任务自动创建在父任务 `subtasks/` 下，初始 pending 并继承确认方式，按依赖激活。必须原子交付的是同任务切片；可按契约独立交付的才建子任务。细则 `taskrail/references/decompose.md`。
+- 动态环节：explore、diagnose、grill、design、approve、decompose、review 等按当前证据 enter / continue / skip / reopen；执行中也可重入。路由见 `taskrail/references/router.md`，统一结构见 `taskrail/references/contract.md` 附录。
+- 自动拆分：decompose 优先按垂直切片（tracer bullet）和单窗口可闭环粒度判断不拆 / 切片 / 子任务；独立交付拆分完成所需 ROADMAP 确认后，子任务自动创建在父任务 `subtasks/` 下，初始 pending 并默认继承父确认方式（可在 ROADMAP 覆写为 `human` HITL 或 `goal` AFK），按依赖激活；同仓多子任务父级集成使用 `prepare_worktree.py <workspace> <parent>/integration ... --integrate` 在隔离分支合并验证。必须原子交付的是同任务切片；可按契约独立交付的才建子任务。细则 `taskrail/references/decompose.md`。
 - 三个根：workspace 统一保存 `tasks/`、按需 `openspec/` 和 `worktrees/<task-id>/<repo-id>/`。direct 与 OpenSpec 的 git 代码修改都使用真正的 git worktree；跨项目可继续使用 OpenSpec，产物仍写 workspace。
 - 台账：`TASK.md` 持 `current_ref` / `confirm_mode` / `execution` / `criterion` / `driver` 等热状态；direct 进度看 PLAN checkbox，OpenSpec 看 change checkbox，父子结构看 ROADMAP 与子 TASK。INDEX 由 `taskrail/scripts/task_state.py` 重建，不是第二状态源。
 - 契约真源：`skills/taskrail/references/contract.md`；完成清单：`skills/taskrail/references/done.md`；流程与使用总览（给人读）：`docs/task-flow/README.md`。

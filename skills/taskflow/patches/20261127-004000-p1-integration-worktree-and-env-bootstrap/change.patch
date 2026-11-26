@@ -1,0 +1,278 @@
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 59057d4..6e70615 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -20,7 +20,7 @@ description: "代码执行与隔离：在 workspace 为每个修改仓准备 git
+ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json
+ ```
+ 
+-exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。`<task-id>` 也接受子任务路径 `<parent>/subtasks/<child>`（映射为 `worktrees/<parent>--<child>/<repo-id>/` 与分支 `task/<parent>--<child>`）。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
++exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。`<task-id>` 也接受 `<parent>/subtasks/<child>`（映射为 `worktrees/<parent>--<child>/<repo-id>/` 与 `task/<parent>--<child>`）及父级集成路径 `<parent>/integration`（配合 `--integrate <ref>` 合并多子任务分支验证）。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
+ 
+ ## direct
+ 
+@@ -39,7 +39,7 @@ python3 <taskflow>/scripts/check_handoff.py <workspace> <task-path>
+ 用户原话明确要求绕过 taskrail 时，才可在 TASK 写 `gate_bypass: "<日期> user-confirmed: <原话>"`；不手写省略验收的自由提示词，未核对项仍须记录。门通过后 `taskflow-new`：
+ 
+ 1. 在 workspace 执行 `openspec new change {task}-driver --goal "<目标 + criterion + 方案 / 批准指针>"`。
+-2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。
++2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。详细设计与切片清单归 `openspec/changes/`，`PLAN.md` 仅留指向 driver 的一行指针。
+ 3. stock `openspec-*` 始终在 workspace 运行并显式给 change name；实现者 cwd 是对应 worktree。缺 skill / CLI 时说明安装，不发明等价命令。
+ 
+ ## 经 taskrail 委托时
+diff --git a/skills/taskflow/references/worktree.md b/skills/taskflow/references/worktree.md
+index 203ad9a..c32ce22 100644
+--- a/skills/taskflow/references/worktree.md
++++ b/skills/taskflow/references/worktree.md
+@@ -16,7 +16,7 @@ source checkout 可在 workspace 内外；workspace 本身也可以是项目仓
+ ## 唯一准备入口
+ 
+ ```bash
+-python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--json]
++python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base <ref>] [--integrate <ref> ...] [--json]
+ ```
+ 
+ 脚本行为：
+@@ -37,3 +37,9 @@ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <
+ - 编排者按连贯增量提交到 `task/<task-id>`；不 push、不合默认分支、不自动删除 worktree。
+ - resume 重跑脚本；若脚本在 worktree 新建后、注册前中断，路径 + source + branch 可安全证明身份时恢复注册，否则停。
+ - 非 git 目录或用户明确要求就地修改才可例外，写 decisions 和证据；不能据此把例外扩散到其他修改仓。
++
++## 依赖串联、父级集成与环境引导
++
++- **依赖子任务基线**：同仓子任务依赖前序未合入子任务代码时，显式传 `--base task/<parent>--<dep-child>` 创建工作树。
++- **父级多子任务同仓集成**：父任务进入 `verify` 时传入 `<parent>/integration` 与多个 `--integrate <branch>`，脚本在 `worktrees/<parent>--integration/<repo-id>/` 的独立分支 `task/<parent>--integration` 上按序 `--no-ff` 合并（已合入祖先自动跳过）；遇冲突立即 `git merge --abort` 并返回非 0 及冲突文件清单，绝不触碰源仓与默认分支。
++- **未跟踪环境与重依赖**：新建 worktree 不包含源仓 gitignored 的 `.env`、`node_modules`、`.venv` 或构建缓存。运行测试前先检查缺口，优先按项目标准脚本初始化，或在记录决定后只读引用共享配置；不自动复制源仓未提交改动，也不污染源仓。
+diff --git a/skills/taskflow/scripts/prepare_worktree.py b/skills/taskflow/scripts/prepare_worktree.py
+index 24f7280..fb46a11 100644
+--- a/skills/taskflow/scripts/prepare_worktree.py
++++ b/skills/taskflow/scripts/prepare_worktree.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ """Prepare or resume one task worktree without touching the source checkout.
+ 
+-Usage: prepare_worktree.py <workspace> <task-id|parent/subtasks/child> <repo-id> <source-repo> [--base REF] [--json]
++Usage: prepare_worktree.py <workspace> <task-id|parent/subtasks/child|parent/integration> <repo-id> <source-repo> [--base REF] [--integrate REF ...] [--json]
+ Only Python's standard library and the git CLI are required.
+ """
+ from __future__ import annotations
+@@ -26,9 +26,10 @@ SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
+ 
+ 
+ class WorktreeError(Exception):
+-    def __init__(self, message: str, code: int = 1):
++    def __init__(self, message: str, code: int = 1, extra: dict | None = None):
+         super().__init__(message)
+         self.code = code
++        self.extra = extra or {}
+ 
+ 
+ def run_git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+@@ -95,10 +96,12 @@ def parse_task_ref(value: str) -> tuple[str, str]:
+     parts = cleaned.split("/")
+     if len(parts) == 1 and SAFE_ID.fullmatch(parts[0]):
+         return parts[0], parts[0]
++    if len(parts) == 2 and parts[1] == "integration" and SAFE_ID.fullmatch(parts[0]):
++        return f"{parts[0]}--integration", cleaned
+     if len(parts) == 3 and parts[1] == "subtasks" and SAFE_ID.fullmatch(parts[0]) and SAFE_ID.fullmatch(parts[2]):
+         return f"{parts[0]}--{parts[2]}", cleaned
+     raise WorktreeError(
+-        f"task-id must be lowercase kebab-case or <parent>/subtasks/<child> (1-80 chars per id): {value!r}",
++        f"task-id must be lowercase kebab-case, <parent>/subtasks/<child>, or <parent>/integration: {value!r}",
+         2,
+     )
+ 
+@@ -144,12 +147,56 @@ def ensure_exclude(source: Path, worktree: Path) -> None:
+             handle.write(exclude_value + "\n")
+ 
+ 
+-def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str | None) -> dict:
++def merge_identity_args(repo: Path) -> list[str]:
++    args: list[str] = []
++    if not run_git(repo, "config", "user.name", check=False).stdout.strip():
++        args += ["-c", "user.name=taskflow"]
++    if not run_git(repo, "config", "user.email", check=False).stdout.strip():
++        args += ["-c", "user.email=taskflow@example.invalid"]
++    return args
++
++
++def integrate_branches(target: Path, refs: list[str]) -> bool:
++    merged_any = False
++    identity = merge_identity_args(target)
++    for ref in refs:
++        if run_git(target, "merge-base", "--is-ancestor", ref, "HEAD", check=False).returncode == 0:
++            continue
++        proc = run_git(target, *identity, "merge", "--no-ff", "--no-edit", ref, check=False)
++        if proc.returncode != 0:
++            conflicts = [
++                line.strip()
++                for line in run_git(target, "diff", "--name-only", "--diff-filter=U", check=False).stdout.splitlines()
++                if line.strip()
++            ]
++            run_git(target, "merge", "--abort", check=False)
++            detail = proc.stderr.strip() or proc.stdout.strip() or "merge conflict"
++            raise WorktreeError(
++                f"integration merge conflict on {ref}: {detail}",
++                5,
++                extra={"conflict_branch": ref, "conflict_files": conflicts},
++            )
++        merged_any = True
++    return merged_any
++
++
++def prepare(
++    workspace: Path,
++    task_id: str,
++    repo_id: str,
++    source: Path,
++    base: str | None,
++    integrate: list[str] | None = None,
++) -> dict:
+     worktree_key, task_path = parse_task_ref(task_id)
+     validate_id(repo_id, "repo-id")
++    integrate_refs = [ref for ref in (integrate or []) if ref]
+     workspace.mkdir(parents=True, exist_ok=True)
+     workspace = canonical(workspace)
+     source = source_root(canonical((workspace / source) if not source.is_absolute() else source))
++    for ref in integrate_refs:
++        if run_git(source, "rev-parse", "--verify", ref + "^{commit}", check=False).returncode != 0:
++            raise WorktreeError(f"integrate ref is not a valid commit: {ref}", 2)
+     target = workspace / "worktrees" / worktree_key / repo_id
+     branch = f"task/{worktree_key}"
+     base = base or default_base(source)
+@@ -190,6 +237,8 @@ def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str
+                 run_git(source, "worktree", "add", str(target), "-b", branch, base)
+                 action = "created"
+         ensure_exclude(source, target)
++        if integrate_refs and integrate_branches(target, integrate_refs):
++            action = "integrated"
+         record = {
+             "source_repo": str(source),
+             "worktree": str(target),
+@@ -200,6 +249,8 @@ def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str
+         }
+         if task_path != worktree_key:
+             record["task_path"] = task_path
++        if integrate_refs:
++            record["integrated_branches"] = integrate_refs
+         registry.setdefault("repos", {})[repo_id] = record
+         registry["updated"] = datetime.now(timezone.utc).isoformat()
+         atomic_json(reg_path, registry)
+@@ -213,12 +264,22 @@ def main(argv: list[str] | None = None) -> int:
+     parser.add_argument("repo_id")
+     parser.add_argument("source_repo")
+     parser.add_argument("--base")
++    parser.add_argument("--integrate", action="append", default=[])
+     parser.add_argument("--json", action="store_true")
+     args = parser.parse_args(argv)
+     try:
+-        result = prepare(Path(args.workspace), args.task_id, args.repo_id, Path(args.source_repo), args.base)
++        result = prepare(
++            Path(args.workspace),
++            args.task_id,
++            args.repo_id,
++            Path(args.source_repo),
++            args.base,
++            args.integrate,
++        )
+     except (WorktreeError, json.JSONDecodeError, OSError) as exc:
+         result = {"ok": False, "error": str(exc)}
++        if isinstance(exc, WorktreeError) and exc.extra:
++            result.update(exc.extra)
+         code = exc.code if isinstance(exc, WorktreeError) else 1
+     else:
+         code = 0
+diff --git a/skills/taskflow/evals/cases.yaml b/skills/taskflow/evals/cases.yaml
+index 59a9f4a..8756630 100644
+--- a/skills/taskflow/evals/cases.yaml
++++ b/skills/taskflow/evals/cases.yaml
+@@ -296,3 +296,16 @@ cases:
+       must_not:
+         - 编造等价 openspec 命令继续
+         - 静默改走 direct 或把任务标完成
++
++  - id: parent-integration-worktree-merge-and-conflict-abort
++    kind: core
++    judge: deterministic
++    description: 父级同仓集成在隔离 worktree 合并多子任务分支，冲突自动中止并上报
++    given: 同一仓库的两个子任务已在各自子任务分支提交代码，父任务需要集成验收
++    expect:
++      must:
++        - 使用 prepare_worktree.py 的 parent/integration 与 --integrate 合并各子任务分支到隔离分支
++        - 合并冲突时自动 merge --abort 保持现场干净并返回冲突分支与冲突文件列表
++      must_not:
++        - 把子任务分支直接合并进源仓默认分支进行集成测试
++        - 在冲突后留下未清理的半合并状态
+diff --git a/skills/taskflow/tests/test_prepare_worktree.py b/skills/taskflow/tests/test_prepare_worktree.py
+index 1d15cdc..2588b3b 100644
+--- a/skills/taskflow/tests/test_prepare_worktree.py
++++ b/skills/taskflow/tests/test_prepare_worktree.py
+@@ -153,6 +153,68 @@ class PrepareWorktreeTest(unittest.TestCase):
+         self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+         self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
+ 
++    def test_parent_integration_worktree_merges_multiple_child_branches_idempotently(self) -> None:
++        child_a = json.loads(self.run_prepare(task="checkout/subtasks/pricing").stdout)
++        wt_a = Path(child_a["worktree"])
++        (wt_a / "pricing.txt").write_text("pricing ok\n", encoding="utf-8")
++        git(wt_a, "add", "pricing.txt")
++        git(wt_a, "commit", "-m", "add pricing")
++
++        child_b = json.loads(self.run_prepare(task="checkout/subtasks/coupon").stdout)
++        wt_b = Path(child_b["worktree"])
++        (wt_b / "coupon.txt").write_text("coupon ok\n", encoding="utf-8")
++        git(wt_b, "add", "coupon.txt")
++        git(wt_b, "commit", "-m", "add coupon")
++
++        cmd = [
++            sys.executable, str(SCRIPT), str(self.workspace), "checkout/integration", "app", str(self.source),
++            "--integrate", child_a["branch"], "--integrate", child_b["branch"], "--json",
++        ]
++        integrated = subprocess.run(cmd, text=True, capture_output=True)
++        self.assertEqual(integrated.returncode, 0, integrated.stdout + integrated.stderr)
++        payload = json.loads(integrated.stdout)
++        self.assertEqual(payload["action"], "integrated")
++        self.assertEqual(payload["branch"], "task/checkout--integration")
++        self.assertEqual(payload["integrated_branches"], [child_a["branch"], child_b["branch"]])
++        wt_int = Path(payload["worktree"])
++        self.assertTrue((wt_int / "pricing.txt").is_file())
++        self.assertTrue((wt_int / "coupon.txt").is_file())
++        self.assertEqual(git(self.source, "branch", "--show-current"), "main")
++        self.assertEqual(git(self.source, "status", "--porcelain"), "")
++        self.assertFalse((self.source / "pricing.txt").exists())
++
++        resumed = subprocess.run(cmd, text=True, capture_output=True)
++        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
++        self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
++
++    def test_parent_integration_conflict_aborts_cleanly_and_reports_files(self) -> None:
++        child_a = json.loads(self.run_prepare(task="conflict/subtasks/one").stdout)
++        wt_a = Path(child_a["worktree"])
++        (wt_a / "README.md").write_text("from one\n", encoding="utf-8")
++        git(wt_a, "add", "README.md")
++        git(wt_a, "commit", "-m", "change readme in one")
++
++        child_b = json.loads(self.run_prepare(task="conflict/subtasks/two").stdout)
++        wt_b = Path(child_b["worktree"])
++        (wt_b / "README.md").write_text("from two\n", encoding="utf-8")
++        git(wt_b, "add", "README.md")
++        git(wt_b, "commit", "-m", "change readme in two")
++
++        proc = subprocess.run(
++            [
++                sys.executable, str(SCRIPT), str(self.workspace), "conflict/integration", "app", str(self.source),
++                "--integrate", child_a["branch"], "--integrate", child_b["branch"], "--json",
++            ],
++            text=True, capture_output=True,
++        )
++        self.assertEqual(proc.returncode, 5, proc.stdout + proc.stderr)
++        payload = json.loads(proc.stdout)
++        self.assertFalse(payload["ok"])
++        self.assertEqual(payload["conflict_branch"], child_b["branch"])
++        self.assertIn("README.md", payload["conflict_files"])
++        wt_int = self.workspace / "worktrees" / "conflict--integration" / "app"
++        self.assertEqual(git(wt_int, "status", "--porcelain"), "")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

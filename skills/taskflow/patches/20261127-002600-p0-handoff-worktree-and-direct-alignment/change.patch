@@ -1,0 +1,208 @@
+diff --git a/skills/taskflow/SKILL.md b/skills/taskflow/SKILL.md
+index 9ecfa1e..59057d4 100644
+--- a/skills/taskflow/SKILL.md
++++ b/skills/taskflow/SKILL.md
+@@ -20,11 +20,11 @@ description: "代码执行与隔离：在 workspace 为每个修改仓准备 git
+ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json
+ ```
+ 
+-exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
++exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。`<task-id>` 也接受子任务路径 `<parent>/subtasks/<child>`（映射为 `worktrees/<parent>--<child>/<repo-id>/` 与分支 `task/<parent>--<child>`）。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
+ 
+ ## direct
+ 
+-1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不需要 handoff / approve / driver。
++1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不走 handoff、不建 driver（重大方案仍按 taskrail `approve` 放行）。
+ 2. 读 [references/execution-discipline.md](references/execution-discipline.md)，在当前 worktree 实施一个连贯增量并跑 focused tests。
+ 3. 只更新 PLAN 实施 checkbox 与证据，提交由编排者做；提交后重新路由，不直接标 done。
+ 
+diff --git a/skills/taskflow/references/worktree.md b/skills/taskflow/references/worktree.md
+index 59e7811..203ad9a 100644
+--- a/skills/taskflow/references/worktree.md
++++ b/skills/taskflow/references/worktree.md
+@@ -11,7 +11,7 @@ workspace/
+ └── worktrees/<task-id>/<repo-id>/
+ ```
+ 
+-source checkout 可在 workspace 内外；workspace 本身也可以是项目仓库。分支统一为 `task/<task-id>`，每个修改仓一个 worktree。repo_id 只在一个任务内唯一，task_id 在历史任务间也要避免误撞。
++source checkout 可在 workspace 内外；workspace 本身也可以是项目仓库。分支统一为 `task/<task-id>`，每个修改仓一个 worktree；`<task-id>` 也接受子任务路径 `<parent>/subtasks/<child>`，映射为目录 `worktrees/<parent>--<child>/<repo-id>/` 与分支 `task/<parent>--<child>`，避免跨父任务同名子任务撞车与 git 分支前缀冲突。repo_id 只在一个任务内唯一，task_id 在历史任务间也要避免误撞。
+ 
+ ## 唯一准备入口
+ 
+diff --git a/skills/taskflow/scripts/check_handoff.py b/skills/taskflow/scripts/check_handoff.py
+index ceb5a95..a6f78ab 100644
+--- a/skills/taskflow/scripts/check_handoff.py
++++ b/skills/taskflow/scripts/check_handoff.py
+@@ -52,6 +52,20 @@ def field(body: str, name: str) -> str | None:
+     return match.group(1).strip() or None if match else None
+ 
+ 
++def has_approval(task_root: Path, ongoing: Path, slug: str, meta: dict[str, str]) -> bool:
++    candidates = [task_root / "reviews" / "APPROVED.md", task_root / "approve" / "APPROVED.md"]
++    parts = slug.strip("/").split("/")
++    parent: str | None = parts[0] if len(parts) == 3 and parts[1] == "subtasks" else None
++    if not parent:
++        raw_parent = meta.get("parent", "").strip()
++        if raw_parent and raw_parent.lower() not in {"null", "none", "~"} and SAFE_ID.fullmatch(raw_parent):
++            parent = raw_parent
++    if parent:
++        parent_root = ongoing / parent
++        candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
++    return any(path.is_file() and bool(path.read_text(encoding="utf-8").strip()) for path in candidates)
++
++
+ def check(root: Path, slug: str) -> dict:
+     ongoing = root / "tasks" / "ongoing"
+     task_md = ongoing / slug / "TASK.md"
+@@ -102,7 +116,7 @@ def check(root: Path, slug: str) -> dict:
+     if meta.get("driver") != want_driver:
+         res["errors"].append(f"driver 须为 {want_driver!r}，实为 {meta.get('driver')!r}")
+ 
+-    approved = (task_md.parent / "reviews" / "APPROVED.md").is_file() or (task_md.parent / "approve" / "APPROVED.md").is_file()
++    approved = has_approval(task_md.parent, ongoing, slug, meta)
+     approval = field(body, "批准") or ""
+     not_required = approval.startswith("not-required:") and len(approval.removeprefix("not-required:").strip()) > 0
+     if not approved and not not_required:
+diff --git a/skills/taskflow/scripts/prepare_worktree.py b/skills/taskflow/scripts/prepare_worktree.py
+index 65f5860..24f7280 100644
+--- a/skills/taskflow/scripts/prepare_worktree.py
++++ b/skills/taskflow/scripts/prepare_worktree.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ """Prepare or resume one task worktree without touching the source checkout.
+ 
+-Usage: prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> [--base REF] [--json]
++Usage: prepare_worktree.py <workspace> <task-id|parent/subtasks/child> <repo-id> <source-repo> [--base REF] [--json]
+ Only Python's standard library and the git CLI are required.
+ """
+ from __future__ import annotations
+@@ -90,6 +90,19 @@ def validate_id(value: str, label: str) -> None:
+         raise WorktreeError(f"{label} must be lowercase kebab-case (1-80 chars): {value!r}", 2)
+ 
+ 
++def parse_task_ref(value: str) -> tuple[str, str]:
++    cleaned = value.strip("/")
++    parts = cleaned.split("/")
++    if len(parts) == 1 and SAFE_ID.fullmatch(parts[0]):
++        return parts[0], parts[0]
++    if len(parts) == 3 and parts[1] == "subtasks" and SAFE_ID.fullmatch(parts[0]) and SAFE_ID.fullmatch(parts[2]):
++        return f"{parts[0]}--{parts[2]}", cleaned
++    raise WorktreeError(
++        f"task-id must be lowercase kebab-case or <parent>/subtasks/<child> (1-80 chars per id): {value!r}",
++        2,
++    )
++
++
+ def source_root(source: Path) -> Path:
+     if not source.is_dir():
+         raise WorktreeError(f"source repository does not exist: {source}", 2)
+@@ -132,18 +145,20 @@ def ensure_exclude(source: Path, worktree: Path) -> None:
+ 
+ 
+ def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str | None) -> dict:
+-    validate_id(task_id, "task-id")
++    worktree_key, task_path = parse_task_ref(task_id)
+     validate_id(repo_id, "repo-id")
+     workspace.mkdir(parents=True, exist_ok=True)
+     workspace = canonical(workspace)
+     source = source_root(canonical((workspace / source) if not source.is_absolute() else source))
+-    target = workspace / "worktrees" / task_id / repo_id
+-    branch = f"task/{task_id}"
++    target = workspace / "worktrees" / worktree_key / repo_id
++    branch = f"task/{worktree_key}"
+     base = base or default_base(source)
+-    reg_path = registry_path(workspace, task_id)
++    reg_path = registry_path(workspace, worktree_key)
+ 
+     with workspace_lock(workspace):
+-        registry = load_registry(reg_path, task_id)
++        registry = load_registry(reg_path, worktree_key)
++        if task_path != worktree_key:
++            registry["task_path"] = task_path
+         previous = registry.get("repos", {}).get(repo_id)
+         if previous and canonical(Path(previous["source_repo"])) != source:
+             raise WorktreeError(f"repo id {repo_id!r} is already bound to another source repository", 4)
+@@ -181,7 +196,10 @@ def prepare(workspace: Path, task_id: str, repo_id: str, source: Path, base: str
+             "branch": branch,
+             "base": base,
+             "repo_id": repo_id,
++            "task_id": worktree_key,
+         }
++        if task_path != worktree_key:
++            record["task_path"] = task_path
+         registry.setdefault("repos", {})[repo_id] = record
+         registry["updated"] = datetime.now(timezone.utc).isoformat()
+         atomic_json(reg_path, registry)
+diff --git a/skills/taskflow/tests/test_taskflow_contract.py b/skills/taskflow/tests/test_taskflow_contract.py
+index 1cf93c6..d67a8e6 100644
+--- a/skills/taskflow/tests/test_taskflow_contract.py
++++ b/skills/taskflow/tests/test_taskflow_contract.py
+@@ -30,7 +30,8 @@ class TaskflowContractTest(unittest.TestCase):
+         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+         direct = skill.split("## direct", 1)[1].split("## OpenSpec", 1)[0]
+         self.assertIn("不建 driver", skill)
+-        self.assertIn("不需要 handoff / approve / driver", direct)
++        self.assertIn("不走 handoff、不建 driver", direct)
++        self.assertIn("重大方案仍按 taskrail `approve` 放行", direct)
+         self.assertNotIn("check_handoff.py", direct)
+ 
+     def test_openspec_has_entry_gate(self) -> None:
+diff --git a/skills/taskflow/tests/test_check_handoff.py b/skills/taskflow/tests/test_check_handoff.py
+index 31517ed..4df93bb 100644
+--- a/skills/taskflow/tests/test_check_handoff.py
++++ b/skills/taskflow/tests/test_check_handoff.py
+@@ -155,6 +155,22 @@ class TestCheckHandoff(unittest.TestCase):
+         self.write(GOOD_META.replace('driver: "demo-driver"', 'driver: "api-driver"') + HANDOFF_SVC, slug="demo/subtasks/api")
+         self.assertEqual(self.run_gate("demo/subtasks/api").returncode, 0)
+ 
++    def test_child_task_inherits_parent_approval(self) -> None:
++        self.write(GOOD_META + HANDOFF_SVC, slug="demo", approved=True)
++        child_meta = GOOD_META.replace("slug: demo", "slug: api\nparent: demo").replace('driver: "demo-driver"', 'driver: "api-driver"')
++        self.write(child_meta + HANDOFF_SVC, slug="demo/subtasks/api", approved=False)
++        result = self.run_gate("demo/subtasks/api")
++        self.assertEqual(result.returncode, 0, result.stdout)
++
++    def test_empty_approval_file_is_rejected(self) -> None:
++        self.write(GOOD_META + HANDOFF_SVC, approved=False)
++        reviews = self.root / "tasks" / "ongoing" / "demo" / "reviews"
++        reviews.mkdir(parents=True, exist_ok=True)
++        (reviews / "APPROVED.md").write_text("  \n", encoding="utf-8")
++        result = self.run_gate()
++        self.assertEqual(result.returncode, 1)
++        self.assertIn("APPROVED.md", result.stdout)
++
+     def test_missing_task(self) -> None:
+         result = self.run_gate("nope")
+         self.assertEqual(result.returncode, 1)
+diff --git a/skills/taskflow/tests/test_prepare_worktree.py b/skills/taskflow/tests/test_prepare_worktree.py
+index 0821bb1..1d15cdc 100644
+--- a/skills/taskflow/tests/test_prepare_worktree.py
++++ b/skills/taskflow/tests/test_prepare_worktree.py
+@@ -132,6 +132,27 @@ class PrepareWorktreeTest(unittest.TestCase):
+         self.assertEqual((self.source / "README.md").read_text(encoding="utf-8"), "source user work\n")
+         self.assertEqual(git(self.source, "branch", "--show-current"), "main")
+ 
++    def test_subtask_path_isolates_worktree_and_branch_across_parents(self) -> None:
++        parent_a = self.run_prepare(task="parent-a")
++        self.assertEqual(parent_a.returncode, 0, parent_a.stdout + parent_a.stderr)
++        child_a = self.run_prepare(task="parent-a/subtasks/api")
++        self.assertEqual(child_a.returncode, 0, child_a.stdout + child_a.stderr)
++        child_b = self.run_prepare(task="parent-b/subtasks/api")
++        self.assertEqual(child_b.returncode, 0, child_b.stdout + child_b.stderr)
++        payload_a = json.loads(child_a.stdout)
++        payload_b = json.loads(child_b.stdout)
++        self.assertEqual(payload_a["branch"], "task/parent-a--api")
++        self.assertEqual(payload_b["branch"], "task/parent-b--api")
++        self.assertEqual(payload_a["task_id"], "parent-a--api")
++        self.assertEqual(payload_a["task_path"], "parent-a/subtasks/api")
++        self.assertTrue(payload_a["worktree"].endswith("worktrees/parent-a--api/app"))
++        self.assertTrue(payload_b["worktree"].endswith("worktrees/parent-b--api/app"))
++        self.assertEqual(git(Path(payload_a["worktree"]), "branch", "--show-current"), "task/parent-a--api")
++        self.assertEqual(git(Path(payload_b["worktree"]), "branch", "--show-current"), "task/parent-b--api")
++        resumed = self.run_prepare(task="parent-a/subtasks/api")
++        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
++        self.assertEqual(json.loads(resumed.stdout)["action"], "resumed")
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

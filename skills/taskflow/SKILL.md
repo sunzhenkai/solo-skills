@@ -20,11 +20,11 @@ description: "代码执行与隔离：在 workspace 为每个修改仓准备 git
 python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <source-repo> --json
 ```
 
-exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
+exit 非 0 时不写代码；脏 worktree、身份或分支冲突保留现场并说明。`<task-id>` 也接受 `<parent>/subtasks/<child>`（映射为 `worktrees/<parent>--<child>/<repo-id>/` 与 `task/<parent>--<child>`）及父级集成路径 `<parent>/integration`（配合 `--integrate <ref>` 合并多子任务分支验证）。基线可用 `--base` 显式指定，不自动 fetch、stash、reset、切源仓分支或清理用户改动。把返回的 repo / worktree / branch / base 写进 TASK 涉及仓库表。
 
 ## direct
 
-1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不需要 handoff / approve / driver。
+1. 确认 criterion、PLAN 当前步骤和 worktree；`execution=direct`，不走 handoff、不建 driver（重大方案仍按 taskrail `approve` 放行）。
 2. 读 [references/execution-discipline.md](references/execution-discipline.md)，在当前 worktree 实施一个连贯增量并跑 focused tests。
 3. 只更新 PLAN 实施 checkbox 与证据，提交由编排者做；提交后重新路由，不直接标 done。
 
@@ -39,7 +39,7 @@ python3 <taskflow>/scripts/check_handoff.py <workspace> <task-path>
 用户原话明确要求绕过 taskrail 时，才可在 TASK 写 `gate_bypass: "<日期> user-confirmed: <原话>"`；不手写省略验收的自由提示词，未核对项仍须记录。门通过后 `taskflow-new`：
 
 1. 在 workspace 执行 `openspec new change {task}-driver --goal "<目标 + criterion + 方案 / 批准指针>"`。
-2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。
+2. `.openspec.yaml` 补 `skip_specs: true`，按 [references/driver-template.md](references/driver-template.md) 写 proposal 的 Driver 协议；tasks.md 留给 propose。详细设计与切片清单归 `openspec/changes/`，`PLAN.md` 仅留指向 driver 的一行指针。
 3. stock `openspec-*` 始终在 workspace 运行并显式给 change name；实现者 cwd 是对应 worktree。缺 skill / CLI 时说明安装，不发明等价命令。
 
 ## 经 taskrail 委托时

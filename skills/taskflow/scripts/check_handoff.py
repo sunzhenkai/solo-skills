@@ -52,6 +52,20 @@ def field(body: str, name: str) -> str | None:
     return match.group(1).strip() or None if match else None
 
 
+def has_approval(task_root: Path, ongoing: Path, slug: str, meta: dict[str, str]) -> bool:
+    candidates = [task_root / "reviews" / "APPROVED.md", task_root / "approve" / "APPROVED.md"]
+    parts = slug.strip("/").split("/")
+    parent: str | None = parts[0] if len(parts) == 3 and parts[1] == "subtasks" else None
+    if not parent:
+        raw_parent = meta.get("parent", "").strip()
+        if raw_parent and raw_parent.lower() not in {"null", "none", "~"} and SAFE_ID.fullmatch(raw_parent):
+            parent = raw_parent
+    if parent:
+        parent_root = ongoing / parent
+        candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
+    return any(path.is_file() and bool(path.read_text(encoding="utf-8").strip()) for path in candidates)
+
+
 def check(root: Path, slug: str) -> dict:
     ongoing = root / "tasks" / "ongoing"
     task_md = ongoing / slug / "TASK.md"
@@ -102,7 +116,7 @@ def check(root: Path, slug: str) -> dict:
     if meta.get("driver") != want_driver:
         res["errors"].append(f"driver 须为 {want_driver!r}，实为 {meta.get('driver')!r}")
 
-    approved = (task_md.parent / "reviews" / "APPROVED.md").is_file() or (task_md.parent / "approve" / "APPROVED.md").is_file()
+    approved = has_approval(task_md.parent, ongoing, slug, meta)
     approval = field(body, "批准") or ""
     not_required = approval.startswith("not-required:") and len(approval.removeprefix("not-required:").strip()) > 0
     if not approved and not not_required:

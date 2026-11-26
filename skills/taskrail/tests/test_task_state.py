@@ -38,9 +38,11 @@ class TaskStateTest(unittest.TestCase):
         index = (self.workspace / "tasks" / "INDEX.md").read_text(encoding="utf-8")
         self.assertIn("ongoing/parent/subtasks/child", index)
         self.assertTrue((child.parent / "PLAN.md").is_file())
-        self.assertTrue((child.parent / "history.md").is_file())
+        self.assertTrue((child.parent / "context" / "current.md").is_file())
+        self.assertFalse((child.parent / "history.md").exists())
+        self.assertFalse((child.parent / "decisions.md").exists())
 
-    def test_root_starts_at_intake_with_pending_intent(self) -> None:
+    def test_root_starts_at_intent_with_pending_intent_and_plan_confirm(self) -> None:
         for mode in ("human", "goal"):
             with self.subTest(mode=mode):
                 task = f"root-{mode}"
@@ -50,8 +52,11 @@ class TaskStateTest(unittest.TestCase):
                 )
                 self.assertEqual(created.returncode, 0, created.stdout)
                 root = self.workspace / "tasks" / "ongoing" / task
-                self.assertIn("current_ref: intake", (root / "TASK.md").read_text(encoding="utf-8"))
+                self.assertIn("current_ref: intent", (root / "TASK.md").read_text(encoding="utf-8"))
                 self.assertIn("确认状态：pending", (root / "context" / "current.md").read_text(encoding="utf-8"))
+                plan_text = (root / "PLAN.md").read_text(encoding="utf-8")
+                self.assertIn("## 实施确认", plan_text)
+                self.assertIn("状态：pending", plan_text)
 
     def test_child_inherits_intent_without_independent_confirmation(self) -> None:
         self.init("parent")
@@ -117,8 +122,10 @@ class TaskStateTest(unittest.TestCase):
         child_path = "parent/subtasks/child"
         child = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "child" / "TASK.md"
         self.assertIn("confirm_mode: goal", child.read_text(encoding="utf-8"))
-        mismatch = self.run_state("init", str(self.workspace), "other", "--title", "other", "--parent", "parent", "--confirm-mode", "human")
-        self.assertEqual(mismatch.returncode, 1)
+        override = self.run_state("init", str(self.workspace), "other", "--title", "other", "--parent", "parent", "--confirm-mode", "human")
+        self.assertEqual(override.returncode, 0, override.stdout)
+        other_md = self.workspace / "tasks" / "ongoing" / "parent" / "subtasks" / "other" / "TASK.md"
+        self.assertIn("confirm_mode: human", other_md.read_text(encoding="utf-8"))
         updated = self.run_state("update", str(self.workspace), child_path, "--criterion", "new observable outcome")
         self.assertEqual(updated.returncode, 0, updated.stdout)
         text = child.read_text(encoding="utf-8")
@@ -254,21 +261,35 @@ class TaskStateTest(unittest.TestCase):
         self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
 
 
+    def confirm_intent(self, task_root: Path, status: str = "confirmed") -> None:
+        (task_root / "context" / "current.md").write_text(
+            f"# 当前事实与假设\n\n## 意图\n- 确认状态：{status}\n", encoding="utf-8"
+        )
+
+    def confirm_plan(self, task_root: Path, status: str = "confirmed") -> None:
+        (task_root / "PLAN.md").write_text(
+            f"# plan\n\n## 实施确认\n- 状态：{status}\n", encoding="utf-8"
+        )
+
     def test_execute_blocks_when_design_lacks_approval_or_plan_pending(self) -> None:
         self.init("major")
         root = self.workspace / "tasks" / "ongoing" / "major"
+        self.confirm_intent(root)
         (root / "design").mkdir()
         (root / "design" / "arch.md").write_text("# arch\n", encoding="utf-8")
         blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
         self.assertEqual(blocked.returncode, 1)
         self.assertIn("APPROVED.md", blocked.stdout)
         (root / "reviews").mkdir()
+        (root / "reviews" / "APPROVED.md").write_text("   \n", encoding="utf-8")
+        empty_approval = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+        self.assertEqual(empty_approval.returncode, 1)
+        self.assertIn("APPROVED.md", empty_approval.stdout)
         (root / "reviews" / "APPROVED.md").write_text("# approved\n", encoding="utf-8")
-        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：pending\n", encoding="utf-8")
         plan_blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
         self.assertEqual(plan_blocked.returncode, 1)
         self.assertIn("pending", plan_blocked.stdout)
-        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：confirmed\n", encoding="utf-8")
+        self.confirm_plan(root)
         allowed = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
         self.assertEqual(allowed.returncode, 0, allowed.stdout)
 
@@ -277,6 +298,7 @@ class TaskStateTest(unittest.TestCase):
         self.init("child", "parent")
         parent = self.workspace / "tasks" / "ongoing" / "parent"
         child = parent / "subtasks" / "child"
+        self.confirm_plan(child)
         (child / "design").mkdir()
         (child / "design" / "detail.md").write_text("# detail\n", encoding="utf-8")
         blocked = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
@@ -285,6 +307,62 @@ class TaskStateTest(unittest.TestCase):
         (parent / "reviews" / "APPROVED.md").write_text("# parent approved\n", encoding="utf-8")
         allowed = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
         self.assertEqual(allowed.returncode, 0, allowed.stdout)
+
+    def test_legacy_intake_alias_normalizes_to_intent(self) -> None:
+        self.init("legacy-ref")
+        updated = self.run_state("update", str(self.workspace), "legacy-ref", "--current-ref", "intake")
+        self.assertEqual(updated.returncode, 0, updated.stdout)
+        task = self.workspace / "tasks" / "ongoing" / "legacy-ref" / "TASK.md"
+        self.assertIn("current_ref: intent", task.read_text(encoding="utf-8"))
+
+    def test_plan_and_execute_block_on_pending_intent_missing_plan_confirm_or_empty_criterion(self) -> None:
+        created = self.run_state("init", str(self.workspace), "strict", "--title", "strict")
+        self.assertEqual(created.returncode, 0, created.stdout)
+        root = self.workspace / "tasks" / "ongoing" / "strict"
+        plan_blocked = self.run_state("update", str(self.workspace), "strict", "--current-ref", "plan")
+        self.assertEqual(plan_blocked.returncode, 1)
+        self.assertIn("意图确认状态", plan_blocked.stdout)
+        exec_blocked = self.run_state("update", str(self.workspace), "strict", "--current-ref", "execute")
+        self.assertEqual(exec_blocked.returncode, 1)
+        self.assertIn("意图确认状态", exec_blocked.stdout)
+        self.confirm_intent(root)
+        plan_ok = self.run_state("update", str(self.workspace), "strict", "--current-ref", "plan")
+        self.assertEqual(plan_ok.returncode, 0, plan_ok.stdout)
+        no_criterion = self.run_state("update", str(self.workspace), "strict", "--current-ref", "execute")
+        self.assertEqual(no_criterion.returncode, 1)
+        self.assertIn("criterion", no_criterion.stdout)
+        (root / "PLAN.md").write_text("# 计划：没有实施确认节\n", encoding="utf-8")
+        missing_confirm = self.run_state(
+            "update", str(self.workspace), "strict", "--criterion", "verified", "--current-ref", "execute"
+        )
+        self.assertEqual(missing_confirm.returncode, 1)
+        self.assertIn("missing", missing_confirm.stdout)
+        self.confirm_plan(root)
+        allowed = self.run_state(
+            "update", str(self.workspace), "strict", "--criterion", "verified", "--current-ref", "execute"
+        )
+        self.assertEqual(allowed.returncode, 0, allowed.stdout)
+
+    def test_done_blocks_on_empty_or_headings_only_summary(self) -> None:
+        self.init("sumcheck")
+        root = self.workspace / "tasks" / "ongoing" / "sumcheck"
+        for bad in ("", "   \n", "# 交付总结\n\n## 结果与验证\n", "# 交付总结\n- TODO\n"):
+            (root / "SUMMARY.md").write_text(bad, encoding="utf-8")
+            blocked = self.run_state("update", str(self.workspace), "sumcheck", "--status", "done")
+            self.assertEqual(blocked.returncode, 1, f"should block summary={bad!r}")
+        (root / "SUMMARY.md").write_text("# 交付总结\n\n## 结果与验证\n- 测试全过。\n", encoding="utf-8")
+        ok = self.run_state("update", str(self.workspace), "sumcheck", "--status", "done")
+        self.assertEqual(ok.returncode, 0, ok.stdout)
+
+    def test_criterion_with_quotes_round_trips_cleanly(self) -> None:
+        text = '按钮文案由 "提交" 改为 "保存"，且单测全过'
+        created = self.run_state("init", str(self.workspace), "quoted", "--title", "quoted", "--criterion", text)
+        self.assertEqual(created.returncode, 0, created.stdout)
+        for _ in range(2):
+            upd = self.run_state("update", str(self.workspace), "quoted", "--current-ref", "explore")
+            self.assertEqual(upd.returncode, 0, upd.stdout)
+        task_text = (self.workspace / "tasks" / "ongoing" / "quoted" / "TASK.md").read_text(encoding="utf-8")
+        self.assertIn(f"criterion: {json.dumps(text, ensure_ascii=False)}", task_text)
 
 
 if __name__ == "__main__":

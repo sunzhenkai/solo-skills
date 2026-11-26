@@ -3,7 +3,7 @@
 # 本仓 skill 已全部第一方化；仍依赖的仓外 skill（梳理见 README「外部依赖」）：
 #   - openspec-explore / openspec-propose / openspec-apply-change / openspec-archive-change
 #       由 @fission-ai/openspec CLI 生成，不发布为独立 skill 包
-#   - grilling / grill-with-docs / domain-modeling   来自 mattpocock/skills
+#   - grilling / grill-with-docs / domain-modeling / codebase-design / diagnosing-bugs   来自 mattpocock/skills
 #   - playwright + axe-core（taskrail/scripts/ui_evidence_check.py 的运行时，非 skill）：
 #       pip install playwright && playwright install chromium；在交付仓 npm i -D axe-core
 #   - acpx（二进制，非 skill）                        agent-roster 的委派执行，https://acpx.sh
@@ -14,7 +14,7 @@
 DEFAULT_SKILLS_DIR := $(HOME)/.agents/skills
 SKILLS_DIR ?= $(DEFAULT_SKILLS_DIR)
 
-MATT_SKILLS   := grilling grill-with-docs domain-modeling
+MATT_SKILLS   := grilling grill-with-docs domain-modeling codebase-design diagnosing-bugs
 OPENSPEC_SKILLS := openspec-explore openspec-propose openspec-apply-change openspec-archive-change
 
 EXTERNAL := $(OPENSPEC_SKILLS)
@@ -23,7 +23,7 @@ EXTERNAL := $(OPENSPEC_SKILLS)
 
 help:
 	@echo "make install-deps          安装必选外部依赖（openspec-*）并跑 check"
-	@echo "make install-matt          可选：安装 grilling / grill-with-docs / domain-modeling"
+	@echo "make install-matt          可选：安装 grilling / grill-with-docs / domain-modeling / codebase-design / diagnosing-bugs"
 	@echo "make install-openspec      只生成并安装 openspec-* 四件套（经 npx @fission-ai/openspec）"
 	@echo "make install-acpx          agent-roster 的执行依赖 acpx：检测缺失并给出安装入口"
 	@echo "make check-deps            检查必选外部依赖（openspec-*）是否就绪（缺项非零退出）"
