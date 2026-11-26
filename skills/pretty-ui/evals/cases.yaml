@@ -57,36 +57,49 @@ cases:
     kind: basic
     judge: llm
     description: 单组件打磨走 build 轻量，不写完整方向卡
-    given: 「把这个定价卡片打磨得好看一点」，项目已有 token
+    given: 「把这个定价卡片打磨得好看一点」，项目已有 token，桌面为主且未提移动端
     expect:
       must:
         - 写轻量方向卡（北极星、字体、色彩三层与来源、一个特征元素、参照、放弃什么）
-        - 首轮按基础档在 1280 与 375 各截首屏并自查，交付前补整页
+        - 首轮按基础档在 1280 截首屏并自查，交付前补整页；交付说明注明「移动端 375 未检查（按需开启）」
       must_not:
         - 写完整 14 栏方向卡，或上网截标杆
 
   - id: desktop-only-target-viewport
     kind: core
     judge: llm
-    description: 桌面专用页面只验桌面目标视口
+    description: 桌面专用或未提移动端且无移动端线索时默认跳过 375
     given: 「打磨这个仅桌面使用的数据工作台」，项目没有移动端交付要求
     expect:
       must:
-        - 简报把目标视口定为 1280，首轮截首屏并量测，交付前补整页
+        - 简报把目标视口定为 1280 并记录跳过 375 的依据，首轮截首屏并量测，交付前补整页
+        - 交付说明的未验证项写明「移动端 375 未检查（按需开启）」
         - 复用同一本地服务和浏览器会话
       must_not:
         - 仅因基础档旧惯例补截 375 手机视口
 
-  - id: responsive-keeps-two-viewports
+  - id: responsive-mobile-basic-check
     kind: regression
     judge: llm
-    description: 响应式或设备无法判断时保留双视口
-    given: 新做一个需要桌面和手机使用的设置页
+    description: 桌面为主但需兼容手机或自动推断为公开多端/响应式页时，375 走交付前基础检查
+    given: 做一个以桌面使用为主、需兼容手机访问的公开产品落地页或设置页（未要求移动端观感验收）
     expect:
       must:
-        - 首轮在 1280 与 375 各截首屏并分别量测，交付前补齐整页
+        - 1280 走完整三档（首轮首屏、交付整页与量测）
+        - 交付前复用当前浏览器会话切一次 375，跑 DOM 量测并截 1 张首屏快看，只修 P0 破损
       must_not:
-        - 把响应式页面按桌面专用处理
+        - 把 375 纳入多轮复审、补整页与状态档，或做精致度/设计感打磨
+
+  - id: mobile-explicit-or-inferred-full
+    kind: core
+    judge: llm
+    description: 用户明确要求移动端体验/验收，或自动推断为手机专用/H5/移动优先时，375 走完整验证
+    given: 「做一个移动端 H5 活动页，手机上要好看」或「新做一个双端并重的设置页并按手机端体验验收」
+    expect:
+      must:
+        - 375 作为正式目标视口走完整三档截图、量测与评审（手机专用仅 375，双端并重则 1280 + 375）
+      must_not:
+        - 对明确要求移动端验收或移动优先的页面降级为仅基础检查或跳过 375
 
   - id: existing-brand-kept
     kind: boundary
@@ -146,7 +159,7 @@ cases:
     expect:
       must:
         - 结论标“未渲染验证”，问题标 code-only
-        - 交付说明写明没看过画面、建议用户在目标视口确认；响应式页面为 1280 与 375
+        - 交付说明写明没看过画面、建议用户在目标视口确认（桌面 1280；按需或要求移动端时补 375）
       must_not:
         - 写“已检查视觉效果”“截图确认无误”之类的话
 
@@ -166,10 +179,10 @@ cases:
     kind: core
     judge: llm
     description: refine 先截图诊断，按顺序修，交付前后对比
-    given: 「这个设置页不好看，优化一下」，项目可本地运行
+    given: 「这个设置页不好看，优化一下」，项目可本地运行，未提移动端且无移动端线索
     expect:
       must:
-        - 改前按基础档在 1280 与 375 各截首屏和整页，诊断出带规则号的问题
+        - 改前按基础档在目标视口（默认 1280）截首屏和整页，诊断出带规则号的问题
         - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
         - 同一路由、同一视口、同一份数据截改后图，一起交付
       must_not:
@@ -191,7 +204,7 @@ cases:
     kind: boundary
     judge: llm
     description: 首屏已覆盖整页时不重复截图
-    given: 一个内容高度不足一屏的响应式单组件页面
+    given: 一个内容高度不足一屏的单组件页面，要求双端完整验收
     expect:
       must:
         - 1280 与 375 各保留一张首屏，兼作最终整页证据
@@ -402,12 +415,12 @@ cases:
   - id: page-reading-measure
     kind: core
     judge: deterministic
-    description: 宽容器里的正文单独限宽，两个视口都看过
-    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入，在 1280 与 375 视口截图
+    description: 宽容器里的正文单独限宽，1280 完整验且 375 走交付前基础检查
+    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入生成阅读页
     expect:
       must:
         - 1280 下正文每行不超过 46 个汉字，正文 16–18px、行高 1.6–1.75
-        - 375 下没有横向溢出，宽表格在自己的容器里滚动
+        - 交付前 375 跑一次 DOM 量测 + 1 张首屏快看，没有横向溢出，宽表格在自己的容器里滚动
       must_not:
         - 正文段落铺满 1200px 以上的容器
 

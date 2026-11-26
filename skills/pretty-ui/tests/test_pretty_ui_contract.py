@@ -82,6 +82,8 @@ class SkillEntryTest(unittest.TestCase):
     def test_render_gate(self) -> None:
         self.assertIn("1280", SKILL)
         self.assertIn("375", SKILL)
+        self.assertIn("跳过 / 基础检查 / 完整验证", SKILL)
+        self.assertIn("明确要求与自动推断", SKILL)
         self.assertIn("未渲染验证", SKILL)
         self.assertIn("code-only", SKILL)
         self.assertIn("scripts/check_page.py", SKILL)
@@ -203,7 +205,7 @@ class RulesTest(unittest.TestCase):
 
     def test_target_viewports(self) -> None:
         self.assertIn("目标视口都没有横向溢出", self.TEXT)
-        self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
+        self.assertIn("移动端按明确要求与自动推断分跳过 / 基础检查 / 完整验证", self.TEXT)
         self.assertIn("被祖先 `overflow` 裁掉也算裁切", self.TEXT)
         self.assertIn("可滚动容器里滚得到的那一侧", self.TEXT)
         for phrase in ("24×24px", "滚动条", "color-scheme", "28–36px"):
@@ -250,8 +252,12 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("只截上一轮问题涉及的区域和视口", self.TEXT)
 
     def test_target_viewports(self) -> None:
-        self.assertIn("桌面专用选 1280，手机专用选 375", self.TEXT)
-        self.assertIn("响应式或无法判断时选 1280 + 375", self.TEXT)
+        self.assertIn("主视口默认桌面 1280（手机专用则为 375）", self.TEXT)
+        self.assertIn("明确要求必须 + 未明说自动推断", self.TEXT)
+        for tier in ("| 跳过（默认） |", "| 基础检查 |", "| 完整验证（必须） |"):
+            self.assertIn(tier, self.TEXT)
+        self.assertIn("交付前复用当前浏览器会话切一次 375，跑第 3 节 DOM 量测并截 1 张首屏快看", self.TEXT)
+        self.assertIn("移动端 375 未检查（按需开启）", self.TEXT)
         self.assertIn("上游另有视口硬门时按上游", self.TEXT)
 
     def test_tools_and_measure(self) -> None:
@@ -289,7 +295,7 @@ class PageTest(unittest.TestCase):
     def test_starts_from_template(self) -> None:
         self.assertIn("从 [assets/reading-page.html](../assets/reading-page.html) 起手", self.TEXT)
         self.assertIn("[evidence.md](evidence.md) 截图并量行长", self.TEXT)
-        self.assertIn("阅读页默认响应式", self.TEXT)
+        self.assertIn("阅读页默认桌面 1280 完整验、移动端 375 走基础检查", self.TEXT)
 
     def test_reading_layout(self) -> None:
         self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)

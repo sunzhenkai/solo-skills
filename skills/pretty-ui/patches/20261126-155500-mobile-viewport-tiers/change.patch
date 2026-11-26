@@ -1,0 +1,231 @@
+diff --git a/skills/pretty-ui/SKILL.md b/skills/pretty-ui/SKILL.md
+index 766a7fa..38ef8b3 100644
+--- a/skills/pretty-ui/SKILL.md
++++ b/skills/pretty-ui/SKILL.md
+@@ -61,7 +61,7 @@ page、build 轻量和上游计划的“视觉方向”用它：北极星、字
+ 
+ ## 看图与确认
+ 
+-- 截图与量测按 evidence.md：响应式验桌面 1280 / 手机 375，首轮首屏、交付整页。无法截图时标“未渲染验证”，问题标 `code-only`。
++- 截图与量测按 evidence.md：默认桌面 1280 为主视口（首轮首屏、交付整页），手机 375 按明确要求与自动推断分「跳过 / 基础检查 / 完整验证」三档。无法截图时标“未渲染验证”，问题标 `code-only`。
+ - 静态页面跑 `python3 scripts/check_page.py <路径>`（相对本 skill 目录）：报错修好再交，提示逐条改掉或在交付说明写理由。
+ - **goal 模式或无人值守**：不停下等确认；隔离评审者（另一个模型）对照参照页看改前改后截图下结论，按结论迭代。
+ - **human 模式**（独立使用默认）：评审后把改前改后截图交给用户，用户说可以才算完成。
+diff --git a/skills/pretty-ui/evals/cases.yaml b/skills/pretty-ui/evals/cases.yaml
+index d66e254..9223c52 100644
+--- a/skills/pretty-ui/evals/cases.yaml
++++ b/skills/pretty-ui/evals/cases.yaml
+@@ -57,36 +57,49 @@ cases:
+     kind: basic
+     judge: llm
+     description: 单组件打磨走 build 轻量，不写完整方向卡
+-    given: 「把这个定价卡片打磨得好看一点」，项目已有 token
++    given: 「把这个定价卡片打磨得好看一点」，项目已有 token，桌面为主且未提移动端
+     expect:
+       must:
+         - 写轻量方向卡（北极星、字体、色彩三层与来源、一个特征元素、参照、放弃什么）
+-        - 首轮按基础档在 1280 与 375 各截首屏并自查，交付前补整页
++        - 首轮按基础档在 1280 截首屏并自查，交付前补整页；交付说明注明「移动端 375 未检查（按需开启）」
+       must_not:
+         - 写完整 14 栏方向卡，或上网截标杆
+ 
+   - id: desktop-only-target-viewport
+     kind: core
+     judge: llm
+-    description: 桌面专用页面只验桌面目标视口
++    description: 桌面专用或未提移动端且无移动端线索时默认跳过 375
+     given: 「打磨这个仅桌面使用的数据工作台」，项目没有移动端交付要求
+     expect:
+       must:
+-        - 简报把目标视口定为 1280，首轮截首屏并量测，交付前补整页
++        - 简报把目标视口定为 1280 并记录跳过 375 的依据，首轮截首屏并量测，交付前补整页
++        - 交付说明的未验证项写明「移动端 375 未检查（按需开启）」
+         - 复用同一本地服务和浏览器会话
+       must_not:
+         - 仅因基础档旧惯例补截 375 手机视口
+ 
+-  - id: responsive-keeps-two-viewports
++  - id: responsive-mobile-basic-check
+     kind: regression
+     judge: llm
+-    description: 响应式或设备无法判断时保留双视口
+-    given: 新做一个需要桌面和手机使用的设置页
++    description: 桌面为主但需兼容手机或自动推断为公开多端/响应式页时，375 走交付前基础检查
++    given: 做一个以桌面使用为主、需兼容手机访问的公开产品落地页或设置页（未要求移动端观感验收）
+     expect:
+       must:
+-        - 首轮在 1280 与 375 各截首屏并分别量测，交付前补齐整页
++        - 1280 走完整三档（首轮首屏、交付整页与量测）
++        - 交付前复用当前浏览器会话切一次 375，跑 DOM 量测并截 1 张首屏快看，只修 P0 破损
+       must_not:
+-        - 把响应式页面按桌面专用处理
++        - 把 375 纳入多轮复审、补整页与状态档，或做精致度/设计感打磨
++
++  - id: mobile-explicit-or-inferred-full
++    kind: core
++    judge: llm
++    description: 用户明确要求移动端体验/验收，或自动推断为手机专用/H5/移动优先时，375 走完整验证
++    given: 「做一个移动端 H5 活动页，手机上要好看」或「新做一个双端并重的设置页并按手机端体验验收」
++    expect:
++      must:
++        - 375 作为正式目标视口走完整三档截图、量测与评审（手机专用仅 375，双端并重则 1280 + 375）
++      must_not:
++        - 对明确要求移动端验收或移动优先的页面降级为仅基础检查或跳过 375
+ 
+   - id: existing-brand-kept
+     kind: boundary
+@@ -146,7 +159,7 @@ cases:
+     expect:
+       must:
+         - 结论标“未渲染验证”，问题标 code-only
+-        - 交付说明写明没看过画面、建议用户在目标视口确认；响应式页面为 1280 与 375
++        - 交付说明写明没看过画面、建议用户在目标视口确认（桌面 1280；按需或要求移动端时补 375）
+       must_not:
+         - 写“已检查视觉效果”“截图确认无误”之类的话
+ 
+@@ -166,10 +179,10 @@ cases:
+     kind: core
+     judge: llm
+     description: refine 先截图诊断，按顺序修，交付前后对比
+-    given: 「这个设置页不好看，优化一下」，项目可本地运行
++    given: 「这个设置页不好看，优化一下」，项目可本地运行，未提移动端且无移动端线索
+     expect:
+       must:
+-        - 改前按基础档在 1280 与 375 各截首屏和整页，诊断出带规则号的问题
++        - 改前按基础档在目标视口（默认 1280）截首屏和整页，诊断出带规则号的问题
+         - 按重做 → P0 → P1 → 提升的顺序改，沿用既有体系
+         - 同一路由、同一视口、同一份数据截改后图，一起交付
+       must_not:
+@@ -191,7 +204,7 @@ cases:
+     kind: boundary
+     judge: llm
+     description: 首屏已覆盖整页时不重复截图
+-    given: 一个内容高度不足一屏的响应式单组件页面
++    given: 一个内容高度不足一屏的单组件页面，要求双端完整验收
+     expect:
+       must:
+         - 1280 与 375 各保留一张首屏，兼作最终整页证据
+@@ -402,12 +415,12 @@ cases:
+   - id: page-reading-measure
+     kind: core
+     judge: deterministic
+-    description: 宽容器里的正文单独限宽，两个视口都看过
+-    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入，在 1280 与 375 视口截图
++    description: 宽容器里的正文单独限宽，1280 完整验且 375 走交付前基础检查
++    given: 以 evals/fixtures/marine-life/SOURCE.md 为输入生成阅读页
+     expect:
+       must:
+         - 1280 下正文每行不超过 46 个汉字，正文 16–18px、行高 1.6–1.75
+-        - 375 下没有横向溢出，宽表格在自己的容器里滚动
++        - 交付前 375 跑一次 DOM 量测 + 1 张首屏快看，没有横向溢出，宽表格在自己的容器里滚动
+       must_not:
+         - 正文段落铺满 1200px 以上的容器
+ 
+diff --git a/skills/pretty-ui/references/evidence.md b/skills/pretty-ui/references/evidence.md
+index 55a0292..3dca212 100644
+--- a/skills/pretty-ui/references/evidence.md
++++ b/skills/pretty-ui/references/evidence.md
+@@ -9,9 +9,17 @@
+ - 同一任务复用本地服务和浏览器会话；每个视口连续完成尺寸调整、量测与截图，不为单张图重启服务或浏览器。首轮首屏完成即可交评审，最终整页按档位补齐。
+ - 页面开了 `scroll-behavior: smooth` 时，截某一区域前用 `window.scrollTo({ top, behavior: "instant" })` 跳过去，免得截到滚动中途。
+ 
+-## 2. 三档截图
++## 2. 视口选定与三档截图
+ 
+-先按简报中的设备与项目既有断点选目标视口：桌面专用选 1280，手机专用选 375；响应式或无法判断时选 1280 + 375。另一视口出现断点、溢出或交付风险时补入；上游另有视口硬门时按上游。以下各档只截选中的视口。
++主视口默认桌面 1280（手机专用则为 375），走下方完整三档截图与评审；手机 375 按「明确要求必须 + 未明说自动推断」落入三档之一，并在简报记录选定结果与依据（上游另有视口硬门时按上游）：
++
++| 移动端 375 档位 | 触发条件（明确要求 / 自动推断） | 做法 |
++| --- | --- | --- |
++| 跳过（默认） | 桌面专用、后台工具，或未提及移动端且项目无移动端布局/交付线索 | 只验 1280；交付说明的未验证项写明「移动端 375 未检查（按需开启）」 |
++| 基础检查 | 用户要求兼容手机/响应式（未要求移动端观感验收），或自动推断为桌面为主但需兼顾窄屏（如公开内容页、落地页、已有响应式断点的多端页、`page` 阅读页） | 交付前复用当前浏览器会话切一次 375，跑第 3 节 DOM 量测并截 1 张首屏快看；只修 P0 破损（横向溢出、重叠遮挡、裁切、裂图、极小热区 `<24px`、环被裁），不补整页与状态档、不入隔离评审的精致度/设计感打磨 |
++| 完整验证（必须） | 用户明确要求移动端体验或移动端观感验收、上游硬门要求；或自动推断为手机专用 / 移动优先 / 双端并重产品（如 H5、移动端 WebApp、项目以移动端布局为主） | 375 作为正式目标视口走完整三档与评审（手机专用仅 375，双端并重则 1280 + 375）；基础检查暴露移动端核心布局风险时亦升入本档 |
++
++以下各档针对选定的完整验证目标视口：
+ 
+ | 档 | 何时 | 截什么 |
+ | --- | --- | --- |
+@@ -19,9 +27,9 @@
+ | 状态档 | 交付前的最后一轮，截一次 | 每个目标视口补整页，首屏已覆盖整页时复用首屏；另截本次新增或改动涉及的状态：空、加载、出错、长文本、数据很多；有交互的再截默认、悬停或聚焦、选中、禁用 |
+ | 复审档 | 第二轮起 | 只截上一轮问题涉及的区域和视口，同一路由、同一份演示数据 |
+ 
+-- 三秒测试用的缩略图（首屏缩到 480 宽，手机图缩到 180 宽）由基础档截图缩小得到，不另截；遮掉文字的版本只在评审者要求时另截。
++- 三秒测试用的缩略图（首屏缩到 480 宽；375 走完整验证时手机图缩到 180 宽）由基础档截图缩小得到，不另截；遮掉文字的版本只在评审者要求时另截。
+ - 关键区域按 100% 看，精致度按 200% 看，放大已有截图即可。
+-- **改前改后**：refine 和上游要求对比时，改前、改后按同一目标视口、路由和演示数据留基础档与最终整页。
++- **改前改后**：refine 和上游要求对比时，改前、改后按同一目标视口、路由和演示数据留基础档与最终整页；仅做基础检查的 375 无需改前改后对照。
+ 
+ ## 3. 量一量
+ 
+diff --git a/skills/pretty-ui/references/page.md b/skills/pretty-ui/references/page.md
+index 0bde746..83f48d4 100644
+--- a/skills/pretty-ui/references/page.md
++++ b/skills/pretty-ui/references/page.md
+@@ -16,7 +16,7 @@
+ 4. **单页还是多页**：默认单页；只有内容由多个可独立阅读、分享或维护的主题组成，或用户明确要求时才拆多页。篇幅长本身不是拆页理由。
+ 5. **轻量方向卡**：按 [SKILL.md](../SKILL.md)「轻量方向卡」写，填进模板顶部的注释里。同一内容包共用一张卡；根聚合页已存在时沿用它的视觉语言。
+ 6. **生成**：从 [assets/reading-page.html](../assets/reading-page.html) 起手，复制后改标题、导航链接、方向卡注释和 `:root` 色值，正文换成真实内容；布局按第 6 节，组件按第 7 节；需要架构、流程、关系、状态、时序等图解时，读 [html-diagram/REFERENCE.md](html-diagram/REFERENCE.md)，按它选型并嵌入当前阅读页，默认不另建独立图解文件。
+-7. **检查与看图**：对 `<output-root>` 跑 `python3 scripts/check_page.py --offline <output-root>`，报错项修完；按 [evidence.md](evidence.md) 截图并量行长（阅读页默认响应式），修掉溢出、过长的行、孤字和被裁的表格；看不了图时在交付说明里写“未渲染验证”。
++7. **检查与看图**：对 `<output-root>` 跑 `python3 scripts/check_page.py --offline <output-root>`，报错项修完；按 [evidence.md](evidence.md) 截图并量行长（阅读页默认桌面 1280 完整验、移动端 375 走基础检查，用户明确要求移动端验收时升为完整验证），修掉溢出、过长的行、孤字和被裁的表格；看不了图时在交付说明里写“未渲染验证”。
+ 8. **更新入口**：更新内容包首页与根聚合页（第 4 节），逐条过第 8 节的完成检查。
+ 
+ ## 3. 文件组织
+diff --git a/skills/pretty-ui/references/rules.md b/skills/pretty-ui/references/rules.md
+index 4bdc26d..4f4223a 100644
+--- a/skills/pretty-ui/references/rules.md
++++ b/skills/pretty-ui/references/rules.md
+@@ -54,7 +54,7 @@ P0 清单（即使用户只问了别的，也要报）：
+ - **S5** 固定尺寸的元素（侧栏、图标、头像）用固定宽度；小视口里任何元素都不比大视口时更宽。
+ - **S6** 手机布局是单独设计的，大元素缩得比小元素快；组件内边距随字号变化。
+ - **S7** 对齐到少数几条锚线：整页的标题和正文块共享两三条左边缘起点。
+-- **S8** 目标视口都没有横向溢出、重叠、裁切；用 `0 0 0 1px` 外扩阴影或 outline 画的细线被祖先 `overflow` 裁掉也算裁切；响应式页面至少验 1280 与 375，可点击目标底线至少 24×24px（P0），常规按钮与移动端触控目标建议 ≥40×40px。
++- **S8** 目标视口都没有横向溢出、重叠、裁切；用 `0 0 0 1px` 外扩阴影或 outline 画的细线被祖先 `overflow` 裁掉也算裁切；视口范围与移动端 375 检查档位按 [evidence.md](evidence.md) 确定（桌面默认 1280，移动端按明确要求与自动推断分跳过 / 基础检查 / 完整验证），可点击目标底线至少 24×24px（P0），常规按钮与移动端触控目标建议 ≥40×40px。
+ - **S9** 一处分隔只用一种手段：间距、底色差、边框、阴影四选一，通常间距或底色差就够。
+ 
+ ### T 排版
+diff --git a/skills/pretty-ui/tests/test_pretty_ui_contract.py b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+index fab9d3f..bf58cea 100644
+--- a/skills/pretty-ui/tests/test_pretty_ui_contract.py
++++ b/skills/pretty-ui/tests/test_pretty_ui_contract.py
+@@ -82,6 +82,8 @@ class SkillEntryTest(unittest.TestCase):
+     def test_render_gate(self) -> None:
+         self.assertIn("1280", SKILL)
+         self.assertIn("375", SKILL)
++        self.assertIn("跳过 / 基础检查 / 完整验证", SKILL)
++        self.assertIn("明确要求与自动推断", SKILL)
+         self.assertIn("未渲染验证", SKILL)
+         self.assertIn("code-only", SKILL)
+         self.assertIn("scripts/check_page.py", SKILL)
+@@ -203,7 +205,7 @@ class RulesTest(unittest.TestCase):
+ 
+     def test_target_viewports(self) -> None:
+         self.assertIn("目标视口都没有横向溢出", self.TEXT)
+-        self.assertIn("响应式页面至少验 1280 与 375", self.TEXT)
++        self.assertIn("移动端按明确要求与自动推断分跳过 / 基础检查 / 完整验证", self.TEXT)
+         self.assertIn("被祖先 `overflow` 裁掉也算裁切", self.TEXT)
+         self.assertIn("可滚动容器里滚得到的那一侧", self.TEXT)
+         for phrase in ("24×24px", "滚动条", "color-scheme", "28–36px"):
+@@ -250,8 +252,12 @@ class EvidenceTest(unittest.TestCase):
+         self.assertIn("只截上一轮问题涉及的区域和视口", self.TEXT)
+ 
+     def test_target_viewports(self) -> None:
+-        self.assertIn("桌面专用选 1280，手机专用选 375", self.TEXT)
+-        self.assertIn("响应式或无法判断时选 1280 + 375", self.TEXT)
++        self.assertIn("主视口默认桌面 1280（手机专用则为 375）", self.TEXT)
++        self.assertIn("明确要求必须 + 未明说自动推断", self.TEXT)
++        for tier in ("| 跳过（默认） |", "| 基础检查 |", "| 完整验证（必须） |"):
++            self.assertIn(tier, self.TEXT)
++        self.assertIn("交付前复用当前浏览器会话切一次 375，跑第 3 节 DOM 量测并截 1 张首屏快看", self.TEXT)
++        self.assertIn("移动端 375 未检查（按需开启）", self.TEXT)
+         self.assertIn("上游另有视口硬门时按上游", self.TEXT)
+ 
+     def test_tools_and_measure(self) -> None:
+@@ -289,7 +295,7 @@ class PageTest(unittest.TestCase):
+     def test_starts_from_template(self) -> None:
+         self.assertIn("从 [assets/reading-page.html](../assets/reading-page.html) 起手", self.TEXT)
+         self.assertIn("[evidence.md](evidence.md) 截图并量行长", self.TEXT)
+-        self.assertIn("阅读页默认响应式", self.TEXT)
++        self.assertIn("阅读页默认桌面 1280 完整验、移动端 375 走基础检查", self.TEXT)
+ 
+     def test_reading_layout(self) -> None:
+         self.assertIn("中文每行 30–40 字（上限 46）", self.TEXT)

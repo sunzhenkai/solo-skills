@@ -16,7 +16,7 @@
 4. **单页还是多页**：默认单页；只有内容由多个可独立阅读、分享或维护的主题组成，或用户明确要求时才拆多页。篇幅长本身不是拆页理由。
 5. **轻量方向卡**：按 [SKILL.md](../SKILL.md)「轻量方向卡」写，填进模板顶部的注释里。同一内容包共用一张卡；根聚合页已存在时沿用它的视觉语言。
 6. **生成**：从 [assets/reading-page.html](../assets/reading-page.html) 起手，复制后改标题、导航链接、方向卡注释和 `:root` 色值，正文换成真实内容；布局按第 6 节，组件按第 7 节；需要架构、流程、关系、状态、时序等图解时，读 [html-diagram/REFERENCE.md](html-diagram/REFERENCE.md)，按它选型并嵌入当前阅读页，默认不另建独立图解文件。
-7. **检查与看图**：对 `<output-root>` 跑 `python3 scripts/check_page.py --offline <output-root>`，报错项修完；按 [evidence.md](evidence.md) 截图并量行长（阅读页默认响应式），修掉溢出、过长的行、孤字和被裁的表格；看不了图时在交付说明里写“未渲染验证”。
+7. **检查与看图**：对 `<output-root>` 跑 `python3 scripts/check_page.py --offline <output-root>`，报错项修完；按 [evidence.md](evidence.md) 截图并量行长（阅读页默认桌面 1280 完整验、移动端 375 走基础检查，用户明确要求移动端验收时升为完整验证），修掉溢出、过长的行、孤字和被裁的表格；看不了图时在交付说明里写“未渲染验证”。
 8. **更新入口**：更新内容包首页与根聚合页（第 4 节），逐条过第 8 节的完成检查。
 
 ## 3. 文件组织
