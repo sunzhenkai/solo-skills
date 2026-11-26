@@ -15,7 +15,7 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物�
 ## 执行方法
 1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
 2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
-3. 只读 explore / diagnose 可沿当前最小计划继续。首次 execute 前或实施方案实质变化后，human 按 [confirm-protocol.md](confirm-protocol.md) 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
+3. 只读 explore / diagnose 可沿当前最小计划继续。若本任务存在 `design/` 或命中大型项目 / 重大改动 / 架构调整，进入 execute 前须先按 `anti-lazy` 核对「哪件事只有用户能定」与目标差距，并确保整体方案已按 [confirm-protocol.md](confirm-protocol.md) 与 [approve.md](approve.md) 完成人话对齐并落 `reviews/APPROVED.md`（不以最小步骤清单替代整体方案对齐）。首次 execute 前或实施方案实质变化后，human 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
 4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
 5. 每个实际执行的子任务首次 execute 前确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
 6. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
@@ -25,7 +25,7 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物�
 `PLAN.md`：当前步骤、验证策略、必要约束、产物指针和实施确认记录。
 
 ## 完成门
-每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。进入 execute 前，human 的当前实施内容必须为 confirmed，goal 已简要复述；确认前不得进入 execute 或写代码。
+每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。存在 `design/` 产物时须已有 `reviews/APPROVED.md`（或父批准覆盖）；进入 execute 前，human 的当前实施内容必须为 confirmed，goal 已完成所需重大方案放行并简要复述；确认前不得进入 execute 或写代码。
 
 ## 退出与重入
 按 router 选下一 reference。新事实使步骤失效时只改未执行部分，已勾项保留证据；实施内容实质变化时重入本环节并重新确认。

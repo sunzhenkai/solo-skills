@@ -598,3 +598,30 @@ cases:
         - 让 worker 直接修改父 TASK 或自行重复认领其他单位
         - 按 claimed_at 时间自动释放仍在运行的任务
         - 以认领替代同任务同仓写串行或 worktree 隔离
+
+  - id: major-architecture-change-aligns-in-plain-language
+    kind: regression
+    judge: llm
+    description: 大型项目、重大改动或架构调整在默认 human 与 goal 下均先用人话对齐方案再动工
+    given: 用户发起跨模块架构重构（含使用 /goal 且未明确声明豁免方案对齐），任务在独立 git worktree 分支实施
+    expect:
+      must:
+        - 识别为重大改动或架构调整，不因在 git 分支内可逆或属于同任务内部切片而跳过 approve
+        - 先按 anti-lazy 自检哪些决定只有用户能定，再以人话讲清现状与目标、整体方案、关键取舍、影响面与回退，停等用户明确放行
+        - 取得放行并落 reviews/APPROVED.md 后再进入 execute；goal 放行后后续实施与切片按自动模式推进
+      must_not:
+        - 仅落盘 design 文档或只给裸文件路径与最小步骤清单即直接开工
+        - 在用户未原话豁免方案对齐时用异源审或自问自答直接跳过首次重大方案对齐
+
+  - id: major-tradeoff-grill-engages-user-not-self-answer
+    kind: core
+    judge: llm
+    description: 重大架构或路线取舍通过设计树前沿与用户拉齐，局部技术细节仍自答
+    given: 大型改动存在两条架构路线取舍，同时有一个局部内部命名待定
+    expect:
+      must:
+        - 局部内部命名先查一手资料并自问自答记录到 decisions
+        - 重大架构取舍整理为带推荐项的设计树前沿问题停下与用户拉齐，必要时按需启用可选外部 skill grilling 或 grill-with-docs
+      must_not:
+        - 对架构级或契约级取舍由 agent 自问自答直接拍板闭环
+        - 把局部可逆实现细节也抛给用户逐项询问

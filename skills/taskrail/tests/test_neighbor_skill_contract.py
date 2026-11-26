@@ -30,6 +30,13 @@ class NeighborSkillContract(unittest.TestCase):
         self.assertIn("踩坑和操作台账交给 `wiki-data`", close)
         self.assertIn("跨任务的 skill 改进交给 `skill-upgrader`", close)
 
+    def test_anti_lazy_and_optional_grilling_wired_at_key_gates(self) -> None:
+        for name in ("confirm-protocol.md", "design.md", "plan.md", "verify.md"):
+            self.assertIn("`anti-lazy`", read(name), name)
+        grill = read("grill.md")
+        self.assertIn("不自答闭环", grill)
+        self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)
+
     def test_examples_index_has_no_removed_wizard_path(self) -> None:
         index = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
         self.assertIn("旧 handoff 兼容回归样例", index)

@@ -213,6 +213,12 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
                 if not DRIVER.fullmatch(item) or item != expected:
                     raise StateError(f"driver must be {expected!r} or null")
             meta[key] = item
+        if changes.get("current_ref") == "execute":
+            if has_design_docs(task_md.parent) and not has_approval(task_md.parent, workspace, meta.get("parent")):
+                raise StateError("execute requires reviews/APPROVED.md when design docs exist")
+            plan_state = plan_confirm_state(task_md.parent)
+            if plan_state is not None and plan_state not in {"confirmed", "not-required"}:
+                raise StateError(f"execute requires PLAN.md 实施确认 to be confirmed or not-required, got {plan_state!r}")
         if changes.get("status") == "done":
             if not (task_md.parent / "SUMMARY.md").is_file():
                 raise StateError("done requires SUMMARY.md with verification and knowledge closure")
@@ -311,6 +317,31 @@ def rebuild_index(workspace: Path) -> Path:
     index = root / "INDEX.md"
     atomic_write(index, "\n".join(lines) + "\n")
     return index
+
+
+def has_design_docs(task_root: Path) -> bool:
+    design_dir = task_root / "design"
+    return design_dir.is_dir() and any(design_dir.glob("*.md"))
+
+
+def has_approval(task_root: Path, workspace: Path, parent: str | None) -> bool:
+    candidates = [task_root / "reviews" / "APPROVED.md", task_root / "approve" / "APPROVED.md"]
+    if parent and parent not in {"", "null", "None"}:
+        parent_root = workspace / "tasks" / "ongoing" / parent
+        candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
+    return any(path.is_file() for path in candidates)
+
+
+def plan_confirm_state(task_root: Path) -> str | None:
+    plan_md = task_root / "PLAN.md"
+    if not plan_md.is_file():
+        return None
+    text = plan_md.read_text(encoding="utf-8")
+    match = re.search(r"^##\s+实施确认\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
+    if not match:
+        return None
+    status = re.search(r"^\s*[-*]?\s*状态\s*[:：]\s*(\S+)", match.group(1), re.M)
+    return status.group(1).strip() if status else "pending"
 
 
 def child_tasks(path: Path) -> list[Path]:

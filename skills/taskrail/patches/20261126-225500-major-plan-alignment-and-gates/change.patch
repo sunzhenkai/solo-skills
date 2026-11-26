@@ -1,0 +1,414 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 1462ee9..f225568 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -15,7 +15,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意
+ 先判定用户要的交付物，再决定是否进入任务轨道：
+ 
+ - 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
+-- 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、多阶段或跨项目开发编排：按下文输入进入任务轨道。
++- 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
+ - 普通问答、只读分析或一次性改动，且没有上两项信号：直接回答、实施或使用对应领域 skill。
+ 
+ 只有第二项绑定或恢复 TASK。入口误加载时完成分诊即退出，不写 TASK / INDEX，不建 worktree。
+@@ -31,7 +31,7 @@ taskrail explain [task-id]
+ taskrail list
+ ```
+ 
+-`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
++`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)；遇到**大型项目、重大改动或架构调整**且用户本会话未明确豁免时，无论 `human` 还是 `goal`，进入实施前均先用人话对齐整体方案并等用户明确放行（`goal` 放行后后续按自动模式推进）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
+ 
+ ## 绑定与恢复
+ 
+@@ -52,7 +52,7 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` 
+ 3. 只加载命中的 reference；其统一结构见 [references/ref-contract.md](references/ref-contract.md)。
+ 4. 完成一个可检查动作，产生产物或证据。
+ 5. 用热状态脚本更新 TASK / INDEX，把路由原因追加到 `history.md`，决定写入 `decisions.md`。
+-6. 重新路由；只在确认协议规定的停点或真阻塞时停。
++6. 重新路由；命中意图确认、重大方案人话对齐、实施确认或真阻塞停点时停下等明确回复，其余按认知增量同步并继续。
+ 
+ 路由型 references（从这里直接打开，命中才读）：
+ 
+diff --git a/skills/taskrail/references/confirm-protocol.md b/skills/taskrail/references/confirm-protocol.md
+index 9d71594..13956f0 100644
+--- a/skills/taskrail/references/confirm-protocol.md
++++ b/skills/taskrail/references/confirm-protocol.md
+@@ -11,7 +11,7 @@
+ | 实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或使用未提交改动 | 视为方案或风险变化，更新 PLAN 并停等明确确认 | 简要复述变化并继续；命中 approve / 真阻塞时仍审或停 |
+ | decompose 将同次交付改为独立分支 / 发布 / 子任务，或改变交付顺序 | 呈现 ROADMAP、交付边界和依赖，停等明确确认；同任务内部切片不停 | 简要复述 ROADMAP 并继续 |
+ | 接受未修复的 Blocker / Major，或验证不足 / 缩小交付 | 说明未修复项、缺失证据和剩余风险，停等明确接受；修复后重验不停 | Blocker / Major 不放行；其他按真阻塞与判据变更规则处理 |
+-| router 选中 approve | 停，呈现推荐、取舍与回滚 | 异源模型审，收敛继续 |
++| 大型项目 / 重大改动 / 架构调整，或 router 选中 approve | 按 user-report 人话呈现整体方案、取舍与回退，停等明确确认；不因分支内可逆或内部切片跳过 | 重大方案首次落定 / 实质变更先停等用户人话确认（本会话原话豁免改异源审）；其余异源模型审，收敛继续 |
+ | 子任务未超父 ROADMAP 范围和子判据 | 意图、approve 不重复停；PLAN 按上述实施确认规则 | 同左 |
+ | 用户原话有观感目标 | 评审后给用户看改前 / 改后，认可才完成 | 异源模型审截图并迭代 |
+ | 普通 reference 切换、片间检查点、就绪子任务之间 | 仅同步用户需要知道的新增信息；纯内部迁移不单独汇报，继续且不等回复 | 同左 |
+@@ -21,7 +21,7 @@
+ 
+ ## 闸口前自查
+ 
+-criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界；ROADMAP 子判据覆盖总判据、依赖无环。未过先回对应 reference，不拿审批代替事实。
++criterion 可检查；当前 plan 能走到判据；交付标准无漏 / 越界；ROADMAP 子判据覆盖总判据、依赖无环；重大方案与交付前按 `anti-lazy` 核对用户决策边界与目标差距。未过先回对应 reference，不拿审批代替事实。
+ 
+ ## 异源模型审
+ 
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index 5cb5358..dd03495 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -18,14 +18,14 @@
+ | 阻碍当前路径的 `F-n` 尚不能准确提问 | explore 做一次最小探索，形成 `U-n` | 已有证据能准确提问，或不妨碍当前交付 |
+ | bug / 性能 / flaky 原因未证明 | diagnose | 原因已有一手证据，或只是明确文案 / 配置错误 |
+ | 多个方案带来实质外部取舍，约束冲突 | grill | 没有会改变方案的关键未知或取舍 |
+-| 公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 契约变化 |
+-| 用户要求审批、难逆高风险、判据或重要外部行为改变 | approve | 普通可逆改动，或 goal 下无强制批准条件 |
++| 大型项目、公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 架构 / 契约变化 |
++| 大型项目 / 重大改动 / 架构调整 / 公共契约变更、用户要求审批、难逆高风险、判据或重要外部行为改变 | approve | 小范围沿用现有架构的可逆改动且用户未要求审批；大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过 |
+ | 多交付、多项目、需要增量反馈或一次难回归 | decompose | 一个连贯改动即可实施并验证 |
+ | 高风险、公共契约、复杂 diff、安全 / 性能敏感 | review | 小且可逆改动由 execute 做 diff 自检，可不派独立 reviewer |
+ | 全部实现产物就绪 | verify | 无；代码任务不得跳过验证 |
+ | 验证全过 | close | 无；done 与归档必须经过 close |
+ 
+-任务类型只是信号，不是固定路线：跨模块不必然 grill / OpenSpec；改动小但原因未知仍需 diagnose；大型机械改动可 decompose 而不 design。
++任务类型只是信号，不是固定路线：跨模块不必然 OpenSpec；改动小但原因未知仍需 diagnose；纯机械批量改动可 decompose 而不另起复杂设计，但凡涉及大型项目、重大重构、架构或契约调整，默认进入 design 与 approve 做人话方案对齐。
+ 
+ ## 执行中重新路由
+ 
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index de5545a..d4272e1 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -4,7 +4,7 @@
+ 为契约或结构变化给出可实施、可回退、可验证的方案。
+ 
+ ## 进入条件
+-涉及公共 / 内部接口、数据模型、架构依赖、复杂迁移、跨模块共享面，或实现会改变重要兼容行为。
++涉及大型项目 / 新建子系统、公共或内部接口、数据模型、架构依赖、大范围跨模块重构、复杂迁移、跨模块共享面，或实现会改变重要兼容行为。
+ 
+ ## 跳过条件
+ 完全沿用现有模式且没有契约 / 结构变化。grill 不是固定前置；只有存在关键取舍时先走 [grill.md](grill.md)。
+@@ -18,12 +18,13 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+ 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+ 5. 涉及跨项目通用接入或已沉淀模式时，可先查 `project-design-patterns`（未安装则跳过）；Web UI 按需读 ui-delivery；对比表按需读 design-detail。
++6. 落盘方案后、进入实施前，按 `anti-lazy` 核对「哪件事只有用户能定」「若用户说『不是这个』最可能指向哪里」，并按 [user-report.md](user-report.md) 整理人话方案对齐摘要，交 [approve.md](approve.md) 取得明确放行（不以落盘文档替代人话对齐）。
+ 
+ ## 产出
+ `design/README.md` 索引、`design/<topic>.md`、按需 ADR / contract / glossary；decisions 写决定。
+ 
+ ## 完成门
+-接口与依赖明确，兼容 / 回滚可走，验证能覆盖 criterion；未决项显式且不会被当成已定。
++接口与依赖明确，兼容 / 回滚可走，验证能覆盖 criterion；未决项显式且不会被当成已定；大型项目、重大改动或架构调整已具备面向用户的人话方案摘要。
+ 
+ ## 退出与重入
+-需要批准转 approve，多交付转 decompose，否则 plan / execute。实现发现设计不足时带新证据重入，只修订受影响部分。
++凡涉及大型项目、重大改动、架构调整或公共契约变更，均转 [approve.md](approve.md) 完成人话方案对齐并落 `reviews/APPROVED.md`，再进 decompose / plan / execute；其余按需要转 decompose / plan / execute。实现发现设计不足时带新证据重入，只修订受影响部分。
+diff --git a/skills/taskrail/references/approve.md b/skills/taskrail/references/approve.md
+index 3069e1d..8a5edb5 100644
+--- a/skills/taskrail/references/approve.md
++++ b/skills/taskrail/references/approve.md
+@@ -1,28 +1,28 @@
+ # approve：按需批准方案
+ 
+ ## 目的
+-在难逆、高风险、用户指定或重要外部行为变化时获得明确放行。
++在大型项目、重大改动、架构调整、难逆高风险、用户指定或重要外部行为变化时，先用人话对齐方案并获得明确放行。
+ 
+ ## 进入条件
+-用户要求审批；方案难逆 / 高风险；改变 criterion 或重要外部行为；父任务子任务超出 ROADMAP 范围。
++大型项目 / 新建子系统；重大重构或架构 / 公共契约调整；用户要求审批；方案难逆 / 高风险；改变 criterion 或重要外部行为；父任务子任务超出 ROADMAP 范围。不因改动在 git 分支内可逆或属于同任务内部切片而跳过。
+ 
+ ## 跳过条件
+-普通可逆改动且用户未要求审批。子任务在父 ROADMAP 范围与子判据内，由父批准覆盖，不逐个停。
++仅限小范围、沿用既有架构的可逆改动且用户未要求审批。子任务在父 ROADMAP 范围与子判据内，由父批准覆盖，不逐个停。
+ 
+ ## 所需输入
+ criterion、不做、推荐方案、验证策略、未决与回滚；无 design 需要时可用 PLAN。
+ 
+ ## 执行方法
+ 1. 自查判据可检查、方案走得到判据、ROADMAP 子判据覆盖总判据且依赖无环。
+-2. human 按 [confirm-protocol.md](confirm-protocol.md) 呈现推荐并等放行；goal 派异源模型审，收敛即放行。
+-3. 写 `reviews/APPROVED.md`（兼容旧 `approve/APPROVED.md`）：结论、方案路径、评审路径、未决和适用范围。
++2. human 及命中大型项目 / 重大改动 / 架构调整的首次 goal 方案：按 [confirm-protocol.md](confirm-protocol.md) 与 [user-report.md](user-report.md) 用人话呈现整体方案、关键取舍、影响面与回退，停等用户明确放行；用户本会话原话明确豁免方案对齐的 goal（须照录原话）或非重大 goal，派异源模型审，收敛即放行。
++3. 写 `reviews/APPROVED.md`（兼容旧 `approve/APPROVED.md`）：结论、确认 / 豁免依据（用户确认或原话豁免 / 异源审）、方案路径、评审路径、未决和适用范围。
+ 4. 决定写 decisions.md，旧决定用 superseded 关联。
+ 
+ ## 产出
+ 批准文件与路由记录。若本任务选择 OpenSpec，handoff 引用该文件；未选 OpenSpec 不强制 handoff。
+ 
+ ## 完成门
+-human 明确放行或 goal 审阅无 P0 / P1，且批准范围与当前 plan 一致。
++human 明确放行，或 goal 已取得首次重大方案用户放行（或原话明确豁免后异源审无 P0 / P1）且非重大审阅无 P0 / P1，批准文件落盘且范围与当前 plan / design 一致。
+ 
+ ## 退出与重入
+ 返回 router 选择 decompose / execute。范围或判据变化时重新 approve；同一 P0 / P1 两轮未解按真阻塞停。
+diff --git a/skills/taskrail/references/grill.md b/skills/taskrail/references/grill.md
+index 7c2949d..134caeb 100644
+--- a/skills/taskrail/references/grill.md
++++ b/skills/taskrail/references/grill.md
+@@ -14,7 +14,7 @@ criterion、用户限制、explore / diagnose 证据和当前 plan。
+ 
+ ## 执行方法
+ 1. 把待定问题按依赖排成设计树：能准确写出问句和解决形式的记 `U-n`，只能描述模糊区域的记 `F-n` 并写重估触发。
+-2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；事实问题查不到时按推荐自问自答，每题由自己回答并写理由。涉及用户价值取向、产品优先级或外部风险的取舍，按 [confirm-protocol.md](confirm-protocol.md) 停并呈现推荐与取舍，不把假设当成用户决定；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
++2. 每轮选一个依赖就绪的 `U-n`，先查一手资料；普通局部技术问题查不到时按推荐自问自答，每题由自己回答并写理由。凡涉及大型项目 / 重大改动 / 架构路线、公共契约、用户价值取向、产品优先级或外部风险的取舍，不自答闭环，按 [confirm-protocol.md](confirm-protocol.md) 与 [user-report.md](user-report.md) 把设计树前沿（frontier）的关键取舍整理成带推荐选项的人话问题停下与用户拉齐，不把假设当成用户决定（需要多轮深度拷问用户时，可按需启用可选外部 skill `grilling` 或 `grill-with-docs`，未安装时按本文件设计树前沿格式执行）；除这些确认停点外，只有真阻塞才按 [user-report.md](user-report.md) 问用户。
+ 3. 解决后把事实写当前事实，已做决定写 decisions.md，长证据写 evidence / design，并把该项移出未决表；每个问题得到事实、决定或显式假设。
+ 4. 新证据使 `F-n` 能准确提问时，毕业为新的 `U-n` 并从待明确区移除；`U-n` 失效时把原因写 `history.md`，影响已有决定时标 superseded。
+ 5. 不重问已确认目标与 criterion；冲突时回 intent。无未决关键问题就停止，不为形式追问。
+diff --git a/skills/taskrail/references/plan.md b/skills/taskrail/references/plan.md
+index 1b27cbf..0d1afd9 100644
+--- a/skills/taskrail/references/plan.md
++++ b/skills/taskrail/references/plan.md
+@@ -15,7 +15,7 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物
+ ## 执行方法
+ 1. 写当前最少的动作与对应验证；PLAN 只展开依赖就绪的 `U-n`，`F-n` 仅保留重估触发，毕业后再按当时证据细化。
+ 2. direct 任务用 PLAN checkbox 跟踪实施；OpenSpec 的具体 change checklist 由 taskflow 生成。
+-3. 只读 explore / diagnose 可沿当前最小计划继续。首次 execute 前或实施方案实质变化后，human 按 [confirm-protocol.md](confirm-protocol.md) 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
++3. 只读 explore / diagnose 可沿当前最小计划继续。若本任务存在 `design/` 或命中大型项目 / 重大改动 / 架构调整，进入 execute 前须先按 `anti-lazy` 核对「哪件事只有用户能定」与目标差距，并确保整体方案已按 [confirm-protocol.md](confirm-protocol.md) 与 [approve.md](approve.md) 完成人话对齐并落 `reviews/APPROVED.md`（不以最小步骤清单替代整体方案对齐）。首次 execute 前或实施方案实质变化后，human 展示足以判断改动范围、步骤、验证与必要回滚的摘要并等明确确认；goal 按 [user-report.md](user-report.md) 复述方案增量后继续。
+ 4. 把确认状态、依据和覆盖范围写进 PLAN「实施确认」：human 以用户明确确认记 confirmed，goal 以简要复述已给出记 not-required。实施范围、步骤或验证策略实质变化后回 pending；实施中新增仓库 / 依赖、公共契约 / schema / 迁移 / 共享配置，或需要使用未提交改动，也回 pending 并重新确认。只更新 checkbox 或证据不改变状态。
+ 5. 每个实际执行的子任务首次 execute 前确认自己的当前 PLAN；继承父意图或范围内 approve 不代替这一步。
+ 6. 涉及写删迁、共享配置或难逆动作，写备份 / 回滚并按确认协议停。
+@@ -25,7 +25,7 @@ TASK 目标 / criterion、用户限制、context/current 和已有相关产物
+ `PLAN.md`：当前步骤、验证策略、必要约束、产物指针和实施确认记录。
+ 
+ ## 完成门
+-每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。进入 execute 前，human 的当前实施内容必须为 confirmed，goal 已简要复述；确认前不得进入 execute 或写代码。
++每个当前步骤可执行、可验证，最后能走到 criterion；没有隐含扩大范围。存在 `design/` 产物时须已有 `reviews/APPROVED.md`（或父批准覆盖）；进入 execute 前，human 的当前实施内容必须为 confirmed，goal 已完成所需重大方案放行并简要复述；确认前不得进入 execute 或写代码。
+ 
+ ## 退出与重入
+ 按 router 选下一 reference。新事实使步骤失效时只改未执行部分，已勾项保留证据；实施内容实质变化时重入本环节并重新确认。
+diff --git a/skills/taskrail/references/decompose.md b/skills/taskrail/references/decompose.md
+index d22c479..b98dd39 100644
+--- a/skills/taskrail/references/decompose.md
++++ b/skills/taskrail/references/decompose.md
+@@ -15,7 +15,7 @@ criterion、当前 plan、涉及仓库、已知契约与依赖。
+ ## 执行方法
+ 1. 先列交付边界和集成项，再判断不拆 / 切片 / 子任务。必须原子落地的是切片；能按契约独立交付的可作有依赖子任务。
+ 2. 写 `ROADMAP.md`：项、类型、目标、子判据、涉及仓库、依赖、交付边界。子判据合计覆盖总判据，依赖无环。
+-3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点。所需确认未完成前不创建或激活子任务。
++3. 若拆成独立分支 / 发布 / 子任务或改变交付顺序，human 按 [confirm-protocol.md](confirm-protocol.md) 呈现 ROADMAP 并等明确确认，goal 简要复述；同任务内部切片不新增停点，但若整体命中大型项目、重大改动或架构调整，仍须先完成整体方案的人话对齐与放行再开工。所需确认未完成前不创建或激活子任务。
+ 4. 所需确认完成后，对每个子任务自动创建轻量 pending TASK；使用：
+ 
+    ```bash
+diff --git a/skills/taskrail/references/user-report.md b/skills/taskrail/references/user-report.md
+index 55e3127..6263a0b 100644
+--- a/skills/taskrail/references/user-report.md
++++ b/skills/taskrail/references/user-report.md
+@@ -27,6 +27,15 @@ current_ref、status、driver、change id、checkbox 编号、criterion、slice
+ 5. 确认展示以用户足以作出本次决定为限；风险、范围或验证策略变化时呈现新增信息，不重复未变化的背景。
+ 6. 内部记账与调度直接做，不转化为用户问题；没有认知增量时不独立汇报。
+ 
++### 重大方案人话对齐
++
++大型项目、重大改动或架构调整在动工前对齐方案时，用业务和模块人话讲清以下四件事（不用内部编排词或裸文件路径清单代替方案），再给出明确推荐并等待拍板：
++
++- **现状与目标**：现在的问题/约束是什么，改完后系统会变成什么可观察结果。
++- **整体方案**：核心模块、职责边界或数据流如何组织（结构复杂时配简图或分层列表）。
++- **关键取舍**：为什么选这条路、放弃了哪些可行方案、换来了什么又接受了什么代价。
++- **影响面、节奏与回退**：波及哪些现有能力、分几阶段落地、出问题如何回退。
++
+ ## 5. 恢复与解释
+ 
+ resume 以恢复用户上下文为目的，说明目标、已验证现状和下一动作；存在阻塞时才补充所需输入。explain 在用户要求理解编排时展开当前环节、跳过 / 重入原因及 worktree / driver 状态，仍按结论到依据组织，不只报字段值。
+@@ -42,3 +51,4 @@ resume 以恢复用户上下文为目的，说明目标、已验证现状和下
+ - 前：「按内部执行顺序复述过程。」；后：「先说用户需要理解的结论与影响。」
+ - 前：「每次路由都重复完整背景。」；后：「只同步用户认知增量。」
+ - 前：「为简洁省略验证缺口。」；后：「默认摘要，同时保留决策所需风险。」
++- 前：「写完 design 文档只贴路径或步骤清单就开工。」；后：「大型改动先用人话讲清现状、整体方案、关键取舍与影响面，对齐拍板后再写代码。」
+diff --git a/skills/taskrail/references/verify.md b/skills/taskrail/references/verify.md
+index bdb4b56..24be151 100644
+--- a/skills/taskrail/references/verify.md
++++ b/skills/taskrail/references/verify.md
+@@ -14,7 +14,7 @@ criterion、PLAN / driver 验证记录、交付标准、当前 worktree、子任
+ 
+ ## 执行方法
+ 1. 在对应 worktree 跑 focused tests，再跑受影响的静态检查与回归；命令和结果写证据文件，摘要有路径。
+-2. 对照 criterion、用户“不做”和交付标准逐项核对；代码变化后旧证据失效。
++2. 对照 criterion、用户“不做”和交付标准逐项核对，并按 `anti-lazy` 核对原始要求与现场证据之间的差距（结果在哪、哪些检查真实跑过、剩余缺口是什么）；代码变化后旧证据失效。
+ 3. 父任务必须执行 ROADMAP 集成项和跨仓主流程，再验总判据；不能只汇总子任务结论。
+ 4. reviewer Blocker / Major 修复后重验；需要接受未修复项时，human 按确认协议由用户明确接受并记录 accepted-recorded，goal 不放行，执行者不能自行接受。缺证据不能标通过；验证不足或缩小交付按确认协议重新放行。
+ 5. Web UI、性能、安全等按命中的质量包补证据。
+diff --git a/skills/taskrail/scripts/task_state.py b/skills/taskrail/scripts/task_state.py
+index 42bd14a..ec6ee9e 100644
+--- a/skills/taskrail/scripts/task_state.py
++++ b/skills/taskrail/scripts/task_state.py
+@@ -213,6 +213,12 @@ def update_task(workspace: Path, value: str, changes: dict[str, str], next_actio
+                 if not DRIVER.fullmatch(item) or item != expected:
+                     raise StateError(f"driver must be {expected!r} or null")
+             meta[key] = item
++        if changes.get("current_ref") == "execute":
++            if has_design_docs(task_md.parent) and not has_approval(task_md.parent, workspace, meta.get("parent")):
++                raise StateError("execute requires reviews/APPROVED.md when design docs exist")
++            plan_state = plan_confirm_state(task_md.parent)
++            if plan_state is not None and plan_state not in {"confirmed", "not-required"}:
++                raise StateError(f"execute requires PLAN.md 实施确认 to be confirmed or not-required, got {plan_state!r}")
+         if changes.get("status") == "done":
+             if not (task_md.parent / "SUMMARY.md").is_file():
+                 raise StateError("done requires SUMMARY.md with verification and knowledge closure")
+@@ -313,6 +319,31 @@ def rebuild_index(workspace: Path) -> Path:
+     return index
+ 
+ 
++def has_design_docs(task_root: Path) -> bool:
++    design_dir = task_root / "design"
++    return design_dir.is_dir() and any(design_dir.glob("*.md"))
++
++
++def has_approval(task_root: Path, workspace: Path, parent: str | None) -> bool:
++    candidates = [task_root / "reviews" / "APPROVED.md", task_root / "approve" / "APPROVED.md"]
++    if parent and parent not in {"", "null", "None"}:
++        parent_root = workspace / "tasks" / "ongoing" / parent
++        candidates += [parent_root / "reviews" / "APPROVED.md", parent_root / "approve" / "APPROVED.md"]
++    return any(path.is_file() for path in candidates)
++
++
++def plan_confirm_state(task_root: Path) -> str | None:
++    plan_md = task_root / "PLAN.md"
++    if not plan_md.is_file():
++        return None
++    text = plan_md.read_text(encoding="utf-8")
++    match = re.search(r"^##\s+实施确认\s*$(.*?)(?=^##\s|\Z)", text, re.S | re.M)
++    if not match:
++        return None
++    status = re.search(r"^\s*[-*]?\s*状态\s*[:：]\s*(\S+)", match.group(1), re.M)
++    return status.group(1).strip() if status else "pending"
++
++
+ def child_tasks(path: Path) -> list[Path]:
+     root = path.parent / "subtasks"
+     return sorted(root.glob("*/TASK.md")) if root.is_dir() else []
+diff --git a/skills/taskrail/tests/test_confirm_contract.py b/skills/taskrail/tests/test_confirm_contract.py
+index fd76dc8..51b45b1 100644
+--- a/skills/taskrail/tests/test_confirm_contract.py
++++ b/skills/taskrail/tests/test_confirm_contract.py
+@@ -66,6 +66,19 @@ class ConfirmContractTest(unittest.TestCase):
+         self.assertIn("继续且不等回复", self.text)
+         self.assertIn("非停点同步不需要回复", self.text)
+ 
++    def test_major_change_requires_plain_language_alignment_by_default(self) -> None:
++        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++        design = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
++        approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
++        router = (ROOT / "references" / "router.md").read_text(encoding="utf-8")
++        self.assertIn("大型项目、重大改动或架构调整", skill)
++        self.assertIn("无论 `human` 还是 `goal`", skill)
++        self.assertIn("不因分支内可逆或内部切片跳过", self.text)
++        self.assertIn("重大方案首次落定 / 实质变更先停等用户人话确认", self.text)
++        self.assertIn("不以落盘文档替代人话对齐", design)
++        self.assertIn("不因改动在 git 分支内可逆或属于同任务内部切片而跳过", approve)
++        self.assertIn("大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过", router)
++
+     def test_no_suspension_five_tuple(self) -> None:
+         self.assertFalse((ROOT / "references" / "suspension.md").exists())
+         self.assertNotIn("挂起五元组", self.text)
+diff --git a/skills/taskrail/tests/test_neighbor_skill_contract.py b/skills/taskrail/tests/test_neighbor_skill_contract.py
+index ef2cc3a..d17cdd2 100644
+--- a/skills/taskrail/tests/test_neighbor_skill_contract.py
++++ b/skills/taskrail/tests/test_neighbor_skill_contract.py
+@@ -30,6 +30,13 @@ class NeighborSkillContract(unittest.TestCase):
+         self.assertIn("踩坑和操作台账交给 `wiki-data`", close)
+         self.assertIn("跨任务的 skill 改进交给 `skill-upgrader`", close)
+ 
++    def test_anti_lazy_and_optional_grilling_wired_at_key_gates(self) -> None:
++        for name in ("confirm-protocol.md", "design.md", "plan.md", "verify.md"):
++            self.assertIn("`anti-lazy`", read(name), name)
++        grill = read("grill.md")
++        self.assertIn("不自答闭环", grill)
++        self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)
++
+     def test_examples_index_has_no_removed_wizard_path(self) -> None:
+         index = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
+         self.assertIn("旧 handoff 兼容回归样例", index)
+diff --git a/skills/taskrail/tests/test_task_state.py b/skills/taskrail/tests/test_task_state.py
+index fb010c1..629da72 100644
+--- a/skills/taskrail/tests/test_task_state.py
++++ b/skills/taskrail/tests/test_task_state.py
+@@ -254,5 +254,38 @@ class TaskStateTest(unittest.TestCase):
+         self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
+ 
+ 
++    def test_execute_blocks_when_design_lacks_approval_or_plan_pending(self) -> None:
++        self.init("major")
++        root = self.workspace / "tasks" / "ongoing" / "major"
++        (root / "design").mkdir()
++        (root / "design" / "arch.md").write_text("# arch\n", encoding="utf-8")
++        blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
++        self.assertEqual(blocked.returncode, 1)
++        self.assertIn("APPROVED.md", blocked.stdout)
++        (root / "reviews").mkdir()
++        (root / "reviews" / "APPROVED.md").write_text("# approved\n", encoding="utf-8")
++        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：pending\n", encoding="utf-8")
++        plan_blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
++        self.assertEqual(plan_blocked.returncode, 1)
++        self.assertIn("pending", plan_blocked.stdout)
++        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：confirmed\n", encoding="utf-8")
++        allowed = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
++        self.assertEqual(allowed.returncode, 0, allowed.stdout)
++
++    def test_child_execute_accepts_parent_approval(self) -> None:
++        self.init("parent")
++        self.init("child", "parent")
++        parent = self.workspace / "tasks" / "ongoing" / "parent"
++        child = parent / "subtasks" / "child"
++        (child / "design").mkdir()
++        (child / "design" / "detail.md").write_text("# detail\n", encoding="utf-8")
++        blocked = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
++        self.assertEqual(blocked.returncode, 1)
++        (parent / "reviews").mkdir()
++        (parent / "reviews" / "APPROVED.md").write_text("# parent approved\n", encoding="utf-8")
++        allowed = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
++        self.assertEqual(allowed.returncode, 0, allowed.stdout)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/taskrail/tests/test_user_report_contract.py b/skills/taskrail/tests/test_user_report_contract.py
+index ad55e32..d4b00f6 100644
+--- a/skills/taskrail/tests/test_user_report_contract.py
++++ b/skills/taskrail/tests/test_user_report_contract.py
+@@ -52,5 +52,11 @@ class UserReportTest(unittest.TestCase):
+             self.assertIn(s, UR)
+ 
+ 
++    def test_major_plan_plain_language_alignment_guide(self) -> None:
++        self.assertIn("### 重大方案人话对齐", UR)
++        for item in ("现状与目标", "整体方案", "关键取舍", "影响面、节奏与回退"):
++            self.assertIn(item, UR)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 2eef179..be00136 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -598,3 +598,30 @@ cases:
+         - 让 worker 直接修改父 TASK 或自行重复认领其他单位
+         - 按 claimed_at 时间自动释放仍在运行的任务
+         - 以认领替代同任务同仓写串行或 worktree 隔离
++
++  - id: major-architecture-change-aligns-in-plain-language
++    kind: regression
++    judge: llm
++    description: 大型项目、重大改动或架构调整在默认 human 与 goal 下均先用人话对齐方案再动工
++    given: 用户发起跨模块架构重构（含使用 /goal 且未明确声明豁免方案对齐），任务在独立 git worktree 分支实施
++    expect:
++      must:
++        - 识别为重大改动或架构调整，不因在 git 分支内可逆或属于同任务内部切片而跳过 approve
++        - 先按 anti-lazy 自检哪些决定只有用户能定，再以人话讲清现状与目标、整体方案、关键取舍、影响面与回退，停等用户明确放行
++        - 取得放行并落 reviews/APPROVED.md 后再进入 execute；goal 放行后后续实施与切片按自动模式推进
++      must_not:
++        - 仅落盘 design 文档或只给裸文件路径与最小步骤清单即直接开工
++        - 在用户未原话豁免方案对齐时用异源审或自问自答直接跳过首次重大方案对齐
++
++  - id: major-tradeoff-grill-engages-user-not-self-answer
++    kind: core
++    judge: llm
++    description: 重大架构或路线取舍通过设计树前沿与用户拉齐，局部技术细节仍自答
++    given: 大型改动存在两条架构路线取舍，同时有一个局部内部命名待定
++    expect:
++      must:
++        - 局部内部命名先查一手资料并自问自答记录到 decisions
++        - 重大架构取舍整理为带推荐项的设计树前沿问题停下与用户拉齐，必要时按需启用可选外部 skill grilling 或 grill-with-docs
++      must_not:
++        - 对架构级或契约级取舍由 agent 自问自答直接拍板闭环
++        - 把局部可逆实现细节也抛给用户逐项询问

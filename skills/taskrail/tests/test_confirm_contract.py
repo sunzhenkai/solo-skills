@@ -66,6 +66,19 @@ class ConfirmContractTest(unittest.TestCase):
         self.assertIn("继续且不等回复", self.text)
         self.assertIn("非停点同步不需要回复", self.text)
 
+    def test_major_change_requires_plain_language_alignment_by_default(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        design = (ROOT / "references" / "design.md").read_text(encoding="utf-8")
+        approve = (ROOT / "references" / "approve.md").read_text(encoding="utf-8")
+        router = (ROOT / "references" / "router.md").read_text(encoding="utf-8")
+        self.assertIn("大型项目、重大改动或架构调整", skill)
+        self.assertIn("无论 `human` 还是 `goal`", skill)
+        self.assertIn("不因分支内可逆或内部切片跳过", self.text)
+        self.assertIn("重大方案首次落定 / 实质变更先停等用户人话确认", self.text)
+        self.assertIn("不以落盘文档替代人话对齐", design)
+        self.assertIn("不因改动在 git 分支内可逆或属于同任务内部切片而跳过", approve)
+        self.assertIn("大型 / 架构方案不因在 git 分支内可逆或同任务内部切片而跳过", router)
+
     def test_no_suspension_five_tuple(self) -> None:
         self.assertFalse((ROOT / "references" / "suspension.md").exists())
         self.assertNotIn("挂起五元组", self.text)

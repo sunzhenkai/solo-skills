@@ -52,5 +52,11 @@ class UserReportTest(unittest.TestCase):
             self.assertIn(s, UR)
 
 
+    def test_major_plan_plain_language_alignment_guide(self) -> None:
+        self.assertIn("### 重大方案人话对齐", UR)
+        for item in ("现状与目标", "整体方案", "关键取舍", "影响面、节奏与回退"):
+            self.assertIn(item, UR)
+
+
 if __name__ == "__main__":
     unittest.main()

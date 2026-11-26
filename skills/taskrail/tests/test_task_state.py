@@ -254,5 +254,38 @@ class TaskStateTest(unittest.TestCase):
         self.assertRegex(task.read_text(encoding="utf-8"), r"claimed_by: worker-\d")
 
 
+    def test_execute_blocks_when_design_lacks_approval_or_plan_pending(self) -> None:
+        self.init("major")
+        root = self.workspace / "tasks" / "ongoing" / "major"
+        (root / "design").mkdir()
+        (root / "design" / "arch.md").write_text("# arch\n", encoding="utf-8")
+        blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+        self.assertEqual(blocked.returncode, 1)
+        self.assertIn("APPROVED.md", blocked.stdout)
+        (root / "reviews").mkdir()
+        (root / "reviews" / "APPROVED.md").write_text("# approved\n", encoding="utf-8")
+        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：pending\n", encoding="utf-8")
+        plan_blocked = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+        self.assertEqual(plan_blocked.returncode, 1)
+        self.assertIn("pending", plan_blocked.stdout)
+        (root / "PLAN.md").write_text("# plan\n\n## 实施确认\n- 状态：confirmed\n", encoding="utf-8")
+        allowed = self.run_state("update", str(self.workspace), "major", "--current-ref", "execute")
+        self.assertEqual(allowed.returncode, 0, allowed.stdout)
+
+    def test_child_execute_accepts_parent_approval(self) -> None:
+        self.init("parent")
+        self.init("child", "parent")
+        parent = self.workspace / "tasks" / "ongoing" / "parent"
+        child = parent / "subtasks" / "child"
+        (child / "design").mkdir()
+        (child / "design" / "detail.md").write_text("# detail\n", encoding="utf-8")
+        blocked = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
+        self.assertEqual(blocked.returncode, 1)
+        (parent / "reviews").mkdir()
+        (parent / "reviews" / "APPROVED.md").write_text("# parent approved\n", encoding="utf-8")
+        allowed = self.run_state("update", str(self.workspace), "parent/subtasks/child", "--status", "active", "--current-ref", "execute")
+        self.assertEqual(allowed.returncode, 0, allowed.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

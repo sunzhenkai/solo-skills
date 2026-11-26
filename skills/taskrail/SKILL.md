@@ -15,7 +15,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意�
 先判定用户要的交付物，再决定是否进入任务轨道：
 
 - 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
-- 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、多阶段或跨项目开发编排：按下文输入进入任务轨道。
+- 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
 - 普通问答、只读分析或一次性改动，且没有上两项信号：直接回答、实施或使用对应领域 skill。
 
 只有第二项绑定或恢复 TASK。入口误加载时完成分诊即退出，不写 TASK / INDEX，不建 worktree。
@@ -31,7 +31,7 @@ taskrail explain [task-id]
 taskrail list
 ```
 
-`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
+`/goal`、`goal:` 或沿用的 `confirm_mode: goal` 只改变确认方式，不改变路由。停点见 [references/confirm-protocol.md](references/confirm-protocol.md)；遇到**大型项目、重大改动或架构调整**且用户本会话未明确豁免时，无论 `human` 还是 `goal`，进入实施前均先用人话对齐整体方案并等用户明确放行（`goal` 放行后后续按自动模式推进）。`intent` 只做意图确认，按 [references/intent.md](references/intent.md) 执行；没有任务目录就只在对话里给复述，不建执行分支。`explain` 只读说明当前环节、跳过理由、子任务和下一动作。
 
 ## 绑定与恢复
 
@@ -52,7 +52,7 @@ resume 先跑 `reconcile`，再读 `TASK.md`、当前 `PLAN.md` / `ROADMAP.md` �
 3. 只加载命中的 reference；其统一结构见 [references/ref-contract.md](references/ref-contract.md)。
 4. 完成一个可检查动作，产生产物或证据。
 5. 用热状态脚本更新 TASK / INDEX，把路由原因追加到 `history.md`，决定写入 `decisions.md`。
-6. 重新路由；只在确认协议规定的停点或真阻塞时停。
+6. 重新路由；命中意图确认、重大方案人话对齐、实施确认或真阻塞停点时停下等明确回复，其余按认知增量同步并继续。
 
 路由型 references（从这里直接打开，命中才读）：
 
