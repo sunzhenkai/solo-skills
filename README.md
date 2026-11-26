@@ -45,7 +45,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 | Skill | 用途 |
 | --- | --- |
-| `project-design-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入；内含 `agent-api-ops` 操作规范件，应用话术安装本 skill 后按它执行 |
+| `project-design-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入（含 `agent-api-ops` 操作规范）与模型供应商管理（含 `models.dev` 加载与两级联动实现 prompt） |
 
 ### 知识与内容
 

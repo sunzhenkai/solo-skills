@@ -52,6 +52,23 @@ class StructureContract(unittest.TestCase):
         """沉淀门槛：至少两处独立落地或一次落地 + 一次明确复用意图。"""
         self.assertIn("至少两处独立落地", SKILL)
 
+    def test_model_provider_pattern_registered(self) -> None:
+        """模型供应商管理模式卡与实现 prompt 均已直链登记，且含标准章节与联动约束。"""
+        self.assertIn("references/model-provider-management.md", SKILL)
+        self.assertIn("references/model-provider-impl-prompt.md", SKILL)
+        card_path = ROOT / "references" / "model-provider-management.md"
+        prompt_path = ROOT / "references" / "model-provider-impl-prompt.md"
+        self.assertTrue(card_path.is_file())
+        self.assertTrue(prompt_path.is_file())
+        card = card_path.read_text(encoding="utf-8")
+        prompt = prompt_path.read_text(encoding="utf-8")
+        for section in ["## 动机", "## 参与者", "## 落地件", "## 边界", "## 先例", "## 更正记录"]:
+            self.assertIn(section, card, f"模型供应商模式卡缺少 {section}")
+        self.assertIn("models.dev", card)
+        self.assertIn("两级联动", card)
+        self.assertIn("{{技术栈}}", prompt)
+        self.assertIn("验收清单", prompt)
+
 
 class SizeContract(unittest.TestCase):
     def test_skill_md_under_8kb(self) -> None:
