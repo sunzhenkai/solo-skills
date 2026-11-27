@@ -11,7 +11,7 @@ description: "角色化只读评审（engineer、algo、data、sre、ops、biz�
 - `mode=ask`：按岗位回答问题，标明证据与下游建议。
 - `mode=review`：多视角审查，输出分级发现；默认目标为当前工作区变更。
 
-只读：不改代码、不落盘；调用方需要评审文件时，由调用方按 protocol「输出骨架」落盘。用户要求修复时再动手。纯 Git diff / MR / PR 自动化审查交给 `solo-code-review`；不绑代码证据的多视角对话陪练交给 `role-chat`。
+只读：不改代码、不落盘；调用方需要评审文件时，由调用方按 protocol「输出骨架」落盘。用户要求修复时再动手。纯 Git diff / MR / PR 自动化审查交给 `way-to-cr`；不绑代码证据的多视角对话陪练交给 `role-chat`。
 
 ## 三道门
 

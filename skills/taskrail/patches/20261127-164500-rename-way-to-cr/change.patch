@@ -1,0 +1,96 @@
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 7b586fa..4b70cac 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -706,11 +706,11 @@ cases:
+   - id: review-explicit-only-no-auto-code-review
+     kind: regression
+     judge: llm
+-    description: 常规代码任务默认跳过 review 且不自动触发 solo-code-review
++    description: 常规代码任务默认跳过 review 且不自动触发 way-to-cr
+     given: 用户在 taskrail 下完成跨前后端开发并通过全量测试，未要求独立评审且无观感目标
+     expect:
+       must:
+         - 跳过 review，由 execute 自检与 verify 验证直接闭环收口
+-        - 仅在用户或方案明确要求或命中观感交付时进入 review；taskrail 不内置调用 solo-code-review，仅在 close 完成通知中顺带提示用户按需另行运行
++        - 仅在用户或方案明确要求或命中观感交付时进入 review；taskrail 不内置调用 way-to-cr，仅在 close 完成通知中顺带提示用户按需另行运行
+       must_not:
+-        - 自动进入 review 或在 taskrail 流程内调用 solo-code-review / OCR
++        - 自动进入 review 或在 taskrail 流程内调用 way-to-cr / OCR
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 4c3d8d8..51844e1 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -19,7 +19,7 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状
+    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
+    - 跨项目验证的通用方案模式可交 `project-design-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
+    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
+-3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘，需要 diff / MR 级代码审查时可另行运行 `solo-code-review`（本环节不 push、不自动清理 worktree、不自动调用 `solo-code-review`）。
++3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘，需要 diff / MR 级代码审查时可另行运行 `way-to-cr`（本环节不 push、不自动清理 worktree、不自动调用 `way-to-cr`）。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+ 5. 按下文「归档与重开」同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
+ 
+diff --git a/skills/taskrail/references/review.md b/skills/taskrail/references/review.md
+index d26406c..7e8073a 100644
+--- a/skills/taskrail/references/review.md
++++ b/skills/taskrail/references/review.md
+@@ -13,7 +13,7 @@
+ criterion、当前提交号或 worktree diff、审与不审范围、相关 design / 契约与运行态证据（截图 / 测试输出）。
+ 
+ ## 执行方法
+-1. 调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。对应下游 skill 未安装或不可用时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。纯 Git diff / MR / PR 自动化代码审查不纳入本环节，如需可提示用户另行调用 `solo-code-review`。
++1. 调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。对应下游 skill 未安装或不可用时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。纯 Git diff / MR / PR 自动化代码审查不纳入本环节，如需可提示用户另行调用 `way-to-cr`。
+ 2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `RF-n` 跟踪。
+ 3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
+ 
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index 34cfe40..15d6936 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -21,7 +21,7 @@
+ | 大型项目、公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 架构 / 契约变化 |
+ | 命中 [approve.md](approve.md) 条件（大型 / 重大 / 架构 / 公共契约变更、用户要求审批、难逆高风险或改判据） | approve | 小范围沿用既有架构的可逆改动且用户未要求审批（停点与豁免见 [confirm-protocol.md](confirm-protocol.md)） |
+ | 多交付、多项目、需要增量反馈或一次难回归 | decompose | 一个连贯改动即可实施并验证 |
+-| 用户 / 方案明确要求独立评审，或命中观感交付验收 | review | 默认跳过；常规代码改动由 execute 自检与 verify 闭环，不自动触发 code review 或 `solo-code-review` |
++| 用户 / 方案明确要求独立评审，或命中观感交付验收 | review | 默认跳过；常规代码改动由 execute 自检与 verify 闭环，不自动触发 code review 或 `way-to-cr` |
+ | 全部实现产物就绪 | verify | 无；代码任务不得跳过验证 |
+ | 验证全过 | close | 无；done 与归档必须经过 close |
+ 
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index 3654804..0110f9a 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -115,7 +115,7 @@ class ContractTest(unittest.TestCase):
+     def test_hub_soft_links_in_on_demand_references(self) -> None:
+         review = read("references", "review.md")
+         self.assertIn("role-based-reviewer", review)
+-        self.assertIn("solo-code-review", review)
++        self.assertIn("way-to-cr", review)
+         self.assertIn("agent-roster", review)
+         self.assertIn("agent-roster", read("references", "confirm-protocol.md"))
+         self.assertIn("project-design-patterns", read("references", "design.md"))
+@@ -123,19 +123,19 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("project-design-patterns", close)
+         self.assertIn("session-wrap", close)
+ 
+-    def test_review_is_explicit_only_and_never_auto_triggers_solo_code_review(self) -> None:
++    def test_review_is_explicit_only_and_never_auto_triggers_way_to_cr(self) -> None:
+         router = read("references", "router.md")
+         review = read("references", "review.md")
+         close = read("references", "close.md")
+         self.assertIn("用户 / 方案明确要求独立评审", router)
+-        self.assertIn("不自动触发 code review 或 `solo-code-review`", router)
++        self.assertIn("不自动触发 code review 或 `way-to-cr`", router)
+         self.assertNotIn("复杂 diff", router)
+         self.assertIn("默认跳过", review)
+         self.assertIn("纯 Git diff / MR / PR 自动化代码审查不纳入本环节", review)
+-        self.assertIn("提示用户另行调用 `solo-code-review`", review)
++        self.assertIn("提示用户另行调用 `way-to-cr`", review)
+         self.assertNotIn("复杂或高风险 diff", review)
+-        self.assertIn("可另行运行 `solo-code-review`", close)
+-        self.assertIn("不自动调用 `solo-code-review`", close)
++        self.assertIn("可另行运行 `way-to-cr`", close)
++        self.assertIn("不自动调用 `way-to-cr`", close)
+ 
+     def test_no_deleted_compat_shells_in_skill(self) -> None:
+         skill = read("SKILL.md")

@@ -1,0 +1,112 @@
+diff --git a/skills/agent-roster/evals/cases.yaml b/skills/agent-roster/evals/cases.yaml
+index 48440a6..0feaa5b 100644
+--- a/skills/agent-roster/evals/cases.yaml
++++ b/skills/agent-roster/evals/cases.yaml
+@@ -290,15 +290,15 @@ cases:
+   - id: flow-optional-code-review
+     kind: core
+     judge: deterministic
+-    description: 代码评审可选且绑定 solo-code-review
++    description: 代码评审可选且绑定 way-to-cr
+     given: 实现 Stage 完成
+     expect:
+       must:
+         - 在本会话问做不做；Simple 默认跳过
+-        - 选做则派出执行 $solo-code-review
++        - 选做则派出执行 $way-to-cr
+       must_not:
+         - 代码评审选 human
+-        - 用通用 agent 逐文件替代 ocr 审查
++        - 用通用 agent 逐文件替代 way-to-cr 审查
+ 
+   - id: flow-no-third-ledger
+     kind: core
+diff --git a/skills/agent-roster/references/flow-context.md b/skills/agent-roster/references/flow-context.md
+index b2d85f7..18e32ce 100644
+--- a/skills/agent-roster/references/flow-context.md
++++ b/skills/agent-roster/references/flow-context.md
+@@ -47,5 +47,5 @@ _Avoid_: 把可选并进相邻 Stage
+ _Avoid_: 评审（单独出现时）
+ 
+ **Code Review**:
+-实现之后可选的 Git diff 级审查，绑定 `$solo-code-review`。
++实现之后可选的 Git diff 级审查，绑定 `$way-to-cr`。
+ _Avoid_: 评审（单独出现时）, 用通用 agent 逐文件看代码
+diff --git a/skills/agent-roster/references/flow-stages.md b/skills/agent-roster/references/flow-stages.md
+index a52590c..24c6511 100644
+--- a/skills/agent-roster/references/flow-stages.md
++++ b/skills/agent-roster/references/flow-stages.md
+@@ -38,9 +38,9 @@ Frozen Input 含：已通过的方案路径、Track 绑定的实施 skill、不
+ 
+ Optional Stage。实现结束后在本会话问做不做。Simple 默认跳过；Medium / Complex 默认建议做。跳过：spine 写 `skipped`，不跑脚本。
+ 
+-选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
++选做则必须派出，不允许 `human`。范围门在本会话走 `$way-to-cr` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
+ 
+-`ocr`（`$solo-code-review` 依赖的 OCR CLI）的 LLM 用本机已有配置，不是本 Stage 的 Model。Model 是跑该 skill 的 Endpoint。
++若该 skill 选用外部引擎（如 `ocr`），其自身 LLM 配置不是本 Stage 的 Model；Model 是跑该 skill 的 Endpoint。
+ 
+ 可写且允许脏工作树。`decision.md` 写明例外。
+ 
+diff --git a/skills/agent-roster/references/flow-tracks.md b/skills/agent-roster/references/flow-tracks.md
+index 30c43d7..1d0d593 100644
+--- a/skills/agent-roster/references/flow-tracks.md
++++ b/skills/agent-roster/references/flow-tracks.md
+@@ -14,7 +14,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ | 定方案 | 澄清在本会话 | 可不再派 | 轻量 plan Handoff；本会话写完即可 |
+ | 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-based-reviewer` |
+ | 实现 | 确认 Assignment | 必须 | 按 plan 改代码 |
+-| 代码评审 | 默认跳过 | 选做则必须 | `$solo-code-review` |
++| 代码评审 | 默认跳过 | 选做则必须 | `$way-to-cr` |
+ | 收尾 | 确认；默认可 `human` | 需要时 | 摘要；可选 `$commit-push` |
+ 
+ ## Medium
+@@ -25,7 +25,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ | 定方案 | 澄清、选方案 | 写产物时 | 含糊则 `$openspec-explore`，然后 `$openspec-propose`。澄清在本会话完成后再派 |
+ | 方案评审 | 确认 Assignment | 只读 | 审 proposal / design / specs；不过不得 apply |
+ | 实现 | 确认 Assignment | 必须 | `$openspec-apply-change` |
+-| 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
++| 代码评审 | 默认建议做 | 选做则必须 | `$way-to-cr` |
+ | 收尾 | 确认 Assignment | 需要时 | `$openspec-archive-change`；可选 `$commit-push` |
+ 
+ ## Complex
+@@ -36,5 +36,5 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
+ | 定方案 | 澄清；需要时 approve | 写产物时 | 按 `$taskrail` 路由产出当前最小计划，命中时进入 design / approve / decompose。执行走 OpenSpec 时先过 handoff，再由 `$taskflow` 建 driver 并 `$openspec-propose`；走 direct 时 PLAN 即方案产物。本 Stage 不写代码 |
+ | 方案评审 | 确认 Assignment | 只读 | 审 PLAN / design，以及 driver / 子 change 产物（若有） |
+ | 实现 | 确认 Assignment | 必须 | `$taskflow` 按 direct 或 OpenSpec 实施 |
+-| 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
++| 代码评审 | 默认建议做 | 选做则必须 | `$way-to-cr` |
+ | 收尾 | 确认 Assignment | 需要时 | 有 driver 时归档；任务经 `$taskrail` verify / close 写 `done` 并归档；可选 `$commit-push` |
+diff --git a/skills/agent-roster/references/flow.md b/skills/agent-roster/references/flow.md
+index b87c8c4..34f0a90 100644
+--- a/skills/agent-roster/references/flow.md
++++ b/skills/agent-roster/references/flow.md
+@@ -71,4 +71,4 @@ Resident Stage（理解）不派出：仍在 spine 记录当前 Orchestrator 的
+ 
+ ## 可选代码评审
+ 
+-实现 Stage 完成后停在本会话：做或跳过。跳过则该 Stage 不发生、不跑脚本。选做才确认 Assignment 并派出。范围门（uncommitted / 默认分支 / MR）也在本会话问完，写入 Frozen Input；受派方执行 `$solo-code-review`，不再改范围。
++实现 Stage 完成后停在本会话：做或跳过。跳过则该 Stage 不发生、不跑脚本。选做才确认 Assignment 并派出。范围门（uncommitted / 默认分支 / MR）也在本会话问完，写入 Frozen Input；受派方执行 `$way-to-cr`，不再改范围。
+diff --git a/skills/agent-roster/tests/gate_lines.txt b/skills/agent-roster/tests/gate_lines.txt
+index fcd15bc..f7b2250 100644
+--- a/skills/agent-roster/tests/gate_lines.txt
++++ b/skills/agent-roster/tests/gate_lines.txt
+@@ -58,4 +58,4 @@ acpx 仍处于 alpha，命令表面会变。执行前若不确定，以 `acpx --
+ 进入某个 Stage 后只读对应节。Frozen Input 必须在本会话敲死后再写入委派 prompt。
+ 派出时 Frozen Input 含：方案路径、评审范围、通过标准。受派方不得问「方案是什么」。不过本 Stage 不得 apply、不得改代码。
+ 必须派出。不允许 `human`。
+-选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
++选做则必须派出，不允许 `human`。范围门在本会话走 `$way-to-cr` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
+diff --git a/skills/agent-roster/tests/test_flow_contract.py b/skills/agent-roster/tests/test_flow_contract.py
+index 2c4c859..87e1bba 100644
+--- a/skills/agent-roster/tests/test_flow_contract.py
++++ b/skills/agent-roster/tests/test_flow_contract.py
+@@ -57,7 +57,7 @@ class ContractTest(unittest.TestCase):
+     def test_code_review_is_optional_and_bound(self) -> None:
+         self.assertIn("问是否做代码评审", self.skill)
+         self.assertIn("Simple 默认跳过", self.skill)
+-        self.assertIn("$solo-code-review", self.stages)
++        self.assertIn("$way-to-cr", self.stages)
+         self.assertIn("不允许 `human`", self.stages)
+ 
+     def test_complex_explore_does_not_call_grill_with_docs(self) -> None:

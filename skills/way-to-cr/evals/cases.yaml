@@ -1,5 +1,5 @@
 version: 1
-skill: solo-code-review
+skill: way-to-cr
 cases:
   - id: repo-resolve-ambiguous-asks
     kind: basic
@@ -15,14 +15,14 @@ cases:
   - id: scope-confirm-gate
     kind: core
     judge: deterministic
-    description: recommendation 为 uncommitted/default-branch 时仍先经用户确认再跑 LLM
+    description: 先思考审查范围与重点并经用户确认，再进入引擎与审查执行
     given: inspect 返回 recommendation=uncommitted 或 default-branch，用户未显式给 mode=
     expect:
       must:
-        - 先展示审查范围建议并获得用户确认
-        - 跑 LLM 前先用 ocr review --preview 展示文件列表
+        - 先跑 reviewctl preview 列出待审文件、排除项与底线文件，并展示审查范围与重点摘要
+        - 获得用户确认后再执行审查引擎
       must_not:
-        - 未确认直接调用 ocr review 跑 LLM
+        - 未确认范围就直接跑外部 CLI 或内置审查
 
   - id: mixed-dirty-and-commits-asks
     kind: failure
@@ -35,6 +35,42 @@ cases:
       must_not:
         - 默默合并两种 diff 一次审查
 
+  - id: engine-selection-gate
+    kind: core
+    judge: deterministic
+    description: 第 2 步展示可选审查方案并由用户选定引擎
+    given: 审查范围已明确，用户未传入 engine=
+    expect:
+      must:
+        - 跑 reviewctl probe 探测可用引擎与已记住偏好
+        - 展示 builtin / claude / codex / ocr 四个方案供用户选择
+      must_not:
+        - 未经用户选择私自选用高成本外置引擎
+
+  - id: external-model-selection-and-memory
+    kind: core
+    judge: deterministic
+    description: 使用 claude / codex / ocr 时首次选模型并记住，下次自动复用
+    given: 用户选定 claude / codex / ocr 引擎，prefs.json 已有或尚无记录
+    expect:
+      must:
+        - 无记录或用户说「换模型」时展示 probe 可用模型并允许自定义输入，选定后用 reviewctl prefs set 记住
+        - 有记录且未要求更换时自动复用已保存模型并简短提示
+      must_not:
+        - 把 API key 或 token 写入 prefs.json
+
+  - id: builtin-aligns-guidelines
+    kind: core
+    judge: deterministic
+    description: builtin 方案自动对齐仓库根目录 AGENTS.md 等底线文件
+    given: 用户选择 builtin 方案，目标仓库根目录存在 AGENTS.md
+    expect:
+      must:
+        - 读取 AGENTS.md 底线作为最高优先级检查项
+        - 按纯只读 git diff 逐文件审查并输出 P0~P3 分级结果
+      must_not:
+        - 跳过 AGENTS.md 或在未授权时改写业务代码
+
   - id: mr-fetch-only
     kind: core
     judge: deterministic
@@ -43,7 +79,7 @@ cases:
     expect:
       must:
         - 用 git fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"（GitHub 用 pull/<iid>/head）
-        - 审查范围 --from origin/<target_branch> --to refs/code-review/*
+        - 审查范围 origin/<target_branch>..refs/code-review/*；若用 codex 则走只读 codex exec
       must_not:
         - checkout / stash / reset 目标仓库
         - 污染用户当前工作区
@@ -55,32 +91,31 @@ cases:
     given: ocr llm test 失败，或 GITLAB_TOKEN 未设置且目标需要认证
     expect:
       must:
-        - 停止并请用户配置（环境变量或 ocr config）
+        - 停止并请用户配置（环境变量或对应 CLI 登录/配置），或让用户改走 delegate / 其他引擎
       must_not:
         - 编造 API key / token
         - 把 token 写入命令行参数、日志或审查产物
 
-  - id: artifacts-layout
+  - id: optional-artifacts-and-plan
     kind: core
     judge: deterministic
-    description: 产物按约定落 workspace 的 docs/reviews/ 并更新 INDEX
-    given: ocr JSON 已生成，进入落盘步骤
+    description: 支持仅对话输出或按约定落盘（含可选 plan.md）
+    given: 审查完成，生成了统一 result JSON
     expect:
       must:
-        - 生成 docs/reviews/{YYYY-MM-DD}/{change-name}/ 下 ocr-raw.json、review.md、summary.md
-        - 更新 docs/reviews/INDEX.md
-        - review.md 中 findings 按 P0→Pn 排序
+        - 落盘时生成 docs/reviews/{YYYY-MM-DD}/{change-name}/ 下 raw.json、review.md、summary.md（传 --plan-md 时附加 plan.md）并更新 INDEX.md
+        - 不落盘时调用 reviewctl render 仅在对话输出 summary
       must_not:
         - 把产物写进被审查仓库的代码目录
 
   - id: chat-prints-summary-only
     kind: core
     judge: deterministic
-    description: 对话只打印 write 返回的 summary 与文档路径
-    given: 审查完成、产物已落盘
+    description: 对话只打印精炼总结与文档路径
+    given: 审查完成
     expect:
       must:
-        - 对话输出仅 summary（按 P0→Pn 排序）加完整文档路径
+        - 对话输出仅 summary（按 P0→P3 排序，含引擎与模型）加完整文档路径（若落盘）
       must_not:
         - 把 thinking、大段代码或原始 JSON 贴进对话
 
@@ -88,7 +123,7 @@ cases:
     kind: failure
     judge: deterministic
     description: MR/PR 评论发布必须经用户明确确认；仓库模式不发布
-    given: MR/PR 模式且 review.md 已落盘
+    given: MR/PR 模式且报告已生成
     expect:
       must:
         - 先询问用户是否将完整报告发布为评论，并核对目标 URL/IID
@@ -104,7 +139,7 @@ cases:
     given: 审查发现可修复问题，用户未明确要求「顺手修」
     expect:
       must:
-        - 只输出审查产物
+        - 只输出审查报告/产物
       must_not:
         - 修改业务代码、commit、push
         - 用本 skill 承接架构评审、岗位视角评审或需求/规格符合性评审
@@ -116,16 +151,16 @@ cases:
     given: 改动 SKILL.md、scripts/reviewctl.py 或 tests/ 之后
     expect:
       must:
-        - python3 -m pytest skills/solo-code-review/tests -q 全部通过
+        - python3 -m unittest discover -s skills/way-to-cr/tests -p 'test_*.py' 全部通过
 
   - id: commit-mode-scope
     kind: core
     judge: deterministic
-    description: 用户点名单个 commit 时用 -c 审查，产物命名带短 hash
+    description: 用户点名单个 commit 时按单提交审查，产物命名带短 hash
     given: 用户要求审查某个具体 commit（给了 hash）
     expect:
       must:
-        - 用 ocr review -c <hash>（对其父提交）确定范围，并经确认门与 --preview
+        - 用 commit 模式与对应 hash 确定范围，并经范围确认与 preview
         - meta.json 含 commit 字段；change-name 由 reviewctl change-name --commit 生成（<repo>-commit-<hash>）
       must_not:
         - 把单 commit 审查默默扩大为整分支 diff
@@ -133,26 +168,25 @@ cases:
   - id: delegate-fallback-when-no-llm
     kind: failure
     judge: deterministic
-    description: ocr llm test 失败时给出两条路（配置 LLM / delegate），不硬停也不编 key
-    given: ocr llm test 失败（未配置 LLM）
+    description: ocr llm test 失败时给出配置 / delegate / 换引擎，不硬停也不编 key
+    given: 用户选择 ocr 且 ocr llm test 失败（未配置 LLM）
     expect:
       must:
-        - 停下并让用户选择：配置 LLM 后重跑，或按 references/delegate-mode.md 走 delegate 模式
+        - 停下并让用户选择：配置 LLM 后重跑、按 references/delegate-mode.md 走 delegate 模式，或切换 builtin/claude/codex
         - delegate 模式覆盖每个 previewed 文件（reviewed 或 skipped 带原因），产物落盘与确认门同主流程
       must_not:
         - 编造 API key
         - 未经用户选择直接以通用 agent 逐文件替代 ocr
 
-  - id: provider-model-override
+  - id: post-cr-optional-fix-prompt
     kind: core
     judge: deterministic
-    description: 用户指定 provider/model 时单次覆盖，未指定则用现有配置
-    given: 用户给了 provider=<name> 和/或 model=<name>
+    description: CR 完成后有 findings 时提示可选修复，无 findings 时省略
+    given: 审查完成并已输出总结
     expect:
       must:
-        - ocr review 追加 --provider <name> --model <name>（仅本次运行，不写回 ocr config）
-        - 未指定时不加这两个 flag，沿用现有配置
-        - review.md 记录实际 LLM 后端（取自 ocr JSON 的 llm.{provider,model}）
+        - 有 findings 时提示用户可选修复（指定条目、仅修 P0/P1 或保持只读结束）
+        - 获得用户明确确认修复范围后再改代码；复杂根因排查可衔接 way-to-fix
+        - 无 findings 时省略修复提示
       must_not:
-        - 在命令行传入或编造 API key / 凭据
-        - 用 ocr llm test 验证指定组合（该命令只测默认配置）
+        - 未经确认直接修改业务代码

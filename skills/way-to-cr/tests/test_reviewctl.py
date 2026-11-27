@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "reviewctl.py"
 
@@ -27,10 +29,11 @@ class ReviewctlTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         (self.tmp / "repos").mkdir()
 
-    def _git(self, repo: Path, *args: str) -> None:
-        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+    def _git(self, repo: Path, *args: str) -> str:
+        proc = subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True)
+        return proc.stdout.strip()
 
-    def _init_repo(self, rel: str, name: str | None = None) -> Path:
+    def _init_repo(self, rel: str) -> Path:
         repo = self.tmp / "repos" / rel
         repo.mkdir(parents=True)
         self._git(repo, "init")
@@ -40,8 +43,6 @@ class ReviewctlTests(unittest.TestCase):
         self._git(repo, "add", ".")
         self._git(repo, "commit", "-m", "init")
         self._git(repo, "branch", "-M", "main")
-        if name:
-            pass
         return repo
 
     def test_resolve_by_basename_and_ambiguous(self) -> None:
@@ -75,6 +76,103 @@ class ReviewctlTests(unittest.TestCase):
         (repo / "wip.txt").write_text("z\n", encoding="utf-8")
         payload = rc.inspect_repo(self.tmp, "svc")
         self.assertEqual(payload["recommendation"], "ask")
+
+    def test_preview_modes_exclusions_and_guidelines(self) -> None:
+        repo = self._init_repo("app")
+        (repo / "AGENTS.md").write_text("- Check error handling\n", encoding="utf-8")
+        (repo / "src.py").write_text("print(1)\n", encoding="utf-8")
+        (repo / "package-lock.json").write_text("{}\n", encoding="utf-8")
+        self._git(repo, "add", ".")
+        self._git(repo, "commit", "-m", "base files")
+
+        # uncommitted: tracked change + untracked + lockfile + custom exclude
+        (repo / "src.py").write_text("print(1)\nprint(2)\n", encoding="utf-8")
+        (repo / "new.py").write_text("a = 1\nb = 2\n", encoding="utf-8")
+        (repo / "bundle.min.js").write_text("var a=1;", encoding="utf-8")
+        (repo / "skip.tmp").write_text("ignored", encoding="utf-8")
+        prev = rc.preview_changes(self.tmp, "app", mode="uncommitted", exclude="*.tmp")
+        self.assertEqual(prev["guidelines"], ["AGENTS.md"])
+        rev_paths = {f["path"] for f in prev["reviewable_files"]}
+        exc_map = {f["path"]: f["reason"] for f in prev["excluded_files"]}
+        self.assertEqual(rev_paths, {"src.py", "new.py"})
+        self.assertEqual(exc_map["bundle.min.js"], "generated")
+        self.assertIn("excluded", exc_map["skip.tmp"])
+
+        # commit mode
+        self._git(repo, "add", "src.py", "new.py")
+        self._git(repo, "commit", "-m", "feat commit")
+        sha = self._git(repo, "rev-parse", "--short", "HEAD")
+        cprev = rc.preview_changes(self.tmp, "app", mode="commit", commit=sha)
+        self.assertEqual(cprev["commit"], sha)
+        self.assertEqual({f["path"] for f in cprev["reviewable_files"]}, {"src.py", "new.py"})
+
+        # default-branch / range mode
+        self._git(repo, "checkout", "-b", "feat-branch")
+        (repo / "branch.py").write_text("x = 42\n", encoding="utf-8")
+        self._git(repo, "add", "branch.py")
+        self._git(repo, "commit", "-m", "branch work")
+        bprev = rc.preview_changes(self.tmp, "app", mode="default-branch")
+        self.assertEqual(bprev["from"], "main")
+        self.assertEqual(bprev["to"], "HEAD")
+        self.assertEqual({f["path"] for f in bprev["reviewable_files"]}, {"branch.py"})
+
+    def test_prefs_get_set_clear_and_reject_sensitive(self) -> None:
+        prefs_path = self.tmp / "cfg" / "prefs.json"
+        initial = rc.load_prefs(prefs_path)
+        self.assertEqual(initial["engines"]["claude"]["model"], "")
+
+        rc.set_prefs(prefs_path, engine="claude", model="sonnet", mode="plugin", set_default_engine=True, persist_default="true")
+        rc.set_prefs(prefs_path, engine="codex", model="o3")
+        loaded = rc.load_prefs(prefs_path)
+        self.assertEqual(loaded["default_engine"], "claude")
+        self.assertTrue(loaded["persist_default"])
+        self.assertEqual(loaded["engines"]["claude"]["model"], "sonnet")
+        self.assertEqual(loaded["engines"]["claude"]["mode"], "plugin")
+        self.assertEqual(loaded["engines"]["codex"]["model"], "o3")
+
+        rc.clear_prefs(prefs_path, engine="claude")
+        after_clear = rc.load_prefs(prefs_path)
+        self.assertEqual(after_clear["engines"]["claude"]["model"], "")
+        self.assertEqual(after_clear["default_engine"], "")
+        self.assertEqual(after_clear["engines"]["codex"]["model"], "o3")
+
+        with self.assertRaises(rc.ReviewError):
+            rc._assert_safe_value("api_key", "secret-123")
+
+    def test_probe_reads_configs_without_leaking_secrets(self) -> None:
+        prefs_path = self.tmp / "prefs.json"
+        rc.set_prefs(prefs_path, engine="codex", model="gpt-5.2")
+
+        claude_cfg = self.tmp / "claude_settings.json"
+        claude_cfg.write_text(
+            json.dumps(
+                {
+                    "model": "claude-sonnet-4-6",
+                    "enabledPlugins": ["code-review@anthropic"],
+                    "env": {"ANTHROPIC_API_KEY": "sk-ant-do-not-leak"},
+                }
+            ),
+            encoding="utf-8",
+        )
+        codex_cfg = self.tmp / "codex_config.toml"
+        codex_cfg.write_text(
+            'model = "o3"\nmodel_provider = "openai"\n\n[profiles.fast]\nmodel = "gpt-5.1-codex"\n',
+            encoding="utf-8",
+        )
+
+        with mock.patch("shutil.which", return_value=None):
+            probed = rc.probe_engines(prefs_path, claude_settings=claude_cfg, codex_config=codex_cfg)
+
+        raw_dump = json.dumps(probed)
+        self.assertNotIn("sk-ant-do-not-leak", raw_dump)
+        self.assertTrue(probed["engines"]["builtin"]["available"])
+        self.assertFalse(probed["engines"]["builtin"]["needs_model_selection"])
+        self.assertTrue(probed["engines"]["claude"]["has_code_review_plugin"])
+        self.assertIn("claude-sonnet-4-6", probed["engines"]["claude"]["models"])
+        self.assertEqual(probed["engines"]["codex"]["saved_model"], "gpt-5.2")
+        self.assertTrue(probed["engines"]["codex"]["has_saved_model"])
+        self.assertIn("o3", probed["engines"]["codex"]["models"])
+        self.assertIn("gpt-5.1-codex", probed["engines"]["codex"]["models"])
 
     def test_parse_mr_urls(self) -> None:
         gl = rc.parse_mr_url("https://gitlab.example.invalid/group/service/-/merge_requests/88")
@@ -122,6 +220,7 @@ class ReviewctlTests(unittest.TestCase):
 
     def test_write_review_commit_mode(self) -> None:
         ocr = {
+            "engine": "ocr-delegate",
             "status": "complete",
             "session_id": "delegate-20261016-120000",
             "summary": {"files_reviewed": 1, "comments": 1},
@@ -140,6 +239,41 @@ class ReviewctlTests(unittest.TestCase):
         self.assertIn("### P0", review)
         self.assertIn("b.go: skipped, binary file", review)
         self.assertNotIn("- LLM：", review)
+        self.assertTrue((self.tmp / result["raw"]).exists())
+
+    def test_write_review_with_plan_and_render_without_disk(self) -> None:
+        res = {
+            "engine": "codex",
+            "status": "complete",
+            "session_id": "codex-20261127",
+            "llm": {"provider": "codex", "model": "o3"},
+            "summary": {"files_reviewed": 2, "comments": 1},
+            "comments": [
+                {"path": "main.py", "content": "race condition in cache", "priority": "P1", "start_line": 12, "end_line": 18}
+            ],
+        }
+        meta = {
+            "repo": "group/service",
+            "mode": "uncommitted",
+            "date": "2026-11-27",
+            "branch": "main",
+            "default_branch": "main",
+            "guidelines": ["AGENTS.md"],
+        }
+        rendered = rc.render_result(res, meta, fmt="summary")
+        self.assertIn("`codex / o3`", rendered["output"])
+        self.assertNotIn("完整文档", rendered["output"])
+        self.assertFalse((self.tmp / "docs").exists())
+
+        written = rc.write_review(self.tmp, res, meta, plan_text="# Review Plan\n\n- Focus on concurrency")
+        self.assertIn("plan", written)
+        self.assertTrue((self.tmp / written["plan"]).is_file())
+        review = (self.tmp / written["review"]).read_text(encoding="utf-8")
+        self.assertIn("- 引擎：`codex`", review)
+        self.assertIn("- LLM：`codex` / `o3`", review)
+        self.assertIn("`AGENTS.md`", review)
+        index_text = (self.tmp / "docs/reviews/INDEX.md").read_text(encoding="utf-8")
+        self.assertIn("| codex |", index_text)
 
     def test_write_review_records_llm_backend(self) -> None:
         ocr = {

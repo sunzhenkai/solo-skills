@@ -1,6 +1,6 @@
-# delegate 模式（OCR 未配置 LLM 时）
+# delegate 模式（OCR 未配置 LLM 或复用订阅额度时）
 
-OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败且用户选择 delegate。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有「跑 ocr」这一步被替换。
+OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败或用户选择复用当前 agent 订阅额度且不额外配 API key。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有执行审查这一步被替换。
 
 delegate 模式下 `--provider/--model` 不适用（OCR 侧不调 LLM，审查用当前 agent 的模型）；`review.md` 的 LLM 行留空或标注 `delegate`。
 
@@ -12,7 +12,7 @@ delegate 模式下 `--provider/--model` 不适用（OCR 侧不调 LLM，审查�
 ocr delegate preview --format json --repo <git_root_abs> [--from <ref> --to <ref>] [-c <hash>] [--exclude <patterns>]
 ```
 
-输出含 `mode`（workspace / range / commit）、ref 元数据（`from` / `to` / `commit` / `merge_base`）、`reviewable_files[]`（path、status、insertions、deletions）与 `excluded_files[]`（含排除原因）。把 `reviewable_files` 展示给用户确认（等同主流程的 `--preview` 确认门）。
+输出含 `mode`（workspace / range / commit）、ref 元数据（`from` / `to` / `commit` / `merge_base`）、`reviewable_files[]`（path、status、insertions、deletions）与 `excluded_files[]`（含排除原因）。把 `reviewable_files` 展示给用户确认（等同预览确认门）。
 
 ### D2. 取规则
 
@@ -53,15 +53,16 @@ cat "<path>"
 | `category` | enum | 否 | bug / security / performance / maintainability / test / style / documentation / other |
 | `severity` | enum | 否 | critical / high / medium / low |
 
-组装成与 `ocr review --format json` 同构的对象写入 `/tmp/ocr.json`：
+组装成统一 JSON 对象写入 `/tmp/way-to-cr-result.json`：
 
 ```json
 {
+  "engine": "ocr-delegate",
   "status": "complete",
   "session_id": "delegate-<YYYYMMDD-HHMMSS>",
   "message": "delegate review: <n> finding(s) across <m> file(s)",
-  "summary": {"files_reviewed": <m>, "comments": <n>},
-  "comments": [...]
+  "summary": {"files_reviewed": 0, "comments": 0},
+  "comments": []
 }
 ```
 
@@ -69,7 +70,7 @@ cat "<path>"
 
 ### D5. 回到主流程
 
-从主流程「4. 分级并落盘」继续：`reviewctl write` 落 `docs/reviews/`、MR/PR 评论确认门、对话只打印 summary。边界不变：默认不改代码，不 checkout/stash/reset 目标仓。
+回到 `SKILL.md`「4. 分级出报告、可选落盘与可选发布 MR/PR」：按需 `reviewctl write` 落 `docs/reviews/` 或 `render` 输出总结、MR/PR 评论确认门、对话只打印 summary。边界不变：默认不改代码，不 checkout/stash/reset 目标仓。
 
 ## 覆盖与止损
 

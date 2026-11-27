@@ -31,3 +31,4 @@ skill 改名、并入其他 skill，或删除了会被其他 skill 引用的概�
 | `app-api-ops` | `project-design-patterns` | 改名 `agent-api-ops` 后并入其 `references/agent-api-ops.md` |
 | `agent-api-ops` | `project-design-patterns` | 并入为 `references/agent-api-ops.md`，不再独立安装 |
 | `wizard` | — | taskrail 改为动态路由，不再有 wizard 环节 |
+| `solo-code-review` | `way-to-cr` | 改名并扩展为多引擎代码审查 |

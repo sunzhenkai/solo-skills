@@ -25,7 +25,7 @@ class FrontmatterContract(unittest.TestCase):
         text = "\n".join(self.lines)
         front = text.split("---", 2)[1]
         self.assertNotIn("不用本 skill", front)
-        self.assertIn("只看 diff 或逐文件评审交给 `solo-code-review`", text)
+        self.assertIn("只看 diff 或逐文件评审交给 `way-to-cr`", text)
 
 
 class SafetyProtocolContract(unittest.TestCase):

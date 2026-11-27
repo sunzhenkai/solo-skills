@@ -1,0 +1,26 @@
+diff --git a/skills/commit-push/SKILL.md b/skills/commit-push/SKILL.md
+index eb8b1ab..634c0e3 100644
+--- a/skills/commit-push/SKILL.md
++++ b/skills/commit-push/SKILL.md
+@@ -8,7 +8,7 @@ description: "提交并推送：分析 git 变更、起草提交说明、commit
+ 
+ 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。commit message 跟随仓库已有 log 风格（中英均可）。
+ 
+-只看 diff 或逐文件评审交给 `solo-code-review`；本 skill 负责落 commit 与 push。
++只看 diff 或逐文件评审交给 `way-to-cr`；本 skill 负责落 commit 与 push。
+ 
+ 默认执行 **commit + push**；若用户只要 commit 或只要 push，按其指示。默认沿用当前分支与 tracking remote；意图不清再问（见「何时问用户」）。
+ 
+diff --git a/skills/commit-push/tests/test_commit_push_contract.py b/skills/commit-push/tests/test_commit_push_contract.py
+index e5af411..6392cd4 100644
+--- a/skills/commit-push/tests/test_commit_push_contract.py
++++ b/skills/commit-push/tests/test_commit_push_contract.py
+@@ -25,7 +25,7 @@ class FrontmatterContract(unittest.TestCase):
+         text = "\n".join(self.lines)
+         front = text.split("---", 2)[1]
+         self.assertNotIn("不用本 skill", front)
+-        self.assertIn("只看 diff 或逐文件评审交给 `solo-code-review`", text)
++        self.assertIn("只看 diff 或逐文件评审交给 `way-to-cr`", text)
+ 
+ 
+ class SafetyProtocolContract(unittest.TestCase):

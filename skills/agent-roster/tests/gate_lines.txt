@@ -58,4 +58,4 @@ acpx 仍处于 alpha，命令表面会变。执行前若不确定，以 `acpx --
 进入某个 Stage 后只读对应节。Frozen Input 必须在本会话敲死后再写入委派 prompt。
 派出时 Frozen Input 含：方案路径、评审范围、通过标准。受派方不得问「方案是什么」。不过本 Stage 不得 apply、不得改代码。
 必须派出。不允许 `human`。
-选做则必须派出，不允许 `human`。范围门在本会话走 `$solo-code-review` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。
+选做则必须派出，不允许 `human`。范围门在本会话走 `$way-to-cr` 的确认门，结果写入 Frozen Input（`mode` / MR URL / from-to）。受派方执行该 skill，产物进项目 `docs/reviews/`。

@@ -55,7 +55,7 @@ class RbrContractTest(unittest.TestCase):
 
     def test_adjacent_skill_boundaries(self) -> None:
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("solo-code-review", text)
+        self.assertIn("way-to-cr", text)
         self.assertIn("role-chat", text)
 
     def test_no_silent_downgrade(self) -> None:

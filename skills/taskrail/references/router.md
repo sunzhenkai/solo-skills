@@ -21,7 +21,7 @@
 | 大型项目、公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 架构 / 契约变化 |
 | 命中 [approve.md](approve.md) 条件（大型 / 重大 / 架构 / 公共契约变更、用户要求审批、难逆高风险或改判据） | approve | 小范围沿用既有架构的可逆改动且用户未要求审批（停点与豁免见 [confirm-protocol.md](confirm-protocol.md)） |
 | 多交付、多项目、需要增量反馈或一次难回归 | decompose | 一个连贯改动即可实施并验证 |
-| 用户 / 方案明确要求独立评审，或命中观感交付验收 | review | 默认跳过；常规代码改动由 execute 自检与 verify 闭环，不自动触发 code review 或 `solo-code-review` |
+| 用户 / 方案明确要求独立评审，或命中观感交付验收 | review | 默认跳过；常规代码改动由 execute 自检与 verify 闭环，不自动触发 code review 或 `way-to-cr` |
 | 全部实现产物就绪 | verify | 无；代码任务不得跳过验证 |
 | 验证全过 | close | 无；done 与归档必须经过 close |
 

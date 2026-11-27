@@ -14,7 +14,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 | 定方案 | 澄清在本会话 | 可不再派 | 轻量 plan Handoff；本会话写完即可 |
 | 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-based-reviewer` |
 | 实现 | 确认 Assignment | 必须 | 按 plan 改代码 |
-| 代码评审 | 默认跳过 | 选做则必须 | `$solo-code-review` |
+| 代码评审 | 默认跳过 | 选做则必须 | `$way-to-cr` |
 | 收尾 | 确认；默认可 `human` | 需要时 | 摘要；可选 `$commit-push` |
 
 ## Medium
@@ -25,7 +25,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 | 定方案 | 澄清、选方案 | 写产物时 | 含糊则 `$openspec-explore`，然后 `$openspec-propose`。澄清在本会话完成后再派 |
 | 方案评审 | 确认 Assignment | 只读 | 审 proposal / design / specs；不过不得 apply |
 | 实现 | 确认 Assignment | 必须 | `$openspec-apply-change` |
-| 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
+| 代码评审 | 默认建议做 | 选做则必须 | `$way-to-cr` |
 | 收尾 | 确认 Assignment | 需要时 | `$openspec-archive-change`；可选 `$commit-push` |
 
 ## Complex
@@ -36,5 +36,5 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 | 定方案 | 澄清；需要时 approve | 写产物时 | 按 `$taskrail` 路由产出当前最小计划，命中时进入 design / approve / decompose。执行走 OpenSpec 时先过 handoff，再由 `$taskflow` 建 driver 并 `$openspec-propose`；走 direct 时 PLAN 即方案产物。本 Stage 不写代码 |
 | 方案评审 | 确认 Assignment | 只读 | 审 PLAN / design，以及 driver / 子 change 产物（若有） |
 | 实现 | 确认 Assignment | 必须 | `$taskflow` 按 direct 或 OpenSpec 实施 |
-| 代码评审 | 默认建议做 | 选做则必须 | `$solo-code-review` |
+| 代码评审 | 默认建议做 | 选做则必须 | `$way-to-cr` |
 | 收尾 | 确认 Assignment | 需要时 | 有 driver 时归档；任务经 `$taskrail` verify / close 写 `done` 并归档；可选 `$commit-push` |

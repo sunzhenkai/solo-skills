@@ -1,0 +1,4814 @@
+diff --git a/skills/way-to-cr/SKILL.md b/skills/way-to-cr/SKILL.md
+new file mode 100644
+index 0000000..de1a58e
+--- /dev/null
++++ b/skills/way-to-cr/SKILL.md
+@@ -0,0 +1,90 @@
++---
++id: way-to-cr
++name: way-to-cr
++description: 多引擎 Git diff / MR / PR 代码审查（原 solo-code-review）：先思考审查范围与风险重点，再选择内置审查、Claude Code /code-review、Codex /review 或 OCR 执行并按需记忆模型选择，输出 P0~P3 分级报告，支持可选落盘与 MR/PR 评论。在用户要求 code review、审查 MR/PR、评审未提交改动或提交时使用。
++license: MIT
++---
++
++# way-to-cr
++
++面向个人与小团队的多引擎 **Git diff 级代码审查**（原 `solo-code-review`）：先厘清范围与风险，再由用户选方案与模型，最后按 `P0~P3` 输出精炼报告并按需落盘或发布评论。
++
++架构评审、岗位视角评审、需求/规格符合性评审交给 `role-based-reviewer`。默认只审查、不改代码；用户明确要求「顺手修」时再改代码。无 diff 的全仓静态扫描直接用 `ocr scan`。
++
++## 调用
++
++```text
++/way-to-cr [repo=<仓库名|仓库路径>] [mode=uncommitted|default-branch|commit] [commit=<hash>] [engine=builtin|claude|codex|ocr] [model=<name>] [provider=<name>] [save=yes|no|plan] [change-name=<slug>]
++/way-to-cr <GitLab/GitHub MR 或 PR URL> [engine=...] [model=...]
++```
++
++可选：业务背景 `-b <一句话>` / `-B <md路径>`；审查深度 `effort=low|medium|high`；更换已记住的模型时传 `model=` 或说「换模型」。机械步骤统一用 [`scripts/reviewctl.py`](scripts/reviewctl.py)（`--root` 指向工作区根目录）。
++
++## 四步流程
++
++### 1. 思考审查内容与范围（范围确认门）
++
++1. **解析目标**：
++   - 给了 **MR/PR URL** → 走 `parse-mr` 与 [references/mr-mode.md](references/mr-mode.md)（只 fetch 到 `refs/code-review/*`，保持工作区干净，不 `checkout`/`stash`/`reset`）。
++   - 给了 **仓库名或路径** → `reviewctl inspect --repo <name>`。
++   - 都没给 → 当前对话已点名仓库则直接用；否则询问。多命中时列出全部 `candidates` 让用户选。
++2. **范围确认门**（`inspect` 的 `recommendation`）：
++
++| recommendation | 含义 | 下一步 |
++|---|---|---|
++| `uncommitted` | 仅工作区脏 | 建议工作区未提交审查；仍须用户确认 |
++| `default-branch` | 干净且相对默认分支有提交 | 建议 `--from <comparison_ref> --to HEAD`；仍须用户确认 |
++| `ask` | 既有未提交又有分支提交 | 必须让用户二选一，禁止默默合并两种 diff |
++| `nothing` | 干净且无新提交 | 停止，问是否改审 MR/PR、单个 commit 或其他 ref |
++
++   点名**单个 commit** 时设 `mode=commit`（范围 `-c <hash>`）。
++3. **预览与思考重点**：跑 `reviewctl preview --repo <name> --mode <mode>`（按需加 `--commit` / `--from` / `--to` / `--exclude`），提取 `reviewable_files`、`excluded_files` 与仓库底线文件（`AGENTS.md` / `CLAUDE.md` 等）。先思考改动意图与高风险点（并发、资源释放、权限安全、边界条件、底线遵循），向用户简述审查范围、排除项与重点清单。
++
++### 2. 选择 Review 方案（方案确认门）
++
++跑 `reviewctl probe` 探测本机可用引擎与已保存偏好，向用户展示可选方案并等待选择（范围清晰无歧义且用户未预选 `engine=` 时，可与第 1 步合并为一次确认）：
++
++| engine | 方案 | 特点与适用场景 |
++|---|---|---|
++| `builtin` | 内置审查（推荐日常首选） | 零依赖、快；对齐 `AGENTS.md` 与 diff，推荐干净会话或只读 subagent 避开盲区 |
++| `claude` | Claude Code `/code-review` | 复用 Claude Code 订阅与插件/无头命令，适合复杂变更 |
++| `codex` | Codex `/review` | 复用 Codex CLI 原生审查或只读 `codex exec` |
++| `ocr` | Open Code Review (`ocr`) | 支持 `ocr review` 与 `ocr delegate`（复用当前订阅额度） |
++
++若用户已明确传入 `engine=`，核对可用后跳过询问。
++
++### 3. 模型选择与记忆复用 + 执行审查
++
++仅 `claude`、`codex`、`ocr`（原生 `review`）需要选定模型；`builtin` 与 `ocr delegate` 直接使用当前会话模型。
++
++**模型记忆复用规则**（配置文件 `~/.config/way-to-cr/prefs.json`，只存引擎与模型名，严禁写入 key/token）：
++
++1. 用户本次显式传了 `model=`（或 `provider=`）→ 采用并执行 `reviewctl prefs set --engine <e> --model <m>` 记住；
++2. 用户明确说「换模型」或 `prefs.json` 中该引擎无记录 → 展示 `reviewctl probe --engine <e>` 探测到的可用模型列表（支持直接输入自定义模型 ID）→ 用户选定后 `reviewctl prefs set` 记住；
++3. `prefs.json` 已有记录且用户未要求更换 → 自动复用已记住模型，在回复中简短提示当前沿用该模型并直接执行。
++
++**按引擎执行**：
++
++- `builtin` → 按 [references/builtin-review.md](references/builtin-review.md) 执行。
++- `claude` / `codex` → 按 [references/external-agents.md](references/external-agents.md) 执行。
++- `ocr` → 按 [references/ocr-mode.md](references/ocr-mode.md) 执行；若 `ocr llm test` 失败或用户想复用当前订阅额度，改走 [references/delegate-mode.md](references/delegate-mode.md)。
++
++### 4. 分级出报告、可选落盘与可选发布 MR/PR
++
++1. **统一分级**：将引擎产出整理为统一 JSON（含 `engine`、`llm.{provider,model}`、`summary`、`comments[]`），按 `P0`（阻断/安全/数据损坏）· `P1`（严重缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）分级。`reviewctl` 优先级为：显式 `priority` > `severity` 映射 > 内容启发式；有把握时校准。
++2. **对话输出**：仅输出 `reviewctl render` / `write` 返回的 `summary`（按 `P0→P3` 排序，含引擎与模型）及文档路径（若落盘）；无发现时打印 `No findings.`。原始 JSON 与长推理留在产物中，不刷屏对话。
++3. **可选落盘**：
++   - 用户传 `save=yes` / `save=plan`、上游 flow 要求落盘、或对话确认落盘时：生成 `change-name`（`reviewctl change-name`，`commit` 模式带 `--commit <hash>`），调用：
++     ```bash
++     python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++       --result-json /tmp/way-to-cr-result.json --meta-json /tmp/way-to-cr-meta.json [--plan-md /tmp/way-to-cr-plan.md]
++     ```
++     落盘到 `<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`（`raw.json`、`review.md`、`summary.md`；提供 `--plan-md` 时附加 `plan.md`）并更新 `docs/reviews/INDEX.md`。
++   - 用户选择仅对话查看（`save=no`）时：调用 `reviewctl render --result-json ... --meta-json ... --format summary`，不在工作区写文件。
++4. **MR/PR 评论确认门**：仅在 **MR/PR 模式** 下询问用户是否将完整报告发布为 `<MR/PR URL>` 的评论，并说明这是远程写操作。得到用户明确确认并核对目标 URL/IID 后，才调用 `glab mr note` / `gh pr comment` 发布一条评论；仓库模式不询问也不发布。GitLab 自建实例认证仅通过 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...` 传递，严禁将 token 写入命令行参数、日志或审查产物，严禁编造凭据。
++5. **修复提示（可选）**：有 findings 时（优先标出 `P0` / `P1`），在输出总结后提示用户可选进入修复（指定条目、仅修 `P0/P1` 或保持只读结束）；无 findings 时省略。用户明确确认修复范围后再改代码：单点明确缺陷做最小修复并验证，复杂根因排查可衔接 `way-to-fix`。
++
++## 边界与自进化
++
++- 只读边界：默认仅审查不改代码；目标仓不执行 `checkout` / `stash` / `reset`；MR/PR 只用 `refs/code-review/*`。
++- 交付前对照 `evals/cases.yaml` 自检；经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
+diff --git a/skills/way-to-cr/evals/README.md b/skills/way-to-cr/evals/README.md
+new file mode 100644
+index 0000000..0d09642
+--- /dev/null
++++ b/skills/way-to-cr/evals/README.md
+@@ -0,0 +1,12 @@
++# Evals
++
++本 Skill 的可验证成功标准。任务完成前对照 `cases.yaml` 检查关键输出与约束。
++
++## 怎么跑
++
++1. 选出与当前任务相关的 cases（`kind` + 描述匹配）
++2. `judge: deterministic`：按 `expect.must` / `expect.must_not` 逐条核对，只报 pass/fail
++3. `judge: llm`：仅当无法确定性判断时使用；给出简短判定与依据，不编分数
++4. 任一条失败 → 先修输出再交卷，不要带着 fail 声称完成
++
++新增 case 必须能从 Skill 原文或真实回归事故找到依据。禁止虚构。
+diff --git a/skills/way-to-cr/evals/cases.yaml b/skills/way-to-cr/evals/cases.yaml
+new file mode 100644
+index 0000000..c15e0eb
+--- /dev/null
++++ b/skills/way-to-cr/evals/cases.yaml
+@@ -0,0 +1,192 @@
++version: 1
++skill: way-to-cr
++cases:
++  - id: repo-resolve-ambiguous-asks
++    kind: basic
++    judge: deterministic
++    description: 仓库名多命中时列出 candidates 让用户选，不猜一个就跑
++    given: 用户给的仓库名在 workspace 下命中多个 git root（inspect 返回 ambiguous）
++    expect:
++      must:
++        - 向用户列出全部 candidates 并等待选择
++      must_not:
++        - 任选一个命中仓库继续审查
++
++  - id: scope-confirm-gate
++    kind: core
++    judge: deterministic
++    description: 先思考审查范围与重点并经用户确认，再进入引擎与审查执行
++    given: inspect 返回 recommendation=uncommitted 或 default-branch，用户未显式给 mode=
++    expect:
++      must:
++        - 先跑 reviewctl preview 列出待审文件、排除项与底线文件，并展示审查范围与重点摘要
++        - 获得用户确认后再执行审查引擎
++      must_not:
++        - 未确认范围就直接跑外部 CLI 或内置审查
++
++  - id: mixed-dirty-and-commits-asks
++    kind: failure
++    judge: deterministic
++    description: 既有未提交改动又有分支提交时必须让用户二选一
++    given: inspect 返回 recommendation=ask
++    expect:
++      must:
++        - 让用户在 uncommitted 与 default-branch 中显式选择其一
++      must_not:
++        - 默默合并两种 diff 一次审查
++
++  - id: engine-selection-gate
++    kind: core
++    judge: deterministic
++    description: 第 2 步展示可选审查方案并由用户选定引擎
++    given: 审查范围已明确，用户未传入 engine=
++    expect:
++      must:
++        - 跑 reviewctl probe 探测可用引擎与已记住偏好
++        - 展示 builtin / claude / codex / ocr 四个方案供用户选择
++      must_not:
++        - 未经用户选择私自选用高成本外置引擎
++
++  - id: external-model-selection-and-memory
++    kind: core
++    judge: deterministic
++    description: 使用 claude / codex / ocr 时首次选模型并记住，下次自动复用
++    given: 用户选定 claude / codex / ocr 引擎，prefs.json 已有或尚无记录
++    expect:
++      must:
++        - 无记录或用户说「换模型」时展示 probe 可用模型并允许自定义输入，选定后用 reviewctl prefs set 记住
++        - 有记录且未要求更换时自动复用已保存模型并简短提示
++      must_not:
++        - 把 API key 或 token 写入 prefs.json
++
++  - id: builtin-aligns-guidelines
++    kind: core
++    judge: deterministic
++    description: builtin 方案自动对齐仓库根目录 AGENTS.md 等底线文件
++    given: 用户选择 builtin 方案，目标仓库根目录存在 AGENTS.md
++    expect:
++      must:
++        - 读取 AGENTS.md 底线作为最高优先级检查项
++        - 按纯只读 git diff 逐文件审查并输出 P0~P3 分级结果
++      must_not:
++        - 跳过 AGENTS.md 或在未授权时改写业务代码
++
++  - id: mr-fetch-only
++    kind: core
++    judge: deterministic
++    description: MR/PR 模式只 fetch 到 refs/code-review/*，不动工作区
++    given: 用户给了 GitLab MR 或 GitHub PR URL
++    expect:
++      must:
++        - 用 git fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"（GitHub 用 pull/<iid>/head）
++        - 审查范围 origin/<target_branch>..refs/code-review/*；若用 codex 则走只读 codex exec
++      must_not:
++        - checkout / stash / reset 目标仓库
++        - 污染用户当前工作区
++
++  - id: no-fabricated-credentials
++    kind: failure
++    judge: deterministic
++    description: LLM 或 GitLab 认证缺失时停下让用户配置，不编造凭据
++    given: ocr llm test 失败，或 GITLAB_TOKEN 未设置且目标需要认证
++    expect:
++      must:
++        - 停止并请用户配置（环境变量或对应 CLI 登录/配置），或让用户改走 delegate / 其他引擎
++      must_not:
++        - 编造 API key / token
++        - 把 token 写入命令行参数、日志或审查产物
++
++  - id: optional-artifacts-and-plan
++    kind: core
++    judge: deterministic
++    description: 支持仅对话输出或按约定落盘（含可选 plan.md）
++    given: 审查完成，生成了统一 result JSON
++    expect:
++      must:
++        - 落盘时生成 docs/reviews/{YYYY-MM-DD}/{change-name}/ 下 raw.json、review.md、summary.md（传 --plan-md 时附加 plan.md）并更新 INDEX.md
++        - 不落盘时调用 reviewctl render 仅在对话输出 summary
++      must_not:
++        - 把产物写进被审查仓库的代码目录
++
++  - id: chat-prints-summary-only
++    kind: core
++    judge: deterministic
++    description: 对话只打印精炼总结与文档路径
++    given: 审查完成
++    expect:
++      must:
++        - 对话输出仅 summary（按 P0→P3 排序，含引擎与模型）加完整文档路径（若落盘）
++      must_not:
++        - 把 thinking、大段代码或原始 JSON 贴进对话
++
++  - id: mr-comment-requires-confirm
++    kind: failure
++    judge: deterministic
++    description: MR/PR 评论发布必须经用户明确确认；仓库模式不发布
++    given: MR/PR 模式且报告已生成
++    expect:
++      must:
++        - 先询问用户是否将完整报告发布为评论，并核对目标 URL/IID
++        - 用户明确确认后才调用 glab mr note / gh pr comment
++      must_not:
++        - 未经确认调用任何远程写接口
++        - 仓库模式下发布评论
++
++  - id: read-only-by-default
++    kind: boundary
++    judge: deterministic
++    description: 默认只审查不改代码；架构/岗位/规格评审不在本 skill 范围
++    given: 审查发现可修复问题，用户未明确要求「顺手修」
++    expect:
++      must:
++        - 只输出审查报告/产物
++      must_not:
++        - 修改业务代码、commit、push
++        - 用本 skill 承接架构评审、岗位视角评审或需求/规格符合性评审
++
++  - id: reviewctl-tests-pass
++    kind: regression
++    judge: deterministic
++    description: 脚本契约测试保持通过
++    given: 改动 SKILL.md、scripts/reviewctl.py 或 tests/ 之后
++    expect:
++      must:
++        - python3 -m unittest discover -s skills/way-to-cr/tests -p 'test_*.py' 全部通过
++
++  - id: commit-mode-scope
++    kind: core
++    judge: deterministic
++    description: 用户点名单个 commit 时按单提交审查，产物命名带短 hash
++    given: 用户要求审查某个具体 commit（给了 hash）
++    expect:
++      must:
++        - 用 commit 模式与对应 hash 确定范围，并经范围确认与 preview
++        - meta.json 含 commit 字段；change-name 由 reviewctl change-name --commit 生成（<repo>-commit-<hash>）
++      must_not:
++        - 把单 commit 审查默默扩大为整分支 diff
++
++  - id: delegate-fallback-when-no-llm
++    kind: failure
++    judge: deterministic
++    description: ocr llm test 失败时给出配置 / delegate / 换引擎，不硬停也不编 key
++    given: 用户选择 ocr 且 ocr llm test 失败（未配置 LLM）
++    expect:
++      must:
++        - 停下并让用户选择：配置 LLM 后重跑、按 references/delegate-mode.md 走 delegate 模式，或切换 builtin/claude/codex
++        - delegate 模式覆盖每个 previewed 文件（reviewed 或 skipped 带原因），产物落盘与确认门同主流程
++      must_not:
++        - 编造 API key
++        - 未经用户选择直接以通用 agent 逐文件替代 ocr
++
++  - id: post-cr-optional-fix-prompt
++    kind: core
++    judge: deterministic
++    description: CR 完成后有 findings 时提示可选修复，无 findings 时省略
++    given: 审查完成并已输出总结
++    expect:
++      must:
++        - 有 findings 时提示用户可选修复（指定条目、仅修 P0/P1 或保持只读结束）
++        - 获得用户明确确认修复范围后再改代码；复杂根因排查可衔接 way-to-fix
++        - 无 findings 时省略修复提示
++      must_not:
++        - 未经确认直接修改业务代码
+diff --git a/skills/way-to-cr/examples/README.md b/skills/way-to-cr/examples/README.md
+new file mode 100644
+index 0000000..a2f4eaf
+--- /dev/null
++++ b/skills/way-to-cr/examples/README.md
+@@ -0,0 +1,25 @@
++# Examples
++
++经过验证的优秀执行案例。执行复杂任务前先读这里，优先复用已验证方法。
++
++## 何时写入
++
++- 用户明确认可，或一次完成且明显优于以往
++- 路径可复用，不是一次性特例
++- 不含密钥、内部 URL、机器专属路径
++
++没有真实成功案例时保持本目录为空，只保留本 README。禁止编造。
++
++## 案例文件
++
++每个案例一个 markdown：`examples/<YYYYMMDD>-<slug>.md`
++
++必填：
++
++- Date
++- Skill
++- Task
++- Approach
++- Result
++- Why it was good
++- Reusable lessons
+diff --git a/skills/way-to-cr/experience/README.md b/skills/way-to-cr/experience/README.md
+new file mode 100644
+index 0000000..4433378
+--- /dev/null
++++ b/skills/way-to-cr/experience/README.md
+@@ -0,0 +1,33 @@
++# Experience
++
++真实执行中的失败、成功与可复用规律。不要记录 trivial information。
++
++```text
++failures/  → 失败案例
++successes/ → 成功案例
++patterns/  → 从多个案例中提炼出的可复用规律
++```
++
++## 何时写入
++
++- 失败、用户纠正、明显成功
++- 新的有效执行方法
++- 可复用的经验
++
++## 何时不写入
++
++- 一次性环境问题（网络闪断、用户打错字）
++- 与 Skill 无关的闲聊
++- 尚未发生的「预期失败」
++
++## 条目格式
++
++`experience/<bucket>/<YYYYMMDD>-<slug>.md`
++
++必填：Date / Kind（failure | success | pattern）/ Skill / Context / What happened / Lesson。
++
++一次性特例在 Lesson 写明 `Experience only`，不要建议改 Skill。
++
++`patterns/` 至少要有 **两次以上** 同类 evidence 才建立。单次失败只进 `failures/`。
++
++空的 `failures/` `successes/` `patterns/` 各放一个 `.gitkeep`。
+diff --git a/skills/way-to-cr/experience/failures/.gitkeep b/skills/way-to-cr/experience/failures/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/way-to-cr/experience/patterns/.gitkeep b/skills/way-to-cr/experience/patterns/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/way-to-cr/experience/successes/.gitkeep b/skills/way-to-cr/experience/successes/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/skills/way-to-cr/patches/20260820-010341-copy-code-review/change.patch b/skills/way-to-cr/patches/20260820-010341-copy-code-review/change.patch
+new file mode 100644
+index 0000000..aea80f2
+--- /dev/null
++++ b/skills/way-to-cr/patches/20260820-010341-copy-code-review/change.patch
+@@ -0,0 +1,893 @@
++diff --git a/agents/skills/code-review/SKILL.md b/agents/skills/code-review/SKILL.md
++new file mode 100644
++index 0000000..d126f74
++--- /dev/null
+++++ b/agents/skills/code-review/SKILL.md
++@@ -0,0 +1,143 @@
+++---
+++name: code-review
+++description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
+++license: MIT
+++---
+++
+++# code-review
+++
+++用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎使用已配置的 `ocr` 命令，不要用通用 agent 逐文件替代。
+++
+++不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。
+++
+++## 调用
+++
+++```text
+++/code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
+++/code-review <GitLab/GitHub MR 或 PR URL>
+++```
+++
+++可选：业务背景（commit/MR 说明、需求一句话）→ 传给 `ocr --background`。
+++
+++## MUST 先读取并执行
+++
+++1. 本文件全文。
+++2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)，`--root` 指向审查 workspace 根目录。
+++
+++```bash
+++python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> inspect --repo <name-or-path>
+++python3 <skill-root>/scripts/reviewctl.py parse-mr --url '<url>'
+++python3 <skill-root>/scripts/reviewctl.py write --ocr-json /tmp/ocr.json --meta-json /tmp/meta.json
+++```
+++
+++## 前置
+++
+++```bash
+++which ocr || echo "NOT INSTALLED"
+++ocr llm test
+++```
+++
+++未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。`ocr llm test` 失败则停下来，让用户配置 LLM（环境变量或 `ocr config`），**禁止编造 API key**。
+++
+++GitLab 自建实例认证：
+++
+++- 优先使用环境变量 `GITLAB_TOKEN`，不要把 token 写入命令行参数、日志或审查产物。
+++- 调用 `glab` 时映射为：`GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；GitLab API 需要 token 具备 `api` scope。
+++- 若 `GITLAB_TOKEN` 未设置且目标需要认证，停止并请用户配置该变量；禁止编造或输出 token。
+++
+++## 流程
+++
+++### 1. 解析目标
+++
+++- 用户给了 **MR/PR URL** → 走「MR 模式」，忽略本地脏工作区。
+++- 用户给了 **仓库名或路径** → `reviewctl inspect`。
+++- 都没给：若当前对话已点名仓库则用之；否则询问。多命中时列出 `candidates` 让用户选。
+++
+++### 2. 确定审查范围（确认门）
+++
+++**仓库模式**（`inspect` 的 `recommendation`）：
+++
+++| recommendation | 含义 | 下一步 |
+++|---|---|---|
+++| `uncommitted` | 仅工作区脏 | 建议 workspace 审查；**仍须用户确认** |
+++| `default-branch` | 干净且相对默认分支有提交 | 建议 `--from <comparison_ref> --to HEAD`；**仍须用户确认** |
+++| `ask` | 既有未提交又有分支提交 | **必须**让用户选其一，禁止默默合并两种 diff |
+++| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接或其它 ref |
+++
+++用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
+++
+++**MR/PR 模式**：
+++
+++1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
+++2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
+++3. 取源/目标分支：
+++   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
+++   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
+++4. **只 fetch，不 checkout、不 stash**：
+++
+++```bash
+++git -C <git_root_abs> fetch origin
+++# GitLab
+++git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
+++# GitHub
+++git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
+++```
+++
+++5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
+++6. `ocr review --preview` 后确认再跑 LLM。
+++
+++### 3. 跑 ocr
+++
+++始终：`--audience agent --format json --repo <git_root_abs>`，有背景就加 `-b`。stdout 重定向到文件，禁止 `head`/`tail` 截断。
+++
+++```bash
+++# 未提交
+++ocr review --audience agent --format json --repo <abs> -b "<background>" > /tmp/ocr.json 2>/tmp/ocr.err
+++# 相对默认分支 / MR / PR
+++ocr review --audience agent --format json --repo <abs> -b "<background>" \
+++  --from <from> --to <to> > /tmp/ocr.json 2>/tmp/ocr.err
+++```
+++
+++先看 exit code 与 `/tmp/ocr.err`。JSON `status=skipped` 视为无审查对象，不是失败。
+++
+++### 4. 分级并落盘
+++
+++读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。可先用 `reviewctl` 启发式，**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
+++
+++`change-name`：用户指定优先；否则 `reviewctl change-name`。日期使用运行当天的 `YYYY-MM-DD`。
+++
+++```bash
+++python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
+++  --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
+++```
+++
+++`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
+++
+++产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
+++
+++| 文件 | 内容 |
+++|------|------|
+++| `ocr-raw.json` | ocr 完整 JSON |
+++| `review.md` | 完整审查（含现有代码 / 建议 / 推理） |
+++| `summary.md` | 总结版（同对话打印） |
+++
+++并更新 `docs/reviews/INDEX.md`。
+++
+++### 5. MR/PR 评论确认门
+++
+++仅在 **MR/PR 模式** 且 `review.md` 已成功落盘后，询问用户：
+++
+++> 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
+++
+++在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口。确认时再次核对目标 URL/IID 与待发布文件；用户拒绝、未确认或目标不明确时，只保留本地报告，不发布评论。用户确认后，以 `review.md` 的完整内容发布一条评论，并在结果中报告成功或失败。仓库模式不询问，也不发布评论。
+++
+++### 6. 对用户只打印总结
+++
+++对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径。不要把 `thinking`、大段代码、原始 JSON 贴进对话。无 findings 时打印 `No findings.` + 文档链接。
+++
+++## 边界
+++
+++- 默认不改业务代码、不 commit、不 push、不在 MR/PR 上发评论；远程评论必须经过上一步的明确确认。用户明确要求「顺手修」才可改代码。
+++- 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
+++- 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
+++- 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
++diff --git a/agents/skills/code-review/scripts/reviewctl.py b/agents/skills/code-review/scripts/reviewctl.py
++new file mode 100644
++index 0000000..013950c
++--- /dev/null
+++++ b/agents/skills/code-review/scripts/reviewctl.py
++@@ -0,0 +1,589 @@
+++#!/usr/bin/env python3
+++"""Helpers for /code-review: resolve repositories, inspect change source, parse MR/PR, and write docs."""
+++
+++from __future__ import annotations
+++
+++import argparse
+++import json
+++import re
+++import subprocess
+++import sys
+++from datetime import date
+++from pathlib import Path
+++from typing import Any
+++
+++SKIP_DIRS = {
+++    ".git",
+++    "node_modules",
+++    "vendor",
+++    "dist",
+++    "build",
+++    ".venv",
+++    "__pycache__",
+++    "target",
+++    ".tox",
+++}
+++PRIORITY_ORDER = ("P0", "P1", "P2", "P3", "P4")
+++GITLAB_MR = re.compile(
+++    r"^https?://(?P<host>[^/]+)/(?P<project>.+?)/-/?merge_requests/(?P<iid>\d+)(?:[/?#].*)?$",
+++    re.I,
+++)
+++GITLAB_MR_ALT = re.compile(
+++    r"^https?://(?P<host>[^/]+)/(?P<project>.+?)/merge_requests/(?P<iid>\d+)(?:[/?#].*)?$",
+++    re.I,
+++)
+++GITHUB_PR = re.compile(
+++    r"^https?://(?P<host>[^/]+)/(?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<iid>\d+)(?:[/?#].*)?$",
+++    re.I,
+++)
+++P0_RE = re.compile(
+++    r"(sql\s*injection|xss|rce|auth(?:entication)? bypass|越权|数据丢失|secret|凭证泄露|"
+++    r"任意文件|路径穿越|panic\b|segfault|生产事故|P0)",
+++    re.I,
+++)
+++P1_RE = re.compile(
+++    r"(race|deadlock|nil deref|npe|空指针|正确性|逻辑错误|并发安全|数据竞争|丢事件|"
+++    r"broken api|崩溃|crash|P1)",
+++    re.I,
+++)
+++P2_RE = re.compile(
+++    r"(error handling|missing test|缺少测试|可维护|资源泄露|timeout|重试|P2)",
+++    re.I,
+++)
+++
+++
+++class ReviewError(Exception):
+++    pass
+++
+++
+++def repo_root_from_script() -> Path:
+++    return Path.cwd()
+++
+++
+++def git(args: list[str], cwd: Path, check: bool = True) -> str:
+++    proc = subprocess.run(
+++        ["git", *args],
+++        cwd=cwd,
+++        capture_output=True,
+++        text=True,
+++        check=False,
+++    )
+++    if check and proc.returncode != 0:
+++        err = (proc.stderr or proc.stdout or "").strip()
+++        raise ReviewError(f"git {' '.join(args)} failed: {err}")
+++    return (proc.stdout or "").strip()
+++
+++
+++def iter_git_roots(codes: Path, max_depth: int = 8) -> list[Path]:
+++    if not codes.exists():
+++        return []
+++    start = codes.resolve()
+++    skip_expr: list[str] = []
+++    for name in sorted(SKIP_DIRS - {".git"}):
+++        skip_expr += ["-name", name, "-o"]
+++    find_cmd = [
+++        "find",
+++        str(start),
+++        "-maxdepth",
+++        str(max_depth),
+++        "(",
+++        *skip_expr[:-1],
+++        ")",
+++        "-prune",
+++        "-o",
+++        "-name",
+++        ".git",
+++        "-prune",
+++        "-print",
+++    ]
+++    proc = subprocess.run(find_cmd, capture_output=True, text=True, check=False)
+++    if proc.returncode == 0 and proc.stdout.strip():
+++        return [Path(line).parent for line in proc.stdout.splitlines() if line.strip()]
+++
+++    roots: list[Path] = []
+++
+++    def walk(path: Path, depth: int) -> None:
+++        if (path / ".git").exists():
+++            roots.append(path)
+++        if depth >= max_depth:
+++            return
+++        try:
+++            entries = list(path.iterdir())
+++        except OSError:
+++            return
+++        for entry in entries:
+++            if not entry.is_dir() or entry.name in SKIP_DIRS:
+++                continue
+++            walk(entry, depth + 1)
+++
+++    walk(start, 0)
+++    return roots
+++
+++
+++def find_git_root(path: Path) -> Path | None:
+++    cur = path if path.is_dir() else path.parent
+++    for candidate in [cur, *cur.parents]:
+++        if (candidate / ".git").exists():
+++            return candidate
+++    return None
+++
+++
+++def resolve_repo(work_root: Path, raw: str) -> dict[str, Any]:
+++    name = raw.strip().rstrip("/")
+++    if not name:
+++        raise ReviewError("repo name is empty")
+++
+++    workspace = work_root.resolve()
+++    if name in {"workspace", ".", str(workspace)}:
+++        if (workspace / ".git").exists():
+++            return {
+++                "input": name,
+++                "git_root": ".",
+++                "git_root_abs": str(workspace),
+++                "basename": workspace.name,
+++            }
+++        raise ReviewError("workspace root is not a Git repository; specify a repository path")
+++
+++    path = Path(name).expanduser()
+++    if path.is_absolute():
+++        target = path
+++        if not target.exists():
+++            raise ReviewError(f"path does not exist: {name}")
+++    else:
+++        candidate = workspace / path
+++        target = candidate if candidate.exists() else None
+++
+++    if target is not None:
+++        git_root = find_git_root(target.resolve())
+++        if git_root is None:
+++            raise ReviewError(f"no git root for: {name}")
+++        rel = _rel_display(work_root, git_root)
+++        return {
+++            "input": name,
+++            "git_root": rel,
+++            "git_root_abs": str(git_root),
+++            "basename": git_root.name,
+++        }
+++
+++    roots = ([workspace] if (workspace / ".git").exists() else []) + iter_git_roots(workspace)
+++    exact = [p for p in roots if p.name == name]
+++    if len(exact) == 1:
+++        git_root = exact[0]
+++        return {
+++            "input": name,
+++            "git_root": _rel_display(work_root, git_root),
+++            "git_root_abs": str(git_root),
+++            "basename": git_root.name,
+++        }
+++    if len(exact) > 1:
+++        return {
+++            "input": name,
+++            "ambiguous": True,
+++            "candidates": [_rel_display(work_root, p) for p in exact],
+++        }
+++
+++    suffix = [p for p in roots if p.as_posix().endswith("/" + name)]
+++    if len(suffix) == 1:
+++        git_root = suffix[0]
+++        return {
+++            "input": name,
+++            "git_root": _rel_display(work_root, git_root),
+++            "git_root_abs": str(git_root),
+++            "basename": git_root.name,
+++        }
+++    if suffix:
+++        return {
+++            "input": name,
+++            "ambiguous": True,
+++            "candidates": [_rel_display(work_root, p) for p in suffix],
+++        }
+++    raise ReviewError(f"repo not found under workspace root: {name}")
+++
+++
+++def _rel_display(work_root: Path, git_root: Path) -> str:
+++    try:
+++        rel = git_root.resolve().relative_to(work_root.resolve()).as_posix()
+++        return rel if rel != "." else "."
+++    except ValueError:
+++        return str(git_root)
+++
+++
+++def default_branch(git_root: Path) -> str:
+++    head = git(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], git_root, check=False)
+++    if head:
+++        return head.replace("refs/remotes/origin/", "").strip()
+++    for name in ("main", "master", "develop"):
+++        exists = git(["rev-parse", "--verify", "--quiet", name], git_root, check=False)
+++        remote = git(["rev-parse", "--verify", "--quiet", f"origin/{name}"], git_root, check=False)
+++        if exists or remote:
+++            return name
+++    current = git(["rev-parse", "--abbrev-ref", "HEAD"], git_root, check=False)
+++    return current or "main"
+++
+++
+++def comparison_ref(git_root: Path, branch: str) -> str:
+++    remote = git(["rev-parse", "--verify", "--quiet", f"origin/{branch}"], git_root, check=False)
+++    if remote:
+++        return f"origin/{branch}"
+++    return branch
+++
+++
+++def inspect_repo(work_root: Path, raw: str) -> dict[str, Any]:
+++    resolved = resolve_repo(work_root, raw)
+++    if resolved.get("ambiguous"):
+++        return resolved
+++    git_root = Path(resolved["git_root_abs"])
+++    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], git_root, check=False) or "HEAD"
+++    porcelain = git(["status", "--porcelain"], git_root, check=False)
+++    dirty_paths = [line[3:] for line in porcelain.splitlines() if line.strip()]
+++    base = default_branch(git_root)
+++    cmp_ref = comparison_ref(git_root, base)
+++    ahead = 0
+++    if git(["rev-parse", "--verify", "--quiet", cmp_ref], git_root, check=False):
+++        count = git(["rev-list", "--count", f"{cmp_ref}..HEAD"], git_root, check=False)
+++        ahead = int(count or "0")
+++    dirty = bool(dirty_paths)
+++    on_default = branch == base or branch == f"origin/{base}"
+++    if dirty and ahead:
+++        recommendation = "ask"
+++        reason = "同时存在未提交改动和相对默认分支的提交，需用户确认审查范围"
+++    elif dirty:
+++        recommendation = "uncommitted"
+++        reason = "工作区有未提交改动（含 untracked）"
+++    elif ahead:
+++        recommendation = "default-branch"
+++        reason = f"当前分支相对 {cmp_ref} 超前 {ahead} 个提交"
+++    else:
+++        recommendation = "nothing"
+++        reason = "工作区干净且相对默认分支没有新提交"
+++    return {
+++        **resolved,
+++        "branch": branch,
+++        "default_branch": base,
+++        "comparison_ref": cmp_ref,
+++        "on_default": on_default,
+++        "dirty": dirty,
+++        "dirty_paths": dirty_paths,
+++        "ahead_of_default": ahead,
+++        "recommendation": recommendation,
+++        "reason": reason,
+++        "needs_confirm": True,
+++    }
+++
+++
+++def parse_mr_url(url: str) -> dict[str, Any]:
+++    text = url.strip()
+++    m = GITLAB_MR.match(text) or GITLAB_MR_ALT.match(text)
+++    if m:
+++        project = m.group("project").strip("/")
+++        basename = project.rsplit("/", 1)[-1]
+++        return {
+++            "kind": "gitlab",
+++            "host": m.group("host"),
+++            "project": project,
+++            "iid": int(m.group("iid")),
+++            "repo_hint": basename,
+++            "url": text,
+++        }
+++    m = GITHUB_PR.match(text)
+++    if m:
+++        return {
+++            "kind": "github",
+++            "host": m.group("host"),
+++            "project": f"{m.group('owner')}/{m.group('repo')}",
+++            "iid": int(m.group("iid")),
+++            "repo_hint": m.group("repo"),
+++            "url": text,
+++        }
+++    raise ReviewError(f"unsupported merge request URL: {url}")
+++
+++
+++def slugify(text: str, max_len: int = 48) -> str:
+++    out = re.sub(r"[^a-zA-Z0-9]+", "-", text.strip().lower()).strip("-")
+++    return (out or "change")[:max_len].rstrip("-")
+++
+++
+++def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "") -> str:
+++    base = slugify(repo_basename, 32)
+++    if mode == "mr" and mr_iid is not None:
+++        extra = slugify(title, 24) if title else ""
+++        return f"{base}-mr-{mr_iid}" + (f"-{extra}" if extra else "")
+++    if mode == "uncommitted":
+++        return f"{base}-{slugify(branch or 'wip', 24)}-uncommitted"
+++    if mode == "default-branch":
+++        return f"{base}-{slugify(branch or 'branch', 24)}"
+++    return f"{base}-{slugify(mode or 'review', 24)}"
+++
+++
+++def classify_priority(content: str) -> str:
+++    if P0_RE.search(content or ""):
+++        return "P0"
+++    if P1_RE.search(content or ""):
+++        return "P1"
+++    if P2_RE.search(content or ""):
+++        return "P2"
+++    return "P3"
+++
+++
+++def _line_ref(comment: dict[str, Any]) -> str:
+++    start = int(comment.get("start_line") or 0)
+++    end = int(comment.get("end_line") or 0)
+++    path = comment.get("path") or "unknown"
+++    if start <= 0 and end <= 0:
+++        return path
+++    if end > start:
+++        return f"{path}:{start}-{end}"
+++    return f"{path}:{start or end}"
+++
+++
+++def _title(comment: dict[str, Any]) -> str:
+++    content = (comment.get("content") or "").strip().splitlines()
+++    if not content:
+++        return "Untitled finding"
+++    first = content[0].strip()
+++    return first[:120] + ("…" if len(first) > 120 else "")
+++
+++
+++def normalize_comments(ocr: dict[str, Any]) -> list[dict[str, Any]]:
+++    comments = list(ocr.get("comments") or [])
+++    out = []
+++    for item in comments:
+++        comment = dict(item)
+++        pri = str(comment.get("priority") or "").upper()
+++        if pri not in PRIORITY_ORDER:
+++            comment["priority"] = classify_priority(str(comment.get("content") or ""))
+++        else:
+++            comment["priority"] = pri
+++        out.append(comment)
+++    out.sort(key=lambda c: (PRIORITY_ORDER.index(c["priority"]), c.get("path") or "", int(c.get("start_line") or 0)))
+++    return out
+++
+++
+++def counts(comments: list[dict[str, Any]]) -> dict[str, int]:
+++    data = {k: 0 for k in PRIORITY_ORDER}
+++    for comment in comments:
+++        data[comment["priority"]] += 1
+++    return data
+++
+++
+++def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[str, Any]]) -> str:
+++    tally = counts(comments)
+++    tally_line = " / ".join(f"{k}={tally[k]}" for k in PRIORITY_ORDER if tally[k] or k in ("P0", "P1", "P2", "P3"))
+++    lines = [
+++        "---",
+++        f"repo: {meta.get('repo', '')}",
+++        f"mode: {meta.get('mode', '')}",
+++        f"date: {meta.get('date', '')}",
+++        f"change_name: {meta.get('change_name', '')}",
+++        f"branch: {meta.get('branch', '')}",
+++        f"from: {meta.get('from', '')}",
+++        f"to: {meta.get('to', '')}",
+++        f"mr: {meta.get('mr_url', '')}",
+++        f"ocr_session: {ocr.get('session_id', '')}",
+++        f"ocr_status: {ocr.get('status', '')}",
+++        "---",
+++        "",
+++        f"# Code Review · {meta.get('change_name', '')}",
+++        "",
+++        "## Meta",
+++        "",
+++        f"- 仓库：`{meta.get('repo', '')}`",
+++        f"- 范围：`{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
+++        f"- 分支：`{meta.get('branch', '')}`（默认 `{meta.get('default_branch', '')}`）",
+++    ]
+++    if meta.get("mr_url"):
+++        lines.append(f"- Merge Request：{meta['mr_url']}")
+++    summary = ocr.get("summary") or {}
+++    if summary:
+++        lines.append(
+++            f"- OCR：files={summary.get('files_reviewed', '?')} comments={summary.get('comments', len(comments))} "
+++            f"elapsed={summary.get('elapsed', '?')} session=`{ocr.get('session_id', '')}`"
+++        )
+++    if ocr.get("message"):
+++        lines.append(f"- OCR message：{ocr['message']}")
+++    lines += ["", "## 统计", "", tally_line, "", "## Findings（完整）", ""]
+++    if not comments:
+++        lines.append("No findings.")
+++    else:
+++        for pri in PRIORITY_ORDER:
+++            group = [c for c in comments if c["priority"] == pri]
+++            if not group:
+++                continue
+++            lines += [f"### {pri}", ""]
+++            for i, comment in enumerate(group, 1):
+++                lines += [
+++                    f"#### {i}. {_title(comment)}",
+++                    "",
+++                    f"- 位置：`{_line_ref(comment)}`",
+++                    f"- 优先级：{pri}",
+++                    "",
+++                    comment.get("content") or "",
+++                    "",
+++                ]
+++                if comment.get("existing_code"):
+++                    lines += ["**现有代码**", "", "```", str(comment["existing_code"]).rstrip(), "```", ""]
+++                if comment.get("suggestion_code"):
+++                    lines += ["**建议改法**", "", "```", str(comment["suggestion_code"]).rstrip(), "```", ""]
+++                if comment.get("thinking"):
+++                    lines += ["**推理**", "", str(comment["thinking"]).rstrip(), ""]
+++    warnings = ocr.get("warnings") or []
+++    if warnings:
+++        lines += ["## Warnings", ""]
+++        for item in warnings:
+++            lines.append(f"- {item}")
+++        lines.append("")
+++    return "\n".join(lines).rstrip() + "\n"
+++
+++
+++def render_summary(meta: dict[str, Any], comments: list[dict[str, Any]], doc_path: str) -> str:
+++    tally = counts(comments)
+++    tally_line = " ".join(f"{k}={tally[k]}" for k in PRIORITY_ORDER if tally[k] or k in ("P0", "P1", "P2", "P3"))
+++    lines = [
+++        f"## Review 总结 · {meta.get('change_name', '')}",
+++        "",
+++        f"范围：`{meta.get('repo', '')}` / `{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
+++        f"结论：{tally_line}",
+++        f"完整文档：`{doc_path}`",
+++        "",
+++    ]
+++    if not comments:
+++        lines.append("No findings.")
+++        return "\n".join(lines).rstrip() + "\n"
+++    for pri in PRIORITY_ORDER:
+++        group = [c for c in comments if c["priority"] == pri]
+++        if not group:
+++            continue
+++        lines.append(f"### {pri}")
+++        lines.append("")
+++        for comment in group:
+++            lines.append(f"- [{pri}] {_title(comment)} — `{_line_ref(comment)}`")
+++        lines.append("")
+++    return "\n".join(lines).rstrip() + "\n"
+++
+++
+++def update_index(reviews_root: Path, meta: dict[str, Any], tally: dict[str, int], doc_rel: str) -> None:
+++    index = reviews_root / "INDEX.md"
+++    header = (
+++        "# Code reviews\n\n"
+++        "| 日期 | change | 仓库 | 范围 | P0 | P1 | P2 | P3 | 文档 |\n"
+++        "|------|--------|------|------|----|----|----|----|------|\n"
+++    )
+++    row = (
+++        f"| {meta.get('date', '')} | {meta.get('change_name', '')} | `{meta.get('repo', '')}` | "
+++        f"{meta.get('mode', '')} | {tally.get('P0', 0)} | {tally.get('P1', 0)} | {tally.get('P2', 0)} | "
+++        f"{tally.get('P3', 0)} | [{meta.get('change_name', '')}]({doc_rel}) |"
+++    )
+++    if not index.exists():
+++        index.write_text(header + row + "\n", encoding="utf-8")
+++        return
+++    text = index.read_text(encoding="utf-8")
+++    lines = text.splitlines()
+++    key = f"| {meta.get('date', '')} | {meta.get('change_name', '')} |"
+++    kept = [ln for ln in lines if not ln.startswith(key)]
+++    if len(kept) < 3:
+++        index.write_text(header + row + "\n", encoding="utf-8")
+++        return
+++    kept.append(row)
+++    index.write_text("\n".join(kept).rstrip() + "\n", encoding="utf-8")
+++
+++
+++def write_review(work_root: Path, ocr: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
+++    comments = normalize_comments(ocr)
+++    day = meta.get("date") or date.today().isoformat()
+++    name = meta.get("change_name") or change_name(
+++        repo_basename=Path(str(meta.get("repo") or "repo")).name,
+++        mode=str(meta.get("mode") or "review"),
+++        branch=str(meta.get("branch") or ""),
+++        mr_iid=meta.get("mr_iid"),
+++        title=str(meta.get("title") or ""),
+++    )
+++    meta = {**meta, "date": day, "change_name": name}
+++    out_dir = work_root / "docs" / "reviews" / day / name
+++    out_dir.mkdir(parents=True, exist_ok=True)
+++    raw_path = out_dir / "ocr-raw.json"
+++    review_path = out_dir / "review.md"
+++    raw_path.write_text(json.dumps(ocr, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+++    review_path.write_text(render_full(meta, ocr, comments), encoding="utf-8")
+++    doc_rel = f"docs/reviews/{day}/{name}/review.md"
+++    update_index(work_root / "docs" / "reviews", meta, counts(comments), f"{day}/{name}/review.md")
+++    summary = render_summary(meta, comments, doc_rel)
+++    (out_dir / "summary.md").write_text(summary, encoding="utf-8")
+++    return {
+++        "out_dir": str(out_dir.relative_to(work_root)),
+++        "review": doc_rel,
+++        "raw": f"docs/reviews/{day}/{name}/ocr-raw.json",
+++        "summary": summary,
+++        "counts": counts(comments),
+++        "change_name": name,
+++        "date": day,
+++    }
+++
+++
+++def _load_json(path: str) -> dict[str, Any]:
+++    return json.loads(Path(path).read_text(encoding="utf-8"))
+++
+++
+++def emit(payload: dict[str, Any], code: int = 0) -> int:
+++    sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+++    return code
+++
+++
+++def main(argv: list[str] | None = None) -> int:
+++    parser = argparse.ArgumentParser(prog="reviewctl")
+++    parser.add_argument("--root", default="", help="work workspace root")
+++    sub = parser.add_subparsers(dest="cmd", required=True)
+++
+++    p_resolve = sub.add_parser("resolve-repo")
+++    p_resolve.add_argument("repo")
+++
+++    p_inspect = sub.add_parser("inspect")
+++    p_inspect.add_argument("--repo", required=True)
+++
+++    p_mr = sub.add_parser("parse-mr")
+++    p_mr.add_argument("--url", required=True)
+++
+++    p_name = sub.add_parser("change-name")
+++    p_name.add_argument("--repo-basename", required=True)
+++    p_name.add_argument("--mode", required=True)
+++    p_name.add_argument("--branch", default="")
+++    p_name.add_argument("--mr-iid", type=int, default=None)
+++    p_name.add_argument("--title", default="")
+++
+++    p_write = sub.add_parser("write")
+++    p_write.add_argument("--ocr-json", required=True)
+++    p_write.add_argument("--meta-json", required=True)
+++
+++    args = parser.parse_args(argv)
+++    root = Path(args.root).resolve() if args.root else repo_root_from_script()
+++    try:
+++        if args.cmd == "resolve-repo":
+++            payload = resolve_repo(root, args.repo)
+++            if payload.get("ambiguous"):
+++                return emit({"ok": False, **payload}, 1)
+++            return emit({"ok": True, **payload})
+++        if args.cmd == "inspect":
+++            payload = inspect_repo(root, args.repo)
+++            if payload.get("ambiguous"):
+++                return emit({"ok": False, **payload}, 1)
+++            return emit({"ok": True, **payload})
+++        if args.cmd == "parse-mr":
+++            return emit({"ok": True, **parse_mr_url(args.url)})
+++        if args.cmd == "change-name":
+++            name = change_name(
+++                repo_basename=args.repo_basename,
+++                mode=args.mode,
+++                branch=args.branch,
+++                mr_iid=args.mr_iid,
+++                title=args.title,
+++            )
+++            return emit({"ok": True, "change_name": name})
+++        if args.cmd == "write":
+++            result = write_review(root, _load_json(args.ocr_json), _load_json(args.meta_json))
+++            return emit({"ok": True, **result})
+++        raise ReviewError(f"unknown command: {args.cmd}")
+++    except ReviewError as exc:
+++        return emit({"ok": False, "error": str(exc)}, 1)
+++
+++
+++if __name__ == "__main__":
+++    raise SystemExit(main())
++diff --git a/agents/skills/code-review/tests/test_reviewctl.py b/agents/skills/code-review/tests/test_reviewctl.py
++new file mode 100644
++index 0000000..99de1a5
++--- /dev/null
+++++ b/agents/skills/code-review/tests/test_reviewctl.py
++@@ -0,0 +1,143 @@
+++from __future__ import annotations
+++
+++import importlib.util
+++import subprocess
+++import sys
+++import tempfile
+++import unittest
+++from pathlib import Path
+++
+++SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "reviewctl.py"
+++
+++
+++def load_reviewctl():
+++    spec = importlib.util.spec_from_file_location("reviewctl", SCRIPT)
+++    assert spec and spec.loader
+++    mod = importlib.util.module_from_spec(spec)
+++    sys.modules["reviewctl"] = mod
+++    spec.loader.exec_module(mod)
+++    return mod
+++
+++
+++rc = load_reviewctl()
+++
+++
+++class ReviewctlTests(unittest.TestCase):
+++    def setUp(self) -> None:
+++        self.tmp = Path(tempfile.mkdtemp())
+++        (self.tmp / "repos").mkdir()
+++
+++    def _git(self, repo: Path, *args: str) -> None:
+++        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+++
+++    def _init_repo(self, rel: str, name: str | None = None) -> Path:
+++        repo = self.tmp / "repos" / rel
+++        repo.mkdir(parents=True)
+++        self._git(repo, "init")
+++        self._git(repo, "config", "user.email", "test@example.invalid")
+++        self._git(repo, "config", "user.name", "tester")
+++        (repo / "README").write_text("init\n", encoding="utf-8")
+++        self._git(repo, "add", ".")
+++        self._git(repo, "commit", "-m", "init")
+++        self._git(repo, "branch", "-M", "main")
+++        if name:
+++            pass
+++        return repo
+++
+++    def test_resolve_by_basename_and_ambiguous(self) -> None:
+++        self._init_repo("group/service")
+++        hit = rc.resolve_repo(self.tmp, "service")
+++        self.assertEqual(hit["basename"], "service")
+++        self.assertTrue(hit["git_root"].endswith("service"))
+++
+++        self._init_repo("other/service")
+++        amb = rc.resolve_repo(self.tmp, "service")
+++        self.assertTrue(amb.get("ambiguous"))
+++        self.assertEqual(len(amb["candidates"]), 2)
+++
+++    def test_inspect_recommends_uncommitted_vs_default_branch(self) -> None:
+++        repo = self._init_repo("svc")
+++        (repo / "dirty.txt").write_text("x\n", encoding="utf-8")
+++        payload = rc.inspect_repo(self.tmp, "svc")
+++        self.assertEqual(payload["recommendation"], "uncommitted")
+++        self.assertTrue(payload["needs_confirm"])
+++
+++        self._git(repo, "add", "dirty.txt")
+++        self._git(repo, "commit", "-m", "dirty")
+++        self._git(repo, "checkout", "-b", "feat-x")
+++        (repo / "feat.txt").write_text("y\n", encoding="utf-8")
+++        self._git(repo, "add", "feat.txt")
+++        self._git(repo, "commit", "-m", "feat")
+++        payload = rc.inspect_repo(self.tmp, "svc")
+++        self.assertEqual(payload["recommendation"], "default-branch")
+++        self.assertEqual(payload["ahead_of_default"], 1)
+++
+++        (repo / "wip.txt").write_text("z\n", encoding="utf-8")
+++        payload = rc.inspect_repo(self.tmp, "svc")
+++        self.assertEqual(payload["recommendation"], "ask")
+++
+++    def test_parse_mr_urls(self) -> None:
+++        gl = rc.parse_mr_url("https://gitlab.example.invalid/group/service/-/merge_requests/88")
+++        self.assertEqual(gl["kind"], "gitlab")
+++        self.assertEqual(gl["project"], "group/service")
+++        self.assertEqual(gl["iid"], 88)
+++        self.assertEqual(gl["repo_hint"], "service")
+++
+++        gh = rc.parse_mr_url("https://github.example.invalid/example-org/example-repo/pull/12")
+++        self.assertEqual(gh["kind"], "github")
+++        self.assertEqual(gh["project"], "example-org/example-repo")
+++        self.assertEqual(gh["iid"], 12)
+++
+++    def test_change_name_and_priority(self) -> None:
+++        self.assertEqual(
+++            rc.change_name(repo_basename="service", mode="mr", mr_iid=88, title="Fix timeout"),
+++            "service-mr-88-fix-timeout",
+++        )
+++        self.assertEqual(rc.classify_priority("SQL injection in query builder"), "P0")
+++        self.assertEqual(rc.classify_priority("nil deref on empty payload"), "P1")
+++        self.assertEqual(rc.classify_priority("missing test for retry path"), "P2")
+++        self.assertEqual(rc.classify_priority("rename helper for clarity"), "P3")
+++
+++    def test_write_review_sorted_summary(self) -> None:
+++        ocr = {
+++            "status": "success",
+++            "session_id": "abc",
+++            "summary": {"files_reviewed": 2, "comments": 2, "elapsed": "1s"},
+++            "comments": [
+++                {"path": "b.go", "content": "rename helper for clarity", "start_line": 3, "end_line": 3},
+++                {
+++                    "path": "a.go",
+++                    "content": "SQL injection in query builder",
+++                    "start_line": 10,
+++                    "end_line": 12,
+++                    "existing_code": "db.Exec(q)",
+++                    "suggestion_code": "db.Exec(q, args)",
+++                    "thinking": "user input concatenated",
+++                },
+++            ],
+++        }
+++        meta = {
+++            "repo": "group/service",
+++            "mode": "default-branch",
+++            "date": "2026-08-13",
+++            "change_name": "service-feat-x",
+++            "branch": "feat-x",
+++            "from": "origin/main",
+++            "to": "HEAD",
+++        }
+++        result = rc.write_review(self.tmp, ocr, meta)
+++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
+++        self.assertIn("### P0", review)
+++        self.assertIn("### P3", review)
+++        self.assertLess(review.index("### P0"), review.index("### P3"))
+++        summary = result["summary"]
+++        self.assertIn("P0=1", summary)
+++        self.assertIn("[P0] SQL injection", summary)
+++        self.assertTrue(summary.index("### P0") < summary.index("### P3"))
+++        self.assertTrue((self.tmp / "docs/reviews/INDEX.md").exists())
+++        printed = rc.render_summary(meta, [], result["review"])
+++        self.assertIn("No findings.", printed)
+++
+++
+++if __name__ == "__main__":
+++    unittest.main()
+diff --git a/skills/way-to-cr/patches/20260820-010341-copy-code-review/proposal.md b/skills/way-to-cr/patches/20260820-010341-copy-code-review/proposal.md
+new file mode 100644
+index 0000000..89cce3b
+--- /dev/null
++++ b/skills/way-to-cr/patches/20260820-010341-copy-code-review/proposal.md
+@@ -0,0 +1,34 @@
++# 拷贝 code-review Skill
++
++- target: agents/skills/code-review
++- patch: 20260820-010341-copy-code-review
++- risk: high
++- status: proposed
++
++## Intent
++
++将用户指定的本地 `~/dotf-code-review` Skill 真相源拷贝到本仓库 `agents/skills/code-review/`，包括 `SKILL.md`、审查控制脚本及其测试，使共享 Skill 可被其他 agent 复用。保持源目录内容和行为不变。
++
++非目标：不修改 `.agents/skills/`、任何 agent 镜像/安装目录、现有 Skill、业务代码或同步/提交/推送配置；不在本轮执行外部安装或远程操作。
++
++## Conflict check
++
++- `agents/skills/code-review/` 当前不存在，因此不存在覆盖现有 Skill 或历史 patch 的冲突。
++- 目标 frontmatter 的 `name: code-review` 与目录名一致；职责是 diff 级代码审查，与架构评审、岗位视角评审和规格符合性评审边界清晰。
++- Skill 内置远程 MR/PR 评论确认门；本次仅复制内容，不执行其远程副作用。
++- 未发现绝对家目录、个人账号、凭据、内部 URL 或私有仓库内容；示例使用 `.invalid` 和占位符。
++
++## Rationale
++
++这是用户明确指定的、可审计的共享 Skill 导入。源目录包含完整说明、确定性机械脚本和测试，拷贝后可通过现有测试验证；保留测试有助于后续维护。由于新增触发能力并包含受确认门保护的远程评论流程，按 high 风险记录；用户已明确批准拷贝该具体目录，视为通过应用门禁。
++
++## Files
++
++- `agents/skills/code-review/SKILL.md`：Skill 说明、触发条件、流程与边界。
++- `agents/skills/code-review/scripts/reviewctl.py`：仓库定位、审查范围解析、MR/PR 解析及报告落盘的机械命令。
++- `agents/skills/code-review/tests/test_reviewctl.py`：上述脚本的确定性单元测试。
++
++## Validation
++
++- 应用前：`git apply --check --recount`。
++- 应用后：`git diff --check -- agents/skills/code-review`、frontmatter/目录名一致性检查、隐私模式扫描，以及 `python3 -m unittest discover -s agents/skills/code-review/tests -v`。
+diff --git a/skills/way-to-cr/patches/20260820-010341-copy-code-review/result.md b/skills/way-to-cr/patches/20260820-010341-copy-code-review/result.md
+new file mode 100644
+index 0000000..53b35a4
+--- /dev/null
++++ b/skills/way-to-cr/patches/20260820-010341-copy-code-review/result.md
+@@ -0,0 +1,20 @@
++# Result
++
++- target: agents/skills/code-review
++- patch: 20260820-010341-copy-code-review
++- risk: high
++- status: applied
++- applied-at: 2026-08-20T01:03:41+08:00
++
++## Validation
++
++- `git apply --check --recount`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m unittest discover -s agents/skills/code-review/tests -v` — 5 tests passed
++- privacy check: pass；仅保留测试用的 `test@example.invalid` 占位地址和 `.invalid` 示例域名
++- source comparison: pass；3 个文件与 `~/dotf-code-review` 对应文件一致
++- frontmatter/references: pass；`name: code-review` 与目录名一致，脚本和测试路径存在
++
++## Notes
++
++none
+diff --git a/skills/way-to-cr/patches/20261016-114928-self-upgrade/change.patch b/skills/way-to-cr/patches/20261016-114928-self-upgrade/change.patch
+new file mode 100644
+index 0000000..07e0fec
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-114928-self-upgrade/change.patch
+@@ -0,0 +1,234 @@
++diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
++index f554920..e18076c 100644
++--- a/skills/solo-code-review/SKILL.md
+++++ b/skills/solo-code-review/SKILL.md
++@@ -142,3 +142,7 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++ - 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
++ - 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
++ - 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
+++
+++## 自进化
+++
+++执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
++diff --git a/skills/solo-code-review/evals/README.md b/skills/solo-code-review/evals/README.md
++new file mode 100644
++index 0000000..0d09642
++--- /dev/null
+++++ b/skills/solo-code-review/evals/README.md
++@@ -0,0 +1,12 @@
+++# Evals
+++
+++本 Skill 的可验证成功标准。任务完成前对照 `cases.yaml` 检查关键输出与约束。
+++
+++## 怎么跑
+++
+++1. 选出与当前任务相关的 cases（`kind` + 描述匹配）
+++2. `judge: deterministic`：按 `expect.must` / `expect.must_not` 逐条核对，只报 pass/fail
+++3. `judge: llm`：仅当无法确定性判断时使用；给出简短判定与依据，不编分数
+++4. 任一条失败 → 先修输出再交卷，不要带着 fail 声称完成
+++
+++新增 case 必须能从 Skill 原文或真实回归事故找到依据。禁止虚构。
++diff --git a/skills/solo-code-review/evals/cases.yaml b/skills/solo-code-review/evals/cases.yaml
++new file mode 100644
++index 0000000..b51ff52
++--- /dev/null
+++++ b/skills/solo-code-review/evals/cases.yaml
++@@ -0,0 +1,119 @@
+++version: 1
+++skill: solo-code-review
+++cases:
+++  - id: repo-resolve-ambiguous-asks
+++    kind: basic
+++    judge: deterministic
+++    description: 仓库名多命中时列出 candidates 让用户选，不猜一个就跑
+++    given: 用户给的仓库名在 workspace 下命中多个 git root（inspect 返回 ambiguous）
+++    expect:
+++      must:
+++        - 向用户列出全部 candidates 并等待选择
+++      must_not:
+++        - 任选一个命中仓库继续审查
+++
+++  - id: scope-confirm-gate
+++    kind: core
+++    judge: deterministic
+++    description: recommendation 为 uncommitted/default-branch 时仍先经用户确认再跑 LLM
+++    given: inspect 返回 recommendation=uncommitted 或 default-branch，用户未显式给 mode=
+++    expect:
+++      must:
+++        - 先展示审查范围建议并获得用户确认
+++        - 跑 LLM 前先用 ocr review --preview 展示文件列表
+++      must_not:
+++        - 未确认直接调用 ocr review 跑 LLM
+++
+++  - id: mixed-dirty-and-commits-asks
+++    kind: failure
+++    judge: deterministic
+++    description: 既有未提交改动又有分支提交时必须让用户二选一
+++    given: inspect 返回 recommendation=ask
+++    expect:
+++      must:
+++        - 让用户在 uncommitted 与 default-branch 中显式选择其一
+++      must_not:
+++        - 默默合并两种 diff 一次审查
+++
+++  - id: mr-fetch-only
+++    kind: core
+++    judge: deterministic
+++    description: MR/PR 模式只 fetch 到 refs/code-review/*，不动工作区
+++    given: 用户给了 GitLab MR 或 GitHub PR URL
+++    expect:
+++      must:
+++        - 用 git fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"（GitHub 用 pull/<iid>/head）
+++        - 审查范围 --from origin/<target_branch> --to refs/code-review/*
+++      must_not:
+++        - checkout / stash / reset 目标仓库
+++        - 污染用户当前工作区
+++
+++  - id: no-fabricated-credentials
+++    kind: failure
+++    judge: deterministic
+++    description: LLM 或 GitLab 认证缺失时停下让用户配置，不编造凭据
+++    given: ocr llm test 失败，或 GITLAB_TOKEN 未设置且目标需要认证
+++    expect:
+++      must:
+++        - 停止并请用户配置（环境变量或 ocr config）
+++      must_not:
+++        - 编造 API key / token
+++        - 把 token 写入命令行参数、日志或审查产物
+++
+++  - id: artifacts-layout
+++    kind: core
+++    judge: deterministic
+++    description: 产物按约定落 workspace 的 docs/reviews/ 并更新 INDEX
+++    given: ocr JSON 已生成，进入落盘步骤
+++    expect:
+++      must:
+++        - 生成 docs/reviews/{YYYY-MM-DD}/{change-name}/ 下 ocr-raw.json、review.md、summary.md
+++        - 更新 docs/reviews/INDEX.md
+++        - review.md 中 findings 按 P0→Pn 排序
+++      must_not:
+++        - 把产物写进被审查仓库的代码目录
+++
+++  - id: chat-prints-summary-only
+++    kind: core
+++    judge: deterministic
+++    description: 对话只打印 write 返回的 summary 与文档路径
+++    given: 审查完成、产物已落盘
+++    expect:
+++      must:
+++        - 对话输出仅 summary（按 P0→Pn 排序）加完整文档路径
+++      must_not:
+++        - 把 thinking、大段代码或原始 JSON 贴进对话
+++
+++  - id: mr-comment-requires-confirm
+++    kind: failure
+++    judge: deterministic
+++    description: MR/PR 评论发布必须经用户明确确认；仓库模式不发布
+++    given: MR/PR 模式且 review.md 已落盘
+++    expect:
+++      must:
+++        - 先询问用户是否将完整报告发布为评论，并核对目标 URL/IID
+++        - 用户明确确认后才调用 glab mr note / gh pr comment
+++      must_not:
+++        - 未经确认调用任何远程写接口
+++        - 仓库模式下发布评论
+++
+++  - id: read-only-by-default
+++    kind: boundary
+++    judge: deterministic
+++    description: 默认只审查不改代码；架构/岗位/规格评审不在本 skill 范围
+++    given: 审查发现可修复问题，用户未明确要求「顺手修」
+++    expect:
+++      must:
+++        - 只输出审查产物
+++      must_not:
+++        - 修改业务代码、commit、push
+++        - 用本 skill 承接架构评审、岗位视角评审或需求/规格符合性评审
+++
+++  - id: reviewctl-tests-pass
+++    kind: regression
+++    judge: deterministic
+++    description: 脚本契约测试保持通过
+++    given: 改动 SKILL.md、scripts/reviewctl.py 或 tests/ 之后
+++    expect:
+++      must:
+++        - python3 -m pytest skills/solo-code-review/tests -q 全部通过
++diff --git a/skills/solo-code-review/examples/README.md b/skills/solo-code-review/examples/README.md
++new file mode 100644
++index 0000000..a2f4eaf
++--- /dev/null
+++++ b/skills/solo-code-review/examples/README.md
++@@ -0,0 +1,25 @@
+++# Examples
+++
+++经过验证的优秀执行案例。执行复杂任务前先读这里，优先复用已验证方法。
+++
+++## 何时写入
+++
+++- 用户明确认可，或一次完成且明显优于以往
+++- 路径可复用，不是一次性特例
+++- 不含密钥、内部 URL、机器专属路径
+++
+++没有真实成功案例时保持本目录为空，只保留本 README。禁止编造。
+++
+++## 案例文件
+++
+++每个案例一个 markdown：`examples/<YYYYMMDD>-<slug>.md`
+++
+++必填：
+++
+++- Date
+++- Skill
+++- Task
+++- Approach
+++- Result
+++- Why it was good
+++- Reusable lessons
++diff --git a/skills/solo-code-review/experience/README.md b/skills/solo-code-review/experience/README.md
++new file mode 100644
++index 0000000..4433378
++--- /dev/null
+++++ b/skills/solo-code-review/experience/README.md
++@@ -0,0 +1,33 @@
+++# Experience
+++
+++真实执行中的失败、成功与可复用规律。不要记录 trivial information。
+++
+++```text
+++failures/  → 失败案例
+++successes/ → 成功案例
+++patterns/  → 从多个案例中提炼出的可复用规律
+++```
+++
+++## 何时写入
+++
+++- 失败、用户纠正、明显成功
+++- 新的有效执行方法
+++- 可复用的经验
+++
+++## 何时不写入
+++
+++- 一次性环境问题（网络闪断、用户打错字）
+++- 与 Skill 无关的闲聊
+++- 尚未发生的「预期失败」
+++
+++## 条目格式
+++
+++`experience/<bucket>/<YYYYMMDD>-<slug>.md`
+++
+++必填：Date / Kind（failure | success | pattern）/ Skill / Context / What happened / Lesson。
+++
+++一次性特例在 Lesson 写明 `Experience only`，不要建议改 Skill。
+++
+++`patterns/` 至少要有 **两次以上** 同类 evidence 才建立。单次失败只进 `failures/`。
+++
+++空的 `failures/` `successes/` `patterns/` 各放一个 `.gitkeep`。
++diff --git a/skills/solo-code-review/experience/failures/.gitkeep b/skills/solo-code-review/experience/failures/.gitkeep
++new file mode 100644
++index 0000000..e69de29
++diff --git a/skills/solo-code-review/experience/patterns/.gitkeep b/skills/solo-code-review/experience/patterns/.gitkeep
++new file mode 100644
++index 0000000..e69de29
++diff --git a/skills/solo-code-review/experience/successes/.gitkeep b/skills/solo-code-review/experience/successes/.gitkeep
++new file mode 100644
++index 0000000..e69de29
+diff --git a/skills/way-to-cr/patches/20261016-114928-self-upgrade/proposal.md b/skills/way-to-cr/patches/20261016-114928-self-upgrade/proposal.md
+new file mode 100644
+index 0000000..a016f1a
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-114928-self-upgrade/proposal.md
+@@ -0,0 +1,42 @@
++# solo-code-review 补齐自进化结构（examples/evals/experience + 注入指针）
++
++- target: skills/solo-code-review
++- mode: self-upgrade
++- patch: 20261016-114928-self-upgrade
++- risk: medium
++- status: proposed
++
++## Intent
++
++给 solo-code-review 补齐 skill-upgrader 约定的自进化目录结构，使后续正文优化（接入 OCR v1.12.9 新 flag、delegate fallback 等）能按 examples/evals/experience + patches 的审计链路进行：
++
++- `examples/README.md`、`evals/README.md`、`experience/README.md`（复制自 skill-upgrader references，无真实案例，不编造）
++- `evals/cases.yaml`：从现有 SKILL.md 抽取 10 条可验证 case（触发门禁、确认门、MR fetch-only、凭据禁令、产物落盘、总结打印、评论确认门、只读边界、回归测试）
++- `experience/{failures,successes,patterns}/.gitkeep`
++- SKILL.md 末尾追加一句自进化指针（原文其余内容一字不动）
++
++非目标：不在本轮修改任何审查流程、命令、门禁；OCR v1.12.9 能力接入走下一轮 `update`。
++
++## Conflict check
++
++- SKILL.md 现无「自进化」段落，追加不与现有内容冲突；frontmatter 不动。
++- 仓内 taskrail 等 skill 已有同构 examples/evals/experience 结构，本目录与之风格一致。
++- `patches/20260820-010341-copy-code-review/` 历史记录不动。
++
++## Rationale
++
++仓库 AGENTS.md 约定：结构缺失先走 skill-upgrader 一次性升级，再基于后续变更留痕。当前 solo-code-review 缺 examples/evals/experience，且 tests/ 只测脚本、无文本契约保护；先把结构立起来，cases.yaml 同时充当后续 update 轮的回归清单。
++
++## Files
++
++- skills/solo-code-review/SKILL.md — 末尾追加「自进化」一节（一句指针）
++- skills/solo-code-review/examples/README.md — 新增（复制源）
++- skills/solo-code-review/evals/README.md — 新增（复制源）
++- skills/solo-code-review/evals/cases.yaml — 新增，10 条从原文抽取的 case
++- skills/solo-code-review/experience/README.md — 新增（复制源）
++- skills/solo-code-review/experience/{failures,successes,patterns}/.gitkeep — 新增空目录占位
++
++## Validation
++
++- 应用前：`git apply --check --recount` 通过；cases.yaml 每条能在 SKILL.md 原文找到依据
++- 应用后：`python3 -m pytest skills/solo-code-review/tests -q` 仍 5 passed；`make check-style` 无新增告警；SKILL.md frontmatter 未变、原正文 diff 仅为末尾追加
+diff --git a/skills/way-to-cr/patches/20261016-114928-self-upgrade/result.md b/skills/way-to-cr/patches/20261016-114928-self-upgrade/result.md
+new file mode 100644
+index 0000000..906b12a
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-114928-self-upgrade/result.md
+@@ -0,0 +1,32 @@
++# Result
++
++- target: skills/solo-code-review
++- mode: self-upgrade
++- patch: 20261016-114928-self-upgrade
++- risk: medium
++- status: applied
++- applied-at: 2026-10-16T11:55:00+08:00
++
++## Validation
++
++- `git apply --check --recount`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m pytest skills/solo-code-review/tests -q` → 5 passed
++- privacy check: pass（README 为通用模板；cases.yaml 只用虚构 host 与通用场景，无密钥/内部 URL/公司名）
++- mode check: pass（仅补结构 + 末尾追加指针一节，未改任何审查流程/门禁/命令）
++
++## Notes
++
++Final Validation（self-upgrade 清单）：
++
++- [x] 原始 Skill 能力未丢失（SKILL.md diff 仅末尾追加「自进化」一节）
++- [x] examples/ 已建立（README，无真实案例，未编造）
++- [x] evals/ 已建立（README + cases.yaml，10 条 case 全部从原文抽取）
++- [x] experience/ 已建立（README + failures/successes/patterns 各含 .gitkeep）
++- [x] Eval 能覆盖核心能力（basic/core/failure/boundary/regression 五类齐；core 4 条）
++- [x] 没有伪造历史经验
++- [x] Skill 知道如何读取 examples（注入指针 + examples/README）
++- [x] Skill 知道如何运行/参考 evals（注入指针 + evals/README「怎么跑」）
++- [x] Skill 知道什么时候记录 experience（experience/README「何时写入」）
++- [x] Skill 不会因为单次失败修改自己（指针注明「单次失败不直接改本文件」）
++- [x] 本轮改动经由 patches/ 应用且 result 已写
+diff --git a/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/change.patch b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/change.patch
+new file mode 100644
+index 0000000..bbd92cd
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/change.patch
+@@ -0,0 +1,530 @@
++diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
++index e18076c..83b0c2d 100644
++--- a/skills/solo-code-review/SKILL.md
+++++ b/skills/solo-code-review/SKILL.md
++@@ -1,50 +1,45 @@
++ ---
++ id: solo-code-review
++ name: solo-code-review
++-description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动时使用。
+++description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
++ license: MIT
++ ---
++ 
++ # solo-code-review
++ 
++-用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎使用已配置的 `ocr` 命令，不要用通用 agent 逐文件替代。
+++用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎用 `ocr`：LLM 已配置时跑 `ocr review`；未配置时走 delegate 模式（见「前置」），由 OCR 做文件筛选与规则解析、当前 agent 执行审查。
++ 
++-不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。
+++不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
++ 
++ ## 调用
++ 
++ ```text
++-/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch] [change-name=<slug>]
+++/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [change-name=<slug>]
++ /solo-code-review <GitLab/GitHub MR 或 PR URL>
++ ```
++ 
++-可选：业务背景（commit/MR 说明、需求一句话）→ 传给 `ocr --background`。
+++可选：业务背景（commit/MR 说明、需求一句话）→ 传 `ocr -b`；成篇需求文档给 `-B <markdown路径>`；需要调审查深度时加 `effort=low|medium|high`（映射 `--effort`）。
++ 
++ ## MUST 先读取并执行
++ 
++ 1. 本文件全文。
++-2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)，`--root` 指向审查 workspace 根目录。
++-
++-```bash
++-python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> inspect --repo <name-or-path>
++-python3 <skill-root>/scripts/reviewctl.py parse-mr --url '<url>'
++-python3 <skill-root>/scripts/reviewctl.py write --ocr-json /tmp/ocr.json --meta-json /tmp/meta.json
++-```
+++2. 机械命令用 [`scripts/reviewctl.py`](scripts/reviewctl.py)（子命令 `inspect` / `parse-mr` / `change-name` / `write`），`--root` 指向审查 workspace 根目录，用法见下文各步。
++ 
++ ## 前置
++ 
++ ```bash
++-which ocr || echo "NOT INSTALLED"
+++which ocr && ocr --version || echo "NOT INSTALLED"
++ ocr llm test
++ ```
++ 
++-未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。`ocr llm test` 失败则停下来，让用户配置 LLM（环境变量或 `ocr config`），**禁止编造 API key**。
+++未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
++ 
++-GitLab 自建实例认证：
+++`ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
++ 
++-- 优先使用环境变量 `GITLAB_TOKEN`，不要把 token 写入命令行参数、日志或审查产物。
++-- 调用 `glab` 时映射为：`GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；GitLab API 需要 token 具备 `api` scope。
++-- 若 `GITLAB_TOKEN` 未设置且目标需要认证，停止并请用户配置该变量；禁止编造或输出 token。
+++1. 配置 LLM（环境变量或 `ocr config`）后重跑。
+++2. delegate 模式：读取并按 [references/delegate-mode.md](references/delegate-mode.md) 执行，审查由当前 agent 的 LLM 完成，产物与确认门同主流程。
+++
+++GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope），调 `glab` 映射为 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；token 不写入命令行参数、日志或审查产物；未设置且目标需要认证时停止并请用户配置，禁止编造或输出 token。
++ 
++ ## 流程
++ 
++@@ -63,9 +58,9 @@ GitLab 自建实例认证：
++ | `uncommitted` | 仅工作区脏 | 建议 workspace 审查；**仍须用户确认** |
++ | `default-branch` | 干净且相对默认分支有提交 | 建议 `--from <comparison_ref> --to HEAD`；**仍须用户确认** |
++ | `ask` | 既有未提交又有分支提交 | **必须**让用户选其一，禁止默默合并两种 diff |
++-| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接或其它 ref |
+++| `nothing` | 干净且无新提交 | 停止，问是否改用 MR 链接、单个 commit 或其它 ref |
++ 
++-用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
+++用户点名**单个 commit** → mode=commit，范围 `-c <hash>`（对其父提交），确认与预览同下。用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
++ 
++ **MR/PR 模式**：
++ 
++@@ -89,30 +84,28 @@ git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
++ 
++ ### 3. 跑 ocr
++ 
++-始终：`--audience agent --format json --repo <git_root_abs>`，有背景就加 `-b`。stdout 重定向到文件，禁止 `head`/`tail` 截断。
+++始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景就加 `-b`/`-B`。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）。中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
++ 
++-```bash
++-# 未提交
++-ocr review --audience agent --format json --repo <abs> -b "<background>" > /tmp/ocr.json 2>/tmp/ocr.err
++-# 相对默认分支 / MR / PR
++-ocr review --audience agent --format json --repo <abs> -b "<background>" \
++-  --from <from> --to <to> > /tmp/ocr.json 2>/tmp/ocr.err
++-```
+++| mode | 追加范围 flag |
+++|---|---|
+++| `uncommitted` | （无，默认工作区） |
+++| `commit` | `-c <hash>` |
+++| `default-branch` / MR / PR | `--from <from> --to <to>` |
++ 
++ 先看 exit code 与 `/tmp/ocr.err`。JSON `status=skipped` 视为无审查对象，不是失败。
++ 
++ ### 4. 分级并落盘
++ 
++-读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。可先用 `reviewctl` 启发式，**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
+++读取 ocr JSON 的 `comments[]`，为每条指定 `priority`：`P0`（发布阻断 / 安全 / 数据损坏）· `P1`（应尽快修的缺陷）· `P2`（普通缺陷）· `P3`（低影响仍值得修）。`reviewctl` 自动分级次序：显式 `priority` > `severity` 映射（critical/high/medium/low → P0~P3）> 内容启发式；**有把握时覆盖**。把带 `priority` 的 comments 写回临时 JSON。
++ 
++-`change-name`：用户指定优先；否则 `reviewctl change-name`。日期使用运行当天的 `YYYY-MM-DD`。
+++`change-name`：用户指定优先；否则 `reviewctl change-name`（mode=commit 时带 `--commit <hash>`）。日期使用运行当天的 `YYYY-MM-DD`。
++ 
++ ```bash
++ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++   --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
++ ```
++ 
++-`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
+++`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
++ 
++ 产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
++ 
++@@ -130,15 +123,15 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++ 
++ > 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
++ 
++-在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口。确认时再次核对目标 URL/IID 与待发布文件；用户拒绝、未确认或目标不明确时，只保留本地报告，不发布评论。用户确认后，以 `review.md` 的完整内容发布一条评论，并在结果中报告成功或失败。仓库模式不询问，也不发布评论。
+++在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口；确认时再次核对目标 URL/IID 与待发布文件。用户拒绝或未确认 → 只保留本地报告。确认后以 `review.md` 完整内容发布一条评论并报告成败。仓库模式不询问，也不发布评论。
++ 
++ ### 6. 对用户只打印总结
++ 
++-对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径。不要把 `thinking`、大段代码、原始 JSON 贴进对话。无 findings 时打印 `No findings.` + 文档链接。
+++对话输出 **仅** `write` 返回的 `summary`（已按 P0→Pn 排序），再给完整文档路径；`thinking`、大段代码、原始 JSON 不进对话。无 findings 时打印 `No findings.` + 文档链接。需要浏览器回放或分享时用 `ocr session export <session-id>` 生成离线 HTML（含源码摘录，按仓库同等保密）。
++ 
++ ## 边界
++ 
++-- 默认不改业务代码、不 commit、不 push、不在 MR/PR 上发评论；远程评论必须经过上一步的明确确认。用户明确要求「顺手修」才可改代码。
+++- 默认不改业务代码、不 commit、不 push；MR/PR 远程评论以第 5 节确认门为准。用户明确要求「顺手修」才可改代码。
++ - 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
++ - 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
++ - 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
++diff --git a/skills/solo-code-review/evals/cases.yaml b/skills/solo-code-review/evals/cases.yaml
++index b51ff52..cf6521e 100644
++--- a/skills/solo-code-review/evals/cases.yaml
+++++ b/skills/solo-code-review/evals/cases.yaml
++@@ -117,3 +117,28 @@ cases:
++     expect:
++       must:
++         - python3 -m pytest skills/solo-code-review/tests -q 全部通过
+++
+++  - id: commit-mode-scope
+++    kind: core
+++    judge: deterministic
+++    description: 用户点名单个 commit 时用 -c 审查，产物命名带短 hash
+++    given: 用户要求审查某个具体 commit（给了 hash）
+++    expect:
+++      must:
+++        - 用 ocr review -c <hash>（对其父提交）确定范围，并经确认门与 --preview
+++        - meta.json 含 commit 字段；change-name 由 reviewctl change-name --commit 生成（<repo>-commit-<hash>）
+++      must_not:
+++        - 把单 commit 审查默默扩大为整分支 diff
+++
+++  - id: delegate-fallback-when-no-llm
+++    kind: failure
+++    judge: deterministic
+++    description: ocr llm test 失败时给出两条路（配置 LLM / delegate），不硬停也不编 key
+++    given: ocr llm test 失败（未配置 LLM）
+++    expect:
+++      must:
+++        - 停下并让用户选择：配置 LLM 后重跑，或按 references/delegate-mode.md 走 delegate 模式
+++        - delegate 模式覆盖每个 previewed 文件（reviewed 或 skipped 带原因），产物落盘与确认门同主流程
+++      must_not:
+++        - 编造 API key
+++        - 未经用户选择直接以通用 agent 逐文件替代 ocr
++diff --git a/skills/solo-code-review/references/delegate-mode.md b/skills/solo-code-review/references/delegate-mode.md
++new file mode 100644
++index 0000000..b73e504
++--- /dev/null
+++++ b/skills/solo-code-review/references/delegate-mode.md
++@@ -0,0 +1,76 @@
+++# delegate 模式（OCR 未配置 LLM 时）
+++
+++OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败且用户选择 delegate。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有「跑 ocr」这一步被替换。
+++
+++## 步骤
+++
+++### D1. 预览审查范围
+++
+++```bash
+++ocr delegate preview --format json --repo <git_root_abs> [--from <ref> --to <ref>] [-c <hash>] [--exclude <patterns>]
+++```
+++
+++输出含 `mode`（workspace / range / commit）、ref 元数据（`from` / `to` / `commit` / `merge_base`）、`reviewable_files[]`（path、status、insertions、deletions）与 `excluded_files[]`（含排除原因）。把 `reviewable_files` 展示给用户确认（等同主流程的 `--preview` 确认门）。
+++
+++### D2. 取规则
+++
+++```bash
+++ocr delegate rule --format json --repo <git_root_abs> <path1> <path2> ...
+++```
+++
+++输出按规则内容分组（`groups[]`）：共享同一规则的文件归为一组。大变更可按批取规则。
+++
+++### D3. 逐文件取 diff 并审查
+++
+++对 `reviewable_files` 建 checklist，以 `(path, status)` 为身份（workspace 模式下同一路径可能出现两次：staged 删除后 untracked 重建）。Git 命令一律 `--no-pager --no-ext-diff --no-textconv --no-color`：
+++
+++```bash
+++# range 模式（用 preview 输出的 merge_base）
+++git --no-pager diff --no-ext-diff --no-textconv --no-color <merge_base>..<to> -- "<path>"
+++# commit 模式
+++git --no-pager show --no-ext-diff --no-textconv --no-color <commit> -- "<path>"
+++# workspace 模式（tracked）
+++git --no-pager diff --no-ext-diff --no-textconv --no-color HEAD -- "<path>"
+++# workspace 模式的 untracked 新文件：整文件都是新代码，直接读
+++cat "<path>"
+++```
+++
+++上下文按需补：`git log --oneline -- <path>`、`git blame -- <path>`、`git show <ref>:<path>`。大 diff 加 `--output=<绝对路径>` 写到仓库外，读完即删。
+++
+++每个文件按其规则组的 checklist 审查，可用 Read/Grep 等工具取更多上下文；标记 `reviewed`，或 `skipped` 加具体原因。发现一个高严重度问题后继续审完，不提前停。
+++
+++### D4. 组装 comments JSON
+++
+++每条 comment 字段：
+++
+++| 字段 | 类型 | 必填 | 说明 |
+++|---|---|---|---|
+++| `path` | string | 是 | 仓库相对路径 |
+++| `content` | string | 是 | 问题描述 |
+++| `start_line` / `end_line` | integer | 否 | 新文件中的行号；都为 0 表示未定位 |
+++| `category` | enum | 否 | bug / security / performance / maintainability / test / style / documentation / other |
+++| `severity` | enum | 否 | critical / high / medium / low |
+++
+++组装成与 `ocr review --format json` 同构的对象写入 `/tmp/ocr.json`：
+++
+++```json
+++{
+++  "status": "complete",
+++  "session_id": "delegate-<YYYYMMDD-HHMMSS>",
+++  "message": "delegate review: <n> finding(s) across <m> file(s)",
+++  "summary": {"files_reviewed": <m>, "comments": <n>},
+++  "comments": [...]
+++}
+++```
+++
+++`summary.files_reviewed` 用实际 reviewed 数；skipped 文件在 `warnings[]` 里逐条写 `path: reason`。severity 会被 `reviewctl` 自动映射为 P0~P3（critical→P0、high→P1、medium→P2、low→P3），仍可按主流程规则覆盖。
+++
+++### D5. 回到主流程
+++
+++从主流程「4. 分级并落盘」继续：`reviewctl write` 落 `docs/reviews/`、MR/PR 评论确认门、对话只打印 summary。边界不变：默认不改代码，不 checkout/stash/reset 目标仓。
+++
+++## 覆盖与止损
+++
+++- 每个 previewed 文件必须有归宿：reviewed 或 skipped（带原因），覆盖情况写进总结的 message。
+++- 疑似误报直接丢弃，不写进 comments。
+++- `--format json` 报 `unknown flag`（CLI < v1.9.0）：改用 text 输出取文件清单与规则，保留 mode/ref/规则信息继续；其余错误报告后停止，不换路重试。
++diff --git a/skills/solo-code-review/scripts/reviewctl.py b/skills/solo-code-review/scripts/reviewctl.py
++index 0f1e25d..849e36b 100644
++--- a/skills/solo-code-review/scripts/reviewctl.py
+++++ b/skills/solo-code-review/scripts/reviewctl.py
++@@ -50,6 +50,12 @@ P2_RE = re.compile(
++     r"(error handling|missing test|缺少测试|可维护|资源泄露|timeout|重试|P2)",
++     re.I,
++ )
+++SEVERITY_TO_PRIORITY = {
+++    "critical": "P0",
+++    "high": "P1",
+++    "medium": "P2",
+++    "low": "P3",
+++}
++ 
++ 
++ class ReviewError(Exception):
++@@ -303,11 +309,13 @@ def slugify(text: str, max_len: int = 48) -> str:
++     return (out or "change")[:max_len].rstrip("-")
++ 
++ 
++-def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "") -> str:
+++def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "", commit: str = "") -> str:
++     base = slugify(repo_basename, 32)
++     if mode == "mr" and mr_iid is not None:
++         extra = slugify(title, 24) if title else ""
++         return f"{base}-mr-{mr_iid}" + (f"-{extra}" if extra else "")
+++    if mode == "commit" and commit:
+++        return f"{base}-commit-{slugify(commit, 12)}"
++     if mode == "uncommitted":
++         return f"{base}-{slugify(branch or 'wip', 24)}-uncommitted"
++     if mode == "default-branch":
++@@ -351,7 +359,11 @@ def normalize_comments(ocr: dict[str, Any]) -> list[dict[str, Any]]:
++         comment = dict(item)
++         pri = str(comment.get("priority") or "").upper()
++         if pri not in PRIORITY_ORDER:
++-            comment["priority"] = classify_priority(str(comment.get("content") or ""))
+++            sev = str(comment.get("severity") or "").strip().lower()
+++            if sev in SEVERITY_TO_PRIORITY:
+++                comment["priority"] = SEVERITY_TO_PRIORITY[sev]
+++            else:
+++                comment["priority"] = classify_priority(str(comment.get("content") or ""))
++         else:
++             comment["priority"] = pri
++         out.append(comment)
++@@ -376,6 +388,7 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
++         f"date: {meta.get('date', '')}",
++         f"change_name: {meta.get('change_name', '')}",
++         f"branch: {meta.get('branch', '')}",
+++        f"commit: {meta.get('commit', '')}",
++         f"from: {meta.get('from', '')}",
++         f"to: {meta.get('to', '')}",
++         f"mr: {meta.get('mr_url', '')}",
++@@ -391,6 +404,8 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
++         f"- 范围：`{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
++         f"- 分支：`{meta.get('branch', '')}`（默认 `{meta.get('default_branch', '')}`）",
++     ]
+++    if meta.get("commit"):
+++        lines.append(f"- Commit：`{meta['commit']}`")
++     if meta.get("mr_url"):
++         lines.append(f"- Merge Request：{meta['mr_url']}")
++     summary = ocr.get("summary") or {}
++@@ -496,6 +511,7 @@ def write_review(work_root: Path, ocr: dict[str, Any], meta: dict[str, Any]) ->
++         branch=str(meta.get("branch") or ""),
++         mr_iid=meta.get("mr_iid"),
++         title=str(meta.get("title") or ""),
+++        commit=str(meta.get("commit") or ""),
++     )
++     meta = {**meta, "date": day, "change_name": name}
++     out_dir = work_root / "docs" / "reviews" / day / name
++@@ -548,6 +564,7 @@ def main(argv: list[str] | None = None) -> int:
++     p_name.add_argument("--branch", default="")
++     p_name.add_argument("--mr-iid", type=int, default=None)
++     p_name.add_argument("--title", default="")
+++    p_name.add_argument("--commit", default="")
++ 
++     p_write = sub.add_parser("write")
++     p_write.add_argument("--ocr-json", required=True)
++@@ -575,6 +592,7 @@ def main(argv: list[str] | None = None) -> int:
++                 branch=args.branch,
++                 mr_iid=args.mr_iid,
++                 title=args.title,
+++                commit=args.commit,
++             )
++             return emit({"ok": True, "change_name": name})
++         if args.cmd == "write":
++diff --git a/skills/solo-code-review/tests/test_reviewctl.py b/skills/solo-code-review/tests/test_reviewctl.py
++index 99de1a5..b111d10 100644
++--- a/skills/solo-code-review/tests/test_reviewctl.py
+++++ b/skills/solo-code-review/tests/test_reviewctl.py
++@@ -93,11 +93,53 @@ class ReviewctlTests(unittest.TestCase):
++             rc.change_name(repo_basename="service", mode="mr", mr_iid=88, title="Fix timeout"),
++             "service-mr-88-fix-timeout",
++         )
+++        self.assertEqual(
+++            rc.change_name(repo_basename="service", mode="commit", commit="abc1234def"),
+++            "service-commit-abc1234def",
+++        )
++         self.assertEqual(rc.classify_priority("SQL injection in query builder"), "P0")
++         self.assertEqual(rc.classify_priority("nil deref on empty payload"), "P1")
++         self.assertEqual(rc.classify_priority("missing test for retry path"), "P2")
++         self.assertEqual(rc.classify_priority("rename helper for clarity"), "P3")
++ 
+++    def test_severity_mapping_beats_heuristic(self) -> None:
+++        comments = rc.normalize_comments(
+++            {
+++                "comments": [
+++                    {"path": "a.go", "content": "rename helper for clarity", "severity": "critical"},
+++                    {"path": "b.go", "content": "SQL injection in query builder", "severity": "low"},
+++                    {"path": "c.go", "content": "rename helper for clarity"},
+++                    {"path": "d.go", "content": "whatever", "priority": "P1", "severity": "low"},
+++                ]
+++            }
+++        )
+++        by_path = {c["path"]: c["priority"] for c in comments}
+++        self.assertEqual(by_path["a.go"], "P0")
+++        self.assertEqual(by_path["b.go"], "P3")
+++        self.assertEqual(by_path["c.go"], "P3")
+++        self.assertEqual(by_path["d.go"], "P1")
+++        self.assertEqual([c["priority"] for c in comments], ["P0", "P1", "P3", "P3"])
+++
+++    def test_write_review_commit_mode(self) -> None:
+++        ocr = {
+++            "status": "complete",
+++            "session_id": "delegate-20261016-120000",
+++            "summary": {"files_reviewed": 1, "comments": 1},
+++            "comments": [
+++                {"path": "a.go", "content": "SQL injection", "severity": "critical", "start_line": 1, "end_line": 2},
+++            ],
+++            "warnings": ["b.go: skipped, binary file"],
+++        }
+++        meta = {"repo": "group/service", "mode": "commit", "date": "2026-10-16", "branch": "main", "commit": "abc1234", "default_branch": "main"}
+++        result = rc.write_review(self.tmp, ocr, meta)
+++        self.assertEqual(result["change_name"], "service-commit-abc1234")
+++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
+++        self.assertIn("commit: abc1234", review)
+++        self.assertIn("- Commit：`abc1234`", review)
+++        self.assertIn("delegate-20261016-120000", review)
+++        self.assertIn("### P0", review)
+++        self.assertIn("b.go: skipped, binary file", review)
+++
++     def test_write_review_sorted_summary(self) -> None:
++         ocr = {
++             "status": "success",
++diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
++new file mode 100644
++index 0000000..d2ca9f3
++--- /dev/null
+++++ b/skills/solo-code-review/tests/test_skill_contract.py
++@@ -0,0 +1,126 @@
+++"""solo-code-review 文本契约测试：校验 SKILL.md 与 references 的门禁、落点与硬闸。"""
+++from __future__ import annotations
+++
+++import unittest
+++from pathlib import Path
+++
+++ROOT = Path(__file__).resolve().parents[1]
+++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+++DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8")
+++
+++
+++class ScopeConfirmGateTest(unittest.TestCase):
+++    def test_confirm_gate_table_present(self) -> None:
+++        self.assertIn("确定审查范围（确认门）", SKILL)
+++        for rec in ("uncommitted", "default-branch", "ask", "nothing"):
+++            self.assertIn(f"| `{rec}` |", SKILL)
+++
+++    def test_mixed_changes_must_ask(self) -> None:
+++        self.assertIn("**必须**让用户选其一，禁止默默合并两种 diff", SKILL)
+++
+++    def test_preview_before_llm(self) -> None:
+++        self.assertIn("仍要先 `ocr review --preview` 展示文件列表再跑 LLM", SKILL)
+++
+++
+++class CommitModeTest(unittest.TestCase):
+++    def test_commit_mode_declared(self) -> None:
+++        self.assertIn("mode=uncommitted|default-branch|commit", SKILL)
+++        self.assertIn("`-c <hash>`", SKILL)
+++
+++    def test_change_name_carries_commit(self) -> None:
+++        self.assertIn("mode=commit 时带 `--commit <hash>`", SKILL)
+++        self.assertIn("mode=commit 加 `commit`（短 hash）", SKILL)
+++
+++
+++class DelegateModeTest(unittest.TestCase):
+++    def test_llm_failure_offers_delegate(self) -> None:
+++        self.assertIn("`ocr llm test` 失败时停下，让用户在两条路里选一条", SKILL)
+++        self.assertIn("delegate 模式", SKILL)
+++        self.assertIn("references/delegate-mode.md", SKILL)
+++
+++    def test_no_fabricated_key(self) -> None:
+++        self.assertIn("禁止编造 API key", SKILL)
+++
+++    def test_delegate_steps_and_schema(self) -> None:
+++        for cmd in ("ocr delegate preview --format json", "ocr delegate rule --format json"):
+++            self.assertIn(cmd, DELEGATE)
+++        for field in ("path", "content", "start_line", "severity", "category"):
+++            self.assertIn(f"`{field}`", DELEGATE)
+++
+++    def test_delegate_coverage_mandatory(self) -> None:
+++        self.assertIn("reviewed 或 skipped（带原因）", DELEGATE)
+++
+++    def test_delegate_returns_to_main_flow(self) -> None:
+++        self.assertIn("4. 分级并落盘", DELEGATE)
+++        self.assertIn("产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致", DELEGATE)
+++
+++
+++class FetchOnlyTest(unittest.TestCase):
+++    def test_mr_fetch_only(self) -> None:
+++        self.assertIn("**只 fetch，不 checkout、不 stash**", SKILL)
+++        self.assertIn("refs/code-review/mr-<iid>", SKILL)
+++        self.assertIn("refs/code-review/pr-<iid>", SKILL)
+++
+++    def test_no_checkout_in_boundaries(self) -> None:
+++        self.assertIn("不 `checkout` / `stash` / `reset` 目标仓", SKILL)
+++
+++
+++class ArtifactTest(unittest.TestCase):
+++    def test_output_paths(self) -> None:
+++        self.assertIn("docs/reviews/{YYYY-MM-DD}/{change-name}/", SKILL)
+++        for name in ("ocr-raw.json", "review.md", "summary.md", "INDEX.md"):
+++            self.assertIn(name, SKILL)
+++
+++    def test_native_output_flag(self) -> None:
+++        self.assertIn("-o /tmp/ocr.json", SKILL)
+++
+++    def test_summary_only_chat(self) -> None:
+++        self.assertIn("对话输出 **仅** `write` 返回的 `summary`", SKILL)
+++
+++
+++class CommentConfirmGateTest(unittest.TestCase):
+++    def test_remote_write_requires_confirm(self) -> None:
+++        self.assertIn("MR/PR 评论确认门", SKILL)
+++        self.assertIn("在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment`", SKILL)
+++
+++    def test_repo_mode_never_publishes(self) -> None:
+++        self.assertIn("仓库模式不询问，也不发布评论", SKILL)
+++
+++
+++class CredentialTest(unittest.TestCase):
+++    def test_gitlab_token_via_env(self) -> None:
+++        self.assertIn("GITLAB_TOKEN=\"$GITLAB_TOKEN\" glab", SKILL)
+++        self.assertIn("token 不写入命令行参数、日志或审查产物", SKILL)
+++        self.assertIn("禁止编造或输出 token", SKILL)
+++
+++
+++class OcrFlagsTest(unittest.TestCase):
+++    def test_core_flags_always(self) -> None:
+++        self.assertIn("--audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json", SKILL)
+++
+++    def test_optional_flags_documented(self) -> None:
+++        for flag in ("--effort", "--exclude", "--max-tokens-budget", "--resume"):
+++            self.assertIn(flag, SKILL)
+++
+++    def test_background_file(self) -> None:
+++        self.assertIn("-B <markdown路径>", SKILL)
+++
+++
+++class BoundaryTest(unittest.TestCase):
+++    def test_scan_out_of_scope(self) -> None:
+++        self.assertIn("无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill", SKILL)
+++
+++    def test_read_only_default(self) -> None:
+++        self.assertIn("默认只审查、不改代码", SKILL)
+++        self.assertIn("用户明确要求「顺手修」才可改代码", SKILL)
+++
+++
+++class InjectionTest(unittest.TestCase):
+++    def test_self_evolution_pointer(self) -> None:
+++        self.assertIn("## 自进化", SKILL)
+++        self.assertIn("evals/cases.yaml", SKILL)
+++        self.assertIn("单次失败不直接改本文件", SKILL)
+++
+++
+++if __name__ == "__main__":
+++    unittest.main()
+diff --git a/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/proposal.md b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/proposal.md
+new file mode 100644
+index 0000000..a273791
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/proposal.md
+@@ -0,0 +1,49 @@
++# solo-code-review 接入 OCR v1.12 能力（单 commit / delegate fallback / 新 flag）
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261016-122203-ocr-v1-12
++- risk: medium
++- status: proposed
++
++## Intent
++
++把 skill 对齐到本机已装的 OCR v1.12.9，接入 review 时确认的差距（不改主干流程）：
++
++1. **单 commit 审查**：新增 mode=commit，`ocr review -c <hash>`；reviewctl change-name 支持 `--commit`，review.md frontmatter/Meta 渲染 commit 字段。
++2. **delegate fallback**：`ocr llm test` 失败从「硬停」改为二选一——配置 LLM，或按新增 `references/delegate-mode.md` 走委托模式（OCR 做文件筛选/规则解析，当前 agent 出审查），产物与确认门不变。原「不要用通用 agent 逐文件替代」的表述改为「delegate 模式须由用户选择且以 ocr delegate preview/rule 为准」。
++3. **新 flag 接入**：`-o/--output` 原生落盘（替代 shell 重定向）、`--effort`、`--exclude`、`--max-tokens-budget`、`--resume`、`-B/--background-file`、`ocr session export`（回放）、CLI 版本过低时的升级提示。
++4. **severity 映射**：reviewctl normalize_comments 分级次序改为 显式 priority > severity(critical/high/medium/low→P0~P3) > 内容启发式（delegate 模式与新版 OCR 输出都带 severity）。
++5. **scan 边界**：正文明确「无 diff 的全仓静态扫描直接用 ocr scan，不经本 skill」。
++6. **配套**：evals/cases.yaml 追加 commit-mode-scope、delegate-fallback-when-no-llm 两条 case；新增 tests/test_skill_contract.py（SKILL.md 与 delegate-mode.md 的文本契约，覆盖确认门、fetch-only、凭据禁令、评论确认门、产物落点、总结打印）；tests/test_reviewctl.py 增补 commit 命名、severity 映射、commit 模式落盘用例。
++
++非目标：不改 MR/PR fetch 编排、确认门结构、产物目录布局、总结打印协议；不接 CI 集成与 MCP/viewer。
++
++## Conflict check
++
++- 相邻 skill 无冲突：commit-push / repo-manager 只把「diff 级评审」指回本 skill，职责不变。
++- 上游官方 open-code-review-delegate skill 存在，但本仓不安装它；delegate-mode.md 是内嵌精简版，落点与确认门沿用本 skill 的台账协议，与上游插件互不干扰。
++- frontmatter description 增「单个 commit」触发词，仍 <300 字符（225）。
++- 与 self-upgrade 轮（20261016-114928）无重叠：本轮不动 examples/experience。
++
++## Rationale
++
++- 单 commit 审查是 review 中确认的 P1 差距：`ocr review -c` 原生支持，skill 此前只能落到整分支 diff。
++- delegate fallback 修复「LLM 未配置即死路」：OCR 官方给 host-agent 的路径正是 delegate（无需 OCR 侧 key）。
++- severity 映射有实测依据：v1.12.9 JSON comments 带 severity 字段（zread 文档 + 本机 --help 印证），启发式正则只兜底。
++- 全部 flag 以本机 `ocr review --help` / `ocr delegate --help` 实测为准；delegate preview/rule 的 JSON 输出结构已在本机跑通验证。
++- 8KB 指导线：正文压缩（GitLab 认证段合并、命令示例改 mode→flag 表、MUST 节去重复命令块）后 8188 B。
++
++## Files
++
++- skills/solo-code-review/SKILL.md — 正文更新（description、前置、范围表、跑 ocr、落盘、总结、边界）
++- skills/solo-code-review/references/delegate-mode.md — 新增，delegate 模式七步细则
++- skills/solo-code-review/scripts/reviewctl.py — severity 映射、change_name commit 支持、渲染 commit 字段、CLI 参数 --commit
++- skills/solo-code-review/tests/test_reviewctl.py — 增补 3 个用例
++- skills/solo-code-review/tests/test_skill_contract.py — 新增文本契约测试
++- skills/solo-code-review/evals/cases.yaml — 追加 2 条 case
++
++## Validation
++
++- 应用前：`git apply --check --recount` 通过；b 树 pytest 31 passed；SKILL.md 8188 B ≤ 8192；禁令词 4 处（0.5/KB）
++- 应用后：`python3 -m pytest skills/solo-code-review/tests -q` 全绿；`make check-style` 无告警；grep 检查引用 delegate-mode.md 的路径存在
+diff --git a/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/result.md b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/result.md
+new file mode 100644
+index 0000000..2358f01
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-122203-ocr-v1-12/result.md
+@@ -0,0 +1,28 @@
++# Result
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261016-122203-ocr-v1-12
++- risk: medium
++- status: applied
++- applied-at: 2026-10-16T12:26:00+08:00
++
++## Validation
++
++- `git apply --check --recount`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m pytest skills/solo-code-review/tests -q` → 31 passed（含新增 test_skill_contract.py 16 条、test_reviewctl.py 增补 3 条）
++- 全仓测试: `python3 -m pytest skills -q` → 372 passed, 3 skipped
++- `make check-style`: OK（0 告警；SKILL.md 8188 B ≤ 8192，description 225 字符，禁令词 4 处 / 0.5 每 KB，引用链一层）
++- `make check-names`: OK（无 denylist 命中）
++- privacy check: pass（delegate-mode.md 与 cases.yaml 均为通用命令与虚构数据，无密钥/内部 URL/主机名）
++- mode check: pass（update，未夹带 examples/experience 结构变更；主干流程、确认门、产物布局未动）
++
++## Notes
++
++与 proposal 一致，无偏差。实测依据：
++
++- OCR v1.12.9 本机实跑：`ocr review --audience agent --format json -o` 输出 schema（status=complete、session_id、summary.{files_reviewed,comments,elapsed,total_tokens}、comments[]）与 reviewctl 兼容；`ocr delegate preview --format json`（reviewable_files[]/excluded_files[]/merge_base）与 `ocr delegate rule --format json`（groups[]）输出结构已验证。
++- severity→P0~P3 映射依据 OCR 上游 delegate skill 的 comment schema（severity: critical/high/medium/low），normalize_comments 分级次序：显式 priority > severity > 内容启发式。
++- 正文为守 8KB 指导线做了三处压缩（GitLab 认证段合并、跑 ocr 命令块改 mode→flag 表、MUST 节去重复命令块），信息无删减。
++- 未接入（有意留下轮）：`ocr scan` 模式化、CI 集成、viewer/MCP、session compare。scan 已在「边界」声明不经本 skill。
+diff --git a/skills/way-to-cr/patches/20261016-141542-provider-model/change.patch b/skills/way-to-cr/patches/20261016-141542-provider-model/change.patch
+new file mode 100644
+index 0000000..55799ed
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-141542-provider-model/change.patch
+@@ -0,0 +1,221 @@
++diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
++index 83b0c2d..81ebaa1 100644
++--- a/skills/solo-code-review/SKILL.md
+++++ b/skills/solo-code-review/SKILL.md
++@@ -14,11 +14,11 @@ license: MIT
++ ## 调用
++ 
++ ```text
++-/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [change-name=<slug>]
+++/solo-code-review repo=<仓库名|仓库路径> [mode=uncommitted|default-branch|commit] [commit=<hash>] [provider=<name>] [model=<name>] [change-name=<slug>]
++ /solo-code-review <GitLab/GitHub MR 或 PR URL>
++ ```
++ 
++-可选：业务背景（commit/MR 说明、需求一句话）→ 传 `ocr -b`；成篇需求文档给 `-B <markdown路径>`；需要调审查深度时加 `effort=low|medium|high`（映射 `--effort`）。
+++可选：业务背景 → `-b`（一句话）/ `-B <md路径>`（成篇文档）；审查深度 `effort=low|medium|high`；LLM 后端 `provider=<name>` + `model=<name>`（单次覆盖，不给则用现有 `ocr config`；内置清单 `ocr llm providers`）。
++ 
++ ## MUST 先读取并执行
++ 
++@@ -34,6 +34,8 @@ ocr llm test
++ 
++ 未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
++ 
+++`ocr llm test` 只验证**默认配置**（无 `--provider/--model` 参数）。用户指定 provider/model 时：先用 `ocr llm providers` 核对名称；凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 `ocr review` 报错即停下请用户配置，禁止编造 API key。
+++
++ `ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
++ 
++ 1. 配置 LLM（环境变量或 `ocr config`）后重跑。
++@@ -62,29 +64,11 @@ GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope
++ 
++ 用户点名**单个 commit** → mode=commit，范围 `-c <hash>`（对其父提交），确认与预览同下。用户已显式给 `mode=` 时，不再改推荐，仍要先 `ocr review --preview` 展示文件列表再跑 LLM。
++ 
++-**MR/PR 模式**：
++-
++-1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
++-2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
++-3. 取源/目标分支：
++-   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
++-   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
++-4. **只 fetch，不 checkout、不 stash**：
++-
++-```bash
++-git -C <git_root_abs> fetch origin
++-# GitLab
++-git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
++-# GitHub
++-git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
++-```
++-
++-5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
++-6. `ocr review --preview` 后确认再跑 LLM。
+++**MR/PR 模式**：按 [references/mr-mode.md](references/mr-mode.md) 执行（parse-mr → 定位本地仓 → glab/gh 取分支 → **只 fetch 到 `refs/code-review/mr-<iid>` / `pr-<iid>`，不 checkout、不 stash** → `--preview` 确认后跑 LLM）。
++ 
++ ### 3. 跑 ocr
++ 
++-始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景就加 `-b`/`-B`。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）。中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
+++始终：`ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json 2>/tmp/ocr.err`，范围按下表追加；有背景加 `-b`/`-B`；用户指定 LLM 后端加 `--provider <name> --model <name>`（单次覆盖，不给用现有配置）。可选：`--effort low|medium|high`、`--exclude '**/generated/*,**/testdata/*'`、`--max-tokens-budget <n>`（大仓止损）；中断后 `--resume <session-id>` 续跑（`ocr session list` 可查）。
++ 
++ | mode | 追加范围 flag |
++ |---|---|
++@@ -105,7 +89,7 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++   --ocr-json /tmp/ocr.classified.json --meta-json /tmp/meta.json
++ ```
++ 
++-`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。
+++`meta.json` 至少含：`repo`、`mode`、`date`、`change_name`、`branch`、`from`、`to`、`default_branch`；mode=commit 加 `commit`（短 hash）；MR/PR 再加 `mr_url`、`mr_iid`、`title`。LLM 后端无需手填：`reviewctl write` 从 ocr JSON 的 `llm.{provider,model}` 读出写进 `review.md`（以 OCR 实跑值为准）。
++ 
++ 产物目录：`<workspace-root>/docs/reviews/{YYYY-MM-DD}/{change-name}/`
++ 
++diff --git a/skills/solo-code-review/evals/cases.yaml b/skills/solo-code-review/evals/cases.yaml
++index cf6521e..269027e 100644
++--- a/skills/solo-code-review/evals/cases.yaml
+++++ b/skills/solo-code-review/evals/cases.yaml
++@@ -142,3 +142,17 @@ cases:
++       must_not:
++         - 编造 API key
++         - 未经用户选择直接以通用 agent 逐文件替代 ocr
+++
+++  - id: provider-model-override
+++    kind: core
+++    judge: deterministic
+++    description: 用户指定 provider/model 时单次覆盖，未指定则用现有配置
+++    given: 用户给了 provider=<name> 和/或 model=<name>
+++    expect:
+++      must:
+++        - ocr review 追加 --provider <name> --model <name>（仅本次运行，不写回 ocr config）
+++        - 未指定时不加这两个 flag，沿用现有配置
+++        - review.md 记录实际 LLM 后端（取自 ocr JSON 的 llm.{provider,model}）
+++      must_not:
+++        - 在命令行传入或编造 API key / 凭据
+++        - 用 ocr llm test 验证指定组合（该命令只测默认配置）
++diff --git a/skills/solo-code-review/references/delegate-mode.md b/skills/solo-code-review/references/delegate-mode.md
++index b73e504..9cdff0f 100644
++--- a/skills/solo-code-review/references/delegate-mode.md
+++++ b/skills/solo-code-review/references/delegate-mode.md
++@@ -2,6 +2,8 @@
++ 
++ OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败且用户选择 delegate。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有「跑 ocr」这一步被替换。
++ 
+++delegate 模式下 `--provider/--model` 不适用（OCR 侧不调 LLM，审查用当前 agent 的模型）；`review.md` 的 LLM 行留空或标注 `delegate`。
+++
++ ## 步骤
++ 
++ ### D1. 预览审查范围
++diff --git a/skills/solo-code-review/references/mr-mode.md b/skills/solo-code-review/references/mr-mode.md
++new file mode 100644
++index 0000000..ba4e14d
++--- /dev/null
+++++ b/skills/solo-code-review/references/mr-mode.md
++@@ -0,0 +1,21 @@
+++# MR/PR 模式细则
+++
+++入口与门禁在 SKILL.md「流程」；本文件是步骤细则。
+++
+++1. `reviewctl parse-mr --url ...` → `kind` / `host` / `project` / `iid` / `repo_hint`
+++2. 用 `repo_hint`（或 URL 里的 project）`inspect`/`resolve-repo` 定位本地仓；找不到则列出候选或请用户给仓库路径。
+++3. 取源/目标分支：
+++   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
+++   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
+++4. **只 fetch，不 checkout、不 stash**：
+++
+++```bash
+++git -C <git_root_abs> fetch origin
+++# GitLab
+++git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
+++# GitHub
+++git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
+++```
+++
+++5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）
+++6. `ocr review --preview` 后确认再跑 LLM。用户指定了 `provider=` / `model=` 时同样透传 `--provider/--model`（见 SKILL.md「调用」与「跑 ocr」）。
++diff --git a/skills/solo-code-review/scripts/reviewctl.py b/skills/solo-code-review/scripts/reviewctl.py
++index 849e36b..66d2a1e 100644
++--- a/skills/solo-code-review/scripts/reviewctl.py
+++++ b/skills/solo-code-review/scripts/reviewctl.py
++@@ -414,6 +414,9 @@ def render_full(meta: dict[str, Any], ocr: dict[str, Any], comments: list[dict[s
++             f"- OCR：files={summary.get('files_reviewed', '?')} comments={summary.get('comments', len(comments))} "
++             f"elapsed={summary.get('elapsed', '?')} session=`{ocr.get('session_id', '')}`"
++         )
+++    llm = ocr.get("llm") or {}
+++    if llm.get("provider") or llm.get("model"):
+++        lines.append(f"- LLM：`{llm.get('provider', '?')}` / `{llm.get('model', '?')}`")
++     if ocr.get("message"):
++         lines.append(f"- OCR message：{ocr['message']}")
++     lines += ["", "## 统计", "", tally_line, "", "## Findings（完整）", ""]
++diff --git a/skills/solo-code-review/tests/test_reviewctl.py b/skills/solo-code-review/tests/test_reviewctl.py
++index b111d10..f0924c7 100644
++--- a/skills/solo-code-review/tests/test_reviewctl.py
+++++ b/skills/solo-code-review/tests/test_reviewctl.py
++@@ -139,6 +139,20 @@ class ReviewctlTests(unittest.TestCase):
++         self.assertIn("delegate-20261016-120000", review)
++         self.assertIn("### P0", review)
++         self.assertIn("b.go: skipped, binary file", review)
+++        self.assertNotIn("- LLM：", review)
+++
+++    def test_write_review_records_llm_backend(self) -> None:
+++        ocr = {
+++            "status": "complete",
+++            "session_id": "s1",
+++            "llm": {"provider": "anthropic", "model": "claude-opus-4-6"},
+++            "summary": {"files_reviewed": 1, "comments": 0},
+++            "comments": [],
+++        }
+++        meta = {"repo": "group/service", "mode": "default-branch", "date": "2026-10-16", "branch": "feat", "from": "origin/main", "to": "HEAD", "default_branch": "main"}
+++        result = rc.write_review(self.tmp, ocr, meta)
+++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
+++        self.assertIn("- LLM：`anthropic` / `claude-opus-4-6`", review)
++ 
++     def test_write_review_sorted_summary(self) -> None:
++         ocr = {
++diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
++index d2ca9f3..03601da 100644
++--- a/skills/solo-code-review/tests/test_skill_contract.py
+++++ b/skills/solo-code-review/tests/test_skill_contract.py
++@@ -7,6 +7,7 @@ from pathlib import Path
++ ROOT = Path(__file__).resolve().parents[1]
++ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++ DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8")
+++MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
++ 
++ 
++ class ScopeConfirmGateTest(unittest.TestCase):
++@@ -57,9 +58,12 @@ class DelegateModeTest(unittest.TestCase):
++ 
++ class FetchOnlyTest(unittest.TestCase):
++     def test_mr_fetch_only(self) -> None:
++-        self.assertIn("**只 fetch，不 checkout、不 stash**", SKILL)
++-        self.assertIn("refs/code-review/mr-<iid>", SKILL)
++-        self.assertIn("refs/code-review/pr-<iid>", SKILL)
+++        self.assertIn("**只 fetch，不 checkout、不 stash**", MR)
+++        self.assertIn("refs/code-review/mr-<iid>", MR)
+++        self.assertIn("refs/code-review/pr-<iid>", MR)
+++        # SKILL.md 正文保留门禁要点并指向细则
+++        self.assertIn("references/mr-mode.md", SKILL)
+++        self.assertIn("不 checkout、不 stash", SKILL)
++ 
++     def test_no_checkout_in_boundaries(self) -> None:
++         self.assertIn("不 `checkout` / `stash` / `reset` 目标仓", SKILL)
++@@ -103,7 +107,22 @@ class OcrFlagsTest(unittest.TestCase):
++             self.assertIn(flag, SKILL)
++ 
++     def test_background_file(self) -> None:
++-        self.assertIn("-B <markdown路径>", SKILL)
+++        self.assertIn("-B <md路径>", SKILL)
+++
+++    def test_provider_model_override(self) -> None:
+++        self.assertIn("[provider=<name>] [model=<name>]", SKILL)
+++        self.assertIn("--provider <name> --model <name>", SKILL)
+++        self.assertIn("单次覆盖", SKILL)
+++
+++    def test_llm_test_only_default_config(self) -> None:
+++        self.assertIn("只验证**默认配置**", SKILL)
+++        self.assertIn("ocr llm providers", SKILL)
+++
+++    def test_llm_recorded_from_ocr_json(self) -> None:
+++        self.assertIn("llm.{provider,model}", SKILL)
+++
+++    def test_delegate_no_provider_model(self) -> None:
+++        self.assertIn("`--provider/--model` 不适用", DELEGATE)
++ 
++ 
++ class BoundaryTest(unittest.TestCase):
+diff --git a/skills/way-to-cr/patches/20261016-141542-provider-model/proposal.md b/skills/way-to-cr/patches/20261016-141542-provider-model/proposal.md
+new file mode 100644
+index 0000000..b9c3e25
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-141542-provider-model/proposal.md
+@@ -0,0 +1,49 @@
++# solo-code-review 支持指定 provider + model（单次覆盖）
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261016-141542-provider-model
++- risk: medium
++- status: proposed
++
++## Intent
++
++用户要求：支持指定模型+供应商，未指定则使用现有配置；「指定 agent」经确认即 OCR 的 provider（LLM 后端），统一走 `ocr review --provider/--model` 透传，不引入 agent-roster 委派。
++
++1. **调用签名**：新增可选参数 `provider=<name>`、`model=<name>`。
++2. **前置**：说明 `ocr llm test` 只验证默认配置（无 --provider/--model 参数）；指定组合用 `ocr llm providers` 核对名称，凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 review 报错即停下请用户配置，禁止编造 API key。
++3. **跑 ocr**：用户指定时追加 `--provider <name> --model <name>`；未指定不加 flag，沿用现有配置。
++4. **落盘**：`reviewctl write` 从 ocr JSON 的 `llm.{provider,model}`（v1.12.9 实测存在）读出实际后端，渲染进 review.md 的 Meta 段「- LLM：`provider` / `model`」；delegate 模式 JSON 无该字段则不渲染。
++5. **delegate 澄清**：references/delegate-mode.md 加一句——delegate 模式 `--provider/--model` 不适用（审查用当前 agent 的模型）。
++6. **体量**：MR/PR 步骤细则下沉到新增 references/mr-mode.md（SKILL.md 保留一句门禁要点+指针），守 8KB 指导线。
++7. **配套**：tests/test_reviewctl.py 增 llm 渲染用例（含 delegate JSON 不渲染断言）；tests/test_skill_contract.py 增 provider/model 契约断言、fetch-only 断言改锚 mr-mode.md；evals/cases.yaml 增 provider-model-override case。
++
++非目标：不做跨 agent 委派编排；不持久化 provider/model（不改用户的 ocr config）。
++
++## Conflict check
++
++- 与主流程无冲突：范围确认门、fetch-only、评论确认门、产物布局全部不动；MR/PR 细则只是位置下沉。
++- 与 delegate 轮无冲突：delegate 模式本来就无 OCR 侧 LLM，本轮明确 provider/model 在该模式不适用。
++- check-style 引用链规则：SKILL.md 直链 mr-mode.md / delegate-mode.md，两个 references 之间不互链，仍是一层。
++
++## Rationale
++
++- `--provider/--model` 为 v1.12.9 实测存在的单次覆盖 flag（`ocr review --help`：「Select a configured provider and model for this run only」）。
++- `ocr llm test` 无这两个参数为本机实测；内置 provider 清单可用 `ocr llm providers` 查询（实测 26 个）。
++- ocr JSON 顶层 `llm` 字段实测存在：{"provider": "minimax", "model": "MiniMax-M3"}（/tmp/ocr-verify.json，本机真实运行产物）。
++- 凭据不入命令行：沿用本 skill 既有 GITLAB_TOKEN 纪律，与「禁止编造 API key」一致。
++
++## Files
++
++- skills/solo-code-review/SKILL.md — 调用签名、前置、跑 ocr、落盘说明；MR/PR 段收成指针
++- skills/solo-code-review/references/mr-mode.md — 新增，MR/PR 步骤细则（原文下沉+provider 透传一句）
++- skills/solo-code-review/references/delegate-mode.md — 加 provider/model 不适用说明
++- skills/solo-code-review/scripts/reviewctl.py — render_full 渲染 llm.{provider,model}
++- skills/solo-code-review/tests/test_reviewctl.py — 增 llm 渲染/不渲染用例
++- skills/solo-code-review/tests/test_skill_contract.py — 增 provider/model 断言，fetch-only 改锚 MR
++- skills/solo-code-review/evals/cases.yaml — 追加 provider-model-override
++
++## Validation
++
++- 应用前：git apply --check --recount 通过；b 树 pytest 37 passed；SKILL.md 8184 B ≤ 8192；禁令词 5 处（0.6/KB）
++- 应用后：pytest skills/solo-code-review/tests 全绿；python3 -m pytest skills -q 全仓通过；make check-style / check-names 无告警
+diff --git a/skills/way-to-cr/patches/20261016-141542-provider-model/result.md b/skills/way-to-cr/patches/20261016-141542-provider-model/result.md
+new file mode 100644
+index 0000000..869ca76
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261016-141542-provider-model/result.md
+@@ -0,0 +1,29 @@
++# Result
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261016-141542-provider-model
++- risk: medium
++- status: applied
++- applied-at: 2026-10-16T14:18:00+08:00
++
++## Validation
++
++- `git apply --check --recount`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m pytest skills/solo-code-review/tests -q` → 36 passed
++- 全仓测试: `python3 -m pytest skills -q` → 377 passed, 3 skipped
++- `make check-style`: OK（0 告警；SKILL.md 8184 B ≤ 8192，禁令词 5 处 / 0.6 每 KB，引用链一层：SKILL.md 直链 mr-mode.md 与 delegate-mode.md，二者不互链）
++- `make check-names`: OK
++- privacy check: pass（无凭据、内部 URL；provider 示例用内置名 anthropic/claude-opus-4-6）
++- mode check: pass（update；确认门、fetch-only、评论确认门、产物布局未动）
++
++## Notes
++
++与 proposal 一致，一处数字偏差：proposal 预估应用后 37 passed，实际 36（新增 5 个用例：test_write_review_records_llm_backend、test_provider_model_override、test_llm_test_only_default_config、test_llm_recorded_from_ocr_json、test_delegate_no_provider_model；test_write_review_commit_mode 增 1 条 assertNotIn 断言）。
++
++实测依据（本机 OCR v1.12.9）：
++
++- `ocr review --provider <p> --model <m>` 为单次覆盖 flag（--help：「Select a configured provider and model for this run only」）；`ocr llm test` 无这两个参数；`ocr llm providers` 列出 26 个内置 provider。
++- ocr JSON 顶层含 `llm: {provider, model}`（真实运行产物 /tmp/ocr-verify.json：minimax / MiniMax-M3），reviewctl 据此渲染 review.md 的「- LLM：」行；delegate JSON 无该字段则不渲染（有用例守卫）。
++- 用户澄清「指定 agent」即 OCR provider（LLM 后端），不走 agent-roster 委派——本轮未引入任何跨 agent 编排。
+diff --git a/skills/way-to-cr/patches/20261118-014613-description-trim/change.patch b/skills/way-to-cr/patches/20261118-014613-description-trim/change.patch
+new file mode 100644
+index 0000000..2ca268f
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261118-014613-description-trim/change.patch
+@@ -0,0 +1,31 @@
++diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
++index 81ebaa1..d4744ea 100644
++--- a/skills/solo-code-review/SKILL.md
+++++ b/skills/solo-code-review/SKILL.md
++@@ -1,7 +1,7 @@
++ ---
++ id: solo-code-review
++ name: solo-code-review
++-description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request；完整结果写入 review workspace 的 docs/reviews/{日期}/{change-name}，对话只打印按 P0~Pn 排序的总结。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
+++description: 使用 OCR 兼容的代码审查 CLI，审查指定 Git 仓库的未提交改动、单个 commit、相对默认分支的 diff，或 GitLab/GitHub Merge Request / Pull Request，结果按 P0~Pn 分级落盘。在用户要求 code review、审查 MR/PR、评审未提交改动或某个提交时使用。
++ license: MIT
++ ---
++ 
++diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
++index 03601da..b90ccb9 100644
++--- a/skills/solo-code-review/tests/test_skill_contract.py
+++++ b/skills/solo-code-review/tests/test_skill_contract.py
++@@ -10,6 +10,13 @@ DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8"
++ MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
++ 
++ 
+++class DescriptionTest(unittest.TestCase):
+++    def test_description_keeps_trigger_and_leaves_output_details_to_body(self) -> None:
+++        head = SKILL.split("---", 2)[1]
+++        self.assertIn("结果按 P0~Pn 分级落盘", head)
+++        self.assertNotIn("docs/reviews", head)
+++
+++
++ class ScopeConfirmGateTest(unittest.TestCase):
++     def test_confirm_gate_table_present(self) -> None:
++         self.assertIn("确定审查范围（确认门）", SKILL)
+diff --git a/skills/way-to-cr/patches/20261118-014613-description-trim/proposal.md b/skills/way-to-cr/patches/20261118-014613-description-trim/proposal.md
+new file mode 100644
+index 0000000..16dad5e
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261118-014613-description-trim/proposal.md
+@@ -0,0 +1,28 @@
++# description 去掉产物路径与输出格式
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261118-014613-description-trim
++- risk: high
++- status: proposed
++
++## Intent
++
++description 保留能力（审查范围）与全部触发词，把「完整结果写入 docs/reviews/{日期}/{change-name}，对话只打印 P0~Pn 总结」压成「结果按 P0~Pn 分级落盘」。非目标：触发词、正文流程与产物目录不变（正文第 4 节已写明）。
++
++## Conflict check
++
++none。
++
++## Rationale
++
++description 常驻上下文，按 AGENTS.md 只写 WHAT + WHEN；原文 225 字，是全仓最长。
++
++## Files
++
++- skills/solo-code-review/SKILL.md：description。
++- skills/solo-code-review/tests/test_skill_contract.py：新增 `DescriptionTest`。
++
++## Validation
++
++- `python3 -m pytest skills/solo-code-review/tests -q`
+diff --git a/skills/way-to-cr/patches/20261118-014613-description-trim/result.md b/skills/way-to-cr/patches/20261118-014613-description-trim/result.md
+new file mode 100644
+index 0000000..6f45f09
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261118-014613-description-trim/result.md
+@@ -0,0 +1,22 @@
++# Result
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261118-014613-description-trim
++- risk: high
++- status: applied
++- applied-at: 2026-11-18T01:46:13+08:00
++
++## Validation
++
++- `git apply --check --recount --reverse`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m pytest skills/solo-code-review/tests -q`，pass
++- privacy check: pass
++- mode check: pass
++
++## Notes
++
++- 用户在评审后批准低优先级项随批次处理（含「description 夹带正文」）。
++- patch 由任务 worktree 中的改动机械导出，以 `--reverse` 校验与生产改动一致。
++- 触发词未变，未做真实触发回归。
+diff --git a/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/change.patch b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/change.patch
+new file mode 100644
+index 0000000..553ff4f
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/change.patch
+@@ -0,0 +1,71 @@
++diff --git a/skills/solo-code-review/SKILL.md b/skills/solo-code-review/SKILL.md
++index d4744ea..3fe3421 100644
++--- a/skills/solo-code-review/SKILL.md
+++++ b/skills/solo-code-review/SKILL.md
++@@ -9,7 +9,7 @@ license: MIT
++ 
++ 用 OCR 兼容的 CLI 做 **Git diff 级代码审查**。机械步骤走 `scripts/reviewctl.py`；审查引擎用 `ocr`：LLM 已配置时跑 `ocr review`；未配置时走 delegate 模式（见「前置」），由 OCR 做文件筛选与规则解析、当前 agent 执行审查。
++ 
++-不替代：架构评审、岗位视角评审、需求/规格符合性评审。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
+++架构评审、岗位视角评审、需求/规格符合性评审交给 `role-based-reviewer`。默认只审查、不改代码。无 diff 的全仓静态扫描直接用 `ocr scan`，不经本 skill。
++ 
++ ## 调用
++ 
++@@ -34,12 +34,7 @@ ocr llm test
++ 
++ 未安装：按 OCR CLI 的上游文档安装（先征得用户同意）。运行中 `--format` 报 `unknown flag` 说明 CLI 低于 v1.9.0，提示升级：`npm i -g @alibaba-group/open-code-review`。
++ 
++-`ocr llm test` 只验证**默认配置**（无 `--provider/--model` 参数）。用户指定 provider/model 时：先用 `ocr llm providers` 核对名称；凭据须已在 `ocr config` 或环境变量中配好（单次覆盖不传凭据），跑 `ocr review` 报错即停下请用户配置，禁止编造 API key。
++-
++-`ocr llm test` 失败时停下，让用户在两条路里选一条；禁止编造 API key：
++-
++-1. 配置 LLM（环境变量或 `ocr config`）后重跑。
++-2. delegate 模式：读取并按 [references/delegate-mode.md](references/delegate-mode.md) 执行，审查由当前 agent 的 LLM 完成，产物与确认门同主流程。
+++`ocr llm test` 只验证**默认配置**。单次覆盖 provider/model 时先用 `ocr llm providers` 核对名称，凭据须已配好（报错即停请用户配置，禁止编造 API key）。`ocr llm test` 失败时停下，让用户在两条路里选一条：1）配置 LLM 后重跑；2）delegate 模式，按 [references/delegate-mode.md](references/delegate-mode.md) 由当前 agent 的 LLM 执行（产物与确认门同主流程）。
++ 
++ GitLab 自建实例认证：优先环境变量 `GITLAB_TOKEN`（需 `api` scope），调 `glab` 映射为 `GITLAB_TOKEN="$GITLAB_TOKEN" glab ...`；token 不写入命令行参数、日志或审查产物；未设置且目标需要认证时停止并请用户配置，禁止编造或输出 token。
++ 
++@@ -103,11 +98,7 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++ 
++ ### 5. MR/PR 评论确认门
++ 
++-仅在 **MR/PR 模式** 且 `review.md` 已成功落盘后，询问用户：
++-
++-> 完整 review 报告已保存到 `<review.md 路径>`。是否将该完整报告作为评论发布到 `<MR/PR URL>`？这会对远程平台产生写操作，请确认目标和内容。
++-
++-在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或任何等效的远程写接口；确认时再次核对目标 URL/IID 与待发布文件。用户拒绝或未确认 → 只保留本地报告。确认后以 `review.md` 完整内容发布一条评论并报告成败。仓库模式不询问，也不发布评论。
+++仅在 **MR/PR 模式** 且 `review.md` 已落盘后，询问用户是否将该完整报告发布为 `<MR/PR URL>` 的评论并说明这是远程写操作。在用户明确确认前，禁止调用 `glab mr note`、`gh pr comment` 或等效远程写接口；未确认只保留本地报告，确认后核对目标并以 `review.md` 完整内容发布一条评论。仓库模式不询问，也不发布评论。
++ 
++ ### 6. 对用户只打印总结
++ 
++@@ -115,11 +106,10 @@ python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> write \
++ 
++ ## 边界
++ 
++-- 默认不改业务代码、不 commit、不 push；MR/PR 远程评论以第 5 节确认门为准。用户明确要求「顺手修」才可改代码。
++-- 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 fetch 的 `refs/code-review/*`。
++-- 完整结果只写 `--root` 指定 workspace 的 `docs/reviews/`，不写目标仓的代码目录。
++-- 架构评审、岗位视角评审、需求/规格符合性评审分别使用适合的专门流程。
+++- 默认不改代码、不 commit/push；用户明确要求「顺手修」才可改代码；MR/PR 评论以第 5 节确认门为准。
+++- 不 `checkout` / `stash` / `reset` 目标仓；MR/PR 只用 `refs/code-review/*`；完整结果只写 `--root` 的 `docs/reviews/`。
+++- 架构、岗位视角与规格符合性评审交给 `role-based-reviewer`。
++ 
++ ## 自进化
++ 
++-执行前可查 `examples/` 复用成功案例，交付前对照 `evals/cases.yaml` 验证；各目录用法见其 README，经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
+++交付前可对照 `evals/cases.yaml` 验证；经验沉淀与正文演进走 `skill-upgrader`（单次失败不直接改本文件）。
++diff --git a/skills/solo-code-review/tests/test_skill_contract.py b/skills/solo-code-review/tests/test_skill_contract.py
++index b90ccb9..e8d6601 100644
++--- a/skills/solo-code-review/tests/test_skill_contract.py
+++++ b/skills/solo-code-review/tests/test_skill_contract.py
++@@ -140,6 +140,10 @@ class BoundaryTest(unittest.TestCase):
++         self.assertIn("默认只审查、不改代码", SKILL)
++         self.assertIn("用户明确要求「顺手修」才可改代码", SKILL)
++ 
+++    def test_role_review_routes_to_role_based_reviewer(self) -> None:
+++        self.assertIn("交给 `role-based-reviewer`", SKILL)
+++        self.assertLessEqual(len(SKILL.encode("utf-8")), 7600)
+++
++ 
++ class InjectionTest(unittest.TestCase):
++     def test_self_evolution_pointer(self) -> None:
+diff --git a/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/proposal.md b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/proposal.md
+new file mode 100644
+index 0000000..3b07f2c
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/proposal.md
+@@ -0,0 +1,30 @@
++# 补齐 role-based-reviewer 边界指针并精简 SKILL.md 体量
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261123-200600-trim-and-rbr-boundary
++- risk: low
++- status: proposed
++
++## Intent
++
++将岗位/架构/规格评审边界显式指向 `role-based-reviewer`，并精简 SKILL.md 冗长段落以从 8094B 降至 7600B 以下。
++
++## Conflict check
++
++配套 patch：skills/role-based-reviewer 将在 Phase 2 补齐反向边界。
++
++## Rationale
++
++原 SKILL.md 距 8192B 红线仅 98B，且未按名指回 role-based-reviewer。
++
++## Files
++
++- `skills/solo-code-review/SKILL.md`：指向 role-based-reviewer 并精简重复表述
++- `skills/solo-code-review/tests/test_skill_contract.py`：增加 role-based-reviewer 边界与体量守卫断言
++
++## Validation
++
++- `git apply --check --recount skills/solo-code-review/patches/20261123-200600-trim-and-rbr-boundary/change.patch`
++- `python3 -m unittest discover -s skills/solo-code-review/tests -p 'test_*.py'`
++- `make check-style && make check-names`
+diff --git a/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/result.md b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/result.md
+new file mode 100644
+index 0000000..0d6f81a
+--- /dev/null
++++ b/skills/way-to-cr/patches/20261123-200600-trim-and-rbr-boundary/result.md
+@@ -0,0 +1,20 @@
++# Result
++
++- target: skills/solo-code-review
++- mode: update
++- patch: 20261123-200600-trim-and-rbr-boundary
++- risk: low
++- status: applied
++- applied-at: 2026-11-23T20:03:52+08:00
++
++## Validation
++
++- `git apply --check --recount`: pass
++- `git diff --check`: pass
++- target tests: `python3 -m unittest discover -s skills/solo-code-review/tests -p 'test_*.py'` -> OK
++- privacy check: pass
++- mode check: pass
++
++## Notes
++
++none
+diff --git a/skills/way-to-cr/references/delegate-mode.md b/skills/way-to-cr/references/delegate-mode.md
+new file mode 100644
+index 0000000..7fe4271
+--- /dev/null
++++ b/skills/way-to-cr/references/delegate-mode.md
+@@ -0,0 +1,79 @@
++# delegate 模式（OCR 未配置 LLM 或复用订阅额度时）
++
++OCR 的委托模式：`ocr` 只做确定性工程（文件筛选、打包、规则解析），审查由当前 agent 用自己的 LLM 执行。触发条件：`ocr llm test` 失败或用户选择复用当前 agent 订阅额度且不额外配 API key。产物落盘、分级、总结打印、MR/PR 评论确认门与主流程完全一致，只有执行审查这一步被替换。
++
++delegate 模式下 `--provider/--model` 不适用（OCR 侧不调 LLM，审查用当前 agent 的模型）；`review.md` 的 LLM 行留空或标注 `delegate`。
++
++## 步骤
++
++### D1. 预览审查范围
++
++```bash
++ocr delegate preview --format json --repo <git_root_abs> [--from <ref> --to <ref>] [-c <hash>] [--exclude <patterns>]
++```
++
++输出含 `mode`（workspace / range / commit）、ref 元数据（`from` / `to` / `commit` / `merge_base`）、`reviewable_files[]`（path、status、insertions、deletions）与 `excluded_files[]`（含排除原因）。把 `reviewable_files` 展示给用户确认（等同预览确认门）。
++
++### D2. 取规则
++
++```bash
++ocr delegate rule --format json --repo <git_root_abs> <path1> <path2> ...
++```
++
++输出按规则内容分组（`groups[]`）：共享同一规则的文件归为一组。大变更可按批取规则。
++
++### D3. 逐文件取 diff 并审查
++
++对 `reviewable_files` 建 checklist，以 `(path, status)` 为身份（workspace 模式下同一路径可能出现两次：staged 删除后 untracked 重建）。Git 命令一律 `--no-pager --no-ext-diff --no-textconv --no-color`：
++
++```bash
++# range 模式（用 preview 输出的 merge_base）
++git --no-pager diff --no-ext-diff --no-textconv --no-color <merge_base>..<to> -- "<path>"
++# commit 模式
++git --no-pager show --no-ext-diff --no-textconv --no-color <commit> -- "<path>"
++# workspace 模式（tracked）
++git --no-pager diff --no-ext-diff --no-textconv --no-color HEAD -- "<path>"
++# workspace 模式的 untracked 新文件：整文件都是新代码，直接读
++cat "<path>"
++```
++
++上下文按需补：`git log --oneline -- <path>`、`git blame -- <path>`、`git show <ref>:<path>`。大 diff 加 `--output=<绝对路径>` 写到仓库外，读完即删。
++
++每个文件按其规则组的 checklist 审查，可用 Read/Grep 等工具取更多上下文；标记 `reviewed`，或 `skipped` 加具体原因。发现一个高严重度问题后继续审完，不提前停。
++
++### D4. 组装 comments JSON
++
++每条 comment 字段：
++
++| 字段 | 类型 | 必填 | 说明 |
++|---|---|---|---|
++| `path` | string | 是 | 仓库相对路径 |
++| `content` | string | 是 | 问题描述 |
++| `start_line` / `end_line` | integer | 否 | 新文件中的行号；都为 0 表示未定位 |
++| `category` | enum | 否 | bug / security / performance / maintainability / test / style / documentation / other |
++| `severity` | enum | 否 | critical / high / medium / low |
++
++组装成统一 JSON 对象写入 `/tmp/way-to-cr-result.json`：
++
++```json
++{
++  "engine": "ocr-delegate",
++  "status": "complete",
++  "session_id": "delegate-<YYYYMMDD-HHMMSS>",
++  "message": "delegate review: <n> finding(s) across <m> file(s)",
++  "summary": {"files_reviewed": 0, "comments": 0},
++  "comments": []
++}
++```
++
++`summary.files_reviewed` 用实际 reviewed 数；skipped 文件在 `warnings[]` 里逐条写 `path: reason`。severity 会被 `reviewctl` 自动映射为 P0~P3（critical→P0、high→P1、medium→P2、low→P3），仍可按主流程规则覆盖。
++
++### D5. 回到主流程
++
++回到 `SKILL.md`「4. 分级出报告、可选落盘与可选发布 MR/PR」：按需 `reviewctl write` 落 `docs/reviews/` 或 `render` 输出总结、MR/PR 评论确认门、对话只打印 summary。边界不变：默认不改代码，不 checkout/stash/reset 目标仓。
++
++## 覆盖与止损
++
++- 每个 previewed 文件必须有归宿：reviewed 或 skipped（带原因），覆盖情况写进总结的 message。
++- 疑似误报直接丢弃，不写进 comments。
++- `--format json` 报 `unknown flag`（CLI < v1.9.0）：改用 text 输出取文件清单与规则，保留 mode/ref/规则信息继续；其余错误报告后停止，不换路重试。
+diff --git a/skills/way-to-cr/references/mr-mode.md b/skills/way-to-cr/references/mr-mode.md
+new file mode 100644
+index 0000000..14301cc
+--- /dev/null
++++ b/skills/way-to-cr/references/mr-mode.md
+@@ -0,0 +1,30 @@
++# MR/PR 模式细则
++
++入口与门禁在 SKILL.md「四步流程」；本文件是步骤细则。
++
++1. `reviewctl parse-mr --url <url>` → `kind` / `host` / `project` / `iid` / `repo_hint`
++2. 用 `repo_hint`（或 URL 里的 project）调 `reviewctl resolve-repo` / `inspect` 定位本地仓；找不到则列出候选或请用户给仓库路径。
++3. 取源/目标分支（GitLab 凭据仅走环境变量）：
++   - GitLab：`GITLAB_TOKEN="$GITLAB_TOKEN" glab mr view <iid> --repo https://<host>/<project> -F json`
++   - GitHub：`gh pr view <iid> --repo <project> --json baseRefName,headRefName,title`
++4. **只 fetch，不 checkout、不 stash**：
++
++```bash
++git -C <git_root_abs> fetch origin
++# GitLab
++git -C <git_root_abs> fetch origin "merge-requests/<iid>/head:refs/code-review/mr-<iid>"
++# GitHub
++git -C <git_root_abs> fetch origin "pull/<iid>/head:refs/code-review/pr-<iid>"
++```
++
++5. 审查范围：`--from origin/<target_branch> --to refs/code-review/mr-<iid>`（GitHub 用 `pr-<iid>`）。
++6. 预览变更列表：
++
++```bash
++python3 <skill-root>/scripts/reviewctl.py --root <workspace-root> preview \
++  --repo <git_root_abs> --mode range --from origin/<target_branch> --to refs/code-review/mr-<iid>
++```
++
++7. 交由用户选定的引擎执行：
++   - `builtin` / `claude` / `ocr`：直接使用上述 `origin/<target_branch>..refs/code-review/*` 范围；
++   - `codex`：因不得 checkout，走只读 `codex exec --sandbox read-only` 审查上述范围（详见 `references/external-agents.md`）。
+diff --git a/skills/way-to-cr/scripts/reviewctl.py b/skills/way-to-cr/scripts/reviewctl.py
+new file mode 100755
+index 0000000..cd203f3
+--- /dev/null
++++ b/skills/way-to-cr/scripts/reviewctl.py
+@@ -0,0 +1,1343 @@
++#!/usr/bin/env python3
++"""Helpers for /way-to-cr: resolve repos, inspect/preview changes, probe engines & prefs, parse MR/PR, render & write docs."""
++
++from __future__ import annotations
++
++import argparse
++import fnmatch
++import json
++import os
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++from datetime import date, datetime
++from pathlib import Path
++from typing import Any
++
++try:
++    import tomllib  # Python 3.11+
++except ImportError:  # pragma: no cover
++    tomllib = None  # type: ignore[assignment]
++
++SKIP_DIRS = {
++    ".git",
++    "node_modules",
++    "vendor",
++    "dist",
++    "build",
++    ".venv",
++    "__pycache__",
++    "target",
++    ".tox",
++}
++PRIORITY_ORDER = ("P0", "P1", "P2", "P3", "P4")
++ALLOWED_ENGINES = ("builtin", "claude", "codex", "ocr")
++MODEL_ENGINES = ("claude", "codex", "ocr")
++SENSITIVE_KEY_PARTS = ("key", "token", "secret", "password", "passwd", "auth", "credential")
++DEFAULT_CLAUDE_MODELS = ("sonnet", "opus", "haiku")
++DEFAULT_CODEX_MODELS = ("o3", "gpt-5.2", "gpt-5.1-codex")
++GUIDELINE_CANDIDATES = (
++    "AGENTS.md",
++    "CLAUDE.md",
++    ".cursorrules",
++    "CONTRIBUTING.md",
++    ".github/copilot-instructions.md",
++)
++LOCKFILE_NAMES = {
++    "package-lock.json",
++    "pnpm-lock.yaml",
++    "yarn.lock",
++    "bun.lock",
++    "bun.lockb",
++    "Cargo.lock",
++    "go.sum",
++    "poetry.lock",
++    "uv.lock",
++    "Gemfile.lock",
++    "composer.lock",
++}
++GENERATED_PATTERNS = ("*.min.js", "*.min.css", "*.map", "*.pb.go")
++BINARY_EXTS = {
++    ".png",
++    ".jpg",
++    ".jpeg",
++    ".gif",
++    ".webp",
++    ".ico",
++    ".svg",
++    ".pdf",
++    ".zip",
++    ".gz",
++    ".tar",
++    ".tgz",
++    ".woff",
++    ".woff2",
++    ".ttf",
++    ".eot",
++    ".mp3",
++    ".mp4",
++    ".mov",
++    ".wasm",
++    ".pyc",
++    ".so",
++    ".dylib",
++    ".dll",
++    ".exe",
++}
++GITLAB_MR = re.compile(
++    r"^https?://(?P<host>[^/]+)/(?P<project>.+?)/-/?merge_requests/(?P<iid>\d+)(?:[/?#].*)?$",
++    re.I,
++)
++GITLAB_MR_ALT = re.compile(
++    r"^https?://(?P<host>[^/]+)/(?P<project>.+?)/merge_requests/(?P<iid>\d+)(?:[/?#].*)?$",
++    re.I,
++)
++GITHUB_PR = re.compile(
++    r"^https?://(?P<host>[^/]+)/(?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<iid>\d+)(?:[/?#].*)?$",
++    re.I,
++)
++P0_RE = re.compile(
++    r"(sql\s*injection|xss|rce|auth(?:entication)? bypass|越权|数据丢失|secret|凭证泄露|"
++    r"任意文件|路径穿越|panic\b|segfault|生产事故|P0)",
++    re.I,
++)
++P1_RE = re.compile(
++    r"(race|deadlock|nil deref|npe|空指针|正确性|逻辑错误|并发安全|数据竞争|丢事件|"
++    r"broken api|崩溃|crash|P1)",
++    re.I,
++)
++P2_RE = re.compile(
++    r"(error handling|missing test|缺少测试|可维护|资源泄露|timeout|重试|P2)",
++    re.I,
++)
++SEVERITY_TO_PRIORITY = {
++    "critical": "P0",
++    "high": "P1",
++    "medium": "P2",
++    "low": "P3",
++}
++GIT_DIFF_ARGS = ("--no-ext-diff", "--no-textconv", "--no-color")
++
++
++class ReviewError(Exception):
++    pass
++
++
++def repo_root_from_script() -> Path:
++    return Path.cwd()
++
++
++def git(args: list[str], cwd: Path, check: bool = True, no_pager: bool = False) -> str:
++    cmd = ["git", *(["--no-pager"] if no_pager else []), *args]
++    proc = subprocess.run(
++        cmd,
++        cwd=cwd,
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++    if check and proc.returncode != 0:
++        err = (proc.stderr or proc.stdout or "").strip()
++        raise ReviewError(f"git {' '.join(args)} failed: {err}")
++    return (proc.stdout or "").strip()
++
++
++def _dedupe(items: list[str]) -> list[str]:
++    seen: set[str] = set()
++    out: list[str] = []
++    for item in items:
++        val = item.strip()
++        if val and val not in seen:
++            seen.add(val)
++            out.append(val)
++    return out
++
++
++def default_prefs_path(override: str = "") -> Path:
++    if override.strip():
++        return Path(override).expanduser().resolve()
++    env_path = os.environ.get("WAY_TO_CR_PREFS", "").strip()
++    if env_path:
++        return Path(env_path).expanduser().resolve()
++    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
++    base = Path(xdg).expanduser() if xdg else (Path.home() / ".config")
++    return (base / "way-to-cr" / "prefs.json").resolve()
++
++
++def _empty_prefs() -> dict[str, Any]:
++    return {
++        "version": 1,
++        "default_engine": "",
++        "persist_default": None,
++        "engines": {
++            "claude": {"model": "", "mode": ""},
++            "codex": {"model": ""},
++            "ocr": {"provider": "", "model": ""},
++        },
++        "updated_at": "",
++    }
++
++
++def _assert_safe_value(field: str, value: str) -> str:
++    low = field.lower()
++    if any(part in low for part in SENSITIVE_KEY_PARTS):
++        raise ReviewError(f"refusing to store sensitive field: {field}")
++    return value.strip()
++
++
++def load_prefs(prefs_path: Path) -> dict[str, Any]:
++    data = _empty_prefs()
++    if not prefs_path.is_file():
++        return data
++    try:
++        raw = json.loads(prefs_path.read_text(encoding="utf-8"))
++    except (OSError, json.JSONDecodeError) as exc:
++        raise ReviewError(f"failed to read prefs {prefs_path}: {exc}") from exc
++    if not isinstance(raw, dict):
++        return data
++    if raw.get("default_engine") in (*ALLOWED_ENGINES, ""):
++        data["default_engine"] = str(raw.get("default_engine") or "")
++    if isinstance(raw.get("persist_default"), bool) or raw.get("persist_default") is None:
++        data["persist_default"] = raw.get("persist_default")
++    raw_engines = raw.get("engines")
++    if isinstance(raw_engines, dict):
++        for eng in MODEL_ENGINES:
++            entry = raw_engines.get(eng)
++            if not isinstance(entry, dict):
++                continue
++            for k in data["engines"][eng]:
++                if k in entry and isinstance(entry[k], str):
++                    data["engines"][eng][k] = entry[k].strip()
++    data["updated_at"] = str(raw.get("updated_at") or "")
++    return data
++
++
++def save_prefs(prefs_path: Path, data: dict[str, Any]) -> dict[str, Any]:
++    clean = _empty_prefs()
++    eng_default = str(data.get("default_engine") or "")
++    if eng_default and eng_default not in ALLOWED_ENGINES:
++        raise ReviewError(f"unsupported engine: {eng_default}")
++    clean["default_engine"] = eng_default
++    persist = data.get("persist_default")
++    clean["persist_default"] = persist if isinstance(persist, bool) else None
++    raw_engines = data.get("engines") or {}
++    for eng in MODEL_ENGINES:
++        src = raw_engines.get(eng) or {}
++        if not isinstance(src, dict):
++            continue
++        for k in clean["engines"][eng]:
++            val = src.get(k)
++            if isinstance(val, str):
++                clean["engines"][eng][k] = _assert_safe_value(k, val)
++    clean["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
++
++    prefs_path.parent.mkdir(parents=True, exist_ok=True)
++    fd, tmp_name = tempfile.mkstemp(prefix=".prefs-", suffix=".tmp", dir=str(prefs_path.parent))
++    try:
++        with os.fdopen(fd, "w", encoding="utf-8") as fh:
++            fh.write(json.dumps(clean, ensure_ascii=False, indent=2) + "\n")
++        os.replace(tmp_name, prefs_path)
++    except Exception:
++        if Path(tmp_name).exists():
++            Path(tmp_name).unlink()
++        raise
++    return clean
++
++
++def set_prefs(
++    prefs_path: Path,
++    *,
++    engine: str = "",
++    model: str = "",
++    provider: str = "",
++    mode: str = "",
++    set_default_engine: bool = False,
++    persist_default: str = "",
++) -> dict[str, Any]:
++    data = load_prefs(prefs_path)
++    if engine:
++        if engine not in ALLOWED_ENGINES:
++            raise ReviewError(f"unsupported engine: {engine}")
++        if set_default_engine:
++            data["default_engine"] = engine
++    if persist_default:
++        low = persist_default.strip().lower()
++        if low == "true":
++            data["persist_default"] = True
++        elif low == "false":
++            data["persist_default"] = False
++        else:
++            raise ReviewError("persist-default must be true or false")
++    if engine in MODEL_ENGINES:
++        slot = data["engines"][engine]
++        if model:
++            slot["model"] = _assert_safe_value("model", model)
++        if provider and "provider" in slot:
++            slot["provider"] = _assert_safe_value("provider", provider)
++        if mode and "mode" in slot:
++            slot["mode"] = _assert_safe_value("mode", mode)
++    elif model or provider or mode:
++        raise ReviewError(f"engine {engine or '<none>'} does not store model/provider/mode")
++    return save_prefs(prefs_path, data)
++
++
++def clear_prefs(prefs_path: Path, *, engine: str = "") -> dict[str, Any]:
++    data = load_prefs(prefs_path)
++    if engine:
++        if engine not in ALLOWED_ENGINES:
++            raise ReviewError(f"unsupported engine: {engine}")
++        if engine in MODEL_ENGINES:
++            for k in list(data["engines"][engine]):
++                data["engines"][engine][k] = ""
++        if data.get("default_engine") == engine:
++            data["default_engine"] = ""
++    else:
++        data = _empty_prefs()
++    return save_prefs(prefs_path, data)
++
++
++def _run_probe_cmd(cmd: list[str], timeout: int = 3) -> tuple[int, str]:
++    try:
++        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
++        return proc.returncode, (proc.stdout or "").strip()
++    except (OSError, subprocess.TimeoutExpired):
++        return 1, ""
++
++
++def _read_claude_settings(settings_path: Path) -> tuple[str, bool]:
++    if not settings_path.is_file():
++        return "", False
++    try:
++        raw = json.loads(settings_path.read_text(encoding="utf-8"))
++    except (OSError, json.JSONDecodeError):
++        return "", False
++    if not isinstance(raw, dict):
++        return "", False
++    model = str(raw.get("model") or "").strip()
++    plugins = raw.get("enabledPlugins")
++    has_plugin = False
++    if isinstance(plugins, list):
++        has_plugin = any("code-review" in str(p) for p in plugins)
++    elif isinstance(plugins, dict):
++        has_plugin = any("code-review" in str(k) and bool(v) for k, v in plugins.items())
++    return model, has_plugin
++
++
++def _read_codex_config(config_path: Path) -> tuple[list[str], str]:
++    if not config_path.is_file():
++        return [], ""
++    try:
++        text = config_path.read_text(encoding="utf-8")
++    except OSError:
++        return [], ""
++    models: list[str] = []
++    provider = ""
++    if tomllib is not None:
++        try:
++            parsed = tomllib.loads(text)
++            if isinstance(parsed, dict):
++                if isinstance(parsed.get("model"), str) and parsed["model"].strip():
++                    models.append(parsed["model"].strip())
++                if isinstance(parsed.get("model_provider"), str):
++                    provider = parsed["model_provider"].strip()
++                profiles = parsed.get("profiles")
++                if isinstance(profiles, dict):
++                    for prof in profiles.values():
++                        if isinstance(prof, dict) and isinstance(prof.get("model"), str) and prof["model"].strip():
++                            models.append(prof["model"].strip())
++                return _dedupe(models), provider
++        except Exception:
++            pass
++    for m in re.finditer(r'^\s*model\s*=\s*["\']([^"\']+)["\']', text, re.M):
++        models.append(m.group(1).strip())
++    pm = re.search(r'^\s*model_provider\s*=\s*["\']([^"\']+)["\']', text, re.M)
++    if pm:
++        provider = pm.group(1).strip()
++    return _dedupe(models), provider
++
++
++def _parse_codex_debug_models(output: str) -> list[str]:
++    if not output:
++        return []
++    try:
++        data = json.loads(output)
++        items = data.get("models") if isinstance(data, dict) else data
++        if isinstance(items, list):
++            out = []
++            for item in items:
++                if isinstance(item, str):
++                    out.append(item)
++                elif isinstance(item, dict):
++                    mid = item.get("id") or item.get("slug") or item.get("model") or item.get("name")
++                    if isinstance(mid, str) and mid.strip():
++                        out.append(mid.strip())
++            return _dedupe(out)
++    except json.JSONDecodeError:
++        pass
++    return []
++
++
++def _parse_ocr_providers(output: str) -> list[str]:
++    providers: list[str] = []
++    for line in output.splitlines():
++        clean = line.strip()
++        if not clean or clean.startswith(("#", "-", "=", "Available", "Provider")):
++            continue
++        token = re.split(r"[\s:]+", clean, maxsplit=1)[0].strip("*•-")
++        if token and re.match(r"^[a-zA-Z0-9._-]+$", token):
++            providers.append(token)
++    return _dedupe(providers)
++
++
++def probe_engines(
++    prefs_path: Path,
++    *,
++    engine: str = "",
++    claude_settings: Path | None = None,
++    codex_config: Path | None = None,
++) -> dict[str, Any]:
++    if engine and engine not in ALLOWED_ENGINES:
++        raise ReviewError(f"unsupported engine: {engine}")
++    prefs = load_prefs(prefs_path)
++    targets = (engine,) if engine else ALLOWED_ENGINES
++    results: dict[str, Any] = {}
++
++    if "builtin" in targets:
++        results["builtin"] = {
++            "available": True,
++            "needs_model_selection": False,
++            "note": "使用当前会话模型，零额外依赖",
++            "models": [],
++        }
++
++    if "claude" in targets:
++        bin_path = shutil.which("claude")
++        cfg_path = claude_settings or (Path.home() / ".claude" / "settings.json")
++        cfg_model, has_plugin = _read_claude_settings(cfg_path)
++        saved = prefs["engines"]["claude"]
++        saved_model = saved.get("model", "")
++        candidates = _dedupe([*DEFAULT_CLAUDE_MODELS, cfg_model, saved_model])
++        results["claude"] = {
++            "available": bool(bin_path),
++            "binary": bin_path or "",
++            "needs_model_selection": True,
++            "has_code_review_plugin": has_plugin,
++            "configured_model": cfg_model,
++            "models": candidates,
++            "models_source": "aliases+config",
++            "saved_model": saved_model,
++            "saved_mode": saved.get("mode", ""),
++            "has_saved_model": bool(saved_model),
++        }
++
++    if "codex" in targets:
++        bin_path = shutil.which("codex")
++        cfg_path = codex_config or (Path.home() / ".codex" / "config.toml")
++        cfg_models, cfg_provider = _read_codex_config(cfg_path)
++        debug_models: list[str] = []
++        if bin_path:
++            code, out = _run_probe_cmd([bin_path, "debug", "models"], timeout=3)
++            if code == 0:
++                debug_models = _parse_codex_debug_models(out)
++        saved = prefs["engines"]["codex"]
++        saved_model = saved.get("model", "")
++        merged = _dedupe([*cfg_models, *debug_models, saved_model])
++        source = "config+debug" if (cfg_models or debug_models) else "fallback"
++        if not merged:
++            merged = list(DEFAULT_CODEX_MODELS)
++        results["codex"] = {
++            "available": bool(bin_path),
++            "binary": bin_path or "",
++            "needs_model_selection": True,
++            "configured_provider": cfg_provider,
++            "models": merged,
++            "models_source": source,
++            "saved_model": saved_model,
++            "has_saved_model": bool(saved_model),
++        }
++
++    if "ocr" in targets:
++        bin_path = shutil.which("ocr")
++        version = ""
++        providers: list[str] = []
++        if bin_path:
++            code_v, out_v = _run_probe_cmd([bin_path, "--version"], timeout=3)
++            if code_v == 0:
++                version = out_v
++            code_p, out_p = _run_probe_cmd([bin_path, "llm", "providers"], timeout=5)
++            if code_p == 0:
++                providers = _parse_ocr_providers(out_p)
++        saved = prefs["engines"]["ocr"]
++        saved_model = saved.get("model", "")
++        saved_provider = saved.get("provider", "")
++        results["ocr"] = {
++            "available": bool(bin_path),
++            "binary": bin_path or "",
++            "version": version,
++            "needs_model_selection": True,
++            "providers": providers,
++            "models": _dedupe([saved_model]) if saved_model else [],
++            "saved_provider": saved_provider,
++            "saved_model": saved_model,
++            "has_saved_model": bool(saved_model),
++        }
++
++    return {
++        "prefs_path": str(prefs_path),
++        "default_engine": prefs.get("default_engine", ""),
++        "persist_default": prefs.get("persist_default"),
++        "engines": results,
++    }
++
++
++def iter_git_roots(codes: Path, max_depth: int = 8) -> list[Path]:
++    if not codes.exists():
++        return []
++    start = codes.resolve()
++    skip_expr: list[str] = []
++    for name in sorted(SKIP_DIRS - {".git"}):
++        skip_expr += ["-name", name, "-o"]
++    find_cmd = [
++        "find",
++        str(start),
++        "-maxdepth",
++        str(max_depth),
++        "(",
++        *skip_expr[:-1],
++        ")",
++        "-prune",
++        "-o",
++        "-name",
++        ".git",
++        "-prune",
++        "-print",
++    ]
++    proc = subprocess.run(find_cmd, capture_output=True, text=True, check=False)
++    if proc.returncode == 0 and proc.stdout.strip():
++        return [Path(line).parent for line in proc.stdout.splitlines() if line.strip()]
++
++    roots: list[Path] = []
++
++    def walk(path: Path, depth: int) -> None:
++        if (path / ".git").exists():
++            roots.append(path)
++        if depth >= max_depth:
++            return
++        try:
++            entries = list(path.iterdir())
++        except OSError:
++            return
++        for entry in entries:
++            if not entry.is_dir() or entry.name in SKIP_DIRS:
++                continue
++            walk(entry, depth + 1)
++
++    walk(start, 0)
++    return roots
++
++
++def find_git_root(path: Path) -> Path | None:
++    cur = path if path.is_dir() else path.parent
++    for candidate in [cur, *cur.parents]:
++        if (candidate / ".git").exists():
++            return candidate
++    return None
++
++
++def resolve_repo(work_root: Path, raw: str) -> dict[str, Any]:
++    name = raw.strip().rstrip("/")
++    if not name:
++        raise ReviewError("repo name is empty")
++
++    workspace = work_root.resolve()
++    if name in {"workspace", ".", str(workspace)}:
++        if (workspace / ".git").exists():
++            return {
++                "input": name,
++                "git_root": ".",
++                "git_root_abs": str(workspace),
++                "basename": workspace.name,
++            }
++        raise ReviewError("workspace root is not a Git repository; specify a repository path")
++
++    path = Path(name).expanduser()
++    if path.is_absolute():
++        target = path
++        if not target.exists():
++            raise ReviewError(f"path does not exist: {name}")
++    else:
++        candidate = workspace / path
++        target = candidate if candidate.exists() else None
++
++    if target is not None:
++        git_root = find_git_root(target.resolve())
++        if git_root is None:
++            raise ReviewError(f"no git root for: {name}")
++        rel = _rel_display(work_root, git_root)
++        return {
++            "input": name,
++            "git_root": rel,
++            "git_root_abs": str(git_root),
++            "basename": git_root.name,
++        }
++
++    roots = ([workspace] if (workspace / ".git").exists() else []) + iter_git_roots(workspace)
++    exact = [p for p in roots if p.name == name]
++    if len(exact) == 1:
++        git_root = exact[0]
++        return {
++            "input": name,
++            "git_root": _rel_display(work_root, git_root),
++            "git_root_abs": str(git_root),
++            "basename": git_root.name,
++        }
++    if len(exact) > 1:
++        return {
++            "input": name,
++            "ambiguous": True,
++            "candidates": [_rel_display(work_root, p) for p in exact],
++        }
++
++    suffix = [p for p in roots if p.as_posix().endswith("/" + name)]
++    if len(suffix) == 1:
++        git_root = suffix[0]
++        return {
++            "input": name,
++            "git_root": _rel_display(work_root, git_root),
++            "git_root_abs": str(git_root),
++            "basename": git_root.name,
++        }
++    if suffix:
++        return {
++            "input": name,
++            "ambiguous": True,
++            "candidates": [_rel_display(work_root, p) for p in suffix],
++        }
++    raise ReviewError(f"repo not found under workspace root: {name}")
++
++
++def _rel_display(work_root: Path, git_root: Path) -> str:
++    try:
++        rel = git_root.resolve().relative_to(work_root.resolve()).as_posix()
++        return rel if rel != "." else "."
++    except ValueError:
++        return str(git_root)
++
++
++def default_branch(git_root: Path) -> str:
++    head = git(["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], git_root, check=False)
++    if head:
++        return head.replace("refs/remotes/origin/", "").strip()
++    for name in ("main", "master", "develop"):
++        exists = git(["rev-parse", "--verify", "--quiet", name], git_root, check=False)
++        remote = git(["rev-parse", "--verify", "--quiet", f"origin/{name}"], git_root, check=False)
++        if exists or remote:
++            return name
++    current = git(["rev-parse", "--abbrev-ref", "HEAD"], git_root, check=False)
++    return current or "main"
++
++
++def comparison_ref(git_root: Path, branch: str) -> str:
++    remote = git(["rev-parse", "--verify", "--quiet", f"origin/{branch}"], git_root, check=False)
++    if remote:
++        return f"origin/{branch}"
++    return branch
++
++
++def detect_guidelines(git_root: Path) -> list[str]:
++    return [rel for rel in GUIDELINE_CANDIDATES if (git_root / rel).is_file()]
++
++
++def inspect_repo(work_root: Path, raw: str) -> dict[str, Any]:
++    resolved = resolve_repo(work_root, raw)
++    if resolved.get("ambiguous"):
++        return resolved
++    git_root = Path(resolved["git_root_abs"])
++    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], git_root, check=False) or "HEAD"
++    porcelain = git(["status", "--porcelain"], git_root, check=False)
++    dirty_paths = [line[3:] for line in porcelain.splitlines() if line.strip()]
++    base = default_branch(git_root)
++    cmp_ref = comparison_ref(git_root, base)
++    ahead = 0
++    if git(["rev-parse", "--verify", "--quiet", cmp_ref], git_root, check=False):
++        count = git(["rev-list", "--count", f"{cmp_ref}..HEAD"], git_root, check=False)
++        ahead = int(count or "0")
++    dirty = bool(dirty_paths)
++    on_default = branch == base or branch == f"origin/{base}"
++    if dirty and ahead:
++        recommendation = "ask"
++        reason = "同时存在未提交改动和相对默认分支的提交，需用户确认审查范围"
++    elif dirty:
++        recommendation = "uncommitted"
++        reason = "工作区有未提交改动（含 untracked）"
++    elif ahead:
++        recommendation = "default-branch"
++        reason = f"当前分支相对 {cmp_ref} 超前 {ahead} 个提交"
++    else:
++        recommendation = "nothing"
++        reason = "工作区干净且相对默认分支没有新提交"
++    return {
++        **resolved,
++        "branch": branch,
++        "default_branch": base,
++        "comparison_ref": cmp_ref,
++        "on_default": on_default,
++        "dirty": dirty,
++        "dirty_paths": dirty_paths,
++        "ahead_of_default": ahead,
++        "guidelines": detect_guidelines(git_root),
++        "recommendation": recommendation,
++        "reason": reason,
++        "needs_confirm": True,
++    }
++
++
++def _exclude_reason(rel_path: str, is_binary: bool, extra_patterns: list[str]) -> str:
++    name = Path(rel_path).name
++    if is_binary or Path(rel_path).suffix.lower() in BINARY_EXTS:
++        return "binary/media"
++    if name in LOCKFILE_NAMES:
++        return "lockfile"
++    for pat in GENERATED_PATTERNS:
++        if fnmatch.fnmatch(name, pat) or fnmatch.fnmatch(rel_path, pat):
++            return "generated"
++    for pat in extra_patterns:
++        if fnmatch.fnmatch(rel_path, pat) or fnmatch.fnmatch(name, pat):
++            return f"excluded({pat})"
++    return ""
++
++
++def _parse_numstat(output: str) -> dict[str, tuple[int, int, bool]]:
++    stats: dict[str, tuple[int, int, bool]] = {}
++    for line in output.splitlines():
++        parts = line.split("\t", 2)
++        if len(parts) < 3:
++            continue
++        add_s, del_s, path_s = parts
++        if " => " in path_s:
++            path_s = path_s.split(" => ")[-1].rstrip("}")
++        is_bin = add_s == "-" or del_s == "-"
++        ins = 0 if is_bin else int(add_s or "0")
++        dels = 0 if is_bin else int(del_s or "0")
++        stats[path_s] = (ins, dels, is_bin)
++    return stats
++
++
++def _parse_name_status(output: str) -> dict[str, str]:
++    statuses: dict[str, str] = {}
++    for line in output.splitlines():
++        parts = line.split("\t")
++        if len(parts) < 2:
++            continue
++        code = parts[0].strip()
++        path_s = parts[-1].strip()
++        statuses[path_s] = code[0] if code else "M"
++    return statuses
++
++
++def _is_binary_file(path: Path) -> bool:
++    try:
++        chunk = path.read_bytes()[:4096]
++    except OSError:
++        return True
++    return b"\x00" in chunk
++
++
++def _count_lines(path: Path) -> int:
++    try:
++        return len(path.read_text(encoding="utf-8", errors="replace").splitlines())
++    except OSError:
++        return 0
++
++
++def preview_changes(
++    work_root: Path,
++    raw_repo: str,
++    *,
++    mode: str,
++    commit: str = "",
++    from_ref: str = "",
++    to_ref: str = "",
++    exclude: str = "",
++) -> dict[str, Any]:
++    resolved = resolve_repo(work_root, raw_repo)
++    if resolved.get("ambiguous"):
++        return resolved
++    git_root = Path(resolved["git_root_abs"])
++    extra_patterns = [p.strip() for p in exclude.split(",") if p.strip()]
++    entries: list[dict[str, Any]] = []
++    meta_refs: dict[str, str] = {"from": "", "to": "", "commit": "", "merge_base": ""}
++
++    if mode == "uncommitted":
++        has_head = bool(git(["rev-parse", "--verify", "--quiet", "HEAD"], git_root, check=False))
++        diff_target = ["HEAD"] if has_head else ["--cached"]
++        ns_out = git(["diff", *GIT_DIFF_ARGS, "--numstat", *diff_target], git_root, check=False, no_pager=True)
++        st_out = git(["diff", *GIT_DIFF_ARGS, "--name-status", *diff_target], git_root, check=False, no_pager=True)
++        if not has_head and not ns_out:
++            ns_out = git(["diff", *GIT_DIFF_ARGS, "--numstat"], git_root, check=False, no_pager=True)
++            st_out = git(["diff", *GIT_DIFF_ARGS, "--name-status"], git_root, check=False, no_pager=True)
++        numstats = _parse_numstat(ns_out)
++        statuses = _parse_name_status(st_out)
++        for p in sorted(set(numstats) | set(statuses)):
++            ins, dels, is_bin = numstats.get(p, (0, 0, False))
++            entries.append({"path": p, "status": statuses.get(p, "M"), "insertions": ins, "deletions": dels, "binary": is_bin})
++        untracked = git(["ls-files", "--others", "--exclude-standard"], git_root, check=False, no_pager=True)
++        for rel in untracked.splitlines():
++            rel = rel.strip()
++            if not rel:
++                continue
++            fp = git_root / rel
++            is_bin = _is_binary_file(fp)
++            lines = 0 if is_bin else _count_lines(fp)
++            entries.append({"path": rel, "status": "untracked", "insertions": lines, "deletions": 0, "binary": is_bin})
++    elif mode == "commit":
++        if not commit.strip():
++            raise ReviewError("mode=commit requires --commit <hash>")
++        c_ref = commit.strip()
++        meta_refs["commit"] = git(["rev-parse", "--short", c_ref], git_root, check=True)
++        ns_out = git(["show", *GIT_DIFF_ARGS, "--numstat", "--format=", c_ref], git_root, check=True, no_pager=True)
++        st_out = git(["show", *GIT_DIFF_ARGS, "--name-status", "--format=", c_ref], git_root, check=True, no_pager=True)
++        numstats = _parse_numstat(ns_out)
++        statuses = _parse_name_status(st_out)
++        for p in sorted(set(numstats) | set(statuses)):
++            ins, dels, is_bin = numstats.get(p, (0, 0, False))
++            entries.append({"path": p, "status": statuses.get(p, "M"), "insertions": ins, "deletions": dels, "binary": is_bin})
++    elif mode in ("default-branch", "range"):
++        base = default_branch(git_root)
++        f_ref = from_ref.strip() or comparison_ref(git_root, base)
++        t_ref = to_ref.strip() or "HEAD"
++        mb = git(["merge-base", f_ref, t_ref], git_root, check=False) or f_ref
++        meta_refs["from"] = f_ref
++        meta_refs["to"] = t_ref
++        meta_refs["merge_base"] = mb
++        diff_range = f"{mb}..{t_ref}"
++        ns_out = git(["diff", *GIT_DIFF_ARGS, "--numstat", diff_range], git_root, check=True, no_pager=True)
++        st_out = git(["diff", *GIT_DIFF_ARGS, "--name-status", diff_range], git_root, check=True, no_pager=True)
++        numstats = _parse_numstat(ns_out)
++        statuses = _parse_name_status(st_out)
++        for p in sorted(set(numstats) | set(statuses)):
++            ins, dels, is_bin = numstats.get(p, (0, 0, False))
++            entries.append({"path": p, "status": statuses.get(p, "M"), "insertions": ins, "deletions": dels, "binary": is_bin})
++    else:
++        raise ReviewError(f"unsupported preview mode: {mode}")
++
++    reviewable: list[dict[str, Any]] = []
++    excluded: list[dict[str, Any]] = []
++    for item in entries:
++        reason = _exclude_reason(item["path"], item["binary"], extra_patterns)
++        clean = {
++            "path": item["path"],
++            "status": item["status"],
++            "insertions": item["insertions"],
++            "deletions": item["deletions"],
++        }
++        if reason:
++            excluded.append({**clean, "reason": reason})
++        else:
++            reviewable.append(clean)
++
++    return {
++        **resolved,
++        "mode": mode,
++        **meta_refs,
++        "guidelines": detect_guidelines(git_root),
++        "reviewable_files": reviewable,
++        "excluded_files": excluded,
++        "summary": {
++            "reviewable": len(reviewable),
++            "excluded": len(excluded),
++            "insertions": sum(f["insertions"] for f in reviewable),
++            "deletions": sum(f["deletions"] for f in reviewable),
++        },
++    }
++
++
++def parse_mr_url(url: str) -> dict[str, Any]:
++    text = url.strip()
++    m = GITLAB_MR.match(text) or GITLAB_MR_ALT.match(text)
++    if m:
++        project = m.group("project").strip("/")
++        basename = project.rsplit("/", 1)[-1]
++        return {
++            "kind": "gitlab",
++            "host": m.group("host"),
++            "project": project,
++            "iid": int(m.group("iid")),
++            "repo_hint": basename,
++            "url": text,
++        }
++    m = GITHUB_PR.match(text)
++    if m:
++        return {
++            "kind": "github",
++            "host": m.group("host"),
++            "project": f"{m.group('owner')}/{m.group('repo')}",
++            "iid": int(m.group("iid")),
++            "repo_hint": m.group("repo"),
++            "url": text,
++        }
++    raise ReviewError(f"unsupported merge request URL: {url}")
++
++
++def slugify(text: str, max_len: int = 48) -> str:
++    out = re.sub(r"[^a-zA-Z0-9]+", "-", text.strip().lower()).strip("-")
++    return (out or "change")[:max_len].rstrip("-")
++
++
++def change_name(*, repo_basename: str, mode: str, branch: str = "", mr_iid: int | None = None, title: str = "", commit: str = "") -> str:
++    base = slugify(repo_basename, 32)
++    if mode == "mr" and mr_iid is not None:
++        extra = slugify(title, 24) if title else ""
++        return f"{base}-mr-{mr_iid}" + (f"-{extra}" if extra else "")
++    if mode == "commit" and commit:
++        return f"{base}-commit-{slugify(commit, 12)}"
++    if mode == "uncommitted":
++        return f"{base}-{slugify(branch or 'wip', 24)}-uncommitted"
++    if mode == "default-branch":
++        return f"{base}-{slugify(branch or 'branch', 24)}"
++    return f"{base}-{slugify(mode or 'review', 24)}"
++
++
++def classify_priority(content: str) -> str:
++    if P0_RE.search(content or ""):
++        return "P0"
++    if P1_RE.search(content or ""):
++        return "P1"
++    if P2_RE.search(content or ""):
++        return "P2"
++    return "P3"
++
++
++def _line_ref(comment: dict[str, Any]) -> str:
++    start = int(comment.get("start_line") or 0)
++    end = int(comment.get("end_line") or 0)
++    path = comment.get("path") or "unknown"
++    if start <= 0 and end <= 0:
++        return path
++    if end > start:
++        return f"{path}:{start}-{end}"
++    return f"{path}:{start or end}"
++
++
++def _title(comment: dict[str, Any]) -> str:
++    content = (comment.get("content") or "").strip().splitlines()
++    if not content:
++        return "Untitled finding"
++    first = content[0].strip()
++    return first[:120] + ("…" if len(first) > 120 else "")
++
++
++def normalize_comments(result: dict[str, Any]) -> list[dict[str, Any]]:
++    comments = list(result.get("comments") or [])
++    out = []
++    for item in comments:
++        comment = dict(item)
++        pri = str(comment.get("priority") or "").upper()
++        if pri not in PRIORITY_ORDER:
++            sev = str(comment.get("severity") or "").strip().lower()
++            if sev in SEVERITY_TO_PRIORITY:
++                comment["priority"] = SEVERITY_TO_PRIORITY[sev]
++            else:
++                comment["priority"] = classify_priority(str(comment.get("content") or ""))
++        else:
++            comment["priority"] = pri
++        out.append(comment)
++    out.sort(key=lambda c: (PRIORITY_ORDER.index(c["priority"]), c.get("path") or "", int(c.get("start_line") or 0)))
++    return out
++
++
++def counts(comments: list[dict[str, Any]]) -> dict[str, int]:
++    data = {k: 0 for k in PRIORITY_ORDER}
++    for comment in comments:
++        data[comment["priority"]] += 1
++    return data
++
++
++def _extract_engine_llm(meta: dict[str, Any], result: dict[str, Any]) -> tuple[str, str, str]:
++    engine = str(result.get("engine") or meta.get("engine") or "").strip()
++    llm = result.get("llm") or {}
++    provider = str(llm.get("provider") or meta.get("provider") or "").strip()
++    model = str(llm.get("model") or meta.get("model") or "").strip()
++    return engine, provider, model
++
++
++def render_full(meta: dict[str, Any], result: dict[str, Any], comments: list[dict[str, Any]]) -> str:
++    tally = counts(comments)
++    tally_line = " / ".join(f"{k}={tally[k]}" for k in PRIORITY_ORDER if tally[k] or k in ("P0", "P1", "P2", "P3"))
++    engine, provider, model = _extract_engine_llm(meta, result)
++    lines = [
++        "---",
++        f"repo: {meta.get('repo', '')}",
++        f"mode: {meta.get('mode', '')}",
++        f"date: {meta.get('date', '')}",
++        f"change_name: {meta.get('change_name', '')}",
++        f"branch: {meta.get('branch', '')}",
++        f"commit: {meta.get('commit', '')}",
++        f"from: {meta.get('from', '')}",
++        f"to: {meta.get('to', '')}",
++        f"mr: {meta.get('mr_url', '')}",
++        f"engine: {engine}",
++        f"provider: {provider}",
++        f"model: {model}",
++        f"session_id: {result.get('session_id', '')}",
++        f"status: {result.get('status', '')}",
++        "---",
++        "",
++        f"# Code Review · {meta.get('change_name', '')}",
++        "",
++        "## Meta",
++        "",
++        f"- 仓库：`{meta.get('repo', '')}`",
++        f"- 范围：`{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
++        f"- 分支：`{meta.get('branch', '')}`（默认 `{meta.get('default_branch', '')}`）",
++    ]
++    if meta.get("commit"):
++        lines.append(f"- Commit：`{meta['commit']}`")
++    if meta.get("mr_url"):
++        lines.append(f"- Merge Request：{meta['mr_url']}")
++    if engine:
++        lines.append(f"- 引擎：`{engine}`")
++    summary = result.get("summary") or {}
++    if summary:
++        lines.append(
++            f"- 扫描：files={summary.get('files_reviewed', '?')} comments={summary.get('comments', len(comments))} "
++            f"elapsed={summary.get('elapsed', '?')} session=`{result.get('session_id', '')}`"
++        )
++    if provider and model:
++        lines.append(f"- LLM：`{provider}` / `{model}`")
++    elif provider or model:
++        lines.append(f"- LLM：`{provider or model}`")
++    guidelines = meta.get("guidelines") or []
++    if guidelines:
++        lines.append(f"- 项目底线：{', '.join(f'`{g}`' for g in guidelines)}")
++    if result.get("message"):
++        lines.append(f"- Message：{result['message']}")
++    lines += ["", "## 统计", "", tally_line, "", "## Findings（完整）", ""]
++    if not comments:
++        lines.append("No findings.")
++    else:
++        for pri in PRIORITY_ORDER:
++            group = [c for c in comments if c["priority"] == pri]
++            if not group:
++                continue
++            lines += [f"### {pri}", ""]
++            for i, comment in enumerate(group, 1):
++                lines += [
++                    f"#### {i}. {_title(comment)}",
++                    "",
++                    f"- 位置：`{_line_ref(comment)}`",
++                    f"- 优先级：{pri}",
++                    "",
++                    comment.get("content") or "",
++                    "",
++                ]
++                if comment.get("existing_code"):
++                    lines += ["**现有代码**", "", "```", str(comment["existing_code"]).rstrip(), "```", ""]
++                if comment.get("suggestion_code"):
++                    lines += ["**建议改法**", "", "```", str(comment["suggestion_code"]).rstrip(), "```", ""]
++                if comment.get("thinking"):
++                    lines += ["**推理**", "", str(comment["thinking"]).rstrip(), ""]
++    warnings = result.get("warnings") or []
++    if warnings:
++        lines += ["## Warnings", ""]
++        for item in warnings:
++            lines.append(f"- {item}")
++        lines.append("")
++    return "\n".join(lines).rstrip() + "\n"
++
++
++def render_summary(
++    meta: dict[str, Any],
++    comments: list[dict[str, Any]],
++    doc_path: str = "",
++    result: dict[str, Any] | None = None,
++) -> str:
++    tally = counts(comments)
++    tally_line = " ".join(f"{k}={tally[k]}" for k in PRIORITY_ORDER if tally[k] or k in ("P0", "P1", "P2", "P3"))
++    engine, provider, model = _extract_engine_llm(meta, result or {})
++    lines = [
++        f"## Review 总结 · {meta.get('change_name', '')}",
++        "",
++        f"范围：`{meta.get('repo', '')}` / `{meta.get('mode', '')}` `{meta.get('from', '')}` → `{meta.get('to', '')}`",
++    ]
++    if engine or model or provider:
++        parts = [p for p in (engine, provider if provider != engine else "", model) if p]
++        lines.append(f"方案：`{' / '.join(parts)}`")
++    lines.append(f"结论：{tally_line}")
++    if doc_path:
++        lines.append(f"完整文档：`{doc_path}`")
++    lines.append("")
++    if not comments:
++        lines.append("No findings.")
++        return "\n".join(lines).rstrip() + "\n"
++    for pri in PRIORITY_ORDER:
++        group = [c for c in comments if c["priority"] == pri]
++        if not group:
++            continue
++        lines.append(f"### {pri}")
++        lines.append("")
++        for comment in group:
++            lines.append(f"- [{pri}] {_title(comment)} — `{_line_ref(comment)}`")
++        lines.append("")
++    return "\n".join(lines).rstrip() + "\n"
++
++
++def update_index(reviews_root: Path, meta: dict[str, Any], tally: dict[str, int], doc_rel: str) -> None:
++    index = reviews_root / "INDEX.md"
++    header = (
++        "# Code reviews\n\n"
++        "| 日期 | change | 仓库 | 范围 | 引擎 | P0 | P1 | P2 | P3 | 文档 |\n"
++        "|------|--------|------|------|------|----|----|----|----|------|\n"
++    )
++    engine = str(meta.get("engine") or "-")
++    row = (
++        f"| {meta.get('date', '')} | {meta.get('change_name', '')} | `{meta.get('repo', '')}` | "
++        f"{meta.get('mode', '')} | {engine} | {tally.get('P0', 0)} | {tally.get('P1', 0)} | {tally.get('P2', 0)} | "
++        f"{tally.get('P3', 0)} | [{meta.get('change_name', '')}]({doc_rel}) |"
++    )
++    if not index.exists():
++        index.write_text(header + row + "\n", encoding="utf-8")
++        return
++    text = index.read_text(encoding="utf-8")
++    lines = text.splitlines()
++    key = f"| {meta.get('date', '')} | {meta.get('change_name', '')} |"
++    kept = [ln for ln in lines if not ln.startswith(key)]
++    if len(kept) < 3:
++        index.write_text(header + row + "\n", encoding="utf-8")
++        return
++    kept.append(row)
++    index.write_text("\n".join(kept).rstrip() + "\n", encoding="utf-8")
++
++
++def render_result(result: dict[str, Any], meta: dict[str, Any], fmt: str = "summary") -> dict[str, Any]:
++    comments = normalize_comments(result)
++    day = meta.get("date") or date.today().isoformat()
++    name = meta.get("change_name") or change_name(
++        repo_basename=Path(str(meta.get("repo") or "repo")).name,
++        mode=str(meta.get("mode") or "review"),
++        branch=str(meta.get("branch") or ""),
++        mr_iid=meta.get("mr_iid"),
++        title=str(meta.get("title") or ""),
++        commit=str(meta.get("commit") or ""),
++    )
++    merged_meta = {**meta, "date": day, "change_name": name}
++    tally = counts(comments)
++    if fmt == "full":
++        output = render_full(merged_meta, result, comments)
++    else:
++        output = render_summary(merged_meta, comments, "", result)
++    return {
++        "format": fmt,
++        "change_name": name,
++        "date": day,
++        "counts": tally,
++        "output": output,
++        "summary": render_summary(merged_meta, comments, "", result),
++    }
++
++
++def write_review(
++    work_root: Path,
++    result: dict[str, Any],
++    meta: dict[str, Any],
++    plan_text: str = "",
++) -> dict[str, Any]:
++    comments = normalize_comments(result)
++    day = meta.get("date") or date.today().isoformat()
++    name = meta.get("change_name") or change_name(
++        repo_basename=Path(str(meta.get("repo") or "repo")).name,
++        mode=str(meta.get("mode") or "review"),
++        branch=str(meta.get("branch") or ""),
++        mr_iid=meta.get("mr_iid"),
++        title=str(meta.get("title") or ""),
++        commit=str(meta.get("commit") or ""),
++    )
++    engine, provider, model = _extract_engine_llm(meta, result)
++    merged_meta = {
++        **meta,
++        "date": day,
++        "change_name": name,
++        "engine": engine,
++        "provider": provider,
++        "model": model,
++    }
++    out_dir = work_root / "docs" / "reviews" / day / name
++    out_dir.mkdir(parents=True, exist_ok=True)
++    raw_path = out_dir / "raw.json"
++    review_path = out_dir / "review.md"
++    raw_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
++    review_path.write_text(render_full(merged_meta, result, comments), encoding="utf-8")
++    doc_rel = f"docs/reviews/{day}/{name}/review.md"
++    update_index(work_root / "docs" / "reviews", merged_meta, counts(comments), f"{day}/{name}/review.md")
++    summary = render_summary(merged_meta, comments, doc_rel, result)
++    (out_dir / "summary.md").write_text(summary, encoding="utf-8")
++
++    plan_content = plan_text.strip() or str(meta.get("plan_markdown") or "").strip()
++    plan_rel = ""
++    if plan_content:
++        (out_dir / "plan.md").write_text(plan_content + "\n", encoding="utf-8")
++        plan_rel = f"docs/reviews/{day}/{name}/plan.md"
++
++    payload: dict[str, Any] = {
++        "out_dir": str(out_dir.relative_to(work_root)),
++        "review": doc_rel,
++        "raw": f"docs/reviews/{day}/{name}/raw.json",
++        "summary": summary,
++        "counts": counts(comments),
++        "change_name": name,
++        "date": day,
++    }
++    if plan_rel:
++        payload["plan"] = plan_rel
++    return payload
++
++
++def _load_json(path: str) -> dict[str, Any]:
++    return json.loads(Path(path).read_text(encoding="utf-8"))
++
++
++def emit(payload: dict[str, Any], code: int = 0) -> int:
++    sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
++    return code
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(prog="reviewctl")
++    parser.add_argument("--root", default="", help="work workspace root")
++    sub = parser.add_subparsers(dest="cmd", required=True)
++
++    p_resolve = sub.add_parser("resolve-repo")
++    p_resolve.add_argument("repo")
++
++    p_inspect = sub.add_parser("inspect")
++    p_inspect.add_argument("--repo", required=True)
++
++    p_preview = sub.add_parser("preview")
++    p_preview.add_argument("--repo", required=True)
++    p_preview.add_argument("--mode", required=True, choices=["uncommitted", "default-branch", "commit", "range"])
++    p_preview.add_argument("--commit", default="")
++    p_preview.add_argument("--from", dest="from_ref", default="")
++    p_preview.add_argument("--to", dest="to_ref", default="")
++    p_preview.add_argument("--exclude", default="")
++
++    p_probe = sub.add_parser("probe")
++    p_probe.add_argument("--engine", default="")
++    p_probe.add_argument("--prefs", default="")
++
++    p_prefs = sub.add_parser("prefs")
++    prefs_sub = p_prefs.add_subparsers(dest="prefs_cmd", required=True)
++    p_pg = prefs_sub.add_parser("get")
++    p_pg.add_argument("--engine", default="")
++    p_pg.add_argument("--prefs", default="")
++    p_ps = prefs_sub.add_parser("set")
++    p_ps.add_argument("--engine", default="")
++    p_ps.add_argument("--model", default="")
++    p_ps.add_argument("--provider", default="")
++    p_ps.add_argument("--mode", default="")
++    p_ps.add_argument("--set-default-engine", action="store_true")
++    p_ps.add_argument("--persist-default", default="")
++    p_ps.add_argument("--prefs", default="")
++    p_pc = prefs_sub.add_parser("clear")
++    p_pc.add_argument("--engine", default="")
++    p_pc.add_argument("--prefs", default="")
++
++    p_mr = sub.add_parser("parse-mr")
++    p_mr.add_argument("--url", required=True)
++
++    p_name = sub.add_parser("change-name")
++    p_name.add_argument("--repo-basename", required=True)
++    p_name.add_argument("--mode", required=True)
++    p_name.add_argument("--branch", default="")
++    p_name.add_argument("--mr-iid", type=int, default=None)
++    p_name.add_argument("--title", default="")
++    p_name.add_argument("--commit", default="")
++
++    p_render = sub.add_parser("render")
++    p_render.add_argument("--result-json", "--ocr-json", dest="result_json", required=True)
++    p_render.add_argument("--meta-json", required=True)
++    p_render.add_argument("--format", default="summary", choices=["summary", "full"])
++
++    p_write = sub.add_parser("write")
++    p_write.add_argument("--result-json", "--ocr-json", dest="result_json", required=True)
++    p_write.add_argument("--meta-json", required=True)
++    p_write.add_argument("--plan-md", default="")
++
++    args = parser.parse_args(argv)
++    root = Path(args.root).resolve() if args.root else repo_root_from_script()
++    try:
++        if args.cmd == "resolve-repo":
++            payload = resolve_repo(root, args.repo)
++            if payload.get("ambiguous"):
++                return emit({"ok": False, **payload}, 1)
++            return emit({"ok": True, **payload})
++        if args.cmd == "inspect":
++            payload = inspect_repo(root, args.repo)
++            if payload.get("ambiguous"):
++                return emit({"ok": False, **payload}, 1)
++            return emit({"ok": True, **payload})
++        if args.cmd == "preview":
++            payload = preview_changes(
++                root,
++                args.repo,
++                mode=args.mode,
++                commit=args.commit,
++                from_ref=args.from_ref,
++                to_ref=args.to_ref,
++                exclude=args.exclude,
++            )
++            if payload.get("ambiguous"):
++                return emit({"ok": False, **payload}, 1)
++            return emit({"ok": True, **payload})
++        if args.cmd == "probe":
++            return emit({"ok": True, **probe_engines(default_prefs_path(args.prefs), engine=args.engine)})
++        if args.cmd == "prefs":
++            ppath = default_prefs_path(args.prefs)
++            if args.prefs_cmd == "get":
++                data = load_prefs(ppath)
++                if args.engine:
++                    if args.engine not in ALLOWED_ENGINES:
++                        raise ReviewError(f"unsupported engine: {args.engine}")
++                    return emit({"ok": True, "prefs_path": str(ppath), "engine": args.engine, "data": data["engines"].get(args.engine, {})})
++                return emit({"ok": True, "prefs_path": str(ppath), "data": data})
++            if args.prefs_cmd == "set":
++                updated = set_prefs(
++                    ppath,
++                    engine=args.engine,
++                    model=args.model,
++                    provider=args.provider,
++                    mode=args.mode,
++                    set_default_engine=args.set_default_engine,
++                    persist_default=args.persist_default,
++                )
++                return emit({"ok": True, "prefs_path": str(ppath), "data": updated})
++            if args.prefs_cmd == "clear":
++                updated = clear_prefs(ppath, engine=args.engine)
++                return emit({"ok": True, "prefs_path": str(ppath), "data": updated})
++        if args.cmd == "parse-mr":
++            return emit({"ok": True, **parse_mr_url(args.url)})
++        if args.cmd == "change-name":
++            name = change_name(
++                repo_basename=args.repo_basename,
++                mode=args.mode,
++                branch=args.branch,
++                mr_iid=args.mr_iid,
++                title=args.title,
++                commit=args.commit,
++            )
++            return emit({"ok": True, "change_name": name})
++        if args.cmd == "render":
++            res = render_result(_load_json(args.result_json), _load_json(args.meta_json), fmt=args.format)
++            return emit({"ok": True, **res})
++        if args.cmd == "write":
++            plan_text = Path(args.plan_md).read_text(encoding="utf-8") if args.plan_md else ""
++            result = write_review(root, _load_json(args.result_json), _load_json(args.meta_json), plan_text=plan_text)
++            return emit({"ok": True, **result})
++        raise ReviewError(f"unknown command: {args.cmd}")
++    except ReviewError as exc:
++        return emit({"ok": False, "error": str(exc)}, 1)
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/skills/way-to-cr/tests/test_reviewctl.py b/skills/way-to-cr/tests/test_reviewctl.py
+new file mode 100644
+index 0000000..37a2ac7
+--- /dev/null
++++ b/skills/way-to-cr/tests/test_reviewctl.py
+@@ -0,0 +1,333 @@
++from __future__ import annotations
++
++import importlib.util
++import json
++import subprocess
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++from unittest import mock
++
++SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "reviewctl.py"
++
++
++def load_reviewctl():
++    spec = importlib.util.spec_from_file_location("reviewctl", SCRIPT)
++    assert spec and spec.loader
++    mod = importlib.util.module_from_spec(spec)
++    sys.modules["reviewctl"] = mod
++    spec.loader.exec_module(mod)
++    return mod
++
++
++rc = load_reviewctl()
++
++
++class ReviewctlTests(unittest.TestCase):
++    def setUp(self) -> None:
++        self.tmp = Path(tempfile.mkdtemp())
++        (self.tmp / "repos").mkdir()
++
++    def _git(self, repo: Path, *args: str) -> str:
++        proc = subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True)
++        return proc.stdout.strip()
++
++    def _init_repo(self, rel: str) -> Path:
++        repo = self.tmp / "repos" / rel
++        repo.mkdir(parents=True)
++        self._git(repo, "init")
++        self._git(repo, "config", "user.email", "test@example.invalid")
++        self._git(repo, "config", "user.name", "tester")
++        (repo / "README").write_text("init\n", encoding="utf-8")
++        self._git(repo, "add", ".")
++        self._git(repo, "commit", "-m", "init")
++        self._git(repo, "branch", "-M", "main")
++        return repo
++
++    def test_resolve_by_basename_and_ambiguous(self) -> None:
++        self._init_repo("group/service")
++        hit = rc.resolve_repo(self.tmp, "service")
++        self.assertEqual(hit["basename"], "service")
++        self.assertTrue(hit["git_root"].endswith("service"))
++
++        self._init_repo("other/service")
++        amb = rc.resolve_repo(self.tmp, "service")
++        self.assertTrue(amb.get("ambiguous"))
++        self.assertEqual(len(amb["candidates"]), 2)
++
++    def test_inspect_recommends_uncommitted_vs_default_branch(self) -> None:
++        repo = self._init_repo("svc")
++        (repo / "dirty.txt").write_text("x\n", encoding="utf-8")
++        payload = rc.inspect_repo(self.tmp, "svc")
++        self.assertEqual(payload["recommendation"], "uncommitted")
++        self.assertTrue(payload["needs_confirm"])
++
++        self._git(repo, "add", "dirty.txt")
++        self._git(repo, "commit", "-m", "dirty")
++        self._git(repo, "checkout", "-b", "feat-x")
++        (repo / "feat.txt").write_text("y\n", encoding="utf-8")
++        self._git(repo, "add", "feat.txt")
++        self._git(repo, "commit", "-m", "feat")
++        payload = rc.inspect_repo(self.tmp, "svc")
++        self.assertEqual(payload["recommendation"], "default-branch")
++        self.assertEqual(payload["ahead_of_default"], 1)
++
++        (repo / "wip.txt").write_text("z\n", encoding="utf-8")
++        payload = rc.inspect_repo(self.tmp, "svc")
++        self.assertEqual(payload["recommendation"], "ask")
++
++    def test_preview_modes_exclusions_and_guidelines(self) -> None:
++        repo = self._init_repo("app")
++        (repo / "AGENTS.md").write_text("- Check error handling\n", encoding="utf-8")
++        (repo / "src.py").write_text("print(1)\n", encoding="utf-8")
++        (repo / "package-lock.json").write_text("{}\n", encoding="utf-8")
++        self._git(repo, "add", ".")
++        self._git(repo, "commit", "-m", "base files")
++
++        # uncommitted: tracked change + untracked + lockfile + custom exclude
++        (repo / "src.py").write_text("print(1)\nprint(2)\n", encoding="utf-8")
++        (repo / "new.py").write_text("a = 1\nb = 2\n", encoding="utf-8")
++        (repo / "bundle.min.js").write_text("var a=1;", encoding="utf-8")
++        (repo / "skip.tmp").write_text("ignored", encoding="utf-8")
++        prev = rc.preview_changes(self.tmp, "app", mode="uncommitted", exclude="*.tmp")
++        self.assertEqual(prev["guidelines"], ["AGENTS.md"])
++        rev_paths = {f["path"] for f in prev["reviewable_files"]}
++        exc_map = {f["path"]: f["reason"] for f in prev["excluded_files"]}
++        self.assertEqual(rev_paths, {"src.py", "new.py"})
++        self.assertEqual(exc_map["bundle.min.js"], "generated")
++        self.assertIn("excluded", exc_map["skip.tmp"])
++
++        # commit mode
++        self._git(repo, "add", "src.py", "new.py")
++        self._git(repo, "commit", "-m", "feat commit")
++        sha = self._git(repo, "rev-parse", "--short", "HEAD")
++        cprev = rc.preview_changes(self.tmp, "app", mode="commit", commit=sha)
++        self.assertEqual(cprev["commit"], sha)
++        self.assertEqual({f["path"] for f in cprev["reviewable_files"]}, {"src.py", "new.py"})
++
++        # default-branch / range mode
++        self._git(repo, "checkout", "-b", "feat-branch")
++        (repo / "branch.py").write_text("x = 42\n", encoding="utf-8")
++        self._git(repo, "add", "branch.py")
++        self._git(repo, "commit", "-m", "branch work")
++        bprev = rc.preview_changes(self.tmp, "app", mode="default-branch")
++        self.assertEqual(bprev["from"], "main")
++        self.assertEqual(bprev["to"], "HEAD")
++        self.assertEqual({f["path"] for f in bprev["reviewable_files"]}, {"branch.py"})
++
++    def test_prefs_get_set_clear_and_reject_sensitive(self) -> None:
++        prefs_path = self.tmp / "cfg" / "prefs.json"
++        initial = rc.load_prefs(prefs_path)
++        self.assertEqual(initial["engines"]["claude"]["model"], "")
++
++        rc.set_prefs(prefs_path, engine="claude", model="sonnet", mode="plugin", set_default_engine=True, persist_default="true")
++        rc.set_prefs(prefs_path, engine="codex", model="o3")
++        loaded = rc.load_prefs(prefs_path)
++        self.assertEqual(loaded["default_engine"], "claude")
++        self.assertTrue(loaded["persist_default"])
++        self.assertEqual(loaded["engines"]["claude"]["model"], "sonnet")
++        self.assertEqual(loaded["engines"]["claude"]["mode"], "plugin")
++        self.assertEqual(loaded["engines"]["codex"]["model"], "o3")
++
++        rc.clear_prefs(prefs_path, engine="claude")
++        after_clear = rc.load_prefs(prefs_path)
++        self.assertEqual(after_clear["engines"]["claude"]["model"], "")
++        self.assertEqual(after_clear["default_engine"], "")
++        self.assertEqual(after_clear["engines"]["codex"]["model"], "o3")
++
++        with self.assertRaises(rc.ReviewError):
++            rc._assert_safe_value("api_key", "secret-123")
++
++    def test_probe_reads_configs_without_leaking_secrets(self) -> None:
++        prefs_path = self.tmp / "prefs.json"
++        rc.set_prefs(prefs_path, engine="codex", model="gpt-5.2")
++
++        claude_cfg = self.tmp / "claude_settings.json"
++        claude_cfg.write_text(
++            json.dumps(
++                {
++                    "model": "claude-sonnet-4-6",
++                    "enabledPlugins": ["code-review@anthropic"],
++                    "env": {"ANTHROPIC_API_KEY": "sk-ant-do-not-leak"},
++                }
++            ),
++            encoding="utf-8",
++        )
++        codex_cfg = self.tmp / "codex_config.toml"
++        codex_cfg.write_text(
++            'model = "o3"\nmodel_provider = "openai"\n\n[profiles.fast]\nmodel = "gpt-5.1-codex"\n',
++            encoding="utf-8",
++        )
++
++        with mock.patch("shutil.which", return_value=None):
++            probed = rc.probe_engines(prefs_path, claude_settings=claude_cfg, codex_config=codex_cfg)
++
++        raw_dump = json.dumps(probed)
++        self.assertNotIn("sk-ant-do-not-leak", raw_dump)
++        self.assertTrue(probed["engines"]["builtin"]["available"])
++        self.assertFalse(probed["engines"]["builtin"]["needs_model_selection"])
++        self.assertTrue(probed["engines"]["claude"]["has_code_review_plugin"])
++        self.assertIn("claude-sonnet-4-6", probed["engines"]["claude"]["models"])
++        self.assertEqual(probed["engines"]["codex"]["saved_model"], "gpt-5.2")
++        self.assertTrue(probed["engines"]["codex"]["has_saved_model"])
++        self.assertIn("o3", probed["engines"]["codex"]["models"])
++        self.assertIn("gpt-5.1-codex", probed["engines"]["codex"]["models"])
++
++    def test_parse_mr_urls(self) -> None:
++        gl = rc.parse_mr_url("https://gitlab.example.invalid/group/service/-/merge_requests/88")
++        self.assertEqual(gl["kind"], "gitlab")
++        self.assertEqual(gl["project"], "group/service")
++        self.assertEqual(gl["iid"], 88)
++        self.assertEqual(gl["repo_hint"], "service")
++
++        gh = rc.parse_mr_url("https://github.example.invalid/example-org/example-repo/pull/12")
++        self.assertEqual(gh["kind"], "github")
++        self.assertEqual(gh["project"], "example-org/example-repo")
++        self.assertEqual(gh["iid"], 12)
++
++    def test_change_name_and_priority(self) -> None:
++        self.assertEqual(
++            rc.change_name(repo_basename="service", mode="mr", mr_iid=88, title="Fix timeout"),
++            "service-mr-88-fix-timeout",
++        )
++        self.assertEqual(
++            rc.change_name(repo_basename="service", mode="commit", commit="abc1234def"),
++            "service-commit-abc1234def",
++        )
++        self.assertEqual(rc.classify_priority("SQL injection in query builder"), "P0")
++        self.assertEqual(rc.classify_priority("nil deref on empty payload"), "P1")
++        self.assertEqual(rc.classify_priority("missing test for retry path"), "P2")
++        self.assertEqual(rc.classify_priority("rename helper for clarity"), "P3")
++
++    def test_severity_mapping_beats_heuristic(self) -> None:
++        comments = rc.normalize_comments(
++            {
++                "comments": [
++                    {"path": "a.go", "content": "rename helper for clarity", "severity": "critical"},
++                    {"path": "b.go", "content": "SQL injection in query builder", "severity": "low"},
++                    {"path": "c.go", "content": "rename helper for clarity"},
++                    {"path": "d.go", "content": "whatever", "priority": "P1", "severity": "low"},
++                ]
++            }
++        )
++        by_path = {c["path"]: c["priority"] for c in comments}
++        self.assertEqual(by_path["a.go"], "P0")
++        self.assertEqual(by_path["b.go"], "P3")
++        self.assertEqual(by_path["c.go"], "P3")
++        self.assertEqual(by_path["d.go"], "P1")
++        self.assertEqual([c["priority"] for c in comments], ["P0", "P1", "P3", "P3"])
++
++    def test_write_review_commit_mode(self) -> None:
++        ocr = {
++            "engine": "ocr-delegate",
++            "status": "complete",
++            "session_id": "delegate-20261016-120000",
++            "summary": {"files_reviewed": 1, "comments": 1},
++            "comments": [
++                {"path": "a.go", "content": "SQL injection", "severity": "critical", "start_line": 1, "end_line": 2},
++            ],
++            "warnings": ["b.go: skipped, binary file"],
++        }
++        meta = {"repo": "group/service", "mode": "commit", "date": "2026-10-16", "branch": "main", "commit": "abc1234", "default_branch": "main"}
++        result = rc.write_review(self.tmp, ocr, meta)
++        self.assertEqual(result["change_name"], "service-commit-abc1234")
++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
++        self.assertIn("commit: abc1234", review)
++        self.assertIn("- Commit：`abc1234`", review)
++        self.assertIn("delegate-20261016-120000", review)
++        self.assertIn("### P0", review)
++        self.assertIn("b.go: skipped, binary file", review)
++        self.assertNotIn("- LLM：", review)
++        self.assertTrue((self.tmp / result["raw"]).exists())
++
++    def test_write_review_with_plan_and_render_without_disk(self) -> None:
++        res = {
++            "engine": "codex",
++            "status": "complete",
++            "session_id": "codex-20261127",
++            "llm": {"provider": "codex", "model": "o3"},
++            "summary": {"files_reviewed": 2, "comments": 1},
++            "comments": [
++                {"path": "main.py", "content": "race condition in cache", "priority": "P1", "start_line": 12, "end_line": 18}
++            ],
++        }
++        meta = {
++            "repo": "group/service",
++            "mode": "uncommitted",
++            "date": "2026-11-27",
++            "branch": "main",
++            "default_branch": "main",
++            "guidelines": ["AGENTS.md"],
++        }
++        rendered = rc.render_result(res, meta, fmt="summary")
++        self.assertIn("`codex / o3`", rendered["output"])
++        self.assertNotIn("完整文档", rendered["output"])
++        self.assertFalse((self.tmp / "docs").exists())
++
++        written = rc.write_review(self.tmp, res, meta, plan_text="# Review Plan\n\n- Focus on concurrency")
++        self.assertIn("plan", written)
++        self.assertTrue((self.tmp / written["plan"]).is_file())
++        review = (self.tmp / written["review"]).read_text(encoding="utf-8")
++        self.assertIn("- 引擎：`codex`", review)
++        self.assertIn("- LLM：`codex` / `o3`", review)
++        self.assertIn("`AGENTS.md`", review)
++        index_text = (self.tmp / "docs/reviews/INDEX.md").read_text(encoding="utf-8")
++        self.assertIn("| codex |", index_text)
++
++    def test_write_review_records_llm_backend(self) -> None:
++        ocr = {
++            "status": "complete",
++            "session_id": "s1",
++            "llm": {"provider": "anthropic", "model": "claude-opus-4-6"},
++            "summary": {"files_reviewed": 1, "comments": 0},
++            "comments": [],
++        }
++        meta = {"repo": "group/service", "mode": "default-branch", "date": "2026-10-16", "branch": "feat", "from": "origin/main", "to": "HEAD", "default_branch": "main"}
++        result = rc.write_review(self.tmp, ocr, meta)
++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
++        self.assertIn("- LLM：`anthropic` / `claude-opus-4-6`", review)
++
++    def test_write_review_sorted_summary(self) -> None:
++        ocr = {
++            "status": "success",
++            "session_id": "abc",
++            "summary": {"files_reviewed": 2, "comments": 2, "elapsed": "1s"},
++            "comments": [
++                {"path": "b.go", "content": "rename helper for clarity", "start_line": 3, "end_line": 3},
++                {
++                    "path": "a.go",
++                    "content": "SQL injection in query builder",
++                    "start_line": 10,
++                    "end_line": 12,
++                    "existing_code": "db.Exec(q)",
++                    "suggestion_code": "db.Exec(q, args)",
++                    "thinking": "user input concatenated",
++                },
++            ],
++        }
++        meta = {
++            "repo": "group/service",
++            "mode": "default-branch",
++            "date": "2026-08-13",
++            "change_name": "service-feat-x",
++            "branch": "feat-x",
++            "from": "origin/main",
++            "to": "HEAD",
++        }
++        result = rc.write_review(self.tmp, ocr, meta)
++        review = (self.tmp / result["review"]).read_text(encoding="utf-8")
++        self.assertIn("### P0", review)
++        self.assertIn("### P3", review)
++        self.assertLess(review.index("### P0"), review.index("### P3"))
++        summary = result["summary"]
++        self.assertIn("P0=1", summary)
++        self.assertIn("[P0] SQL injection", summary)
++        self.assertTrue(summary.index("### P0") < summary.index("### P3"))
++        self.assertTrue((self.tmp / "docs/reviews/INDEX.md").exists())
++        printed = rc.render_summary(meta, [], result["review"])
++        self.assertIn("No findings.", printed)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/skills/way-to-cr/tests/test_skill_contract.py b/skills/way-to-cr/tests/test_skill_contract.py
+new file mode 100644
+index 0000000..fa4e354
+--- /dev/null
++++ b/skills/way-to-cr/tests/test_skill_contract.py
+@@ -0,0 +1,137 @@
++"""way-to-cr 文本契约测试：校验 SKILL.md 与 5 个 references 的流程、多引擎、模型记忆与硬闸。"""
++from __future__ import annotations
++
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++BUILTIN = (ROOT / "references" / "builtin-review.md").read_text(encoding="utf-8")
++EXTERNAL = (ROOT / "references" / "external-agents.md").read_text(encoding="utf-8")
++OCR = (ROOT / "references" / "ocr-mode.md").read_text(encoding="utf-8")
++DELEGATE = (ROOT / "references" / "delegate-mode.md").read_text(encoding="utf-8")
++MR = (ROOT / "references" / "mr-mode.md").read_text(encoding="utf-8")
++
++
++class DescriptionAndSizeTest(unittest.TestCase):
++    def test_frontmatter_and_alias(self) -> None:
++        head = SKILL.split("---", 2)[1]
++        self.assertIn("id: way-to-cr", head)
++        self.assertIn("name: way-to-cr", head)
++        self.assertIn("原 solo-code-review", head)
++        self.assertIn("P0~P3", head)
++        self.assertNotIn("docs/reviews", head)
++
++    def test_skill_under_8kb_and_direct_links(self) -> None:
++        self.assertLessEqual(len(SKILL.encode("utf-8")), 7800)
++        for rel in (
++            "references/builtin-review.md",
++            "references/external-agents.md",
++            "references/ocr-mode.md",
++            "references/delegate-mode.md",
++            "references/mr-mode.md",
++        ):
++            self.assertIn(rel, SKILL)
++            self.assertTrue((ROOT / rel).is_file(), rel)
++
++
++class FourStepFlowTest(unittest.TestCase):
++    def test_four_steps_present(self) -> None:
++        self.assertIn("### 1. 思考审查内容与范围（范围确认门）", SKILL)
++        self.assertIn("### 2. 选择 Review 方案（方案确认门）", SKILL)
++        self.assertIn("### 3. 模型选择与记忆复用 + 执行审查", SKILL)
++        self.assertIn("### 4. 分级出报告、可选落盘与可选发布 MR/PR", SKILL)
++
++    def test_confirm_gate_table_and_preview(self) -> None:
++        for rec in ("uncommitted", "default-branch", "ask", "nothing"):
++            self.assertIn(f"| `{rec}` |", SKILL)
++        self.assertIn("必须让用户二选一，禁止默默合并两种 diff", SKILL)
++        self.assertIn("reviewctl preview", SKILL)
++
++    def test_four_engines_in_step2(self) -> None:
++        self.assertIn("reviewctl probe", SKILL)
++        for eng in ("builtin", "claude", "codex", "ocr"):
++            self.assertIn(f"| `{eng}` |", SKILL)
++
++
++class ModelMemoryTest(unittest.TestCase):
++    def test_model_selection_and_reuse_rules(self) -> None:
++        self.assertIn("仅 `claude`、`codex`、`ocr`（原生 `review`）需要选定模型", SKILL)
++        self.assertIn("prefs.json", SKILL)
++        self.assertIn("严禁写入 key/token", SKILL)
++        self.assertIn("reviewctl prefs set", SKILL)
++        self.assertIn("自动复用已记住模型", SKILL)
++        self.assertIn("换模型", SKILL)
++
++
++class BuiltinAndExternalAgentsTest(unittest.TestCase):
++    def test_builtin_covers_guidelines_and_checklist(self) -> None:
++        self.assertIn("AGENTS.md", BUILTIN)
++        self.assertIn("干净会话", BUILTIN)
++        self.assertIn("七维审查清单", BUILTIN)
++        self.assertIn('"engine": "builtin"', BUILTIN)
++
++    def test_external_agents_claude_and_codex(self) -> None:
++        self.assertIn("claude --model <model> -p", EXTERNAL)
++        self.assertIn("/code-review", EXTERNAL)
++        self.assertIn("codex review --uncommitted", EXTERNAL)
++        self.assertIn("codex review --base", EXTERNAL)
++        self.assertIn("codex review --commit", EXTERNAL)
++        self.assertIn("codex exec --sandbox read-only", EXTERNAL)
++
++
++class OcrAndDelegateTest(unittest.TestCase):
++    def test_ocr_flags_and_failure_options(self) -> None:
++        self.assertIn("ocr review --audience agent --format json --repo <git_root_abs> -o /tmp/ocr.json", OCR)
++        for flag in ("--effort", "--exclude", "--max-tokens-budget", "--resume", "--provider", "--model"):
++            self.assertIn(flag, OCR)
++        self.assertIn("`ocr llm test` 失败时停下", OCR)
++        self.assertIn("ocr llm providers", OCR)
++
++    def test_delegate_steps_and_schema(self) -> None:
++        for cmd in ("ocr delegate preview --format json", "ocr delegate rule --format json"):
++            self.assertIn(cmd, DELEGATE)
++        for field in ("path", "content", "start_line", "severity", "category"):
++            self.assertIn(f"`{field}`", DELEGATE)
++        self.assertIn("reviewed 或 skipped（带原因）", DELEGATE)
++        self.assertIn("`--provider/--model` 不适用", DELEGATE)
++
++
++class FetchOnlyAndArtifactTest(unittest.TestCase):
++    def test_mr_fetch_only(self) -> None:
++        self.assertIn("**只 fetch，不 checkout、不 stash**", MR)
++        self.assertIn("refs/code-review/mr-<iid>", MR)
++        self.assertIn("refs/code-review/pr-<iid>", MR)
++        self.assertIn("不执行 `checkout` / `stash` / `reset`", SKILL)
++
++    def test_optional_artifacts_and_summary_only(self) -> None:
++        self.assertIn("docs/reviews/{YYYY-MM-DD}/{change-name}/", SKILL)
++        for name in ("raw.json", "review.md", "summary.md", "plan.md", "INDEX.md"):
++            self.assertIn(name, SKILL)
++        self.assertIn("reviewctl render", SKILL)
++        self.assertIn("仅输出 `reviewctl render` / `write` 返回的 `summary`", SKILL)
++
++    def test_remote_write_and_credentials(self) -> None:
++        self.assertIn("MR/PR 评论确认门", SKILL)
++        self.assertIn("`glab mr note` / `gh pr comment`", SKILL)
++        self.assertIn('GITLAB_TOKEN="$GITLAB_TOKEN" glab', SKILL)
++        self.assertIn("严禁编造凭据", SKILL)
++
++
++class BoundaryAndEvolutionTest(unittest.TestCase):
++    def test_boundaries_and_self_evolution(self) -> None:
++        self.assertIn("无 diff 的全仓静态扫描直接用 `ocr scan`", SKILL)
++        self.assertIn("默认只审查、不改代码", SKILL)
++        self.assertIn("交给 `role-based-reviewer`", SKILL)
++        self.assertIn("evals/cases.yaml", SKILL)
++        self.assertIn("skill-upgrader", SKILL)
++
++    def test_optional_post_cr_fix_prompt(self) -> None:
++        self.assertIn("修复提示（可选）", SKILL)
++        self.assertIn("无 findings 时省略", SKILL)
++        self.assertIn("确认修复范围后再改代码", SKILL)
++        self.assertIn("way-to-fix", SKILL)
++
++
++if __name__ == "__main__":
++    unittest.main()

@@ -706,11 +706,11 @@ cases:
   - id: review-explicit-only-no-auto-code-review
     kind: regression
     judge: llm
-    description: 常规代码任务默认跳过 review 且不自动触发 solo-code-review
+    description: 常规代码任务默认跳过 review 且不自动触发 way-to-cr
     given: 用户在 taskrail 下完成跨前后端开发并通过全量测试，未要求独立评审且无观感目标
     expect:
       must:
         - 跳过 review，由 execute 自检与 verify 验证直接闭环收口
-        - 仅在用户或方案明确要求或命中观感交付时进入 review；taskrail 不内置调用 solo-code-review，仅在 close 完成通知中顺带提示用户按需另行运行
+        - 仅在用户或方案明确要求或命中观感交付时进入 review；taskrail 不内置调用 way-to-cr，仅在 close 完成通知中顺带提示用户按需另行运行
       must_not:
-        - 自动进入 review 或在 taskrail 流程内调用 solo-code-review / OCR
+        - 自动进入 review 或在 taskrail 流程内调用 way-to-cr / OCR

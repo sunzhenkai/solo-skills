@@ -8,7 +8,7 @@ description: "提交并推送：分析 git 变更、起草提交说明、commit 
 
 面向用户的输出默认使用简体中文。命令名、路径、代码、状态值与既成术语保持原文。commit message 跟随仓库已有 log 风格（中英均可）。
 
-只看 diff 或逐文件评审交给 `solo-code-review`；本 skill 负责落 commit 与 push。
+只看 diff 或逐文件评审交给 `way-to-cr`；本 skill 负责落 commit 与 push。
 
 默认执行 **commit + push**；若用户只要 commit 或只要 push，按其指示。默认沿用当前分支与 tracking remote；意图不清再问（见「何时问用户」）。
 

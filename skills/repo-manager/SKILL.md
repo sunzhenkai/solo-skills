@@ -10,7 +10,7 @@ description: 用 `grepom`（首选）与 `glab`（GitLab 回退）批量管理�
 
 两层 CLI：跨仓批量优先用 `grepom`（源码与安装：github.com/sunzhenkai/grepom）；`grepom` 覆盖不到时再用 `glab`。
 
-单仓的提交 / 推送走 `commit-push`，具体 diff 的评审走 `solo-code-review`；本 skill 管的是多仓与仓库基础设施。
+单仓的提交 / 推送走 `commit-push`，具体 diff 的评审走 `way-to-cr`；本 skill 管的是多仓与仓库基础设施。
 
 配置查找：`grepom` 从当前目录或任意父目录读取 `.grepom.yml`。用 `-c <path>` 覆盖。
 
