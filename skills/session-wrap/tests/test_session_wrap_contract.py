@@ -154,11 +154,26 @@ class SessionWrapContractTest(unittest.TestCase):
             "版本与 tag 现状",
             "渠道与目标环境",
             "生效验证与回滚指向",
-            "分题确认",
+            "伴随数据变更",
+            "各自一题",
             "测试环境部署不等于授权生产部署",
+            "部署不等于授权线上数据清理或迁移",
             "repo-manager",
         ):
             self.assertIn(expected, RELEASE)
+
+    def test_decision_options_cover_execute_and_defer_and_split_data_ops(self) -> None:
+        self.assertIn("须含「本次执行」与「暂不执行」", SKILL)
+        self.assertIn("部署不等于授权线上数据变更", SKILL)
+        for expected in (
+            "覆盖完整决策空间（必须包含「本次执行」）",
+            "互斥且有实质区分",
+            "部署不等于授权线上数据清理/迁移",
+            "不把同一结论换个说法拆成多个选项",
+        ):
+            self.assertIn(expected, PLAN)
+        self.assertIn("选项完整性（不省略执行分支）", RELEASE)
+        self.assertIn("同时包含「本次执行」与「暂不执行」方向", RELEASE)
 
 
 if __name__ == "__main__":
