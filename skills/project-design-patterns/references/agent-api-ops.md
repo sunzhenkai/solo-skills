@@ -13,22 +13,22 @@
 3. **保存凭证**：按下节约定落盘并回执「已保存 + 保存位置」，首次接入后做一次探活。
 4. **后续使用**：用户再提「操作 <应用>」时，先读已保存的配置再调用；配置缺失时向用户要新话术，而非猜测地址。
 
-## 版本与更新
+## 版本与更新（响应头懒触发）
 
-- 操作规范版本 = 本 skill（`project-design-patterns`）`SKILL.md` frontmatter 的 `version`；应用 skill 接口（`{base}/skill.md`）头部以 `skill: project-design-patterns@X.Y.Z` 声明其编写所依据的版本。
-- **每次会话首次操作某个应用前**执行版本检查：
-  1. 读 `project-design-patterns` 的 `SKILL.md` frontmatter `version`；
-  2. 拉取该应用 `/skill.md`，取其声明的期望版本；
-  3. 期望版本高于本地 → 用安装命令覆盖升级（`npx skills add sunzhenkai/solo-skills -s project-design-patterns -g -y`），升级后重读本文件再操作；
-  4. 检查与升级尽量交给 subagent 执行（轻量、副作用小），主会话只接收「已是最新 / 已升级到 X.Y.Z / 升级失败」一句结论；没有 subagent 能力时就地执行。
-- 应用 skill 接口未声明版本（或没有该接口）时跳过检查，按现版本操作。
+- 操作规范版本 = 本 skill（`project-design-patterns`）`SKILL.md` frontmatter 的 `version`；应用服务端可在响应头返回 `X-Patterns-Version` / `X-Skill-Version`，并在 `{base}/skill.md` 头部以 `skill: project-design-patterns@X.Y.Z` 声明所依据版本。
+- **平时直接干活，按触发条件懒刷新**（避免每次会话空跑探活与 `/skill.md` 拉取）：
+  1. 首次新接入（尚无本地凭证或本地端点快照）时，拉取一次 `{base}/skill.md`（若免鉴权可直接拉）并验证一个只读端点；
+  2. 已有本地凭证与端点快照时，直接发起业务请求；
+  3. 仅当业务响应头 `X-Patterns-Version` 高于本机 `project-design-patterns` 版本、或收到 `404` / 契约不匹配时，再拉取 `{base}/skill.md` 并按需升级（`npx skills add sunzhenkai/solo-skills -s project-design-patterns -g -y`，尽量交给 subagent 执行）；
+  4. 应用未声明版本或无 `/skill.md` 时直接按现版本操作。
 
-## 凭证保存约定
+## 凭证保存与读取约定
 
-- 位置：`~/.agent-state/app-keys/<app>.env`，`<app>` 取话术中的应用名小写（如 `hela`）。
+- 统一读取顺序（命中第一个非空，避免多机/多脚本分裂）：**当前环境变量** → **`~/.agent-state/app-keys/<app>.env`** → **`senv env get svc:<APP>_API_BASE` / `svc:<APP>_API_KEY`**（如环境已接 senv）。
+- 本地落盘位置：`~/.agent-state/app-keys/<app>.env`，`<app>` 取话术中的应用名小写（如 `hela`、`llmwiki`）。
 - 内容两行：`APP_API_BASE=<base>`、`APP_API_KEY=<key>`；文件权限 `600`，目录不存在则先创建。
 - 该文件属于个人凭据：保存后向用户确认；输出与日志中只显示 key 前缀（如 `hela_sk_abcd…`），完整明文只在用户明确要求时出现在本地配置中。
-- key 泄露或换设备时提醒用户：在应用设置里删除旧 Key 重建，并更新本文件。
+- key 泄露或换设备时提醒用户：在应用设置里删除旧 Key 重建，并更新本文件或 senv。
 
 ## 认证与调用
 
