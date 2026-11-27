@@ -19,7 +19,7 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状�
    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
    - 跨项目验证的通用方案模式可交 `project-design-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
-3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘（本环节不 push、不自动清理 worktree）。
+3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘，需要 diff / MR 级代码审查时可另行运行 `solo-code-review`（本环节不 push、不自动清理 worktree、不自动调用 `solo-code-review`）。
 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
 5. 按下文「归档与重开」同轮归档整棵任务树并重建 INDEX。未完成关闭不伪写成功总结。
 

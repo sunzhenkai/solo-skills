@@ -123,6 +123,20 @@ class ContractTest(unittest.TestCase):
         self.assertIn("project-design-patterns", close)
         self.assertIn("session-wrap", close)
 
+    def test_review_is_explicit_only_and_never_auto_triggers_solo_code_review(self) -> None:
+        router = read("references", "router.md")
+        review = read("references", "review.md")
+        close = read("references", "close.md")
+        self.assertIn("用户 / 方案明确要求独立评审", router)
+        self.assertIn("不自动触发 code review 或 `solo-code-review`", router)
+        self.assertNotIn("复杂 diff", router)
+        self.assertIn("默认跳过", review)
+        self.assertIn("纯 Git diff / MR / PR 自动化代码审查不纳入本环节", review)
+        self.assertIn("提示用户另行调用 `solo-code-review`", review)
+        self.assertNotIn("复杂或高风险 diff", review)
+        self.assertIn("可另行运行 `solo-code-review`", close)
+        self.assertIn("不自动调用 `solo-code-review`", close)
+
     def test_no_deleted_compat_shells_in_skill(self) -> None:
         skill = read("SKILL.md")
         self.assertNotIn("decide", skill)

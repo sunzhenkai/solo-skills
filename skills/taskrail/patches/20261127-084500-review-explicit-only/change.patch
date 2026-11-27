@@ -1,0 +1,88 @@
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 9e15ae8..c2da71f 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -702,3 +702,15 @@ cases:
+         - 临时日志打 [DEBUG-xxxx] 前缀并在收尾清净，修复后重跑未缩小原始场景
+       must_not:
+         - 未复现直接凭直觉改代码，或收尾遗留未清理调试日志
++
++  - id: review-explicit-only-no-auto-code-review
++    kind: regression
++    judge: llm
++    description: 常规代码任务默认跳过 review 且不自动触发 solo-code-review
++    given: 用户在 taskrail 下完成跨前后端开发并通过全量测试，未要求独立评审且无观感目标
++    expect:
++      must:
++        - 跳过 review，由 execute 自检与 verify 验证直接闭环收口
++        - 仅在用户或方案明确要求或命中观感交付时进入 review，仅用户点名 diff/OCR 审查时才调用 solo-code-review
++      must_not:
++        - 自动进入 review 或自动调用 solo-code-review / OCR
+diff --git a/skills/taskrail/references/review.md b/skills/taskrail/references/review.md
+index 2f8b391..51958fc 100644
+--- a/skills/taskrail/references/review.md
++++ b/skills/taskrail/references/review.md
+@@ -1,22 +1,22 @@
+ # review：按需独立评审
+ 
+ ## 目的
+-在高风险、公共契约、复杂 diff、安全 / 性能敏感或观感交付时引入独立只读评审，暴露实现者盲区。
++仅在用户或方案明确要求独立评审，或命中观感交付验收时引入独立只读评审，暴露实现者盲区。
+ 
+ ## 进入条件
+-公共契约 / 迁移变化、复杂或高风险 diff、安全 / 性能敏感改动、观感交付，或用户 / 方案要求独立评审。
++用户明确要求独立评审、已确认方案（PLAN / design / approve）写明评审项，或任务命中观感交付验收（见 [done.md](done.md)「观感验收」）。
+ 
+ ## 跳过条件
+-小且可逆改动，execute 阶段的 diff 自检与测试已覆盖全部风险。
++默认跳过。未显式要求独立评审且非观感交付的常规代码任务（含跨模块、公共契约或较大 diff），由 execute 阶段 diff 自检与 verify 验证直接闭环，不自动进入本环节。
+ 
+ ## 所需输入
+ criterion、当前提交号或 worktree diff、审与不审范围、相关 design / 契约与运行态证据（截图 / 测试输出）。
+ 
+ ## 执行方法
+ 1. 按评审目标分流：
+-   - 多岗位、方案、契约、观感或 Skill 评审：调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。
+-   - 纯 Git diff / MR / PR 自动化代码审查：调用 `solo-code-review`。
+-   - 对应下游 skill 未安装时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。
++   - 默认（多岗位、方案、契约、观感或 Skill 评审）：调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。
++   - `solo-code-review`（OCR / Git diff 自动化审查）：**仅在用户明确要求跑 `solo-code-review` / OCR / diff 级代码审查时调用**，绝不在 taskrail 常规任务里自动触发。
++   - 对应下游 skill 未安装或评审工具不可用时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。
+ 2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `RF-n` 跟踪。
+ 3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
+ 
+diff --git a/skills/taskrail/references/router.md b/skills/taskrail/references/router.md
+index 7f1b1f3..34cfe40 100644
+--- a/skills/taskrail/references/router.md
++++ b/skills/taskrail/references/router.md
+@@ -21,7 +21,7 @@
+ | 大型项目、公共 / 内部契约、数据、架构、迁移变化 | design | 完全沿用现有模式且无结构 / 架构 / 契约变化 |
+ | 命中 [approve.md](approve.md) 条件（大型 / 重大 / 架构 / 公共契约变更、用户要求审批、难逆高风险或改判据） | approve | 小范围沿用既有架构的可逆改动且用户未要求审批（停点与豁免见 [confirm-protocol.md](confirm-protocol.md)） |
+ | 多交付、多项目、需要增量反馈或一次难回归 | decompose | 一个连贯改动即可实施并验证 |
+-| 高风险、公共契约、复杂 diff、安全 / 性能敏感 | review | 小且可逆改动由 execute 做 diff 自检，可不派独立 reviewer |
++| 用户 / 方案明确要求独立评审，或命中观感交付验收 | review | 默认跳过；常规代码改动由 execute 自检与 verify 闭环，不自动触发 code review 或 `solo-code-review` |
+ | 全部实现产物就绪 | verify | 无；代码任务不得跳过验证 |
+ | 验证全过 | close | 无；done 与归档必须经过 close |
+ 
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index 80a575c..e3f7e62 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -123,6 +123,17 @@ class ContractTest(unittest.TestCase):
+         self.assertIn("project-design-patterns", close)
+         self.assertIn("session-wrap", close)
+ 
++    def test_review_is_explicit_only_and_never_auto_triggers_solo_code_review(self) -> None:
++        router = read("references", "router.md")
++        review = read("references", "review.md")
++        self.assertIn("用户 / 方案明确要求独立评审", router)
++        self.assertIn("不自动触发 code review 或 `solo-code-review`", router)
++        self.assertNotIn("复杂 diff", router)
++        self.assertIn("默认跳过", review)
++        self.assertIn("仅在用户明确要求跑 `solo-code-review`", review)
++        self.assertIn("绝不在 taskrail 常规任务里自动触发", review)
++        self.assertNotIn("复杂或高风险 diff", review)
++
+     def test_no_deleted_compat_shells_in_skill(self) -> None:
+         skill = read("SKILL.md")
+         self.assertNotIn("decide", skill)
