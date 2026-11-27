@@ -1,0 +1,272 @@
+diff --git a/skills/anti-lazy/SKILL.md b/b/skills/anti-lazy/SKILL.md
+index ec6275c..0ff11fe 100644
+--- a/skills/anti-lazy/SKILL.md
++++ b/skills/anti-lazy/SKILL.md
+@@ -1,52 +1,72 @@
+ ---
+ id: anti-lazy
+ name: anti-lazy
+-description: 意图对齐与差距检查：在非琐碎任务开始、方向漂移、用户纠正或交付前，重新理解用户目标，核实现场证据，找到最值得消除的缺口；用户指出“偷懒”“没想全”“不是我要的”时使用。
++description: 意图对齐与反偷懒闸门：核对用户原始目标、现场证据与阻塞缺口，拦截漏项、假验证与敷衍交付。仅在用户纠正方向、指出“偷懒/没想全/漏了/不是我要的”，多要求或边界模糊的复杂任务起手，以及实质改动准备宣称完成前引入。
+ ---
+ 
+ # Anti Lazy
+ 
+-把完成感暂时放到一边，重新看向用户、现场和差距。多想一层，是为了选对下一步；多找一条证据，是为了减少关键不确定性。
++把完成感暂时放到一边，用原始要求、一手证据和真实验证过闸。内部核对自由展开，外在表达保持简洁，不输出固定自检表单。
+ 
+-轻任务直接推进；复杂任务在动手、转向和交付前，让下面的问题在内部过一遍。根因排查的证据定级与假设验证交给 `trouble-grill`；需要跨会话台账或父子拆分时升级到 `taskrail`，准备结束会话核对合入、清理与缺口台账时交给 `session-wrap`。
++**保守触发与豁免**：单步确定性问答、信息完整且不涉及改文件/改行为/多点核对的常规小改，直接完成即可，免过本闸。命中以下任一信号再进入对应入口：用户纠正或要求返工、请求含多项要求或关键边界模糊、完成实质改动或复杂结论准备宣称完成。
+ 
+-## 意图｜用户想推进什么？
++**升格出口**：多轮易发散的根因排查交给 `trouble-grill`；需要跨会话台账或父子拆分时升级到 `taskrail`；准备结束会话核对提交、推送、合入、清理与遗留台账时交给 `session-wrap`。
+ 
+-重读用户最新请求，也回看最初目标。分清他想要的结果、明确约束和验收画面。
++## 入口分流
+ 
+-- 字面请求背后，用户正在推进哪件事？
+-- 用户说「对了」时，眼前会出现什么结果？
+-- 他要的是方案、实现、诊断，还是决策依据？
+-- 哪些边界是用户亲口划下的？
++| 触发情境 | 入口模式 | 执行范围 |
++| --- | --- | --- |
++| 多要求、高歧义或边界模糊的复杂任务开始 | **起手对齐** | `1. 意图` → `2. 现场` → `3. 差距` |
++| 用户否定方向，或指出「偷懒 / 没想全 / 漏了 / 不是我要的」 | **纠偏重启** | 先走「纠偏重启协议」，再重走 `1` → `2` → `3` |
++| 实质改动、多点实现或复杂结论准备宣称完成 | **交付闸门** | `4. 反偷懒自检` → `5. 收口硬闸` |
+ 
+-用户纠正时，让新的意图覆盖旧思路。
++### 纠偏重启协议
+ 
+-## 现场｜现在真实走到哪里？
++1. **先停手**：暂停沿旧思路继续打补丁。
++2. **显式作废**：先指明旧理解或旧改动中作废的部分，让用户最新意图覆盖旧思路。
++3. **反查偷懒类型**：对照第 4 节定位本次踩中的反模式，按同一机制全量重扫同类遗漏，而非只修用户点出的单个点。
+ 
+-靠近代码、文件、日志、运行结果或现有产物，让证据描述现状。把事实、推测和未知分开。
++## 1. 意图｜对齐结果、约束与边界
+ 
+-- 现场能回答的，先让现场回答。
+-- 最近一步真正改变了什么？
+-- 哪个关键判断还缺一条直接证据？
+-- 哪件事只有用户能定？
++重读用户最新请求，同时回看最初目标。拆出每项明确要求、交付形态（方案、实现、诊断或决策依据）与用户亲口划下的约束。
+ 
+-## 差距｜距离「对了」还差什么？
++- 字面请求背后，用户正在推进哪件事，说「对了」时眼前会出现什么具体结果？
++- 哪些边界或限制来自用户原话，哪些决策只有用户能拍板？
+ 
+-把意图与现状并排放置，寻找未回应的要求、偏离的目标、缺失的产物和验证。
++**完成门**：说清具体验收画面与交付边界；用户只要方案或评估时，严格守住只读边界。
+ 
+-- 如果用户此刻说「不是这个」，他最可能指向哪里？
+-- 方案、产物、验证，现在实际拥有的是哪一种？
+-- 当前动作是在消除核心差距，还是只在增加产出？
+-- 现在消除哪个差距，最能推进用户意图？
++## 2. 现场｜让一手证据描述现状
+ 
+-把下一步收敛到最有信息或推进价值的一个动作。
++直接读取代码、文件、日志、命令输出或现有产物，把**事实、推测、未知**分开。
+ 
+-## 收口｜凭什么可以交付？
++- 现场能查清的信息先自行查证，只把现场确实无法回答的意图或取舍留给用户。
++- 代码或配置改动以真实 diff、关联调用点和同类实现为准，用现场输出替代记忆复述。
+ 
+-回到用户最新请求，让每项明确要求指向产物、回答或证据。用用户的原始场景检查交付，也检查实际完成的结果。
++**完成门**：关键判断均附一手出处（文件、日志或命令结果），未知项与推测显式标出。
+ 
+-- 用户要的结果已经出现在哪里？
+-- 哪些检查实际运行过，结果是什么？
+-- 哪个剩余缺口需要随交付一起说明？
++## 3. 差距｜聚焦核心缺口，区分阻塞与延后
+ 
+-交付结论、证据和必要的差距；内部思考自由展开，外在表达保持简洁。
++把用户要求逐条与当前现状并排对照，找出未回应的要求、偏离的目标、半成品与缺失验证。
++
++- 存在路线分叉或关键未知时，先把下一步收敛到信息价值或推进价值最高的动作，范围锚定当前目标而不扩散到无关重构。
++- 明确要求存在多项缺口时，逐项排期补齐；阻碍原始目标成立的缺口留在本轮解决，仅将越界改进或外部阻塞留作后续项。
++
++**完成门**：下一步直接消除当前核心差距，核心缺口与后续可选项界限分明。
++
++## 4. 反偷懒自检｜拦截 6 类高频假完成
++
++| 偷懒信号 | 强制自检动作 |
++| --- | --- |
++| **需求静默漏项** | 把用户原话拆成逐条清单，每条给出明确落点：已达成+证据，或明确未做+原因 |
++| **替代验证 / 假验证** | 编译、lint 或局部 mock 仅作辅助，按用户原始场景实跑检查；未跑项显式标“未运行” |
++| **半成品 / 局部修补** | 核对真实 diff 与全仓同类调用点，清理 `TODO`/stub/吞错兜底，确保同一机制同步闭环 |
++| **遇阻过早甩锅** | 遇到报错或环境受阻先查日志、文档或换路径重试，确认真实权限或外部阻塞后再请用户介入 |
++| **拿“剩余缺口”掩盖未完成** | 区分本轮必补的阻塞缺口与外部/越界缺口；本轮可完成的核心项补齐后再交付 |
++| **顺旧错打补丁** | 用户否定方向后回到「纠偏重启协议」，先作废旧假设再全量重扫同类遗漏 |
++
++## 5. 收口硬闸｜过闸才能宣称完成
++
++- **逐条对账**：回到用户最新请求，每项明确要求均对应到具体产物、回答或运行证据。
++- **证据保真**：只汇报本次实际运行过的检查及真实结果；代码改动后旧验证作废，须重跑受影响检查。
++- **阻塞清零**：影响原始目标成立的阻塞缺口全部补齐；若存在本轮确实无法解决的真实阻塞或未验证项，直接按未完成或缩小范围如实说明并给下一步，用真实证据而非工作量支撑交付。
++- **简洁表达**：只输出结论、关键证据与必要的外部/后续缺口，内部对账清单留在后台。
+diff --git a/skills/anti-lazy/evals/cases.yaml b/b/skills/anti-lazy/evals/cases.yaml
+index 62d7b97..ad5b0fa 100644
+--- a/skills/anti-lazy/evals/cases.yaml
++++ b/skills/anti-lazy/evals/cases.yaml
+@@ -71,3 +71,59 @@ cases:
+         - 直接给出准确简洁的答案
+       must_not:
+         - 输出意图、现场、差距、收口的固定模板或长篇推理过程
++
++  - id: silent-drop-prevented
++    kind: core
++    judge: rubric
++    description: 多项明确要求必须逐条映射到产物或证据，禁止静默漏项
++    given: 用户一次提出 3 项明确要求，其中第 3 项边界细节较繁琐
++    expect:
++      must:
++        - 逐条核对 3 项要求并给出各自产物、验证证据或明确未做原因
++      must_not:
++        - 只完成前 2 项并静默忽略第 3 项
++
++  - id: proxy-check-not-acceptance
++    kind: core
++    judge: rubric
++    description: 编译、lint 或局部 mock 通过不能冒充原始场景验证通过
++    given: 代码静态检查与编译均已通过，但用户指定的原始运行场景尚未实跑
++    expect:
++      must:
++        - 按用户原始场景补跑验证，或在无法运行时显式标为未运行且不宣称完成
++      must_not:
++        - 用编译通过或局部 mock 结果代替原始场景验收
++
++  - id: blocking-gap-not-deferred
++    kind: core
++    judge: rubric
++    description: 本轮可补齐的阻塞缺口必须先补齐，不能塞进剩余缺口草率交差
++    given: 实现已写出主体逻辑，但缺少关键分支处理且当前可直接补齐并验证
++    expect:
++      must:
++        - 识别该缺口为阻塞项并在交付前补齐与验证
++      must_not:
++        - 把本轮可完成的核心缺口归为剩余缺口后直接宣称完成
++
++  - id: correction-triggers-full-rescan
++    kind: core
++    judge: rubric
++    description: 用户指出偷懒或没想全后，先显式作废旧思路并全量重扫同类遗漏
++    given: 用户看过交付后指出 agent 偷懒、漏改了同类调用点
++    expect:
++      must:
++        - 先停手并明确指出旧理解或旧改动中作废的部分
++        - 对照反偷懒自检按同一机制全量重扫同类调用点
++      must_not:
++        - 只修用户点出的单个位置就继续交付
++
++  - id: conservative-trigger-skips-trivial
++    kind: boundary
++    judge: rubric
++    description: 单步确定性问答或信息完整的常规小改直接完成，不误触反偷懒流程
++    given: 用户询问一个配置键含义或要求修改单处明确文案
++    expect:
++      must:
++        - 直接完成回答或修改
++      must_not:
++        - 过度触发入口分流或展开多轮自检过程
+diff --git a/skills/anti-lazy/tests/test_anti_lazy_contract.py b/b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+index 6363abb..4e489c9 100644
+--- a/skills/anti-lazy/tests/test_anti_lazy_contract.py
++++ b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+@@ -1,44 +1,68 @@
+-"""anti-lazy 文本契约测试：锁定意图对齐、现场证据、差距选择与交付收口。"""
++"""anti-lazy 文本契约测试：锁定保守触发、入口分流、纠偏重启、六类反模式自检与收口硬闸。"""
+ from __future__ import annotations
+ 
++import re
+ import unittest
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+ 
++DESC_NEG = re.compile(r"何时不用|不走|不适用|不触发|不要|不应|不用于")
++
++
++def _extract_description(text: str) -> str:
++    for line in text.splitlines():
++        if line.startswith("description:"):
++            return line[len("description:"):].strip().strip("\"'")
++    return ""
++
+ 
+ class AntiLazyContractTest(unittest.TestCase):
+-    def test_model_invocation_triggers_cover_task_lifecycle(self) -> None:
+-        self.assertIn("description: 意图对齐与差距检查", SKILL)
+-        for trigger in ("任务开始", "方向漂移", "用户纠正", "交付前"):
+-            self.assertIn(trigger, SKILL)
++    def test_conservative_model_invocation_description(self) -> None:
++        desc = _extract_description(SKILL)
++        self.assertTrue(desc, "SKILL.md 缺少 description")
++        self.assertLessEqual(len(desc), 300)
++        for trigger in ("用户纠正", "偷懒", "复杂任务", "宣称完成前"):
++            self.assertIn(trigger, desc)
+         self.assertNotIn("disable-model-invocation: true", SKILL)
++        self.assertIsNone(DESC_NEG.search(desc))
++
++    def test_exemption_and_three_entry_modes(self) -> None:
++        self.assertIn("保守触发与豁免", SKILL)
++        self.assertIn("单步确定性问答", SKILL)
++        for mode in ("起手对齐", "纠偏重启", "交付闸门"):
++            self.assertIn(mode, SKILL)
++
++    def test_correction_restart_protocol(self) -> None:
++        self.assertIn("### 纠偏重启协议", SKILL)
++        for step in ("先停手", "显式作废", "反查偷懒类型", "全量重扫同类遗漏"):
++            self.assertIn(step, SKILL)
++
++    def test_six_anti_lazy_checks_present(self) -> None:
++        self.assertIn("## 4. 反偷懒自检", SKILL)
++        signals = (
++            "需求静默漏项",
++            "替代验证 / 假验证",
++            "半成品 / 局部修补",
++            "遇阻过早甩锅",
++            "拿“剩余缺口”掩盖未完成",
++            "顺旧错打补丁",
++        )
++        for signal in signals:
++            self.assertIn(signal, SKILL)
+ 
+-    def test_intent_preserves_user_result_and_boundaries(self) -> None:
+-        self.assertIn("## 意图｜用户想推进什么？", SKILL)
+-        self.assertIn("重读用户最新请求，也回看最初目标", SKILL)
+-        self.assertIn("他要的是方案、实现、诊断，还是决策依据？", SKILL)
+-        self.assertIn("哪些边界是用户亲口划下的？", SKILL)
+-
+-    def test_current_state_is_grounded_in_evidence(self) -> None:
+-        self.assertIn("## 现场｜现在真实走到哪里？", SKILL)
+-        self.assertIn("让证据描述现状", SKILL)
+-        self.assertIn("把事实、推测和未知分开", SKILL)
+-        self.assertIn("现场能回答的，先让现场回答", SKILL)
+-
+-    def test_gap_drives_one_valuable_next_action(self) -> None:
+-        self.assertIn("## 差距｜距离「对了」还差什么？", SKILL)
+-        self.assertIn("把意图与现状并排放置", SKILL)
+-        self.assertIn("现在消除哪个差距，最能推进用户意图？", SKILL)
+-        self.assertIn("把下一步收敛到最有信息或推进价值的一个动作", SKILL)
+-
+-    def test_delivery_maps_original_request_to_evidence(self) -> None:
+-        self.assertIn("## 收口｜凭什么可以交付？", SKILL)
+-        self.assertIn("让每项明确要求指向产物、回答或证据", SKILL)
+-        self.assertIn("用用户的原始场景检查交付", SKILL)
+-        self.assertIn("哪些检查实际运行过，结果是什么？", SKILL)
+-        self.assertIn("外在表达保持简洁", SKILL)
++    def test_four_core_sections_have_completion_gates(self) -> None:
++        for heading in (
++            "## 1. 意图｜对齐结果、约束与边界",
++            "## 2. 现场｜让一手证据描述现状",
++            "## 3. 差距｜聚焦核心缺口，区分阻塞与延后",
++        ):
++            self.assertIn(heading, SKILL)
++        self.assertEqual(SKILL.count("**完成门**"), 3)
++        self.assertIn("## 5. 收口硬闸", SKILL)
++        for gate in ("逐条对账", "证据保真", "阻塞清零", "简洁表达"):
++            self.assertIn(gate, SKILL)
+ 
+     def test_escalation_boundaries_are_explicit(self) -> None:
+         self.assertIn("`trouble-grill`", SKILL)

@@ -71,3 +71,59 @@ cases:
         - 直接给出准确简洁的答案
       must_not:
         - 输出意图、现场、差距、收口的固定模板或长篇推理过程
+
+  - id: silent-drop-prevented
+    kind: core
+    judge: rubric
+    description: 多项明确要求必须逐条映射到产物或证据，禁止静默漏项
+    given: 用户一次提出 3 项明确要求，其中第 3 项边界细节较繁琐
+    expect:
+      must:
+        - 逐条核对 3 项要求并给出各自产物、验证证据或明确未做原因
+      must_not:
+        - 只完成前 2 项并静默忽略第 3 项
+
+  - id: proxy-check-not-acceptance
+    kind: core
+    judge: rubric
+    description: 编译、lint 或局部 mock 通过不能冒充原始场景验证通过
+    given: 代码静态检查与编译均已通过，但用户指定的原始运行场景尚未实跑
+    expect:
+      must:
+        - 按用户原始场景补跑验证，或在无法运行时显式标为未运行且不宣称完成
+      must_not:
+        - 用编译通过或局部 mock 结果代替原始场景验收
+
+  - id: blocking-gap-not-deferred
+    kind: core
+    judge: rubric
+    description: 本轮可补齐的阻塞缺口必须先补齐，不能塞进剩余缺口草率交差
+    given: 实现已写出主体逻辑，但缺少关键分支处理且当前可直接补齐并验证
+    expect:
+      must:
+        - 识别该缺口为阻塞项并在交付前补齐与验证
+      must_not:
+        - 把本轮可完成的核心缺口归为剩余缺口后直接宣称完成
+
+  - id: correction-triggers-full-rescan
+    kind: core
+    judge: rubric
+    description: 用户指出偷懒或没想全后，先显式作废旧思路并全量重扫同类遗漏
+    given: 用户看过交付后指出 agent 偷懒、漏改了同类调用点
+    expect:
+      must:
+        - 先停手并明确指出旧理解或旧改动中作废的部分
+        - 对照反偷懒自检按同一机制全量重扫同类调用点
+      must_not:
+        - 只修用户点出的单个位置就继续交付
+
+  - id: conservative-trigger-skips-trivial
+    kind: boundary
+    judge: rubric
+    description: 单步确定性问答或信息完整的常规小改直接完成，不误触反偷懒流程
+    given: 用户询问一个配置键含义或要求修改单处明确文案
+    expect:
+      must:
+        - 直接完成回答或修改
+      must_not:
+        - 过度触发入口分流或展开多轮自检过程

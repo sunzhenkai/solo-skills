@@ -1,44 +1,68 @@
-"""anti-lazy 文本契约测试：锁定意图对齐、现场证据、差距选择与交付收口。"""
+"""anti-lazy 文本契约测试：锁定保守触发、入口分流、纠偏重启、六类反模式自检与收口硬闸。"""
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
 
+DESC_NEG = re.compile(r"何时不用|不走|不适用|不触发|不要|不应|不用于")
+
+
+def _extract_description(text: str) -> str:
+    for line in text.splitlines():
+        if line.startswith("description:"):
+            return line[len("description:"):].strip().strip("\"'")
+    return ""
+
 
 class AntiLazyContractTest(unittest.TestCase):
-    def test_model_invocation_triggers_cover_task_lifecycle(self) -> None:
-        self.assertIn("description: 意图对齐与差距检查", SKILL)
-        for trigger in ("任务开始", "方向漂移", "用户纠正", "交付前"):
-            self.assertIn(trigger, SKILL)
+    def test_conservative_model_invocation_description(self) -> None:
+        desc = _extract_description(SKILL)
+        self.assertTrue(desc, "SKILL.md 缺少 description")
+        self.assertLessEqual(len(desc), 300)
+        for trigger in ("用户纠正", "偷懒", "复杂任务", "宣称完成前"):
+            self.assertIn(trigger, desc)
         self.assertNotIn("disable-model-invocation: true", SKILL)
+        self.assertIsNone(DESC_NEG.search(desc))
 
-    def test_intent_preserves_user_result_and_boundaries(self) -> None:
-        self.assertIn("## 意图｜用户想推进什么？", SKILL)
-        self.assertIn("重读用户最新请求，也回看最初目标", SKILL)
-        self.assertIn("他要的是方案、实现、诊断，还是决策依据？", SKILL)
-        self.assertIn("哪些边界是用户亲口划下的？", SKILL)
+    def test_exemption_and_three_entry_modes(self) -> None:
+        self.assertIn("保守触发与豁免", SKILL)
+        self.assertIn("单步确定性问答", SKILL)
+        for mode in ("起手对齐", "纠偏重启", "交付闸门"):
+            self.assertIn(mode, SKILL)
 
-    def test_current_state_is_grounded_in_evidence(self) -> None:
-        self.assertIn("## 现场｜现在真实走到哪里？", SKILL)
-        self.assertIn("让证据描述现状", SKILL)
-        self.assertIn("把事实、推测和未知分开", SKILL)
-        self.assertIn("现场能回答的，先让现场回答", SKILL)
+    def test_correction_restart_protocol(self) -> None:
+        self.assertIn("### 纠偏重启协议", SKILL)
+        for step in ("先停手", "显式作废", "反查偷懒类型", "全量重扫同类遗漏"):
+            self.assertIn(step, SKILL)
 
-    def test_gap_drives_one_valuable_next_action(self) -> None:
-        self.assertIn("## 差距｜距离「对了」还差什么？", SKILL)
-        self.assertIn("把意图与现状并排放置", SKILL)
-        self.assertIn("现在消除哪个差距，最能推进用户意图？", SKILL)
-        self.assertIn("把下一步收敛到最有信息或推进价值的一个动作", SKILL)
+    def test_six_anti_lazy_checks_present(self) -> None:
+        self.assertIn("## 4. 反偷懒自检", SKILL)
+        signals = (
+            "需求静默漏项",
+            "替代验证 / 假验证",
+            "半成品 / 局部修补",
+            "遇阻过早甩锅",
+            "拿“剩余缺口”掩盖未完成",
+            "顺旧错打补丁",
+        )
+        for signal in signals:
+            self.assertIn(signal, SKILL)
 
-    def test_delivery_maps_original_request_to_evidence(self) -> None:
-        self.assertIn("## 收口｜凭什么可以交付？", SKILL)
-        self.assertIn("让每项明确要求指向产物、回答或证据", SKILL)
-        self.assertIn("用用户的原始场景检查交付", SKILL)
-        self.assertIn("哪些检查实际运行过，结果是什么？", SKILL)
-        self.assertIn("外在表达保持简洁", SKILL)
+    def test_four_core_sections_have_completion_gates(self) -> None:
+        for heading in (
+            "## 1. 意图｜对齐结果、约束与边界",
+            "## 2. 现场｜让一手证据描述现状",
+            "## 3. 差距｜聚焦核心缺口，区分阻塞与延后",
+        ):
+            self.assertIn(heading, SKILL)
+        self.assertEqual(SKILL.count("**完成门**"), 3)
+        self.assertIn("## 5. 收口硬闸", SKILL)
+        for gate in ("逐条对账", "证据保真", "阻塞清零", "简洁表达"):
+            self.assertIn(gate, SKILL)
 
     def test_escalation_boundaries_are_explicit(self) -> None:
         self.assertIn("`trouble-grill`", SKILL)

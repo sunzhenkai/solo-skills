@@ -31,8 +31,10 @@ class NeighborSkillContract(unittest.TestCase):
         self.assertIn("跨任务的 skill 改进交给 `skill-upgrader`", close)
 
     def test_anti_lazy_and_optional_grilling_wired_at_key_gates(self) -> None:
-        for name in ("confirm-protocol.md", "design.md", "plan.md", "verify.md"):
+        for name in ("confirm-protocol.md", "design.md", "intent.md", "plan.md", "verify.md"):
             self.assertIn("`anti-lazy`", read(name), name)
+        self.assertIn("走纠偏重启", read("intent.md"))
+        self.assertIn("过交付闸门", read("verify.md"))
         grill = read("grill.md")
         self.assertIn("不自答闭环", grill)
         self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)

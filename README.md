@@ -11,7 +11,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `taskrail` | **任务轨道（唯一编排入口）**：按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；自动规划切片与 `subtasks/`，按依赖推进并在父任务做集成验收；direct / OpenSpec、human / goal 相互独立；workspace 台账可恢复，统一验证、总结知识并归档 |
 | `taskflow` | direct / OpenSpec 两种执行适配器共用 workspace 多仓 git worktree 隔离；OpenSpec 子 change 按依赖滚动展开、逐片提交，driver 归档后仍回 taskrail 验收 |
 | `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
-| `anti-lazy` | 意图对齐与差距检查：用提示引导模型核实现场、选择关键下一步并按证据收口 |
+| `anti-lazy` | 意图对齐与反偷懒闸门：按起手/纠偏/交付三入口核对目标、现场证据与阻塞缺口，拦截漏项与假验证 |
 | `way-to-fix` | 问题修复闭环：以复现和因果证据确认根因，给出或实施最小修复，验证原始场景并检查同类风险 |
 | `session-wrap` | 会话收尾：先判主线是否完成，未完成时确认继续做完、暂停挂起还是彻底放弃；已完成时核对交付闭环（含推送、提 MR/PR、合入及命中信号时的打 tag/发布/部署）、现场清空与遗留落宿，经确认后执行并给明确放手结论 |
 

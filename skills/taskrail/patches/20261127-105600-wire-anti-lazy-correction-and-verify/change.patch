@@ -1,0 +1,42 @@
+diff --git a/skills/taskrail/references/intent.md b/b/skills/taskrail/references/intent.md
+index 4bf96db..5b89a9c 100644
+--- a/skills/taskrail/references/intent.md
++++ b/skills/taskrail/references/intent.md
+@@ -35,7 +35,7 @@
+ 
+ ## 纠偏与变更
+ 
+-- 用户指出错误先回一手资料重查，只改受影响结论并给出处；同一错误不重犯。
++- 用户指出错误、方向不对或漏项时，按 `anti-lazy` 走纠偏重启：先声明旧假设或旧改动中作废的部分，回一手资料重查并全量重扫同类遗漏，只改受影响结论并给出处；同一错误不重犯。
+ - 多轮对不上时并排两种理解和各自证据；仍缺只有用户知道的信息才真阻塞。
+ - criterion 必须可检查；性能写样本 / 指标，观感写参照与验收方式，不能用“高质量”代替。
+ - 中途变更按 [contract.md](contract.md)「意图与认知变更」：更新 criterion、标旧认知 refuted / superseded，只使受影响产物失效。
+diff --git a/skills/taskrail/references/verify.md b/b/skills/taskrail/references/verify.md
+index 24be151..ecd168f 100644
+--- a/skills/taskrail/references/verify.md
++++ b/skills/taskrail/references/verify.md
+@@ -14,7 +14,7 @@ criterion、PLAN / driver 验证记录、交付标准、当前 worktree、子任
+ 
+ ## 执行方法
+ 1. 在对应 worktree 跑 focused tests，再跑受影响的静态检查与回归；命令和结果写证据文件，摘要有路径。
+-2. 对照 criterion、用户“不做”和交付标准逐项核对，并按 `anti-lazy` 核对原始要求与现场证据之间的差距（结果在哪、哪些检查真实跑过、剩余缺口是什么）；代码变化后旧证据失效。
++2. 对照 criterion、用户“不做”和交付标准逐项核对，并按 `anti-lazy` 过交付闸门（逐条对账无静默漏项、按原始场景实跑验证而非静态替代、核对 diff 与同类点无半成品、阻塞缺口必补齐）；代码变化后旧证据失效。
+ 3. 父任务必须执行 ROADMAP 集成项和跨仓主流程，再验总判据；不能只汇总子任务结论。
+ 4. reviewer Blocker / Major 修复后重验；需要接受未修复项时，human 按确认协议由用户明确接受并记录 accepted-recorded，goal 不放行，执行者不能自行接受。缺证据不能标通过；验证不足或缩小交付按确认协议重新放行。
+ 5. Web UI、性能、安全等按命中的质量包补证据。
+diff --git a/skills/taskrail/tests/test_neighbor_skill_contract.py b/b/skills/taskrail/tests/test_neighbor_skill_contract.py
+index b8d28a3..82fd0b6 100644
+--- a/skills/taskrail/tests/test_neighbor_skill_contract.py
++++ b/skills/taskrail/tests/test_neighbor_skill_contract.py
+@@ -31,8 +31,10 @@ class NeighborSkillContract(unittest.TestCase):
+         self.assertIn("跨任务的 skill 改进交给 `skill-upgrader`", close)
+ 
+     def test_anti_lazy_and_optional_grilling_wired_at_key_gates(self) -> None:
+-        for name in ("confirm-protocol.md", "design.md", "plan.md", "verify.md"):
++        for name in ("confirm-protocol.md", "design.md", "intent.md", "plan.md", "verify.md"):
+             self.assertIn("`anti-lazy`", read(name), name)
++        self.assertIn("走纠偏重启", read("intent.md"))
++        self.assertIn("过交付闸门", read("verify.md"))
+         grill = read("grill.md")
+         self.assertIn("不自答闭环", grill)
+         self.assertIn("可选外部 skill `grilling` 或 `grill-with-docs`", grill)
