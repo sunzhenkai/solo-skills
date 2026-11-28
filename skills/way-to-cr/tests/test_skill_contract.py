@@ -122,7 +122,7 @@ class BoundaryAndEvolutionTest(unittest.TestCase):
     def test_boundaries_and_self_evolution(self) -> None:
         self.assertIn("无 diff 的全仓静态扫描直接用 `ocr scan`", SKILL)
         self.assertIn("默认只审查、不改代码", SKILL)
-        self.assertIn("交给 `role-based-reviewer`", SKILL)
+        self.assertIn("交给 `role-review`", SKILL)
         self.assertIn("evals/cases.yaml", SKILL)
         self.assertIn("skill-upgrader", SKILL)
 

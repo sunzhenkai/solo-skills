@@ -1,0 +1,150 @@
+diff --git a/skills/agent-docs-writer/SKILL.md b/skills/agent-docs/SKILL.md
+similarity index 87%
+rename from skills/agent-docs-writer/SKILL.md
+rename to skills/agent-docs/SKILL.md
+index d4a08ce..fc3541d 100644
+--- a/skills/agent-docs-writer/SKILL.md
++++ b/skills/agent-docs/SKILL.md
+@@ -1,10 +1,10 @@
+ ---
+-id: agent-docs-writer
+-name: agent-docs-writer
+-description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更新 AGENTS.md / CLAUDE.md，检查触发、信息层级、完成条件与验证闭环。用户要求创建 skill、编写 agent instructions、整理 AGENTS.md 或诊断文档不生效时使用。
++id: agent-docs
++name: agent-docs
++description: 创建与评审 agent 文档（原 agent-docs-writer）：从零设计 SKILL.md，生成或更新 AGENTS.md / CLAUDE.md，检查触发、信息层级、完成条件与验证闭环。用户要求创建 skill、编写 agent instructions、整理 AGENTS.md 或诊断文档不生效时使用。
+ ---
+ 
+-# Agent Docs Writer
++# Agent Docs
+ 
+ 把真实工作方式沉淀为 agent 可发现、可执行、可验证的文档。交付以目标 agent 的实际行为为准，Markdown 完整只是其中一项。
+ 
+@@ -16,7 +16,7 @@ description: 创建与评审 agent 文档：从零设计 SKILL.md，生成或更
+ | `instructions` | 新建或更新 `AGENTS.md` / `CLAUDE.md` | 用户明确要求写入后编辑 | 指令来自仓库证据，作用域清楚，相关检查已运行或标明缺口 |
+ | `review` | 评审、审计或诊断已有 agent 文档 | 只读 | 每项发现都有位置、影响与可执行建议 |
+ 
+-已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-docs-writer` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
++已有 Skill 的正文或配套修改交给 `skill-upgrader`，沿用其 patch 审计流程；`agent-docs` 负责从零创建和只读评审。用户同时要求评审与修复时，先完成 `review`，再按目标类型进入对应写入路径。
+ 
+ 进入路径后读取对应细则：
+ 
+diff --git a/skills/agent-docs-writer/evals/cases.yaml b/skills/agent-docs/evals/cases.yaml
+similarity index 99%
+rename from skills/agent-docs-writer/evals/cases.yaml
+rename to skills/agent-docs/evals/cases.yaml
+index 58d9371..406620d 100644
+--- a/skills/agent-docs-writer/evals/cases.yaml
++++ b/skills/agent-docs/evals/cases.yaml
+@@ -1,5 +1,5 @@
+ version: 1
+-skill: agent-docs-writer
++skill: agent-docs
+ cases:
+   - id: create-skill-from-real-workflow
+     kind: core
+diff --git a/skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/change.patch b/skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/change.patch
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/change.patch
+rename to skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/change.patch
+diff --git a/skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/proposal.md b/skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/proposal.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/proposal.md
+rename to skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/proposal.md
+diff --git a/skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/result.md b/skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/result.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233341-rename-to-agent-docs-writer/result.md
+rename to skills/agent-docs/patches/20261112-233341-rename-to-agent-docs-writer/result.md
+diff --git a/skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/change.patch b/skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/change.patch
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/change.patch
+rename to skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/change.patch
+diff --git a/skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/proposal.md b/skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/proposal.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/proposal.md
+rename to skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/proposal.md
+diff --git a/skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/result.md b/skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/result.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261112-233516-fix-self-reference-after-rename/result.md
+rename to skills/agent-docs/patches/20261112-233516-fix-self-reference-after-rename/result.md
+diff --git a/skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/change.patch b/skills/agent-docs/patches/20261118-014209-review-severity-mapping/change.patch
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/change.patch
+rename to skills/agent-docs/patches/20261118-014209-review-severity-mapping/change.patch
+diff --git a/skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/proposal.md b/skills/agent-docs/patches/20261118-014209-review-severity-mapping/proposal.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/proposal.md
+rename to skills/agent-docs/patches/20261118-014209-review-severity-mapping/proposal.md
+diff --git a/skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/result.md b/skills/agent-docs/patches/20261118-014209-review-severity-mapping/result.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261118-014209-review-severity-mapping/result.md
+rename to skills/agent-docs/patches/20261118-014209-review-severity-mapping/result.md
+diff --git a/skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/change.patch b/skills/agent-docs/patches/20261124-234800-review-interaction-gates/change.patch
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/change.patch
+rename to skills/agent-docs/patches/20261124-234800-review-interaction-gates/change.patch
+diff --git a/skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/proposal.md b/skills/agent-docs/patches/20261124-234800-review-interaction-gates/proposal.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/proposal.md
+rename to skills/agent-docs/patches/20261124-234800-review-interaction-gates/proposal.md
+diff --git a/skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/result.md b/skills/agent-docs/patches/20261124-234800-review-interaction-gates/result.md
+similarity index 100%
+rename from skills/agent-docs-writer/patches/20261124-234800-review-interaction-gates/result.md
+rename to skills/agent-docs/patches/20261124-234800-review-interaction-gates/result.md
+diff --git a/skills/agent-docs-writer/references/agents-md.md b/skills/agent-docs/references/agents-md.md
+similarity index 100%
+rename from skills/agent-docs-writer/references/agents-md.md
+rename to skills/agent-docs/references/agents-md.md
+diff --git a/skills/agent-docs-writer/references/review.md b/skills/agent-docs/references/review.md
+similarity index 93%
+rename from skills/agent-docs-writer/references/review.md
+rename to skills/agent-docs/references/review.md
+index ad82331..a322b0e 100644
+--- a/skills/agent-docs-writer/references/review.md
++++ b/skills/agent-docs/references/review.md
+@@ -57,7 +57,7 @@
+ 建议：可检查的目标行为或最小修改方向
+ ```
+ 
+-级别使用 `high` / `medium` / `low`：high 表示会稳定导致错误行为或安全问题，medium 表示常见场景明显受损，low 表示局部可维护性问题。三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报；需要与其他岗位视角并列审查时，交给它的 `roles=skill`，判据与本节一致。没有证据支撑的猜想放入“待验证”，不计为已确认发现。
++级别使用 `high` / `medium` / `low`：high 表示会稳定导致错误行为或安全问题，medium 表示常见场景明显受损，low 表示局部可维护性问题。三级依次对应 `role-review` 的 Blocker / Major / 默认不报；需要与其他岗位视角并列审查时，交给它的 `roles=skill`，判据与本节一致。没有证据支撑的猜想放入“待验证”，不计为已确认发现。
+ 
+ 完成标志：每项发现都能定位、解释影响并转化为可验收动作；总结同时说明已验证范围和评审盲区。
+ 
+diff --git a/skills/agent-docs-writer/references/skill-authoring.md b/skills/agent-docs/references/skill-authoring.md
+similarity index 100%
+rename from skills/agent-docs-writer/references/skill-authoring.md
+rename to skills/agent-docs/references/skill-authoring.md
+diff --git a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py b/skills/agent-docs/tests/test_agent_docs_contract.py
+similarity index 93%
+rename from skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
+rename to skills/agent-docs/tests/test_agent_docs_contract.py
+index 36f773b..bad30aa 100644
+--- a/skills/agent-docs-writer/tests/test_agent_docs_writer_contract.py
++++ b/skills/agent-docs/tests/test_agent_docs_contract.py
+@@ -1,4 +1,4 @@
+-"""agent-docs-writer 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
++"""agent-docs 文本契约：路径边界、证据门禁、信息落点与行为验证。"""
+ 
+ from __future__ import annotations
+ 
+@@ -19,7 +19,7 @@ class FrontmatterContract(unittest.TestCase):
+     def test_frontmatter_trio(self) -> None:
+         self.assertRegex(
+             SKILL,
+-            r"^---\nid: agent-docs-writer\nname: agent-docs-writer\ndescription: .+\n---",
++            r"^---\nid: agent-docs\nname: agent-docs\ndescription: .+\n---",
+         )
+ 
+     def test_description_covers_positive_trigger_branches(self) -> None:
+@@ -109,8 +109,8 @@ class ReviewContract(unittest.TestCase):
+             self.assertIn(needle, REVIEW)
+         self.assertIn("已有 Skill 交给 `skill-upgrader`", REVIEW)
+ 
+-    def test_severity_maps_to_role_based_reviewer(self) -> None:
+-        self.assertIn("三级依次对应 `role-based-reviewer` 的 Blocker / Major / 默认不报", REVIEW)
++    def test_severity_maps_to_role_review(self) -> None:
++        self.assertIn("三级依次对应 `role-review` 的 Blocker / Major / 默认不报", REVIEW)
+         self.assertIn("交给它的 `roles=skill`", REVIEW)
+ 
+     def test_review_and_authoring_check_confirmation_closure_and_plain_language(self) -> None:

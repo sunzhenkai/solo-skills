@@ -10,7 +10,7 @@ task 系列解决四件事：**任务有可持续更新的文档**、**代码在
 |---|---|
 | `taskrail` | 唯一编排入口：workspace 绑定、意图与 criterion、动态 references、自动拆分、父子任务、恢复、验证、总结与归档 |
 | `taskflow` | 代码执行与隔离：为每个修改仓准备 git worktree；按选择走 direct 或 OpenSpec；滚动实施、提交和留下证据 |
-| `role-based-reviewer` | 按需的岗位化只读评审，不是每个任务的固定环节 |
+| `role-review` | 按需的岗位化只读评审，不是每个任务的固定环节 |
 
 固定主干只有：**目标与 criterion → 当前最小计划 → 动态 references → verify → close**。中间没有 `skip/full` 两条固化流程。
 

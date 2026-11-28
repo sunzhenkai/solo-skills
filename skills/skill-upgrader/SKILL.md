@@ -16,7 +16,7 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自�
 |-------|------|
 | **本 skill** | 任意 Skill：模式门禁后，`update`（改正文/配套）或 `self-upgrade`（加 examples/evals/experience）；二者都走 `<skill-dir>/patches/` |
 | `evolve` 模式（原 `skill-evolver`） | 基于多次真实执行：提案 → `evolutions/` 候选 → eval → 晋升生产稿；进入时读 [references/evolve.md](references/evolve.md) |
-| `agent-docs-writer` | 从零创建 Skill、只读评审 agent 文档；评审发现需要改已有 Skill 时交回本 skill |
+| `agent-docs` | 从零创建 Skill、只读评审 agent 文档；评审发现需要改已有 Skill 时交回本 skill |
 
 下文工作流与 patch 协议适用于 `update` / `self-upgrade`（不根据经验改核心行为）；按执行经验进化走 `evolve`（写 `evolutions/`）。
 
@@ -38,7 +38,7 @@ description: "以可审计 patch 更新已有 Skill（update）、升级为自�
 2. **点名自进化 / 自更新 / 加 examples·evals·experience / 升级为可进化** → `self-upgrade`。
 3. **两者都像或都不像**：先问一句二选一，不猜。笼统的「优化一下这个 Skill」不算已选定模式。
 4. **按真实执行经验进化正文**（含点名 `skill-evolver`）→ `evolve`。
-5. **从零创建 Skill** → 停止；交给 `agent-docs-writer` 的 `skill` 路径。
+5. **从零创建 Skill** → 停止；交给 `agent-docs` 的 `skill` 路径。
 
 一轮 patch 只解决 **一个** 内聚问题、使用 **一种** 模式。同一问题跨多个 Skill（如两个 Skill 的边界互指）时，每个目标 Skill 各建一份 patch 目录，proposal 的 Conflict check 互相注明配套 patch。
 

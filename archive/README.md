@@ -23,12 +23,15 @@ skill 改名、并入其他 skill，或删除了会被其他 skill 引用的概�
 
 | 旧名 | 现在 | 说明 |
 |------|------|------|
-| `agent-wizard` | `agent-docs-writer` | 改名 |
+| `agent-wizard` | `agent-docs` | 改名（原 `agent-docs-writer`） |
 | `code-explore` | `project-explore` | 改名 |
 | `llm-wiki` | `wiki-data` | 改名 |
 | `skill-evolver` | `skill-upgrader` | 并入为 `evolve` 模式 |
 | `agent-roster-flow` | `agent-roster` | 并入为 flow 模式 |
-| `app-api-ops` | `project-design-patterns` | 改名 `agent-api-ops` 后并入其 `references/agent-api-ops.md` |
-| `agent-api-ops` | `project-design-patterns` | 并入为 `references/agent-api-ops.md`，不再独立安装 |
+| `app-api-ops` | `project-patterns` | 改名 `agent-api-ops` 后并入其 `references/agent-api-ops.md` |
+| `agent-api-ops` | `project-patterns` | 并入为 `references/agent-api-ops.md`，不再独立安装 |
 | `wizard` | — | taskrail 改为动态路由，不再有 wizard 环节 |
 | `solo-code-review` | `way-to-cr` | 改名并扩展为多引擎代码审查 |
+| `role-based-reviewer` | `role-review` | 改名，与 `role-chat` 对齐 |
+| `agent-docs-writer` | `agent-docs` | 改名 |
+| `project-design-patterns` | `project-patterns` | 改名 |

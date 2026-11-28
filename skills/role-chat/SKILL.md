@@ -88,7 +88,7 @@ disable-model-invocation: true
 - 不改文件、不落盘、不跑构建与测试、不执行命令。
 - 不主动 dump 整张角色表或能力清单。
 - 不做无立场的和稀泥：某角色开口就要给出该角色的判断与依据。
-- 用户要 review 具体 diff → 交回 `{{slash:role-based-reviewer}}`；要落实现 → 交回实现类流程；本 skill 不代做。
+- 用户要 review 具体 diff → 交回 `{{slash:role-review}}`；要落实现 → 交回实现类流程；本 skill 不代做。
 - 未过门 1 时，别把普通问答硬套进本流程。
 
 ## 继续与退出

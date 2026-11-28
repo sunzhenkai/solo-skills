@@ -26,7 +26,7 @@ description: 通用 UI 设计、实现与评审引擎：定设计方向、建设
 | 设计系统、工程化检查、token / 组件统一、UI 架构优化 | system | token 按 [system.md](references/system.md)；工程化按 [engineering.md](references/engineering.md) |
 | 文件、报告、方案做成浏览器阅读页 | page | 按 [page.md](references/page.md) 从模板落盘，写轻量方向卡 |
 
-混合意图按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。脚手架先 project-init；多角色评审走 role-based-reviewer；以图为主的讲解页或独立架构 / 流程 / 时序图优先交 `visualize`（本 skill 承接文字为主的阅读页与降级图解）。
+混合意图按顺序串起来并说明，例如没有设计系统的项目里做设置页，就是 system 再 build。脚手架先 project-init；多角色评审走 role-review；以图为主的讲解页或独立架构 / 流程 / 时序图优先交 `visualize`（本 skill 承接文字为主的阅读页与降级图解）。
 
 ## build 主流程
 

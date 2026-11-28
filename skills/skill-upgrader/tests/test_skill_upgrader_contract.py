@@ -27,9 +27,9 @@ class ModeGateContract(unittest.TestCase):
         self.assertIn("references/evolve.md", SKILL)
         self.assertTrue((ROOT / "references" / "evolve.md").is_file())
 
-    def test_creation_routes_to_agent_docs_writer(self) -> None:
-        self.assertIn("交给 `agent-docs-writer` 的 `skill` 路径", SKILL)
-        self.assertIn("| `agent-docs-writer` | 从零创建 Skill", SKILL)
+    def test_creation_routes_to_agent_docs(self) -> None:
+        self.assertIn("交给 `agent-docs` 的 `skill` 路径", SKILL)
+        self.assertIn("| `agent-docs` | 从零创建 Skill", SKILL)
 
     def test_cross_skill_issue_gets_one_patch_per_skill(self) -> None:
         self.assertIn("每个目标 Skill 各建一份 patch 目录", SKILL)

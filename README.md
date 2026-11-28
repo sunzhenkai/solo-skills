@@ -4,65 +4,60 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 
 ## 包含的 Skills
 
-### 任务流与交付编排
+### 任务编排与委派
 
 | Skill | 用途 |
 | --- | --- |
 | `taskrail` | **任务轨道（唯一编排入口）**：按证据动态进入、跳过或重入 explore / diagnose / grill / design / approve / decompose 等 references；自动规划切片与 `subtasks/`，按依赖推进并在父任务做集成验收；direct / OpenSpec、human / goal 相互独立；workspace 台账可恢复，统一验证、总结知识并归档 |
 | `taskflow` | direct / OpenSpec 两种执行适配器共用 workspace 多仓 git worktree 隔离；OpenSpec 子 change 按依赖滚动展开、逐片提交，driver 归档后仍回 taskrail 验收 |
-| `role-based-reviewer` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
-| `anti-lazy` | 意图对齐与反偷懒闸门：按起手/纠偏/交付三入口核对目标、现场证据与阻塞缺口，拦截漏项与假验证 |
-| `way-to-fix` | 问题修复闭环：以复现和因果证据确认根因，给出或实施最小修复，验证原始场景并检查同类风险 |
 | `session-wrap` | 会话收尾：先判主线是否完成，未完成时确认继续做完、暂停挂起还是彻底放弃；已完成时核对交付闭环（含推送、提 MR/PR、合入及命中信号时的打 tag/发布/部署）、现场清空与遗留落宿，经确认后执行并给明确放手结论 |
-
-### 跨 agent 委派
-
-| Skill | 用途 |
-| --- | --- |
 | `agent-roster` | 名册化委派：Endpoint 探测、选人、契约执行、Handoff 回收；flow 模式按 Stage 编排跨 agent 任务（原 agent-roster-flow） |
 
-### 代码与仓库工具
+### 质量、排查与评审
 
 | Skill | 用途 |
 | --- | --- |
-| `commit-push` | 分析变更、起草提交说明、commit 并 push |
-| `project-explore` | 项目理解与代码取证（Atlas/wiki 路由、问答、调用链、影响面、持久化交接） |
+| `anti-lazy` | 意图对齐与反偷懒闸门：按起手/纠偏/交付三入口核对目标、现场证据与阻塞缺口，拦截漏项与假验证 |
+| `way-to-fix` | 问题修复闭环：以复现和因果证据确认根因，给出或实施最小修复，验证原始场景并检查同类风险 |
+| `trouble-grill` | 问题排查拷问：以可证伪锚点、假设分级与四道门防失焦，适用多轮或易发散的根因排查 |
 | `way-to-cr` | 多引擎代码审查（内置 / Claude Code / Codex / OCR），支持未提交改动、commit 与 MR / PR |
-| `repo-manager` | 仓库生命周期管理 |
+| `role-review` | 可组合的角色化只读评审（engineer/algo/data/sre/ops/biz/product/design/qa/skill） |
+
+### 项目与仓库工具
+
+| Skill | 用途 |
+| --- | --- |
 | `project-init` | 按约定脚手架创建或对齐项目 |
+| `project-explore` | 项目理解与代码取证（Atlas/wiki 路由、问答、调用链、影响面、持久化交接） |
+| `project-atlas` | 项目架构与业务逻辑金字塔地图：Markdown / HTML / 静态资源互链、增量维护与源码变动复核 |
+| `project-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入（含 `agent-api-ops` 操作规范）与模型供应商管理（含 `models.dev` 加载与两级联动实现 prompt） |
+| `commit-push` | 分析变更、起草提交说明、commit 并 push |
+| `repo-manager` | 仓库生命周期管理 |
 | `service-manager` | 项目服务启停 / 状态 / 日志台账 |
 | `lark-cli` | 飞书 / Lark CLI 路由 |
 
-### 界面与设计
+### 界面与可视化
 
 | Skill | 用途 |
 | --- | --- |
-| `pretty-ui` | 通用 UI 设计、实现与评审引擎：既有/非 React 项目沿用原技术栈，提供设计方向、设计体系、截图打磨、评审与静态 HTML 阅读页 |
 | `ui-kit` | **默认 UI 总入口**：按技术栈分派 pretty-ui 或 React 模板路线，衔接风格包、专项 UI skills、DESIGN.md 与验收 |
+| `pretty-ui` | 通用 UI 设计、实现与评审引擎：既有/非 React 项目沿用原技术栈，提供设计方向、设计体系、截图打磨、评审与静态 HTML 阅读页 |
 | `visualize` | 内容可视化编排：把文档、方案、对话或数据整理成带出处的视觉简报，交 archify（结构图）或 visual-explainer（讲解页）绘制，再核对事实与画面；下游缺失时降级到 pretty-ui 或 Mermaid |
 
-### 项目设计模式与接入
-
-| Skill | 用途 |
-| --- | --- |
-| `project-design-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入（含 `agent-api-ops` 操作规范）与模型供应商管理（含 `models.dev` 加载与两级联动实现 prompt） |
-
-### 知识与内容
+### 知识与对话
 
 | Skill | 用途 |
 | --- | --- |
 | `wiki-data` | 本地 Markdown 知识 wiki 维护 |
-| `project-atlas` | 项目架构与业务逻辑金字塔地图：Markdown / HTML / 静态资源互链、增量维护与源码变动复核 |
 | `role-chat` | 多视角角色对话陪练 |
 
-### Skill 工具链（自进化）
+### Skill 工具链
 
 | Skill | 用途 |
 | --- | --- |
-| `skills-store` | skill 审计与安装门禁 |
-| `agent-docs-writer` | 从零创建 Skill、生成或更新 AGENTS.md / CLAUDE.md、只读评审 agent 文档；覆盖证据采集、信息落点与验证闭环 |
+| `agent-docs` | 从零创建 Skill、生成或更新 AGENTS.md / CLAUDE.md、只读评审 agent 文档；覆盖证据采集、信息落点与验证闭环 |
 | `skill-upgrader` | 可审计 patch 更新 skill、升级为自进化结构；`evolve` 模式按多次真实执行经验进化（原 skill-evolver） |
-| `trouble-grill` | 问题排查拷问 |
+| `skills-store` | skill 审计与安装门禁 |
 
 ## 安装
 
@@ -79,7 +74,7 @@ npx skills add sunzhenkai/solo-skills -s ui-kit -s pretty-ui             # UI �
 
 ### 依赖组
 
-下表的 skill 用相对链接直接读取另一个 skill 的文件，单独安装会断链，需要一起装。其余 skill 之间只按名称或可选文件锚点互相指向，对方没装时按各自正文降级执行（`taskrail` 与 `role-based-reviewer` 对 `ui-kit` / `pretty-ui` 已解除强依赖，需要 Web UI 视觉验收/返修时再按需同装）。新增跨 skill 相对链接时在此登记，`tests/test_cross_skill_refs.py` 会核对。
+下表的 skill 用相对链接直接读取另一个 skill 的文件，单独安装会断链，需要一起装。其余 skill 之间只按名称或可选文件锚点互相指向，对方没装时按各自正文降级执行（`taskrail` 与 `role-review` 对 `ui-kit` / `pretty-ui` 已解除强依赖，需要 Web UI 视觉验收/返修时再按需同装）。新增跨 skill 相对链接时在此登记，`tests/test_cross_skill_refs.py` 会核对。
 
 | Skill | 需要同装 | 原因 |
 | --- | --- | --- |

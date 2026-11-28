@@ -1,0 +1,26 @@
+diff --git a/skills/way-to-cr/SKILL.md b/skills/way-to-cr/SKILL.md
+index de1a58e..af8ab95 100644
+--- a/skills/way-to-cr/SKILL.md
++++ b/skills/way-to-cr/SKILL.md
+@@ -9,7 +9,7 @@ license: MIT
+ 
+ 面向个人与小团队的多引擎 **Git diff 级代码审查**（原 `solo-code-review`）：先厘清范围与风险，再由用户选方案与模型，最后按 `P0~P3` 输出精炼报告并按需落盘或发布评论。
+ 
+-架构评审、岗位视角评审、需求/规格符合性评审交给 `role-based-reviewer`。默认只审查、不改代码；用户明确要求「顺手修」时再改代码。无 diff 的全仓静态扫描直接用 `ocr scan`。
++架构评审、岗位视角评审、需求/规格符合性评审交给 `role-review`。默认只审查、不改代码；用户明确要求「顺手修」时再改代码。无 diff 的全仓静态扫描直接用 `ocr scan`。
+ 
+ ## 调用
+ 
+diff --git a/skills/way-to-cr/tests/test_skill_contract.py b/skills/way-to-cr/tests/test_skill_contract.py
+index fa4e354..7a58f41 100644
+--- a/skills/way-to-cr/tests/test_skill_contract.py
++++ b/skills/way-to-cr/tests/test_skill_contract.py
+@@ -122,7 +122,7 @@ class BoundaryAndEvolutionTest(unittest.TestCase):
+     def test_boundaries_and_self_evolution(self) -> None:
+         self.assertIn("无 diff 的全仓静态扫描直接用 `ocr scan`", SKILL)
+         self.assertIn("默认只审查、不改代码", SKILL)
+-        self.assertIn("交给 `role-based-reviewer`", SKILL)
++        self.assertIn("交给 `role-review`", SKILL)
+         self.assertIn("evals/cases.yaml", SKILL)
+         self.assertIn("skill-upgrader", SKILL)
+ 

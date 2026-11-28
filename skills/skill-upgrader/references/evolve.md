@@ -201,7 +201,7 @@ risk:
 - 不把密钥、内部 URL、公司代码、个人凭据写进 Skill
 - 不把内部项目代号、私有 trace/日志文件名写进 SKILL.md、进化产物（proposal.yaml / eval.md / decision.md）及关联 commit message
 - 不删除仍在生效的安全/门禁规则，除非证据表明该规则本身在制造系统性失败，且用户确认
-- 不把本 skill 用于从零创建新 Skill（交给 `agent-docs-writer`）
+- 不把本 skill 用于从零创建新 Skill（交给 `agent-docs`）
 - 一次会话最多推进 **一个** 目标 Skill 的一轮进化
 
 ## 交付

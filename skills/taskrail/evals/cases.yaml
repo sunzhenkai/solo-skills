@@ -8,7 +8,7 @@ cases:
     given: 用户指出 taskrail 存在误触发并要求优化
     expect:
       must:
-        - 只读评审使用 agent-docs-writer，修改已有正文使用 skill-upgrader
+        - 只读评审使用 agent-docs，修改已有正文使用 skill-upgrader
         - taskrail 仅作为讨论对象，入口分诊后直接返回结论或改动
       must_not:
         - 创建或恢复 TASK、写入 INDEX 或准备任务 worktree

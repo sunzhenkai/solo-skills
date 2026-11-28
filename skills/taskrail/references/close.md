@@ -17,7 +17,7 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状�
 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
    - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
-   - 跨项目验证的通用方案模式可交 `project-design-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
+   - 跨项目验证的通用方案模式可交 `project-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
 3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘，需要 diff / MR 级代码审查时可另行运行 `way-to-cr`（本环节不 push、不自动清理 worktree、不自动调用 `way-to-cr`）。
 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。

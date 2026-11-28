@@ -12,7 +12,7 @@ Medium / Complex 的 Handoff 用各 skill 已有路径，不复制第二份。Si
 |---|---|---|---|
 | 理解 | 是 | 否 | 可选 `$grill-with-docs`（未安装时在本会话做简要意图复述与自问自答；需求已清可跳过） |
 | 定方案 | 澄清在本会话 | 可不再派 | 轻量 plan Handoff；本会话写完即可 |
-| 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-based-reviewer` |
+| 方案评审 | 确认 Assignment；默认推荐 `human` | Assignment 不是 `human` 时只读审 plan | 不默认绑评审 skill；点名岗位时才 `$role-review` |
 | 实现 | 确认 Assignment | 必须 | 按 plan 改代码 |
 | 代码评审 | 默认跳过 | 选做则必须 | `$way-to-cr` |
 | 收尾 | 确认；默认可 `human` | 需要时 | 摘要；可选 `$commit-push` |

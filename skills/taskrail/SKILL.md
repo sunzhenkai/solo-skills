@@ -14,7 +14,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意�
 
 先判定交付物，再决定是否进入任务轨道：
 
-- 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
+- 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
 - 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
 - 普通问答、只读分析或一次性改动，且没有上两项信号：直接回答、实施或使用对应领域 skill。
 

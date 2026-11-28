@@ -57,7 +57,7 @@ class SkillEntryTest(unittest.TestCase):
             self.assertIn(phrase, SKILL)
 
     def test_specialists_and_orchestration_handoff(self) -> None:
-        for name in ("baseline-ui", "improve-ui", "fixing-accessibility", "fixing-metadata", "fixing-motion-performance", "component-canvas", "create-canvas", "create-design-md", "frontend-slides", "taskrail", "role-based-reviewer"):
+        for name in ("baseline-ui", "improve-ui", "fixing-accessibility", "fixing-metadata", "fixing-motion-performance", "component-canvas", "create-canvas", "create-design-md", "frontend-slides", "taskrail", "role-review"):
             self.assertIn(f"`{name}`", SKILL)
         self.assertIn("视觉返修回本 skill 分派", SKILL)
 

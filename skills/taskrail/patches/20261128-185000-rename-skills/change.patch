@@ -1,0 +1,95 @@
+diff --git a/skills/taskrail/SKILL.md b/skills/taskrail/SKILL.md
+index 26b5227..ec5063f 100644
+--- a/skills/taskrail/SKILL.md
++++ b/skills/taskrail/SKILL.md
+@@ -14,7 +14,7 @@ description: "持久任务轨道：用户要求用 taskrail 创建、确认意
+ 
+ 先判定交付物，再决定是否进入任务轨道：
+ 
+-- 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs-writer`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
++- 评审、解释或修改 taskrail 自身：只读评审用 `agent-docs`，修改用 `skill-upgrader`；本 skill 只作为讨论对象。
+ - 显式 taskrail 命令、`/goal`，或需要跨会话任务台账、父子任务拆分、大型项目 / 架构调整 / 重大跨模块重构，以及多阶段或跨项目开发编排：按下文输入进入任务轨道。
+ - 普通问答、只读分析或一次性改动，且没有上两项信号：直接回答、实施或使用对应领域 skill。
+ 
+diff --git a/skills/taskrail/evals/cases.yaml b/skills/taskrail/evals/cases.yaml
+index 4b70cac..c289ee1 100644
+--- a/skills/taskrail/evals/cases.yaml
++++ b/skills/taskrail/evals/cases.yaml
+@@ -8,7 +8,7 @@ cases:
+     given: 用户指出 taskrail 存在误触发并要求优化
+     expect:
+       must:
+-        - 只读评审使用 agent-docs-writer，修改已有正文使用 skill-upgrader
++        - 只读评审使用 agent-docs，修改已有正文使用 skill-upgrader
+         - taskrail 仅作为讨论对象，入口分诊后直接返回结论或改动
+       must_not:
+         - 创建或恢复 TASK、写入 INDEX 或准备任务 worktree
+diff --git a/skills/taskrail/references/close.md b/skills/taskrail/references/close.md
+index 51844e1..04389f6 100644
+--- a/skills/taskrail/references/close.md
++++ b/skills/taskrail/references/close.md
+@@ -17,7 +17,7 @@ criterion、验证证据、decisions、context/current、ROADMAP / 子任务状
+ 2. 只有跨任务仍成立的知识才提升到 AGENTS / ADR / glossary / 项目 wiki；任务特例留在 SUMMARY，不自动改 Skill。落点按内容分：
+    - 项目有 Atlas 时运行其 `status`，`stale_pages` 非空就把复核交给 `project-atlas`，或在 SUMMARY 后续项列出过期页。
+    - 可复用经验、踩坑和操作台账交给 `wiki-data`，保留来源、置信度与时效。
+-   - 跨项目验证的通用方案模式可交 `project-design-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
++   - 跨项目验证的通用方案模式可交 `project-patterns` 沉淀为模式卡（未安装则留在 SUMMARY）。
+    - 跨任务的 skill 改进交给 `skill-upgrader`，单次经验只留在 SUMMARY。
+ 3. 完成通知按 [user-report.md](user-report.md) 突出交付结果、验证结论与落地方式；若改动仍在 worktree 或非默认分支、尚未推送或未合入默认分支，完成通知必须明说分支名与未合入状态，并主动提示转入 `session-wrap` 处理推送、提 MR/PR、清理 worktree 或弯路复盘，需要 diff / MR 级代码审查时可另行运行 `way-to-cr`（本环节不 push、不自动清理 worktree、不自动调用 `way-to-cr`）。
+ 4. 按 [done.md](done.md) 最终核对，使用 `task_state.py update ... --status done --current-ref close`；脚本检查 SUMMARY 和所有直接子任务 done。
+diff --git a/skills/taskrail/references/design.md b/skills/taskrail/references/design.md
+index 03f89f0..6d81f2f 100644
+--- a/skills/taskrail/references/design.md
++++ b/skills/taskrail/references/design.md
+@@ -17,7 +17,7 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定
+ 2. 推荐与被放弃方案各写取舍；仅当决定同时满足「难逆 + 无上下文会困惑 + 存在真实权衡」三条件时写极简 ADR（1–3 句讲清背景、决定与理由即可）并按 [user-report.md](user-report.md) 告知；涉及领域术语变更时按 `domain-modeling` 实时维护项目 `GLOSSARY.md` 并当场澄清冲突命名。
+ 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
+ 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
+-5. 涉及跨项目通用接入或已沉淀模式先查 `project-design-patterns`（未装跳过）；Web UI 按需读 [ui-delivery.md](ui-delivery.md)；多方案对比 / 两次设计见下文「方案细则」。
++5. 涉及跨项目通用接入或已沉淀模式先查 `project-patterns`（未装跳过）；Web UI 按需读 [ui-delivery.md](ui-delivery.md)；多方案对比 / 两次设计见下文「方案细则」。
+ 6. 落盘后、开工前按 `anti-lazy` 核对用户决策边界与目标差距，按 [user-report.md](user-report.md) 整理人话摘要并交 [approve.md](approve.md) / [confirm-protocol.md](confirm-protocol.md) 放行。
+ 
+ ## 产出
+diff --git a/skills/taskrail/references/review.md b/skills/taskrail/references/review.md
+index 7e8073a..6f78353 100644
+--- a/skills/taskrail/references/review.md
++++ b/skills/taskrail/references/review.md
+@@ -13,7 +13,7 @@
+ criterion、当前提交号或 worktree diff、审与不审范围、相关 design / 契约与运行态证据（截图 / 测试输出）。
+ 
+ ## 执行方法
+-1. 调用 `role-based-reviewer`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。对应下游 skill 未安装或不可用时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。纯 Git diff / MR / PR 自动化代码审查不纳入本环节，如需可提示用户另行调用 `way-to-cr`。
++1. 调用 `role-review`（`mode=review` + 完整 `roles=` 与审阅边界）；需跨机器 / 跨模型 Endpoint 派发时带 `endpoint=` 经 `agent-roster` 执行。对应下游 skill 未安装或不可用时，按 [confirm-protocol.md](confirm-protocol.md)「异源模型审」派异源模型或显式记录降级自审，不静默宣称独立通过。纯 Git diff / MR / PR 自动化代码审查不纳入本环节，如需可提示用户另行调用 `way-to-cr`。
+ 2. 评审报告落 `reviews/<topic>.md`；Blocker / Major 按稳定编号 `RF-n` 跟踪。
+ 3. 处置记录由本任务维护：`fixed` 需附修复后重验证据；`accepted-recorded` 在 human 需用户明确接受，goal 不放行 Blocker / Major。
+ 
+diff --git a/skills/taskrail/tests/test_taskrail_contract.py b/skills/taskrail/tests/test_taskrail_contract.py
+index 0110f9a..432ce75 100644
+--- a/skills/taskrail/tests/test_taskrail_contract.py
++++ b/skills/taskrail/tests/test_taskrail_contract.py
+@@ -27,7 +27,7 @@ class ContractTest(unittest.TestCase):
+         self.assertLess(skill.index("## 入口分诊"), skill.index("## 绑定与恢复"))
+         for text in (
+             "持久任务轨道", "跨会话任务台账", "评审、解释或修改 taskrail 自身",
+-            "agent-docs-writer", "skill-upgrader", "普通问答、只读分析或一次性改动",
++            "agent-docs", "skill-upgrader", "普通问答、只读分析或一次性改动",
+             "只有第二项绑定或恢复 TASK", "不写 TASK / INDEX，不建 worktree",
+         ):
+             self.assertIn(text, skill)
+@@ -114,13 +114,13 @@ class ContractTest(unittest.TestCase):
+ 
+     def test_hub_soft_links_in_on_demand_references(self) -> None:
+         review = read("references", "review.md")
+-        self.assertIn("role-based-reviewer", review)
++        self.assertIn("role-review", review)
+         self.assertIn("way-to-cr", review)
+         self.assertIn("agent-roster", review)
+         self.assertIn("agent-roster", read("references", "confirm-protocol.md"))
+-        self.assertIn("project-design-patterns", read("references", "design.md"))
++        self.assertIn("project-patterns", read("references", "design.md"))
+         close = read("references", "close.md")
+-        self.assertIn("project-design-patterns", close)
++        self.assertIn("project-patterns", close)
+         self.assertIn("session-wrap", close)
+ 
+     def test_review_is_explicit_only_and_never_auto_triggers_way_to_cr(self) -> None:

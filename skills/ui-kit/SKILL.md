@@ -49,7 +49,7 @@ description: 默认 UI 总入口：为新建或既有 Web UI 选择实现路线�
 
 - 快速代码清理、只读证据审计、无障碍、metadata、动效性能分别可交 `baseline-ui`、`improve-ui`、`fixing-accessibility`、`fixing-metadata`、`fixing-motion-performance`；组件或自由实验画布交 `component-canvas` / `create-canvas`。它们是可选专项下游，主路线与验收责任仍由本 skill 选定。
 - 通用 `DESIGN.md` 重建可交 `create-design-md`；模板项目仍用本 skill 的 design-md 契约。
-- `taskrail` 负责 Web UI 任务编排与证据门；`role-based-reviewer` 的 design 角色负责独立评审。视觉返修回本 skill 分派，评审规则号仍来自 pretty-ui。
+- `taskrail` 负责 Web UI 任务编排与证据门；`role-review` 的 design 角色负责独立评审。视觉返修回本 skill 分派，评审规则号仍来自 pretty-ui。
 
 ## 模板校验
 

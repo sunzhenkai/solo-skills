@@ -27,7 +27,7 @@ class ContractTest(unittest.TestCase):
         self.assertLess(skill.index("## 入口分诊"), skill.index("## 绑定与恢复"))
         for text in (
             "持久任务轨道", "跨会话任务台账", "评审、解释或修改 taskrail 自身",
-            "agent-docs-writer", "skill-upgrader", "普通问答、只读分析或一次性改动",
+            "agent-docs", "skill-upgrader", "普通问答、只读分析或一次性改动",
             "只有第二项绑定或恢复 TASK", "不写 TASK / INDEX，不建 worktree",
         ):
             self.assertIn(text, skill)
@@ -114,13 +114,13 @@ class ContractTest(unittest.TestCase):
 
     def test_hub_soft_links_in_on_demand_references(self) -> None:
         review = read("references", "review.md")
-        self.assertIn("role-based-reviewer", review)
+        self.assertIn("role-review", review)
         self.assertIn("way-to-cr", review)
         self.assertIn("agent-roster", review)
         self.assertIn("agent-roster", read("references", "confirm-protocol.md"))
-        self.assertIn("project-design-patterns", read("references", "design.md"))
+        self.assertIn("project-patterns", read("references", "design.md"))
         close = read("references", "close.md")
-        self.assertIn("project-design-patterns", close)
+        self.assertIn("project-patterns", close)
         self.assertIn("session-wrap", close)
 
     def test_review_is_explicit_only_and_never_auto_triggers_way_to_cr(self) -> None:

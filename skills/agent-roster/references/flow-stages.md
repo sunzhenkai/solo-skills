@@ -18,7 +18,7 @@ Simple / Medium：可选 `$grill-with-docs`（未安装时在本会话做简要�
 
 ## 方案评审 `plan-review`
 
-审方案，不审代码。默认不绑评审 skill；只读委派读上一 Stage Handoff。使用者点名岗位 / 多角色时才叠加 `$role-based-reviewer`。
+审方案，不审代码。默认不绑评审 skill；只读委派读上一 Stage Handoff。使用者点名岗位 / 多角色时才叠加 `$role-review`。
 
 Simple 默认推荐 `human`。`human` 的完成标准：使用者在本会话明确接受方案。
 

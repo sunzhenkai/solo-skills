@@ -17,7 +17,7 @@ criterion、当前 plan、explore / diagnose 证据和已解决的 grill 决定�
 2. 推荐与被放弃方案各写取舍；仅当决定同时满足「难逆 + 无上下文会困惑 + 存在真实权衡」三条件时写极简 ADR（1–3 句讲清背景、决定与理由即可）并按 [user-report.md](user-report.md) 告知；涉及领域术语变更时按 `domain-modeling` 实时维护项目 `GLOSSARY.md` 并当场澄清冲突命名。
 3. 多仓库共享契约放父任务 design，子任务只放自己的实现设计；不在每个子任务复制完整上下文。
 4. 未就绪后续项只写边界与接口，细节轮到它时按当时代码补；`design/<topic>.md` 的未决节只列 `U-n / F-n` 与指针，问题详情由 `context/current.md` 维护。
-5. 涉及跨项目通用接入或已沉淀模式先查 `project-design-patterns`（未装跳过）；Web UI 按需读 [ui-delivery.md](ui-delivery.md)；多方案对比 / 两次设计见下文「方案细则」。
+5. 涉及跨项目通用接入或已沉淀模式先查 `project-patterns`（未装跳过）；Web UI 按需读 [ui-delivery.md](ui-delivery.md)；多方案对比 / 两次设计见下文「方案细则」。
 6. 落盘后、开工前按 `anti-lazy` 核对用户决策边界与目标差距，按 [user-report.md](user-report.md) 整理人话摘要并交 [approve.md](approve.md) / [confirm-protocol.md](confirm-protocol.md) 放行。
 
 ## 产出
