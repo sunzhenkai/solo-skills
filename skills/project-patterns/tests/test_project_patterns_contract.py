@@ -82,6 +82,17 @@ class StructureContract(unittest.TestCase):
         desc_line = next(l for l in SKILL.splitlines() if l.startswith("description:"))
         self.assertIn("接口访问统计", desc_line)
 
+    def test_agent_friendly_api_pattern_registered(self) -> None:
+        """Agent 友好 API 设计模式卡已直链登记，含标准六节与六件套关键词。"""
+        self.assertIn("references/agent-friendly-api.md", SKILL)
+        card_path = ROOT / "references" / "agent-friendly-api.md"
+        self.assertTrue(card_path.is_file())
+        card = card_path.read_text(encoding="utf-8")
+        for section in ["## 动机", "## 参与者", "## 落地件", "## 边界", "## 先例", "## 更正记录"]:
+            self.assertIn(section, card, f"Agent 友好 API 模式卡缺少 {section}")
+        for marker in ["乐观锁", "dry_run", "effective_mode", "deny-by-default"]:
+            self.assertIn(marker, card)
+
 
 class SizeContract(unittest.TestCase):
     def test_skill_md_under_8kb(self) -> None:

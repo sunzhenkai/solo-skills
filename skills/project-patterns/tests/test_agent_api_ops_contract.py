@@ -58,6 +58,9 @@ class FlowContract(unittest.TestCase):
     def test_discipline_lines(self) -> None:
         self.assertIn("先读后写", REF)
         self.assertIn("删除、覆盖、批量修改类操作先向用户复述目标并等确认", REF)
+        self.assertIn("局部 patch", REF)
+        self.assertIn("乐观锁", REF)
+        self.assertIn("dry_run", REF)
 
 
 if __name__ == "__main__":
