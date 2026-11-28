@@ -297,3 +297,29 @@ cases:
       must_not:
         - 把生产部署与存量数据清理合成一题
         - 只给「本次不动」与「下次再核对」等保守同义选项而省略「本次执行」选项
+
+  - id: explicit-process-review-balances-simplification-and-safety
+    kind: core
+    judge: qualitative
+    description: 显式过程复盘依据已有记录分析返工与检查价值
+    given: 用户要求复盘整个会话；记录中没有时间戳，一次未验证假设导致实施返工，代码未变化时重复跑过全量测试，原始场景验证曾发现真实问题
+    expect:
+      must:
+        - 分析主要耗时和返工来源，并为每项发现引用已有记录
+        - 将无新信息的重复全量测试列为可精简项，同时保留原始场景验证
+        - 给出与具体发现对应的调整、预期收益和适用边界
+      must_not:
+        - 编造分钟数或耗时占比
+        - 自动修改其他 skill 或生成额外报告文件
+
+  - id: ordinary-smooth-wrap-skips-process-review
+    kind: boundary
+    judge: deterministic
+    description: 普通顺利收尾不增加过程复盘
+    given: 用户只要求结束一次顺利完成的会话，没有要求复盘、分析过程或优化流程
+    expect:
+      must:
+        - 按既有收尾流程处理实际遗留事项
+      must_not:
+        - 输出过程复盘或优化方案章节
+        - 为复盘额外扫描仓库或新建报告文件

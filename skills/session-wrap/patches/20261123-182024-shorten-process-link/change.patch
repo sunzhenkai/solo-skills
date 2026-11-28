@@ -1,0 +1,13 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index 4ce7a6e..bab2efa 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -30,7 +30,7 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ 验证不足时建议补验；静态检查、编译或工作量不能替代用户原始场景的验证。
+ 
+-用户要求复盘、分析过程或优化流程时，按 [references/process-review.md](references/process-review.md) 复盘过程；普通收尾不展开。
++用户要求复盘、分析过程或优化流程时，按 [process-review.md](references/process-review.md) 复盘过程；普通收尾不展开。
+ 
+ ### 3. 选择收尾事项
+ 

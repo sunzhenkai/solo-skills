@@ -11,6 +11,7 @@ PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
 MERGE = (ROOT / "references" / "branch-merge.md").read_text(encoding="utf-8")
 RELEASE = (ROOT / "references" / "release-deploy.md").read_text(encoding="utf-8")
 DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
+PROCESS = (ROOT / "references" / "process-review.md").read_text(encoding="utf-8")
 
 
 class SessionWrapContractTest(unittest.TestCase):
@@ -103,6 +104,18 @@ class SessionWrapContractTest(unittest.TestCase):
         self.assertIn("执行中新发现加项或风险升级时，停下来再问一轮", SKILL)
         self.assertIn("题干脱离上下文也能看懂", PLAN)
         self.assertIn("提交属于用户点名才做的动作", PLAN)
+
+    def test_explicit_process_review_is_evidence_bound_and_actionable(self) -> None:
+        self.assertIn("references/process-review.md", SKILL)
+        self.assertIn("普通收尾不展开", SKILL)
+        self.assertIn("只使用对话、已有任务记录、排查记录和实际验证记录", PROCESS)
+        for rule in ("不编造分钟数或占比", "事实不足的项标为未知", "每条建议必须对应一个具体发现"):
+            self.assertIn(rule, PROCESS)
+        for section in ("**主要耗时**", "**坑与返工**", "**可精简**", "**应保留**"):
+            self.assertIn(section, PROCESS)
+        self.assertIn("必要的安全、授权和原始场景验证", PROCESS)
+        self.assertIn("不新建报告文件", PROCESS)
+        self.assertIn("现有收尾清单", PROCESS)
 
     def test_gaps_and_knowledge_routing_with_no_silent_chat_drop(self) -> None:
         self.assertIn("任务未收口：写入 `context/current.md` 的「未决问题」表", PLAN)
