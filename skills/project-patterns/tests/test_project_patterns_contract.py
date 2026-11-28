@@ -69,6 +69,19 @@ class StructureContract(unittest.TestCase):
         self.assertIn("{{技术栈}}", prompt)
         self.assertIn("验收清单", prompt)
 
+    def test_api_access_stats_pattern_registered(self) -> None:
+        """接口访问统计模式卡已直链登记，且含标准章节与核心不变量。"""
+        self.assertIn("references/api-access-stats.md", SKILL)
+        card_path = ROOT / "references" / "api-access-stats.md"
+        self.assertTrue(card_path.is_file())
+        card = card_path.read_text(encoding="utf-8")
+        for section in ["## 动机", "## 参与者", "## 落地件", "## 多栈适配器对照", "## 边界", "## 先例", "## 更正记录"]:
+            self.assertIn(section, card, f"接口访问统计模式卡缺少 {section}")
+        for invariant in ["/_unmatched", "2048", "403", "LANOnly", "__invalid__", "API_STATS_ENABLED"]:
+            self.assertIn(invariant, card, f"接口访问统计模式卡缺少不变量 {invariant}")
+        desc_line = next(l for l in SKILL.splitlines() if l.startswith("description:"))
+        self.assertIn("接口访问统计", desc_line)
+
 
 class SizeContract(unittest.TestCase):
     def test_skill_md_under_8kb(self) -> None:

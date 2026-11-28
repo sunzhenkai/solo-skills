@@ -1,8 +1,8 @@
 ---
 id: project-patterns
 name: project-patterns
-description: 个人项目的可复用设计模式库（原 project-design-patterns）：把跨项目重复验证的方案固化为模式卡（动机、参与者、落地件、边界、先例），当前收录 agent 数据接入（含 agent-api-ops 操作规范）与模型供应商管理（含 models.dev 加载与模型联动实现 prompt）。设计新应用或新功能、讨论接入/集成方案、评审方案完整性，或想把某次交付沉淀为模式时使用。
-version: 1.3.0
+description: 个人项目的可复用设计模式库（原 project-design-patterns）：把跨项目重复验证的方案固化为模式卡（动机、参与者、落地件、边界、先例），当前收录 agent 数据接入（含 agent-api-ops 操作规范）、模型供应商管理（含 models.dev 加载与模型联动实现 prompt）与接口访问统计。设计新应用或新功能、讨论接入/集成方案、评审方案完整性，或想把某次交付沉淀为模式时使用。
+version: 1.4.0
 ---
 
 # 项目设计模式（project-patterns）
@@ -24,3 +24,4 @@ version: 1.3.0
 | --- | --- | --- | --- |
 | agent 数据接入 | 应用提供 API Key + 全接口授权 + 设置页话术，agent 经通用操作规范管理应用数据 | [references/agent-api-access.md](references/agent-api-access.md) | 3 处独立落地，详见模式卡 |
 | 模型供应商管理 | 从 models.dev 加载并多选实例模型，消费端（默认/任务/会话）两级联动选择 | [references/model-provider-management.md](references/model-provider-management.md) | 2 处独立落地，详见模式卡 |
+| 接口访问统计 | 异步有界采集 + 路由归一化 + 5 端点只读统计 + API Key 专项与零明文门禁 | [references/api-access-stats.md](references/api-access-stats.md) | 14 处独立落地，详见模式卡 |

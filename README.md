@@ -30,7 +30,7 @@ sunzhenkai 的第一方 Agent Skills 集合：任务流编排、交付闭环、�
 | `project-init` | 按约定脚手架创建或对齐项目 |
 | `project-explore` | 项目理解与代码取证（Atlas/wiki 路由、问答、调用链、影响面、持久化交接） |
 | `project-atlas` | 项目架构与业务逻辑金字塔地图：Markdown / HTML / 静态资源互链、增量维护与源码变动复核 |
-| `project-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入（含 `agent-api-ops` 操作规范）与模型供应商管理（含 `models.dev` 加载与两级联动实现 prompt） |
+| `project-patterns` | 个人项目的可复用设计模式库：把跨项目验证的方案固化为模式卡（动机 / 参与者 / 落地件 / 边界 / 先例），当前收录 agent 数据接入（含 `agent-api-ops` 操作规范）、模型供应商管理（含 `models.dev` 加载与两级联动实现 prompt）与接口访问统计 |
 | `commit-push` | 分析变更、起草提交说明、commit 并 push |
 | `repo-manager` | 仓库生命周期管理 |
 | `service-manager` | 项目服务启停 / 状态 / 日志台账 |
