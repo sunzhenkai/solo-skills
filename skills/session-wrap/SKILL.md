@@ -44,7 +44,7 @@ description: 会话收尾：在准备结束会话或确认是否中止时，先�
 
 - **先确认后动手**：第一轮只做只读排查与列清单，写文件、改 git、停服务、删资源或外部调用一律等确认后再执行。即使清单里只有「准备帮你做」而没有选择题，也先亮出来等用户点头；只有完全无事可做时才直接结束。
 - **授权隔离**：每项选择只授权该项，提交不等于授权 push，push 不等于授权合入主分支，合入不等于授权打 tag / 发版或部署，打 tag / 发版不等于授权部署，测试环境部署不等于授权生产部署，部署不等于授权线上数据变更；暂停挂起不授权合入或删分支/worktree，放弃撤场涉及的丢弃改动、关 MR/PR 或删分支须逐项确认。执行中新发现加项或风险升级时，停下来再问一轮。
-- **路由执行**：提交/推送走 `commit-push`，提 MR/PR 或打 release tag 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)、[references/release-deploy.md](references/release-deploy.md)），发版与部署按项目脚本、CI 或对应 skill 执行，任务收口走 `taskrail` `close`（完成 `done`，放弃 `archived`；暂停保持 `active` 并更新断点），知识沉淀走 `wiki-data` 或 `skill-upgrader`。
+- **路由执行**：提交/推送**必须先读取并遵守 `commit-push`**（跑完其前置检查与密钥扫描门禁后再执行，不跳过或简化），提 MR/PR 或打 release tag 走 `repo-manager` 或 `gh` / `glab`（详见 [references/branch-merge.md](references/branch-merge.md)、[references/release-deploy.md](references/release-deploy.md)），发版与部署按项目脚本、CI 或对应 skill 执行，任务收口走 `taskrail` `close`（完成 `done`，放弃 `archived`；暂停保持 `active` 并更新断点），知识沉淀走 `wiki-data` 或 `skill-upgrader`。
 
 ## 4. 面向用户的输出（说人话、短、给放手结论）
 

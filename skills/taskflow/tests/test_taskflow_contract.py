@@ -69,5 +69,11 @@ class TaskflowContractTest(unittest.TestCase):
         self.assertIn("不在 taskflow 自行判 done", skill)
 
 
+    def test_worktree_pnpm_guidance(self) -> None:
+        worktree_doc = (ROOT / "references" / "worktree.md").read_text(encoding="utf-8")
+        self.assertIn("pnpm install --frozen-lockfile", worktree_doc)
+        self.assertIn("避免直接软链源仓 `node_modules`", worktree_doc)
+
+
 if __name__ == "__main__":
     unittest.main()

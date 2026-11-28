@@ -42,4 +42,4 @@ python3 <taskflow>/scripts/prepare_worktree.py <workspace> <task-id> <repo-id> <
 
 - **依赖子任务基线**：同仓子任务依赖前序未合入子任务代码时，显式传 `--base task/<parent>--<dep-child>` 创建工作树。
 - **父级多子任务同仓集成**：父任务进入 `verify` 时传入 `<parent>/integration` 与多个 `--integrate <branch>`，脚本在 `worktrees/<parent>--integration/<repo-id>/` 的独立分支 `task/<parent>--integration` 上按序 `--no-ff` 合并（已合入祖先自动跳过）；遇冲突立即 `git merge --abort` 并返回非 0 及冲突文件清单，绝不触碰源仓与默认分支。
-- **未跟踪环境与重依赖**：新建 worktree 不包含源仓 gitignored 的 `.env`、`node_modules`、`.venv` 或构建缓存。运行测试前先检查缺口，优先按项目标准脚本初始化，或在记录决定后只读引用共享配置；不自动复制源仓未提交改动，也不污染源仓。
+- **未跟踪环境与重依赖**：新建 worktree 不包含源仓 gitignored 的 `.env`、`node_modules`、`.venv` 或构建缓存。运行测试前先检查缺口，优先按项目标准脚本初始化（如 `pnpm` 等依赖硬链接/虚拟存储的 Node 工作区应执行 `pnpm install --frozen-lockfile`，避免直接软链源仓 `node_modules` 导致路径解析异常），或在记录决定后只读引用共享配置；不自动复制源仓未提交改动，也不污染源仓。

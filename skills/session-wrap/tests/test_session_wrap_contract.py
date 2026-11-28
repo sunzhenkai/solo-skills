@@ -176,5 +176,12 @@ class SessionWrapContractTest(unittest.TestCase):
         self.assertIn("同时包含「本次执行」与「暂不执行」方向", RELEASE)
 
 
+    def test_push_gate_and_mock_verification_boundary(self) -> None:
+        self.assertIn("必须先读取并遵守 `commit-push`", SKILL)
+        self.assertIn("密钥扫描门禁", SKILL)
+        self.assertIn("mock/单测环境下通过", RELEASE)
+        self.assertIn("显式标注验证边界", RELEASE)
+
+
 if __name__ == "__main__":
     unittest.main()

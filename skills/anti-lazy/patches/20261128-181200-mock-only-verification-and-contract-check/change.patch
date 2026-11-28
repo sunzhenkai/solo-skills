@@ -1,0 +1,36 @@
+diff --git a/skills/anti-lazy/SKILL.md b/skills/anti-lazy/SKILL.md
+index 0ff11fe..9ed73a1 100644
+--- a/skills/anti-lazy/SKILL.md
++++ b/skills/anti-lazy/SKILL.md
+@@ -41,6 +41,7 @@ description: 意图对齐与反偷懒闸门：核对用户原始目标、现场
+ 
+ - 现场能查清的信息先自行查证，只把现场确实无法回答的意图或取舍留给用户。
+ - 代码或配置改动以真实 diff、关联调用点和同类实现为准，用现场输出替代记忆复述。
++- 涉及跨端、API、事件或配置结构改动时，核对生产方与消费方的真实类型/schema 与字段对齐，不凭单边 mock 推断契约一致。
+ 
+ **完成门**：关键判断均附一手出处（文件、日志或命令结果），未知项与推测显式标出。
+ 
+@@ -58,7 +59,7 @@ description: 意图对齐与反偷懒闸门：核对用户原始目标、现场
+ | 偷懒信号 | 强制自检动作 |
+ | --- | --- |
+ | **需求静默漏项** | 把用户原话拆成逐条清单，每条给出明确落点：已达成+证据，或明确未做+原因 |
+-| **替代验证 / 假验证** | 编译、lint 或局部 mock 仅作辅助，按用户原始场景实跑检查；未跑项显式标“未运行” |
++| **替代验证 / 假验证** | 编译、lint 或局部 mock 仅作辅助，按用户原始场景实跑检查；若仅依赖 mock 且未过真实链路，须显式标注验证边界与未覆盖项，未跑项显式标“未运行” |
+ | **半成品 / 局部修补** | 核对真实 diff 与全仓同类调用点，清理 `TODO`/stub/吞错兜底，确保同一机制同步闭环 |
+ | **遇阻过早甩锅** | 遇到报错或环境受阻先查日志、文档或换路径重试，确认真实权限或外部阻塞后再请用户介入 |
+ | **拿“剩余缺口”掩盖未完成** | 区分本轮必补的阻塞缺口与外部/越界缺口；本轮可完成的核心项补齐后再交付 |
+diff --git a/skills/anti-lazy/tests/test_anti_lazy_contract.py b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+index 4e489c9..dd2656e 100644
+--- a/skills/anti-lazy/tests/test_anti_lazy_contract.py
++++ b/skills/anti-lazy/tests/test_anti_lazy_contract.py
+@@ -70,5 +70,10 @@ class AntiLazyContractTest(unittest.TestCase):
+         self.assertIn("`session-wrap`", SKILL)
+ 
+ 
++    def test_cross_layer_contract_and_mock_boundary(self) -> None:
++        self.assertIn("不凭单边 mock 推断契约一致", SKILL)
++        self.assertIn("显式标注验证边界与未覆盖项", SKILL)
++
++
+ if __name__ == "__main__":
+     unittest.main()

@@ -70,5 +70,10 @@ class AntiLazyContractTest(unittest.TestCase):
         self.assertIn("`session-wrap`", SKILL)
 
 
+    def test_cross_layer_contract_and_mock_boundary(self) -> None:
+        self.assertIn("不凭单边 mock 推断契约一致", SKILL)
+        self.assertIn("显式标注验证边界与未覆盖项", SKILL)
+
+
 if __name__ == "__main__":
     unittest.main()
