@@ -1,0 +1,13 @@
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 6c39260..116a798 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -33,7 +33,7 @@ class SessionWrapContractTest(unittest.TestCase):
+     def test_explicit_process_review_is_evidence_bound_and_actionable(self) -> None:
+         self.assertIn("references/process-review.md", SKILL)
+         self.assertIn("普通收尾不展开", SKILL)
+-        self.assertIn("只使用对话和已有执行记录", SKILL)
++        self.assertIn("只使用对话、已有任务记录、排查记录和实际验证记录", PROCESS)
+         for rule in ("不编造分钟数或占比", "事实不足的项标为未知", "每条建议必须对应一个具体发现"):
+             self.assertIn(rule, PROCESS)
+         for section in ("**主要耗时**", "**坑与返工**", "**可精简**", "**应保留**"):

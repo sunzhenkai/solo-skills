@@ -1,0 +1,26 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index 431f737..76cb396 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -103,7 +103,7 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ ## 输出
+ 
+-空章节省略，每条一行；证据只作为条目依据出现，不单列验证流水。有过程复盘时先输出「过程复盘」与「优化方案」，再给收尾清单；需要执行的优化仍归入清单，不重复列出。
++空章节省略，每条一行；证据只作为条目依据出现，不单列验证流水。
+ 
+ 第一轮（确认前，不下结论）：
+ 
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 5c5b32f..6c39260 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -40,7 +40,7 @@ class SessionWrapContractTest(unittest.TestCase):
+             self.assertIn(section, PROCESS)
+         self.assertIn("必要的安全、授权和原始场景验证", PROCESS)
+         self.assertIn("不新建报告文件", PROCESS)
+-        self.assertIn("需要执行的优化仍归入清单", SKILL)
++        self.assertIn("现有收尾清单", PROCESS)
+ 
+     def test_current_delivery_gaps_stay_in_current_scope(self) -> None:
+         self.assertIn("影响当前目标或 criterion 的问题留在当前交付中处理", SKILL)

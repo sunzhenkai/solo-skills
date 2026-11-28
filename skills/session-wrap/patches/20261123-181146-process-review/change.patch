@@ -1,0 +1,136 @@
+diff --git a/skills/session-wrap/SKILL.md b/skills/session-wrap/SKILL.md
+index d2c8f64..431f737 100644
+--- a/skills/session-wrap/SKILL.md
++++ b/skills/session-wrap/SKILL.md
+@@ -30,6 +30,8 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ 验证不足时建议补验；静态检查、编译或工作量不能替代用户原始场景的验证。
+ 
++用户要求复盘、分析过程或优化流程时，按 [references/process-review.md](references/process-review.md) 做过程复盘；普通收尾不展开。复盘只使用对话和已有执行记录，不为计时额外扫描仓库或新建报告。
++
+ ### 3. 选择收尾事项
+ 
+ 命中才检查，未命中不展开：
+@@ -101,7 +103,7 @@ description: 会话收尾：在准备结束会话或要求复盘时，按对话
+ 
+ ## 输出
+ 
+-空章节省略，每条一行；证据只作为条目依据出现，不单列验证流水。
++空章节省略，每条一行；证据只作为条目依据出现，不单列验证流水。有过程复盘时先输出「过程复盘」与「优化方案」，再给收尾清单；需要执行的优化仍归入清单，不重复列出。
+ 
+ 第一轮（确认前，不下结论）：
+ 
+diff --git a/skills/session-wrap/evals/cases.yaml b/skills/session-wrap/evals/cases.yaml
+index b147015..0de4c6d 100644
+--- a/skills/session-wrap/evals/cases.yaml
++++ b/skills/session-wrap/evals/cases.yaml
+@@ -268,3 +268,29 @@ cases:
+       must_not:
+         - 从一次历史选择推断长期习惯
+         - 将合并授权扩展为后续 push 授权
++
++  - id: explicit-process-review-balances-simplification-and-safety
++    kind: core
++    judge: qualitative
++    description: 显式过程复盘依据已有记录分析返工与检查价值
++    given: 用户要求复盘整个会话；记录中没有时间戳，一次未验证假设导致实施返工，代码未变化时重复跑过全量测试，原始场景验证曾发现真实问题
++    expect:
++      must:
++        - 分析主要耗时和返工来源，并为每项发现引用已有记录
++        - 将无新信息的重复全量测试列为可精简项，同时保留原始场景验证
++        - 给出与具体发现对应的调整、预期收益和适用边界
++      must_not:
++        - 编造分钟数或耗时占比
++        - 自动修改其他 skill 或生成额外报告文件
++
++  - id: ordinary-smooth-wrap-skips-process-review
++    kind: boundary
++    judge: deterministic
++    description: 普通顺利收尾不增加过程复盘
++    given: 用户只要求结束一次顺利完成的会话，没有要求复盘、分析过程或优化流程
++    expect:
++      must:
++        - 按既有收尾流程处理实际遗留事项
++      must_not:
++        - 输出过程复盘或优化方案章节
++        - 为复盘额外扫描仓库或新建报告文件
+diff --git a/skills/session-wrap/references/process-review.md b/skills/session-wrap/references/process-review.md
+new file mode 100644
+index 0000000..0497ad2
+--- /dev/null
++++ b/skills/session-wrap/references/process-review.md
+@@ -0,0 +1,43 @@
++# 过程复盘
++
++用户要求复盘、分析过程或优化流程时，检查本次会话的执行过程，找出值得保留的做法和有证据的改进点。普通收尾不展开本环节。
++
++## 取证
++
++只使用对话、已有任务记录、排查记录和实际验证记录，不为复盘额外扫描仓库。按意图确认、探索、实施、验证和返工重建粗略过程，只分析影响明显的阶段。
++
++有时间戳时据此计算耗时，区分执行、工具运行、外部等待和用户等待；没有时间戳时只比较阶段、返工和等待，明确无法准确计时，不编造分钟数或占比。事实不足的项标为未知。
++
++## 提取发现
++
++从同一过程提取以下发现，空项省略，不拆成额外流程：
++
++- **主要耗时**：时间或轮次主要花在哪，原因是探索、返工、验证还是等待。
++- **坑与返工**：哪些假设、方案或产物被推翻，代价是什么，哪条决定性证据本可更早取得，下次最短路径是什么。
++- **可精简**：哪些目标偏移、设计、检查或沟通没有带来相应价值。过度设计须有超出目标、无现实风险收益或无实际复用对象等依据；过度检查须有重复证据、执行后没有新信息或成本明显高于风险等依据。
++- **应保留**：哪些提问、决策或验证降低了风险与返工，复用条件是什么。
++
++分析原因时同时检查目标偏移、关键假设、决策依据、沟通节奏和验证盲区，不另设固定章节。必要的安全、授权和原始场景验证不能仅因耗时判为过度检查。
++
++排查弯路的坑候选仍按既有弯路复盘规则沉淀；过程复盘只引用对应发现，不重复生成候选。
++
++## 优化方案
++
++每条建议必须对应一个具体发现，写清改什么、预期减少的成本，以及可能损失的保障或适用边界。优先调整下次执行顺序、提问或验证方式；需要修改文档或其他 skill 时只给出建议，按对应流程另行确认，不因单次会话自动修改。
++
++## 输出
++
++在第一轮收尾清单前直接输出，不新建报告文件：
++
++```text
++过程复盘
++- 主要耗时：<阶段> → <原因与证据>
++- 坑与返工：<问题> → <代价> → <下次最短路径>
++- 可精简：<设计 / 检查 / 沟通> → <判定依据>
++- 应保留：<有效做法> → <作用>
++
++优化方案
++- <具体调整> → 对应 <发现> → <预期收益>；边界：<可能风险>
++```
++
++需要执行的优化仍按风险与授权归入现有收尾清单，不在优化方案和清单中重复描述。
+diff --git a/skills/session-wrap/tests/test_session_wrap_contract.py b/skills/session-wrap/tests/test_session_wrap_contract.py
+index 35453f7..5c5b32f 100644
+--- a/skills/session-wrap/tests/test_session_wrap_contract.py
++++ b/skills/session-wrap/tests/test_session_wrap_contract.py
+@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
+ SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+ PLAN = (ROOT / "references" / "plan-synthesis.md").read_text(encoding="utf-8")
+ DETOUR = (ROOT / "references" / "detour-review.md").read_text(encoding="utf-8")
++PROCESS = (ROOT / "references" / "process-review.md").read_text(encoding="utf-8")
+ 
+ 
+ class SessionWrapContractTest(unittest.TestCase):
+@@ -29,6 +30,18 @@ class SessionWrapContractTest(unittest.TestCase):
+         self.assertIn("区分事实、推测和未知", SKILL)
+         self.assertIn("验证不足时建议补验", SKILL)
+ 
++    def test_explicit_process_review_is_evidence_bound_and_actionable(self) -> None:
++        self.assertIn("references/process-review.md", SKILL)
++        self.assertIn("普通收尾不展开", SKILL)
++        self.assertIn("只使用对话和已有执行记录", SKILL)
++        for rule in ("不编造分钟数或占比", "事实不足的项标为未知", "每条建议必须对应一个具体发现"):
++            self.assertIn(rule, PROCESS)
++        for section in ("**主要耗时**", "**坑与返工**", "**可精简**", "**应保留**"):
++            self.assertIn(section, PROCESS)
++        self.assertIn("必要的安全、授权和原始场景验证", PROCESS)
++        self.assertIn("不新建报告文件", PROCESS)
++        self.assertIn("需要执行的优化仍归入清单", SKILL)
++
+     def test_current_delivery_gaps_stay_in_current_scope(self) -> None:
+         self.assertIn("影响当前目标或 criterion 的问题留在当前交付中处理", SKILL)
+         self.assertIn("没有转成后续事项来规避本次交付", SKILL)

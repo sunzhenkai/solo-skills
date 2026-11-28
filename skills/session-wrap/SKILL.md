@@ -27,7 +27,7 @@ description: 会话收尾：在准备结束会话或确认是否中止时，先�
     4. 已合入或已提 MR/PR → 再评估清理 worktree 和临时分支（清理前先核对无未提交改动、无独有未推提交，未知文件保留）。
   - **非代码交付**：文档、配置、脚本、调研或外部回复，核对产物已放至目标位置或发出，无半成品草稿。
 - **现场清空与任务状态**：核对临时服务、后台任务、容器/端口、临时文件与 `git stash`，以及调试日志、mock、跳过校验开关或临时配置是否还原；`taskrail` 任务完成态交 `taskrail` `close`（`done` 并归档），暂停/放弃态按 [references/incomplete-abort.md](references/incomplete-abort.md) 处理。
-- **遗留落宿与按信号附带沉淀**：无关但有证据的旧 bug、技术债、过时文档或环境隐患归为遗留，须给出持久落点或确认不跟踪（见 [references/plan-synthesis.md](references/plan-synthesis.md)）。跨任务有复用价值的内容按同表路由；排查绕过明显弯路时按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选（仅命中信号时附带）。
+- **遗留落宿与按信号附带沉淀**：无关但有证据的旧 bug、技术债、过时文档或环境隐患归为遗留，须给出持久落点或确认不跟踪（见 [references/plan-synthesis.md](references/plan-synthesis.md)）。跨任务有复用价值的内容按同表路由；排查绕过明显弯路时按 [references/detour-review.md](references/detour-review.md) 做弯路复盘，产出坑候选（仅命中信号时附带）；用户要求复盘或优化流程时按 [references/process-review.md](references/process-review.md) 只依据已有记录复盘，普通收尾不展开。
 
 ## 2. 汇总简明清单，等用户确认
 
